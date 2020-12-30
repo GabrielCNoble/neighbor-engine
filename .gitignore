@@ -1,0 +1,13 @@
+*.o
+*.obj
+*.mtl
+*.mof
+*.anf
+*.exe
+*.map
+*.png
+*.jpg
+*.dll
+lib
+models
+textures

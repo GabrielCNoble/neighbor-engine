@@ -1,0 +1,176 @@
+- camera    
+    - rail system
+        - freaking define it
+        - allow a camera to turn around corners
+        - define how to add those to the world
+
+    - frustum culling
+        - for entities
+        - for lights
+        - for world
+
+    - light cluster population
+
+    - slanted near plane
+
+- world
+    - file format
+        - section for geometry data
+            - will contain regular .mof file contents
+        - section for rails
+        - section for entities
+        - section for particle systems
+        - section for lights
+        - section for triggers
+        - section for colliders
+
+    - single allocation for all world geometry
+        - build dbvh tree of the faces
+            - maybe serialize this?
+
+        - only the indices of visible parts after frustum culling will be uploaded.
+
+        - the world geometry will be organized in faces, and each face will be "referenced"
+        by the dbvh by the first index. So, face 0 will generate indexes 0, 1, 2, 2, 3, 0, 
+        and this pattern will be the same for all faces in the world. 
+
+    - dbvh
+        - each leaf node will contain a struct that holds the first index of a face, and which
+        batch it belongs to. This is needed to allow generating the batches on the fly, so only
+        what passes frustum culling gets rendered.
+
+
+
+- animation
+    - skeletal animation
+        OK - skeleton importing
+        - weights importing
+        OK - animation importing
+        OK - skinning
+        - keyframe interpolation
+        - mixing animations
+            - for instance, have separate animations for the legs and for the upper body, so that the animation of running is independent of
+            the animation for the recoil of the gun while firing.
+
+            - mixing bone poses generated with code
+                - for example, to allow aiming at different directions without needing any actual animation for this
+                
+        - for each animated instance, a new allocation will be made, and skinned vertices will be transferred to it before rendering
+
+    - attachment points in bones (to attach stuff like weapons, lights, etc)
+
+    - callbacks 
+        - called at a specific point during the animation, to allow stuff like sounds or particle systems to be spawned
+        - has to be framerate independent. At each update, take the delta time and find out how many of those callbacks should've been
+        called. Call them all, and pass to each how much time has passed since they should've been called. For instance, if there are
+        to callbacks, one at 1.0ms and other at 2.5ms, and the frametime is around 16.6ms, both will be called, but the first will
+        receive a time of 15.6ms since it was called, while the second will receive a time of 14.1ms since it was called. The code 
+        inside those callbacks should deal with it then.
+
+    - use root bone transformation as source of displacement for colliders
+        - so walk/run animations are properly matched to walk/run speed. 
+        - also for jumping animations. 
+        - also for stepping up/down stairs.
+
+
+
+- sound
+    - basically everything
+
+
+- rendering
+    - "immediate" mode
+        OK - colors
+        - textures
+
+    - lights
+    - shadow maps
+
+
+
+- particles
+    -particle systems
+        - particle emitters
+            - multiple of those form particle systems
+
+        - should allow to receive a time offset, that will advance them to that time. This is necessary to have particle
+        systems spawned in animation callbacks to behave in a frame independent manner.
+
+
+
+- physics
+    OK - different lists for movable, static and trigger colliders
+        OK - static colliders by themselves don't collide with anything else, so no reason to check them against
+        anything else. It's necessary to check other colliders against it. Notice the order.
+
+        OK - triggers need to collide with both movable and static colliders, but not with themselves
+
+    OK - same dbvh for static and movable colliders
+
+    OK - raycast test
+        OK - static colliders
+        OK - movable colliders
+
+    OK - report which colliders collided
+        OK - add a global list, that's cleared every physics step, and gets populated one movable collider at the time. Each collider will contain an offset into this list, and a 
+        counter of how many colliders it's touching
+
+        OK - update routine should iterate over triggers and intersect them against the main dbvh. Just like 
+        it's done with movable colliders
+            OK - necessary to have triggers react to static colliders
+
+    OK - user data pointer in colliders
+        
+    OK - static colliders should be allowed to be moved by code
+        OK - necessary for things like doors/elevators/anything that moves but acts like a barrier
+        OK - update dbvh node after movement
+
+    - fix movable colliders tunneling though static colliders that are moving
+        - problem is likely happening because when collision between movable and moved static collider is computed,
+        the movement trace is beginning inside the static collider, and so the collision is lost. The intersection time
+        is likely becoming negative, which could be useful to fix this situation. It'll essentially tell where to place 
+        the movable collider.
+
+        - rework trace code?
+
+    - collision with slanted boxes
+        - compute collision planes for slanted boxes
+        - necessary for staircases, although this needs some more thought. Maybe it'd be better to have a trigger that indicates the player is on a staircase,
+        and have it enter a special mode where its height is controlled by code instead of the physics engine. Might be easier to synchorize the height with the
+        stepping up/down animation
+
+        - well, also necessary because the whole world won't be boxy.
+
+    - character colliders standing still on slopes
+        - only necessary if slanted surfaces are to be walkable.
+
+
+
+- editor
+    - placement of entities/world geometry/rails/triggers/etc
+        - picking
+        - manipulation
+
+
+
+- game
+    OK - triggers
+        OK - necessary for damage areas, doors, or anything that depends on the player stepping on it.
+        OK - those should be entities as well, so they can be parented to other entities.
+
+    - weapons
+        - player weapon is similar to shocksplinter
+
+    - doors
+        - metroid style, shoot to open (although some may be by proximity)
+
+    - stairs
+        - collider position will be controlled by animation system
+        - since it's going to be animation based, all stairs will need to have the same step size, but may have as many
+        steps as wished.
+
+    - enemies 
+    - non-linear curve to deaccelerate the player at the end of jump
+        - only necessary if the jump movement doesn't end up being controlled by the animation system
+
+    - animation for jumping over low obstacles "parkout style"

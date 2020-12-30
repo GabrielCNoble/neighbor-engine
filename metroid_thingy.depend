@@ -1,0 +1,615 @@
+# depslib dependency file v1.0
+1608960248 source:c:\users\gabri\documents\compiler\metroid_thingy\main.c
+	"SDL2/SDL.h"
+	<stdio.h>
+	"game.h"
+
+1564029384 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl.h
+	"SDL_main.h"
+	"SDL_stdinc.h"
+	"SDL_assert.h"
+	"SDL_atomic.h"
+	"SDL_audio.h"
+	"SDL_clipboard.h"
+	"SDL_cpuinfo.h"
+	"SDL_endian.h"
+	"SDL_error.h"
+	"SDL_events.h"
+	"SDL_filesystem.h"
+	"SDL_gamecontroller.h"
+	"SDL_haptic.h"
+	"SDL_hints.h"
+	"SDL_joystick.h"
+	"SDL_loadso.h"
+	"SDL_log.h"
+	"SDL_messagebox.h"
+	"SDL_mutex.h"
+	"SDL_power.h"
+	"SDL_render.h"
+	"SDL_rwops.h"
+	"SDL_sensor.h"
+	"SDL_shape.h"
+	"SDL_system.h"
+	"SDL_thread.h"
+	"SDL_timer.h"
+	"SDL_version.h"
+	"SDL_video.h"
+	"begin_code.h"
+	"close_code.h"
+
+1564029384 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_main.h
+	"SDL_stdinc.h"
+	"begin_code.h"
+	"close_code.h"
+
+1564029384 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_stdinc.h
+	"SDL_config.h"
+	<sys/types.h>
+	<stdio.h>
+	<stdlib.h>
+	<stddef.h>
+	<stdarg.h>
+	<stdlib.h>
+	<malloc.h>
+	<stddef.h>
+	<stdarg.h>
+	<memory.h>
+	<string.h>
+	<strings.h>
+	<wchar.h>
+	<inttypes.h>
+	<stdint.h>
+	<ctype.h>
+	<math.h>
+	<float.h>
+	<alloca.h>
+	<malloc.h>
+	<malloc.h>
+	<malloc.h>
+	<stdlib.h>
+	<sal.h>
+	"begin_code.h"
+	"close_code.h"
+
+1564029384 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_config.h
+	"SDL_platform.h"
+
+1564029384 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_platform.h
+	"AvailabilityMacros.h"
+	"TargetConditionals.h"
+	<winapifamily.h>
+	"begin_code.h"
+	"close_code.h"
+
+1564029384 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\begin_code.h
+
+1564029384 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\close_code.h
+
+1564029384 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_assert.h
+	"SDL_config.h"
+	"begin_code.h"
+	<signal.h>
+	"close_code.h"
+
+1564029384 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_atomic.h
+	"SDL_stdinc.h"
+	"SDL_platform.h"
+	"begin_code.h"
+	<sys/cpuinline.h>
+	<mbarrier.h>
+	"close_code.h"
+
+1564029384 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_audio.h
+	"SDL_stdinc.h"
+	"SDL_error.h"
+	"SDL_endian.h"
+	"SDL_mutex.h"
+	"SDL_thread.h"
+	"SDL_rwops.h"
+	"begin_code.h"
+	"close_code.h"
+
+1564029384 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_error.h
+	"SDL_stdinc.h"
+	"begin_code.h"
+	"close_code.h"
+
+1564029384 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_endian.h
+	"SDL_stdinc.h"
+	<endian.h>
+	"begin_code.h"
+	"close_code.h"
+
+1564029384 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_mutex.h
+	"SDL_stdinc.h"
+	"SDL_error.h"
+	"begin_code.h"
+	"close_code.h"
+
+1564029384 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_thread.h
+	"SDL_stdinc.h"
+	"SDL_error.h"
+	"SDL_atomic.h"
+	"SDL_mutex.h"
+	"begin_code.h"
+	<process.h>
+	<process.h>
+	<stdlib.h>
+	"close_code.h"
+
+1564029384 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_rwops.h
+	"SDL_stdinc.h"
+	"SDL_error.h"
+	"begin_code.h"
+	"close_code.h"
+
+1564029384 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_clipboard.h
+	"SDL_stdinc.h"
+	"begin_code.h"
+	"close_code.h"
+
+1564029384 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_cpuinfo.h
+	"SDL_stdinc.h"
+	<intrin.h>
+	<intrin.h>
+	<altivec.h>
+	<arm_neon.h>
+	<armintr.h>
+	<arm_neon.h>
+	<armintr.h>
+	<arm_neon.h>
+	<mm3dnow.h>
+	<immintrin.h>
+	<mmintrin.h>
+	<xmmintrin.h>
+	<emmintrin.h>
+	<pmmintrin.h>
+	"begin_code.h"
+	"close_code.h"
+
+1564029384 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_events.h
+	"SDL_stdinc.h"
+	"SDL_error.h"
+	"SDL_video.h"
+	"SDL_keyboard.h"
+	"SDL_mouse.h"
+	"SDL_joystick.h"
+	"SDL_gamecontroller.h"
+	"SDL_quit.h"
+	"SDL_gesture.h"
+	"SDL_touch.h"
+	"begin_code.h"
+	"close_code.h"
+
+1564029384 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_video.h
+	"SDL_stdinc.h"
+	"SDL_pixels.h"
+	"SDL_rect.h"
+	"SDL_surface.h"
+	"begin_code.h"
+	"close_code.h"
+
+1564029384 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_pixels.h
+	"SDL_stdinc.h"
+	"SDL_endian.h"
+	"begin_code.h"
+	"close_code.h"
+
+1564029384 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_rect.h
+	"SDL_stdinc.h"
+	"SDL_error.h"
+	"SDL_pixels.h"
+	"SDL_rwops.h"
+	"begin_code.h"
+	"close_code.h"
+
+1564029384 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_surface.h
+	"SDL_stdinc.h"
+	"SDL_pixels.h"
+	"SDL_rect.h"
+	"SDL_blendmode.h"
+	"SDL_rwops.h"
+	"begin_code.h"
+	"close_code.h"
+
+1564029384 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_blendmode.h
+	"begin_code.h"
+	"close_code.h"
+
+1564029384 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_keyboard.h
+	"SDL_stdinc.h"
+	"SDL_error.h"
+	"SDL_keycode.h"
+	"SDL_video.h"
+	"begin_code.h"
+	"close_code.h"
+
+1564029384 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_keycode.h
+	"SDL_stdinc.h"
+	"SDL_scancode.h"
+
+1564029384 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_scancode.h
+	"SDL_stdinc.h"
+
+1564029384 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_mouse.h
+	"SDL_stdinc.h"
+	"SDL_error.h"
+	"SDL_video.h"
+	"begin_code.h"
+	"close_code.h"
+
+1564029384 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_joystick.h
+	"SDL_stdinc.h"
+	"SDL_error.h"
+	"begin_code.h"
+	"close_code.h"
+
+1564029384 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_gamecontroller.h
+	"SDL_stdinc.h"
+	"SDL_error.h"
+	"SDL_rwops.h"
+	"SDL_joystick.h"
+	"begin_code.h"
+	"close_code.h"
+
+1564029384 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_quit.h
+	"SDL_stdinc.h"
+	"SDL_error.h"
+
+1564029384 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_gesture.h
+	"SDL_stdinc.h"
+	"SDL_error.h"
+	"SDL_video.h"
+	"SDL_touch.h"
+	"begin_code.h"
+	"close_code.h"
+
+1564029384 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_touch.h
+	"SDL_stdinc.h"
+	"SDL_error.h"
+	"SDL_video.h"
+	"begin_code.h"
+	"close_code.h"
+
+1564029384 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_filesystem.h
+	"SDL_stdinc.h"
+	"begin_code.h"
+	"close_code.h"
+
+1564029384 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_haptic.h
+	"SDL_stdinc.h"
+	"SDL_error.h"
+	"SDL_joystick.h"
+	"begin_code.h"
+	"close_code.h"
+
+1564029384 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_hints.h
+	"SDL_stdinc.h"
+	"begin_code.h"
+	"close_code.h"
+
+1564029384 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_loadso.h
+	"SDL_stdinc.h"
+	"SDL_error.h"
+	"begin_code.h"
+	"close_code.h"
+
+1564029384 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_log.h
+	"SDL_stdinc.h"
+	"begin_code.h"
+	"close_code.h"
+
+1564029384 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_messagebox.h
+	"SDL_stdinc.h"
+	"SDL_video.h"
+	"begin_code.h"
+	"close_code.h"
+
+1564029384 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_power.h
+	"SDL_stdinc.h"
+	"begin_code.h"
+	"close_code.h"
+
+1564029384 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_render.h
+	"SDL_stdinc.h"
+	"SDL_rect.h"
+	"SDL_video.h"
+	"begin_code.h"
+	"close_code.h"
+
+1564029384 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_sensor.h
+	"SDL_stdinc.h"
+	"SDL_error.h"
+	"begin_code.h"
+	"close_code.h"
+
+1564029384 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_shape.h
+	"SDL_stdinc.h"
+	"SDL_pixels.h"
+	"SDL_rect.h"
+	"SDL_surface.h"
+	"SDL_video.h"
+	"begin_code.h"
+	"close_code.h"
+
+1564029384 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_system.h
+	"SDL_stdinc.h"
+	"SDL_keyboard.h"
+	"SDL_render.h"
+	"SDL_video.h"
+	"begin_code.h"
+	"close_code.h"
+
+1564029384 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_timer.h
+	"SDL_stdinc.h"
+	"SDL_error.h"
+	"begin_code.h"
+	"close_code.h"
+
+1564029384 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_version.h
+	"SDL_stdinc.h"
+	"begin_code.h"
+	"close_code.h"
+
+1608088245 c:\users\gabri\documents\compiler\metroid_thingy\draw.h
+	"d_com.h"
+	"d_load.h"
+
+1609118952 c:\users\gabri\documents\compiler\metroid_thingy\lib\dstuff\ds_vector.h
+	<math.h>
+
+1608088309 source:c:\users\gabri\documents\compiler\metroid_thingy\draw.c
+	"draw.h"
+	"SDL2/SDL.h"
+	"GL/glew.h"
+	"dstuff/ds_stack_list.h"
+	"dstuff/ds_file.h"
+	"dstuff/ds_mem.h"
+	"dstuff/ds_obj.h"
+	<stdlib.h>
+	<stdio.h>
+
+1599740400 c:\users\gabri\documents\compiler\metroid_thingy\lib\dstuff\ds_stack_list.h
+	<stdint.h>
+	<string.h>
+	<stdlib.h>
+	<stdio.h>
+	"ds_mem.h"
+
+1608346258 c:\users\gabri\documents\compiler\metroid_thingy\lib\dstuff\ds_mem.h
+	<stdint.h>
+	<string.h>
+	<stdlib.h>
+	<stdlib.h>
+	<stdio.h>
+	<string.h>
+
+1608117329 source:c:\users\gabri\documents\compiler\metroid_thingy\impl.c
+	"dstuff/ds_vector.h"
+	"dstuff/ds_mem.h"
+	"dstuff/ds_stack_list.h"
+	"dstuff/ds_list.h"
+	"dstuff/ds_dbvh.h"
+	"dstuff/ds_file.h"
+	"dstuff/ds_matrix.h"
+	"dstuff/ds_alloc.h"
+	"dstuff/ds_path.h"
+	"dstuff/ds_obj.h"
+	"stb/stb_image.h"
+
+1501501581 c:\users\gabri\documents\compiler\metroid_thingy\lib\glew\include\gl\glew.h
+	<stddef.h>
+	<inttypes.h>
+	<stdint.h>
+	<inttypes.h>
+	<Availability.h>
+	<OpenGL/glu.h>
+	<GL/glu.h>
+
+1608859212 c:\users\gabri\documents\compiler\metroid_thingy\lib\dstuff\ds_file.h
+	<stdio.h>
+	<stdint.h>
+	<stdlib.h>
+	"ds_mem.h"
+	<stdarg.h>
+
+1607818749 c:\users\gabri\documents\compiler\metroid_thingy\input.h
+	"SDL2/SDL.h"
+
+1607819065 source:c:\users\gabri\documents\compiler\metroid_thingy\input.c
+	"input.h"
+
+1608045186 c:\users\gabri\documents\compiler\metroid_thingy\lib\dstuff\ds_matrix.h
+	"ds_vector.h"
+
+1607830079 c:\users\gabri\documents\compiler\metroid_thingy\lib\dstuff\ds_alloc.h
+	"ds_stack_list.h"
+	"ds_list.h"
+	<stdint.h>
+
+1600124682 c:\users\gabri\documents\compiler\metroid_thingy\lib\dstuff\ds_list.h
+	<stdint.h>
+	<string.h>
+	<stdlib.h>
+	<stdio.h>
+	"ds_mem.h"
+
+1607863930 c:\users\gabri\documents\compiler\metroid_thingy\lib\tinyobjloader\tinyobj_loader_c.h
+	<stddef.h>
+	<stdio.h>
+	<assert.h>
+	<string.h>
+	<errno.h>
+	<stdlib.h>
+
+1607880039 c:\users\gabri\documents\compiler\metroid_thingy\lib\dstuff\ds_obj.h
+	"ds_xchg.h"
+	"ds_file.h"
+	"ds_path.h"
+	<stdio.h>
+	<string.h>
+	<stdlib.h>
+	<limits.h>
+
+1593151702 c:\users\gabri\documents\compiler\metroid_thingy\lib\dstuff\ds_xchg.h
+	"ds_list.h"
+	"ds_vector.h"
+
+1600052733 c:\users\gabri\documents\compiler\metroid_thingy\lib\dstuff\ds_path.h
+	<stdint.h>
+	<dirent.h>
+	<string.h>
+	<limits.h>
+	<stdlib.h>
+
+1609320100 source:c:\users\gabri\documents\compiler\metroid_thingy\game.c
+	"dstuff/ds_stack_list.h"
+	"dstuff/ds_mem.h"
+	"dstuff/ds_file.h"
+	"dstuff/ds_vector.h"
+	"game.h"
+	"input.h"
+	"anim.h"
+	"physics.h"
+	"editor.h"
+	"world.h"
+	<string.h>
+	<stdio.h>
+
+1609118728 c:\users\gabri\documents\compiler\metroid_thingy\game.h
+	"dstuff/ds_vector.h"
+	"dstuff/ds_matrix.h"
+	"dstuff/ds_list.h"
+	"physics.h"
+	"anim.h"
+	"r_draw.h"
+	<stdint.h>
+
+1593151698 c:\users\gabri\documents\compiler\metroid_thingy\lib\stb\stb_image.h
+	"stb_image.h"
+	<stdio.h>
+	<stdlib.h>
+	<stdarg.h>
+	<stddef.h>
+	<stdlib.h>
+	<string.h>
+	<limits.h>
+	<math.h>
+	<stdio.h>
+	<assert.h>
+	<stdint.h>
+	<emmintrin.h>
+	<intrin.h>
+	<arm_neon.h>
+
+1608524991 source:c:\users\gabri\documents\compiler\metroid_thingy\physics.c
+	"physics.h"
+	"dstuff/ds_stack_list.h"
+	"dstuff/ds_list.h"
+	"dstuff/ds_mem.h"
+	"dstuff/ds_dbvh.h"
+
+1608524993 c:\users\gabri\documents\compiler\metroid_thingy\physics.h
+	"dstuff/ds_vector.h"
+	"dstuff/ds_list.h"
+	<stdint.h>
+
+1608517830 c:\users\gabri\documents\compiler\metroid_thingy\lib\dstuff\ds_dbvh.h
+	<stdint.h>
+	"ds_vector.h"
+	"ds_list.h"
+	"ds_stack_list.h"
+	<stdio.h>
+	<float.h>
+
+1608220393 c:\users\gabri\documents\compiler\metroid_thingy\d_com.h
+	"dstuff/ds_vector.h"
+	"dstuff/ds_matrix.h"
+	"dstuff/ds_alloc.h"
+	<stdint.h>
+
+1608346951 c:\users\gabri\documents\compiler\metroid_thingy\d_load.h
+	"d_com.h"
+
+1608347199 source:c:\users\gabri\documents\compiler\metroid_thingy\d_load.c
+	"d_load.h"
+	"GL/glew.h"
+	"stb/stb_image.h"
+	"dstuff/ds_stack_list.h"
+	"dstuff/ds_file.h"
+	"dstuff/ds_mem.h"
+	"dstuff/ds_obj.h"
+	"dstuff/ds_alloc.h"
+	"draw.h"
+
+1609320297 source:c:\users\gabri\documents\compiler\metroid_thingy\anim.c
+	<stdio.h>
+	"anim.h"
+	"r_draw.h"
+	"dstuff/ds_file.h"
+	"dstuff/ds_stack_list.h"
+	"dstuff/ds_mem.h"
+
+1609290246 c:\users\gabri\documents\compiler\metroid_thingy\anim.h
+	"dstuff/ds_vector.h"
+	"dstuff/ds_matrix.h"
+	"dstuff/ds_list.h"
+	"dstuff/ds_stack_list.h"
+	<stdint.h>
+
+1608963237 c:\users\gabri\documents\compiler\metroid_thingy\r_draw.h
+	"r_com.h"
+	"r_main.h"
+
+1608999883 c:\users\gabri\documents\compiler\metroid_thingy\r_main.h
+	"r_com.h"
+
+1608963255 source:c:\users\gabri\documents\compiler\metroid_thingy\r_draw.c
+	"r_draw.h"
+	"SDL2/SDL.h"
+	"GL/glew.h"
+	"dstuff/ds_stack_list.h"
+	"dstuff/ds_file.h"
+	"dstuff/ds_mem.h"
+	"dstuff/ds_obj.h"
+	<stdlib.h>
+	<stdio.h>
+
+1608999857 source:c:\users\gabri\documents\compiler\metroid_thingy\r_main.c
+	"r_main.h"
+	"SDL2/SDL.h"
+	"GL/glew.h"
+	"stb/stb_image.h"
+	"dstuff/ds_stack_list.h"
+	"dstuff/ds_file.h"
+	"dstuff/ds_mem.h"
+	"dstuff/ds_obj.h"
+	"dstuff/ds_alloc.h"
+	"r_draw.h"
+	"anim.h"
+
+1609320312 c:\users\gabri\documents\compiler\metroid_thingy\r_com.h
+	"dstuff/ds_vector.h"
+	"dstuff/ds_matrix.h"
+	"dstuff/ds_alloc.h"
+	<stdint.h>
+
+1608963364 source:c:\users\gabri\documents\compiler\metroid_thingy\editor.c
+	"editor.h"
+	"dstuff/ds_stack_list.h"
+	"dstuff/ds_list.h"
+
+1608963361 c:\users\gabri\documents\compiler\metroid_thingy\editor.h
+	"dstuff/ds_vector.h"
+	"dstuff/ds_matrix.h"
+	"dstuff/ds_alloc.h"
+
+1608998673 c:\users\gabri\documents\compiler\metroid_thingy\world.h
+	<stdint.h>
+	"r_main.h"
+
+1608998696 source:c:\users\gabri\documents\compiler\metroid_thingy\world.c
+	"world.h"
+	"dstuff/ds_dbvh.h"
+	"dstuff/ds_alloc.h"
+

@@ -13,6 +13,12 @@ struct a_weight_t
     float weight;
 };
 
+struct a_weight_range_t
+{
+    uint32_t start;
+    uint32_t count;
+};
+
 struct a_bone_t  
 {
     mat4_t transform;
@@ -65,33 +71,6 @@ struct a_transform_range_t
     uint16_t count;
 };
 
-//struct a_channel_t
-//{
-//    uint32_t start;
-//    uint32_t count;
-//};
-
-//struct a_animation_t
-//{
-//    char *name;
-//    uint32_t index;
-//    uint32_t duration;
-//    float framerate;
-//    uint32_t bone_count;
-//    
-//    /* channels, one per bone. Each channel is a slice into the
-//    keyframe_indices array */
-//    struct a_channel_t *channels;
-//    uint32_t keyframe_count;
-//    /* indices into the keyframes array, grouped by bone, required
-//    to quickly find the previous/next keyframe for a specific bone,
-//    starting from a specific keyframe */
-//    uint32_t *keyframe_indices;
-//    
-//    /* keyframes, sorted by time */
-//    struct a_keyframe_t *keyframes;
-//};
-
 struct a_animation_t
 {
     char *name;
@@ -132,10 +111,6 @@ struct a_mixer_t
     mat4_t *transforms;
 };
 
-
-
-
-
 /* serialization structs */
 struct a_weight_record_t 
 {
@@ -143,12 +118,14 @@ struct a_weight_record_t
     struct a_weight_t weight;
 };
 
-struct a_weight_section_t
-{
-    uint32_t weight_count;
-    struct a_weight_record_t weights[];
-};
-
+#define a_weight_section_t(w_count, r_count)                  \
+{                                                             \
+    uint32_t weight_count;                                    \
+    uint32_t range_count;                                     \
+    struct a_weight_t weights[w_count];                  \
+    struct a_weight_range_t ranges[r_count];              \
+}
+    
 struct a_skeleton_section_t
 {
     uint32_t bone_count;

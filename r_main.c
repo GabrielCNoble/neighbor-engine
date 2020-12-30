@@ -327,14 +327,14 @@ struct r_model_t *r_LoadModel(char *file_name)
         fclose(file);
         
         struct a_skeleton_section_t *skeleton_section;
-        struct a_weight_section_t *weight_section;
+        struct a_weight_section_t(0, 0) *weight_header;
         struct r_vert_section_t *verts;
         struct r_index_section_t *indexes;
         struct r_batch_section_t *batch_section;
         struct r_material_section_t *materials;
         
         ds_get_section_data(file_buffer, "[skeleton]", (void **)&skeleton_section, NULL);
-        ds_get_section_data(file_buffer, "[weights]", (void **)&weight_section, NULL);
+        ds_get_section_data(file_buffer, "[weights]", (void **)&weight_header, NULL);
         ds_get_section_data(file_buffer, "[vertices]", (void **)&verts, NULL);
         ds_get_section_data(file_buffer, "[indices]", (void **)&indexes, NULL);
         ds_get_section_data(file_buffer, "[batches]", (void **)&batch_section, NULL);
@@ -390,42 +390,67 @@ struct r_model_t *r_LoadModel(char *file_name)
         
         struct a_skeleton_t *skeleton = NULL;
         struct a_weight_t *weights = NULL;
+        struct a_weight_range_t *weight_ranges = NULL;
         uint32_t weight_count = 0;
+        uint32_t weight_range_count = 0;
         
         if(skeleton_section && skeleton_section->bone_count)
         {
             skeleton = a_CreateSkeleton(skeleton_section->bone_count, skeleton_section->bones);
-            weights = mem_Calloc(verts->vert_count * R_MAX_VERTEX_WEIGHTS, sizeof(struct a_weight_t));
-            uint32_t cur_index = 0xffffffff;
-            uint32_t cur_index_count = 0;
+            struct a_weight_section_t(weight_header->weight_count, weight_header->range_count) *weight_data = (void *)weight_header;
             
-            for(uint32_t weight_index = 0; weight_index < weight_section->weight_count; weight_index++)
-            {
-                struct a_weight_record_t *weight = weight_section->weights + weight_index;
-                if(cur_index != weight->vert_index)
-                {
-                    if(cur_index_count < R_MAX_VERTEX_WEIGHTS && cur_index != 0xffffffff)
-                    {
-                        while(cur_index_count < R_MAX_VERTEX_WEIGHTS)
-                        {
-                            weights[weight_count].bone_index = 0xffffffff;
-                            weights[weight_count].weight = 0.0;
-                            weight_count++;
-                            cur_index_count++;
-                        }
-                    }
-                    cur_index = weight->vert_index;
-                    cur_index_count = 0;
-                }
-                
-                if(cur_index_count < R_MAX_VERTEX_WEIGHTS)
-                {
-                    weights[weight_count] = weight->weight;
-                    weight_count++;
-                    cur_index_count++;
-                }
-            }
-            weight_count = verts->vert_count * R_MAX_VERTEX_WEIGHTS;
+            weight_count = weight_header->weight_count;
+            weight_range_count = weight_header->range_count;
+            weights = weight_data->weights;
+            weight_ranges = weight_data->ranges;
+//            weights = mem_Calloc(verts->vert_count * R_MAX_VERTEX_WEIGHTS, sizeof(struct a_weight_t));
+//            weights = mem_Calloc(weight_header->weight_count, sizeof(struct a_weight_t));
+//            weight_ranges = mem_calloc(weight_header->range_count, sizeof(struct a_weight_range_t));
+//            uint32_t cur_index = 0xffffffff;
+//            uint32_t cur_index_count = 0;
+//            uint32_t first_weight;
+//            float total_weight = 0.0;
+//            
+//            
+//            for(uint32_t weight_index = 0; weight_index < weight_section->weight_count; weight_index++)
+//            {
+//                struct a_weight_record_t *weight = weight_section->weights + weight_index;
+//                if(cur_index != weight->vert_index)
+//                {
+//                    if(cur_index != 0xffffffff)
+//                    {
+////                        float missing_weight = 1.0 - total_weight;
+////                        
+////                        for(uint32_t fix_index = first_weight; fix_index < weight_count; fix_index++)
+////                        {
+////                            struct a_weight_t *fix_weight = weights + fix_index;
+////                            float proportion = fix_weight->weight / total_weight;
+////                            fix_weight->weight += missing_weight * proportion;
+////                        }
+//                        
+//                        while(cur_index_count < R_MAX_VERTEX_WEIGHTS)
+//                        {
+//                            weights[weight_count].bone_index = 0xffffffff;
+//                            weights[weight_count].weight = 0.0;
+//                            weight_count++;
+//                            cur_index_count++;
+//                        }
+//                    }
+//                    first_weight = weight_count;
+//                    cur_index = weight->vert_index;
+//                    cur_index_count = 0;
+//                    total_weight = 0.0;
+//                }
+//                
+//                if(cur_index_count < R_MAX_VERTEX_WEIGHTS)
+//                {
+//                    total_weight += weight->weight.weight;
+//                    weights[weight_count] = weight->weight;
+//                    weight_count++;
+//                    cur_index_count++;
+//                }
+//            }
+//            weight_count = verts->vert_count * R_MAX_VERTEX_WEIGHTS;
         }
         struct r_model_create_info_t create_info = {};
         create_info.vert_count = verts->vert_count;
@@ -437,15 +462,13 @@ struct r_model_t *r_LoadModel(char *file_name)
         create_info.skeleton = skeleton;
         create_info.weight_count = weight_count;
         create_info.weights = weights;
+        create_info.weight_range_count = weight_range_count;
+        create_info.weight_ranges = weight_ranges;
         
         
         model = r_CreateModel(&create_info);
         mem_Free(batches);
         mem_Free(file_buffer);
-        if(weights)
-        {
-            mem_Free(weights);
-        }
     }
     
     return model;
@@ -479,9 +502,17 @@ struct r_model_t *r_CreateModel(struct r_model_create_info_t *create_info)
         model->batches[batch_index].start += start;
     }
     model->skeleton = create_info->skeleton;
-    model->weight_count = create_info->weight_count;
-    model->weights = mem_Calloc(create_info->weight_count, sizeof(struct a_weight_t));
-    memcpy(model->weights, create_info->weights, sizeof(struct a_weight_t) * create_info->weight_count);
+    
+    if(create_info->weight_count && create_info->weight_range_count)
+    {
+        model->weight_count = create_info->weight_count;
+        model->weights = mem_Calloc(create_info->weight_count, sizeof(struct a_weight_t));
+        memcpy(model->weights, create_info->weights, sizeof(struct a_weight_t) * create_info->weight_count);
+        
+        model->weight_range_count = create_info->weight_range_count;
+        model->weight_ranges = mem_Calloc(create_info->weight_range_count, sizeof(struct a_weight_range_t));
+        memcpy(model->weight_ranges, create_info->weight_ranges, sizeof(struct a_weight_range_t) * create_info->weight_range_count);
+    }
     
     model->vert_count = create_info->vert_count;
     model->verts = mem_Calloc(create_info->vert_count, sizeof(struct r_vert_t));

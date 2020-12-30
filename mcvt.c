@@ -26,6 +26,12 @@ struct bone_transform_t
     struct a_transform_t transform;
 };
 
+struct vert_weight_t
+{
+    uint32_t vert_index;
+    struct a_weight_t weight;
+};
+
 struct aiNode* find_node(struct aiNode *cur_node, char *name)
 {
     if(!strcmp(cur_node->mName.data, name))
@@ -55,8 +61,8 @@ void get_them_bones(struct aiNode *cur_node, struct list_t *bones)
 
 int32_t compare_weights_vert(void *a, void *b)
 {
-    struct a_weight_record_t *weight_a = (struct a_weight_record_t *)a;
-    struct a_weight_record_t *weight_b = (struct a_weight_record_t *)b;
+    struct vert_weight_t *weight_a = (struct vert_weight_t *)a;
+    struct vert_weight_t *weight_b = (struct vert_weight_t *)b;
     return (int32_t)weight_a->vert_index - (int32_t)weight_b->vert_index;
 }
 
@@ -495,12 +501,14 @@ int main(int argc, char *argv[])
                 struct aiMesh *mesh = scene->mMeshes[object->mMeshes[0]];
                 uint32_t bone_count = 0;
                 uint32_t weight_count = 0;
+                uint32_t range_count = 0;
                 
                 if(mesh->mBones)
                 {
                     struct list_t bone_list = create_list(sizeof(struct aiBone *), 512);
                     struct list_t node_list = create_list(sizeof(struct aiNode *), 512);
-                    struct list_t weight_list = create_list(sizeof(struct a_weight_record_t), 512);
+                    struct list_t weight_list = create_list(sizeof(struct vert_weight_t), 512);
+                    struct list_t range_list = create_list(sizeof(struct a_weight_range_t), 512);
                 
                     struct aiNode *skeleton_node = find_node(scene->mRootNode, mesh->mBones[0]->mName.data);
                     
@@ -513,9 +521,6 @@ int main(int argc, char *argv[])
                     
                     struct a_skeleton_section_t *skeleton;
                     skeleton = ds_append_data(&skeleton_section, sizeof(struct a_skeleton_section_t), NULL);
-                    
-                    struct a_weight_section_t *weights;
-                    weights = ds_append_data(&weight_section, sizeof(struct a_weight_section_t), NULL);
                     
                     for(uint32_t mesh_index = 0; mesh_index < object->mNumMeshes; mesh_index++)
                     {
@@ -538,11 +543,11 @@ int main(int argc, char *argv[])
                         {
                             /* for every weight of every bone... */
                             struct aiVertexWeight *weight = bone->mWeights + weight_index;
-                            struct a_weight_record_t weight_record = {};
+                            struct vert_weight_t vert_weight = {};
                             
                             /* keep which vertex it belongs to... */
-                            weight_record.vert_index = weight->mVertexId;
-                            weight_record.weight.weight = weight->mWeight;
+                            vert_weight.vert_index = weight->mVertexId;
+                            vert_weight.weight.weight = weight->mWeight;
                             
                             for(uint32_t node_index = 0; node_index < node_list.cursor; node_index++)
                             {
@@ -550,13 +555,13 @@ int main(int argc, char *argv[])
                                 if(!strcmp(bone->mName.data, node->mName.data))
                                 {
                                     /* and which node in depth-first order it belongs to */
-                                    weight_record.weight.bone_index = node_index;
+                                    vert_weight.weight.bone_index = node_index;
                                     break;
                                 }
                             }
                             
                             /* we store in a temporary list because we'll need to sort them by vertex index */
-                            add_list_element(&weight_list, &weight_record);
+                            add_list_element(&weight_list, &vert_weight);
                         }
                     }
                     
@@ -568,32 +573,35 @@ int main(int argc, char *argv[])
                     uint32_t cur_vert = 0xffffffff;
                     uint32_t left = 0;
                     uint32_t right = 0;
-                    struct a_weight_record_t *weight_record = NULL;
-                    
-//                    do
-//                    {
-//                        weight_record = get_list_element(&weight_list, right);
-//                        cur_vert = weight_record->vert_index;
-//                        
-//                        while(weight_record && weight_record->vert_index == cur_vert)
-//                        {
-//                            right++;
-//                            weight_record = get_list_element(&weight_list, right);
-//                        }
-//                        right--;
-//                        qsort_list_rec(&weight_list, left, right, compare_weights_value);
-//                        left = right;
-//                        right++;
-//                    }
-//                    while(weight_record);
+                    struct vert_weight_t *vert_weight = NULL;
+                    struct a_weight_range_t range = {};
+                    do
+                    {
+                        vert_weight = get_list_element(&weight_list, right);
+                        cur_vert = vert_weight->vert_index;
+                        range.start = right;
+                        while(vert_weight && vert_weight->vert_index == cur_vert)
+                        {
+                            right++;
+                            vert_weight = get_list_element(&weight_list, right);
+                        }
+                        range.count = right - range.start;
+                        add_list_element(&range_list, &range);
+                        if(left + 1 < right)
+                        {
+                            qsort_list_rec(&weight_list, left, right - 1, compare_weights_value);
+                        }
+                        left = right;
+                    }
+                    while(vert_weight);
                     
                     cur_vert = 0xffffffff;
                     float total_weight = 0.0;
                     uint32_t first_weight = 0;
                     for(uint32_t weight_index = 0; weight_index < weight_list.cursor; weight_index++)
                     {
-                        struct a_weight_record_t *weight_record = get_list_element(&weight_list, weight_index);
-                        if(weight_record->vert_index != cur_vert)
+                        struct vert_weight_t *vert_weight = get_list_element(&weight_list, weight_index);
+                        if(vert_weight->vert_index != cur_vert)
                         {
                             if(cur_vert != 0xffffffff)
                             {
@@ -603,18 +611,36 @@ int main(int argc, char *argv[])
                                     /* very likely to happen... */
                                     for(uint32_t fix_index = first_weight; fix_index < weight_index; fix_index++)
                                     {
-                                        struct a_weight_record_t *fix_record = get_list_element(&weight_list, fix_index);
-                                        float proportion = fix_record->weight.weight / total_weight;
-                                        fix_record->weight.weight += missing * proportion;
+                                        struct vert_weight_t *fix_weight = get_list_element(&weight_list, fix_index);
+                                        float proportion = fix_weight->weight.weight / total_weight;
+                                        fix_weight->weight.weight += missing * proportion;
                                     }
                                 }
                                 total_weight = 0.0;
                             }
                             first_weight = weight_index;
-                            cur_vert = weight_record->vert_index;
+                            cur_vert = vert_weight->vert_index;
                         }
                         
-                        total_weight += weight_record->weight.weight;
+                        total_weight += vert_weight->weight.weight;
+                    }
+                     
+                    struct a_weight_section_t(weight_list.cursor, range_list.cursor) *weights;
+                    weights = ds_append_data(&weight_section, sizeof(*weights), NULL);
+                    
+                    weights->weight_count = weight_list.cursor;
+                    weights->range_count = range_list.cursor;
+                    
+                    for(uint32_t weight_index = 0; weight_index < weights->weight_count; weight_index++)
+                    {
+                        struct vert_weight_t *weight = get_list_element(&weight_list, weight_index);
+                        weights->weights[weight_index] = weight->weight;
+                    }
+                    
+                    for(uint32_t range_index = 0; range_index < weights->range_count; range_index++)
+                    {
+                        struct a_weight_range_t *range = get_list_element(&range_list, range_index);
+                        weights->ranges[range_index] = *range;
                     }
 
                     /* now we generate the actual bone/weight data to be exported... */                    
@@ -668,16 +694,12 @@ int main(int argc, char *argv[])
                         bone->child_count = node->mNumChildren;
                     }
                     
-                    weights->weight_count = weight_list.cursor;
-                    for(uint32_t weight_index = 0; weight_index < weight_list.cursor; weight_index++)
-                    {
-                        ds_append_data(&weight_section, sizeof(struct a_weight_record_t), get_list_element(&weight_list, weight_index));
-                    }
-                    
                     bone_count = node_list.cursor;
                     weight_count = weight_list.cursor;
+                    range_count = range_list.cursor;
                     
                     destroy_list(&weight_list);
+                    destroy_list(&range_list);
                     destroy_list(&node_list);
                     destroy_list(&bone_list);
                 }
@@ -775,6 +797,7 @@ int main(int argc, char *argv[])
                 {
                     printf("Bones: %d\n", bone_count);
                     printf("Weights: %d\n", weight_count);
+                    printf("Ranges: %d\n", range_count);
                     sections[4] = &skeleton_section;
                     sections[5] = &weight_section;
                     section_count = 6;

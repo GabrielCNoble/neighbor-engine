@@ -123,6 +123,8 @@ struct r_model_t
     uint32_t batch_count;
     struct r_batch_t *batches;
     struct a_skeleton_t *skeleton;
+    uint32_t weight_range_count;
+    struct a_weight_range_t *weight_ranges;
     uint32_t weight_count;
     struct a_weight_t *weights;
     struct r_model_t *base; 
@@ -137,6 +139,8 @@ struct r_model_create_info_t
     uint32_t index_count;
     uint32_t *indices;
     struct a_skeleton_t *skeleton;
+    uint32_t weight_range_count;
+    struct a_weight_range_t *weight_ranges;
     uint32_t weight_count;
     struct a_weight_t *weights;
 };
@@ -155,7 +159,7 @@ struct r_draw_batch_t
 #define R_VERTEX_BUFFER_SIZE (sizeof(struct r_vert_t) * 1000000)
 #define R_INDEX_BUFFER_SIZE (sizeof(uint32_t) * 1000000)
 #define R_IMMEDIATE_BUFFER_SIZE (sizeof(struct r_vert_t) * 10000)
-#define R_MAX_VERTEX_WEIGHTS 8
+#define R_MAX_VERTEX_WEIGHTS 16
 
 
 #endif // R_COM_H

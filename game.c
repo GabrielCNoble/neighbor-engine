@@ -75,7 +75,7 @@ void g_Init(uint32_t editor_active)
     wiggle_entity = g_CreateEntity(&transform, NULL, g_wiggle_model);
     g_PlayAnimation(wiggle_entity, wiggle_animation);
     struct a_player_t *player = *(struct a_player_t **)get_list_element(&wiggle_entity->mixer->players, 0);
-    player->scale = 0.0;
+    player->scale = 1.0;
     g_LoadMap("map6.map");
     
     g_game_state = G_GAME_STATE_PLAYING;
@@ -435,14 +435,14 @@ void g_PlayerThinker(struct g_entity_t *entity)
     }
     struct a_player_t *player = *(struct a_player_t **)get_list_element(&wiggle_entity->mixer->players, 0);
     
-    if(in_GetKeyState(SDL_SCANCODE_C) & IN_KEY_STATE_PRESSED)
-    {
-        player->scale = 1.0;
-    }
-    else
-    {
-        player->scale = 0.0;
-    }
+//    if(in_GetKeyState(SDL_SCANCODE_C) & IN_KEY_STATE_PRESSED)
+//    {
+//        player->scale = 1.0;
+//    }
+//    else
+//    {
+//        player->scale = 0.0;
+//    }
     
     float translate_z = 0.0;
     

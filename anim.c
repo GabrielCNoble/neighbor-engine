@@ -286,21 +286,20 @@ void a_UpdateMixer(struct a_mixer_t *mixer, float delta_time)
     for(uint32_t vert_index = 0; vert_index < model->vert_count; vert_index++)
     {
         struct r_vert_t *vert = model->verts + vert_index;
-        
+        struct a_weight_range_t *range = model->weight_ranges + vert_index;
+        struct a_weight_t *weights = model->weights + range->start;
+        mat4_t transform = {};
         vec4_t position = {0.0, 0.0, 0.0, 1.0};
-        float total_weight = 0.0;
-        for(uint32_t weight_index = 0; weight_index < R_MAX_VERTEX_WEIGHTS; weight_index++)
+        for(uint32_t weight_index = 0; weight_index < range->count; weight_index++)
         {
-            struct a_weight_t *weight = model->weights + vert_index * R_MAX_VERTEX_WEIGHTS + weight_index;
-            if(weight->weight > 0.0)
-            {
-                vec4_t temp_pos = vec4_t_c(vert->pos.x, vert->pos.y, vert->pos.z, 1.0);
-                mat4_t_vec4_t_mul(&temp_pos, mixer->transforms + weight->bone_index, &temp_pos);        
-                vec4_t_fmadd(&position, &position, &temp_pos, weight->weight);
-                total_weight += weight->weight;
-            }
+            struct a_weight_t *weight = weights + weight_index;
+            mat4_t *bone_transform = mixer->transforms + weight->bone_index;
+            vec4_t temp_pos = vec4_t_c(vert->pos.x, vert->pos.y, vert->pos.z, 1.0);
+            mat4_t_vec4_t_mul(&temp_pos, mixer->transforms + weight->bone_index, &temp_pos);        
+            vec4_t_mul(&temp_pos, &temp_pos, weight->weight);
+            vec4_t_add(&position, &position, &temp_pos);
         }
-//        printf("%f - %d\n", total_weight, vert_index);
+        
         vert = copy->verts + vert_index;
         vert->pos = vec3_t_c(position.x, position.y, position.z);
     }

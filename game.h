@@ -35,14 +35,20 @@ struct g_entity_t
 
 enum G_PLAYER_FLAGS
 {
-    G_PlAYER_FLAG_JUMPING = 1
+    G_PlAYER_FLAG_JUMPING = 1,
+    G_PLAYER_FLAG_TURNING = 1 << 1,
+    G_PLAYER_FLAG_TURNING_LEFT = 1 << 2,
 };
 
 struct g_player_state_t
 {
     uint32_t flags;
+    uint32_t collider_flags;
+    float direction;
     float jump_y;
     float jump_disp;
+    float run_frac;
+    float jump_frac;
 };
 
 enum G_GAME_STATE

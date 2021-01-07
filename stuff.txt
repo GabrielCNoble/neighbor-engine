@@ -47,6 +47,7 @@
         OK - weights importing
         OK - animation importing
         OK - skinning
+        OK - seeking
         - keyframe interpolation
         - mixing animations
             - for instance, have separate animations for the legs and for the upper body, so that the animation of running is independent of
@@ -60,8 +61,8 @@
     - attachment points in bones (to attach stuff like weapons, lights, etc)
 
     - callbacks 
-        - called at a specific point during the animation, to allow stuff like sounds or particle systems to be spawned
-        - has to be framerate independent. At each update, take the delta time and find out how many of those callbacks should've been
+        OK - called at a specific point during the animation, to allow stuff like sounds or particle systems to be spawned
+        OK - has to be framerate independent. At each update, take the delta time and find out how many of those callbacks should've been
         called. Call them all, and pass to each how much time has passed since they should've been called. For instance, if there are
         to callbacks, one at 1.0ms and other at 2.5ms, and the frametime is around 16.6ms, both will be called, but the first will
         receive a time of 15.6ms since it was called, while the second will receive a time of 14.1ms since it was called. The code 

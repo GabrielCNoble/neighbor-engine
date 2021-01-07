@@ -155,7 +155,7 @@ void p_UpdateColliders()
             continue;
         }
         
-        collider_a->disp.y -= 0.01;
+//        collider_a->disp.y -= 0.01;
         collider_a->flags &= ~(P_COLLIDER_FLAG_ON_GROUND | P_COLLIDER_FLAG_TOP_COLLIDED);
         
         collider_a->first_collision = p_collisions.cursor;

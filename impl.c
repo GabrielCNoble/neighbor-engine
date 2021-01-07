@@ -10,6 +10,9 @@
 #define DS_LIST_IMPLEMENTATION
 #include "dstuff/ds_list.h"
 
+#define DS_RINGBUFFER_IMPLEMENTATION
+#include "dstuff/ds_ringbuffer.h"
+
 #define DS_DBVH_IMPLEMENTATION
 #include "dstuff/ds_dbvh.h"
 

@@ -173,8 +173,8 @@ int main(int argc, char *argv[])
                 struct aiNode *skeleton_node = find_node(scene->mRootNode, animation->mChannels[0]->mNodeName.data);
                 struct list_t node_list = create_list(sizeof(struct aiNode *), 512);
                 struct list_t bone_transform_list = create_list(sizeof(struct bone_transform_t), 512);
-                struct list_t pair_list = create_list(sizeof(struct a_bone_transform_pair_t), 512);
-                struct list_t range_list = create_list(sizeof(struct a_transform_range_t), 512);
+                struct list_t pair_list = create_list(sizeof(struct a_transform_pair_t), 512);
+//                struct list_t range_list = create_list(sizeof(struct a_transform_range_t), 512);
                 
                 char *animation_name = animation->mName.data;
                 
@@ -204,7 +204,7 @@ int main(int argc, char *argv[])
                         scanf("%c", &choice);
                     }
                     while(choice == '\n');
-                    if(choice == 'n' || choice == 'N')
+                    if(choice != 'y' || choice != 'Y')
                     {
                         break;
                     }
@@ -232,12 +232,6 @@ int main(int argc, char *argv[])
                         {
                             struct bone_transform_t bone_transform = {};
                             bone_transform.bone_index = node_index;
-                            
-//                            for(uint32_t index = 0; index < channel->mNumRotationKeys; index++)
-//                            {
-//                                struct aiQuatKey *key = channel->mRotationKeys + index;
-//                                printf("[%f %f %f %f] -- [%s]\n", key->mValue.x, key->mValue.y, key->mValue.z, key->mValue.w, channel->mNodeName.data);
-//                            }
                             
                             while(rotation_index < channel->mNumRotationKeys || position_index < channel->mNumPositionKeys)
                             {
@@ -293,16 +287,7 @@ int main(int argc, char *argv[])
                                 }
                                 
                                 if(!last_bone_transform)
-                                {
-//                                    printf("%d %d %s --- ", bone_transform.bone_index, bone_transform.time, channel->mNodeName.data);
-//                                    printf("[%f %f %f %f] -- [%f %f %f]\n", bone_transform.transform.rot.x, 
-//                                                                            bone_transform.transform.rot.y, 
-//                                                                            bone_transform.transform.rot.z, 
-//                                                                            bone_transform.transform.rot.w, 
-//                                                                            bone_transform.transform.pos.x, 
-//                                                                            bone_transform.transform.pos.y, 
-//                                                                            bone_transform.transform.pos.z);
-                                                                            
+                                {                                                                            
                                     add_list_element(&bone_transform_list, &bone_transform);
                                 }
                             }
@@ -313,52 +298,63 @@ int main(int argc, char *argv[])
                 }
                 
                 qsort_list(&bone_transform_list, compare_bone_transforms);
-                uint32_t start_index = 0;
+                
+                
+                /* for each frame in the animation, we need a list of pairs, sorted by bone.
+                This is required to keep the skeleton in a consistent state even if frames are
+                skipped. Also required for seeking. Since it's likely animations will have more
+                than one frame, we'll have several of those lists, and the total number of of 
+                pairs will be the bone_count * animation_length */
                 for(uint32_t frame = 0; frame < (uint32_t)animation->mDuration; frame++)
                 {
-                    struct a_transform_range_t range = {};
-                    range.start = pair_list.cursor;
-                    
-                    for(; start_index < bone_transform_list.cursor; start_index++)
+                    /* so, for every frame in the animation... */
+                    for(uint32_t node_index = 0; node_index < node_list.cursor; node_index++)
                     {
-                        struct bone_transform_t *start = get_list_element(&bone_transform_list, start_index);
-                        struct a_bone_transform_pair_t pair = {};
-                        if(start->time > frame)
-                        {
-                            break;
-                        }
+                        /* we go over all the bones... */
+                        struct bone_transform_t *start_transform;
+                        struct bone_transform_t *end_transform;
+                        struct a_transform_pair_t pair = {};
                         
-                        pair.bone_index = start->bone_index;
-                        pair.pair.start = start_index;
-                        
-                        if(start_index + 1 < bone_transform_list.cursor)
+                        for(uint32_t start_index = 0; start_index < bone_transform_list.cursor; start_index++)
                         {
-                            for(uint32_t end_index = start_index + 1; end_index < bone_transform_list.cursor; end_index++)
+                            start_transform = get_list_element(&bone_transform_list, start_index);
+                            if(start_transform->bone_index == node_index && start_transform->time <= frame)
                             {
-                                struct bone_transform_t *end = get_list_element(&bone_transform_list, end_index);
-                                if(end->bone_index == start->bone_index)
+                                /* we find the first transform that starts at the current frame, or before
+                                it, that belongs to the current bone... */
+                                uint32_t end_index = start_index + 1;
+                                for(; end_index < bone_transform_list.cursor; end_index++)
                                 {
-                                    pair.pair.end = end_index;
-                                    pair.pair.end_time = end->time;
+                                    /* we then find the next transform for this bone after the first we found. Since all
+                                    transforms are sorted by time, and there's only one transform per frame for each bone, 
+                                    this transform has to have a frametime higher than the first */
+                                    
+                                    end_transform = get_list_element(&bone_transform_list, end_index);
+                                    if(end_transform->bone_index == node_index)
+                                    {
+                                        break;
+                                    }
+                                }
+                                
+                                if(end_transform->time > frame)
+                                {
+                                    /* we check to see if the current frame is contained between those two
+                                    transforms. If it is, we create a pair and store it. */
+                                    pair.start = start_index;
+                                    pair.end = end_index;
+                                    pair.end_frame = end_transform->time;
+                                    add_list_element(&pair_list, &pair);
                                     break;
                                 }
+                                
+                                /* otherwise, the current frame is outside the interval defined by the two
+                                frames, and we continue the search from the second transform we found for this 
+                                bone, now treating it as the start transform */
+                                start_index = end_index - 1;
                             }
-                            
-                            add_list_element(&pair_list, &pair);
-                            range.count++;
                         }
                     }
-                    
-                    add_list_element(&range_list, &range);
                 }
-                
-//                printf("\n\n");
-//                
-//                for(uint32_t keyframe_index = 0; keyframe_index < keyframe_list.cursor; keyframe_index++)
-//                {
-//                    struct a_keyframe_t *keyframe = get_list_element(&keyframe_list, keyframe_index);
-//                    printf("%f - %d\n", keyframe->time, keyframe->bone_index);
-//                }
                 
                 printf("Exporting animation '%s'...\n", animation_name);
                 printf("Duration: %f\n", animation->mDuration);
@@ -366,8 +362,6 @@ int main(int argc, char *argv[])
                 printf("Bones: %d\n", node_list.cursor);
                 printf("Transforms: %d\n", bone_transform_list.cursor);
                 printf("Pairs: %d\n", pair_list.cursor);
-                printf("Ranges: %d\n", range_list.cursor);
-//                printf("Keyframes: %d\n", keyframe_list.cursor);
                 
                 struct ds_section_t animation_section = {};
                 strcpy(animation_section.info.name, "[animation]");
@@ -375,14 +369,12 @@ int main(int argc, char *argv[])
                 struct a_anim_sec_header_t *header;
                 header = ds_append_data(&animation_section, sizeof(*header), NULL); 
                 header->bone_count = node_list.cursor;
-                header->pair_count = pair_list.cursor;
-                header->range_count = range_list.cursor;
                 header->transform_count = bone_transform_list.cursor;
                 header->duration = (uint32_t)animation->mDuration;
                 header->framerate = animation->mTicksPerSecond;
                 strcpy(header->name, animation_name);
                 
-                struct a_anim_sec_data_t(header->transform_count, header->pair_count, header->range_count) *data;
+                struct a_anim_sec_data_t(header->transform_count, pair_list.cursor) *data;
                 data = ds_append_data(&animation_section, sizeof(*data), NULL);
                 
                 for(uint32_t transform_index = 0; transform_index < bone_transform_list.cursor; transform_index++)
@@ -393,42 +385,8 @@ int main(int argc, char *argv[])
                 
                 for(uint32_t pair_index = 0; pair_index < pair_list.cursor; pair_index++)
                 {
-                    data->pairs[pair_index] = *(struct a_bone_transform_pair_t *)get_list_element(&pair_list, pair_index);
+                    data->pairs[pair_index] = *(struct a_transform_pair_t *)get_list_element(&pair_list, pair_index);
                 }
-                
-                for(uint32_t range_index = 0; range_index < range_list.cursor; range_index++)
-                {
-                    data->ranges[range_index] = *(struct a_transform_range_t *)get_list_element(&range_list, range_index);
-                }
-                
-//                for(uint32_t keyframe_index = 0; keyframe_index < header->keyframe_count; keyframe_index++)
-//                {
-//                    /* first, we count how many keyframes per bone we have */
-//                    struct a_keyframe_t *keyframe = get_list_element(&keyframe_list, keyframe_index);
-//                    struct a_channel_t *channel = &data->channels[keyframe->bone_index];
-//                    channel->count++;
-//                }
-                
-//                for(uint32_t channel_index = 0; channel_index < header->bone_count - 1; channel_index++)
-//                {
-//                    struct a_channel_t *cur_channel = data->channels + channel_index;
-//                    /* second, we set the start of each channel, which defines a range into the keyframe_indices
-//                    array */
-//                    data->channels[channel_index + 1].start = cur_channel->start + cur_channel->count;
-//                    cur_channel->count = 0;
-//                }
-//                
-//                for(uint32_t keyframe_index = 0; keyframe_index < header->keyframe_count; keyframe_index++)
-//                {
-//                    /* third, we go the keyframes once more, and fill in the keyframe_indices array, using
-//                    the channels to know where to store the current index. */
-//                    struct a_keyframe_t *keyframe = get_list_element(&keyframe_list, keyframe_index);
-//                    struct a_channel_t *channel = data->channels + keyframe->bone_index;
-//                    data->keyframes[keyframe_index] = *keyframe;
-//                    data->keyframe_indices[channel->start + channel->count] = keyframe_index;
-//                    channel->count++;
-//                }
-                
                 
                 void *buffer;
                 uint32_t buffer_size;
@@ -440,7 +398,6 @@ int main(int argc, char *argv[])
                 destroy_list(&node_list);
                 destroy_list(&bone_transform_list);
                 destroy_list(&pair_list);
-                destroy_list(&range_list);
                 
                 FILE *file = fopen(output_name, "wb");
                 fwrite(buffer, buffer_size, 1, file);
@@ -479,7 +436,7 @@ int main(int argc, char *argv[])
                     }
                     while(choice == '\n');
                     
-                    if(choice == 'n' || choice == 'N')
+                    if(choice != 'y' || choice != 'Y')
                     {
                         break;
                     }

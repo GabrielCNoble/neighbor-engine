@@ -34,6 +34,15 @@ extern struct r_model_t *test_model;
 extern struct r_texture_t *r_default_texture;
 extern struct r_material_t *r_default_material;
 
+extern uint32_t r_light_buffer_cursor;
+extern uint32_t r_light_index_buffer_cursor;
+extern struct r_l_data_t *r_light_buffer;
+extern uint32_t r_light_uniform_buffer;
+extern uint16_t *r_light_index_buffer;
+extern uint32_t r_light_index_uniform_buffer;
+extern struct r_cluster_t *r_clusters;
+extern uint32_t r_cluster_texture;
+
 mat4_t r_projection_matrix;
 mat4_t r_view_matrix;
 mat4_t r_inv_view_matrix;
@@ -48,6 +57,18 @@ void r_BeginFrame()
 {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glBindVertexArray(r_vao);
+    
+    if(r_light_buffer_cursor)
+    {
+        glBindBuffer(GL_UNIFORM_BUFFER, r_light_uniform_buffer);
+        glBufferSubData(GL_UNIFORM_BUFFER, 0, r_light_buffer_cursor * sizeof(struct r_l_data_t), r_light_buffer);
+        glBindBuffer(GL_UNIFORM_BUFFER, r_light_index_uniform_buffer);
+        glBufferSubData(GL_UNIFORM_BUFFER, 0, r_light_index_buffer_cursor * sizeof(uint16_t), r_light_index_buffer);
+    }
+    
+    glTexSubImage3D(GL_TEXTURE_3D, 0, 0, 0, 0, R_CLUSTER_ROW_WIDTH, R_CLUSTER_ROWS, R_CLUSTER_SLICES, GL_RG_INTEGER, GL_UNSIGNED_SHORT, r_clusters);
+    glBindBufferBase(GL_UNIFORM_BUFFER, R_LIGHTS_UNIFORM_BUFFER_BINDING, r_light_uniform_buffer);
+    glBindBufferBase(GL_UNIFORM_BUFFER, R_LIGHT_INDICES_UNIFORM_BUFFER_BINDING, r_light_index_uniform_buffer);
 }
 
 void r_EndFrame()
@@ -55,6 +76,8 @@ void r_EndFrame()
     r_draw_batches.cursor = 0;
     r_immediate_batches.cursor = 0;
     r_immediate_cursor = 0;
+    r_light_buffer_cursor = 0;
+    r_light_index_buffer_cursor = 0;
     SDL_GL_SwapWindow(r_window);
 }
 
@@ -101,28 +124,28 @@ void r_UpdateViewProjectionMatrix()
 
 void r_DrawModel(mat4_t *transform, struct r_model_t *model)
 {
-    mat4_t model_view_projection_matrix;    
-    mat4_t_mul(&model_view_projection_matrix, transform, &r_view_projection_matrix);
+    mat4_t model_view_matrix;    
+    mat4_t_mul(&model_view_matrix, transform, &r_inv_view_matrix);
     for(uint32_t batch_index = 0; batch_index < model->batch_count; batch_index++)
     {
         uint32_t index = add_list_element(&r_draw_batches, NULL);
         struct r_draw_batch_t *draw_batch = get_list_element(&r_draw_batches, index);
         draw_batch->batch = model->batches[batch_index];
-        draw_batch->model_view_projection_matrix = model_view_projection_matrix;
+        draw_batch->model_view_matrix = model_view_matrix;
     }
 }
 
 void r_DrawRange(mat4_t *transform, struct r_material_t *material, uint32_t start, uint32_t count)
 {
-    mat4_t model_view_projection_matrix;    
-    mat4_t_mul(&model_view_projection_matrix, transform, &r_view_projection_matrix);
+    mat4_t model_view_matrix;    
+    mat4_t_mul(&model_view_matrix, transform, &r_inv_view_matrix);
     
     uint32_t index = add_list_element(&r_draw_batches, NULL);
     struct r_draw_batch_t *draw_batch = get_list_element(&r_draw_batches, index);
     draw_batch->batch.material = material;
     draw_batch->batch.start = start;
     draw_batch->batch.count = count;
-    draw_batch->model_view_projection_matrix = model_view_projection_matrix;
+    draw_batch->model_view_matrix = model_view_matrix;
 }
 
 int32_t r_CompareBatches(void *a, void *b)
@@ -138,10 +161,14 @@ void r_DrawBatches()
     qsort_list(&r_draw_batches, r_CompareBatches);
     
     struct r_material_t *current_material;
+    mat4_t model_view_projection_matrix;
          
     glBindBuffer(GL_ARRAY_BUFFER, r_vertex_buffer);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, r_index_buffer);
     r_BindShader(r_lit_shader);
+    
+//    r_SetUniformMatrix4(R_UNIFORM_IVM, &r_inv_view_matrix);
+    r_SetUniform1i(R_UNIFORM_CLUSTERS, r_cluster_texture);
     
     for(uint32_t batch_index = 0; batch_index < r_draw_batches.cursor; batch_index++)
     {
@@ -151,7 +178,9 @@ void r_DrawBatches()
             current_material = draw_batch->batch.material;
             r_BindMaterial(current_material);
         }
-        r_SetUniformMatrix4(R_UNIFORM_MVP, &draw_batch->model_view_projection_matrix);
+        mat4_t_mul(&model_view_projection_matrix, &draw_batch->model_view_matrix, &r_projection_matrix);
+        r_SetUniformMatrix4(R_UNIFORM_MVP, &model_view_projection_matrix);
+        r_SetUniformMatrix4(R_UNIFORM_MV, &draw_batch->model_view_matrix);
         glDrawElements(GL_TRIANGLES, draw_batch->batch.count, GL_UNSIGNED_INT, (void *)(draw_batch->batch.start * sizeof(uint32_t)));
     }
 }

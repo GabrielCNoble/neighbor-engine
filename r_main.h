@@ -39,6 +39,12 @@ struct r_model_t *r_CreateModel(struct r_model_create_info_t *create_info);
 
 struct r_model_t *r_ShallowCopyModel(struct r_model_t *model);
 
+struct r_light_t *r_CreateLight(uint32_t type, vec3_t *position, vec3_t *color, float radius);
+
+struct r_light_t *r_GetLight(uint32_t light_index);
+
+void r_DestroyLight(struct r_light_t *light);
+
 struct r_shader_t *r_LoadShader(char *vertex_file_name, char *fragment_file_name);
 
 void r_FreeShader(struct r_shader_t *shader);
@@ -46,6 +52,8 @@ void r_FreeShader(struct r_shader_t *shader);
 void r_BindShader(struct r_shader_t *shader);
 
 void r_SetUniformMatrix4(uint32_t uniform, mat4_t *matrix);
+
+void r_SetUniformBuffer(uint32_t uniform, uint32_t buffer);
 
 void r_SetUniform1i(uint32_t uniform, uint32_t value);
 

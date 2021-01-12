@@ -11,7 +11,7 @@
 				<Option object_output="./" />
 				<Option type="1" />
 				<Option compiler="gcc" />
-				<Option parameters="-i models/dude.fbx -f -p models" />
+				<Option parameters="-i models/dude2.fbx -f -p models" />
 				<Compiler>
 					<Add option="-g" />
 				</Compiler>

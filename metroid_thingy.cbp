@@ -66,6 +66,7 @@
 		<Unit filename="editor.h" />
 		<Unit filename="game.c">
 			<Option compilerVar="CC" />
+			<Option target="Debug" />
 		</Unit>
 		<Unit filename="game.h" />
 		<Unit filename="impl.c">

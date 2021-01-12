@@ -29,7 +29,6 @@ struct a_bone_t
 {
     mat4_t transform;
     mat4_t inv_bind_matrix;
-//    struct a_transform_t inv_bind_transform;
     uint32_t child_count;
 };
 
@@ -47,17 +46,17 @@ struct a_transform_pair_t
     uint16_t end_frame;
 };
 
-struct a_bone_transform_pair_t
-{
-    uint16_t bone_index;
-    struct a_transform_pair_t pair;
-};
+//struct a_bone_transform_pair_t
+//{
+//    uint16_t bone_index;
+//    struct a_transform_pair_t pair;
+//};
 
-struct a_transform_range_t
-{
-    uint16_t start;
-    uint16_t count;
-};
+//struct a_transform_range_t
+//{
+//    uint16_t start;
+//    uint16_t count;
+//};
 
 enum A_ANIMATION_FLAGS
 {
@@ -91,10 +90,12 @@ struct a_mixer_t
     struct a_skeleton_t *skeleton;
     struct r_model_t *model;
     struct list_t players;
+    struct list_t mix_players;
     /* final transforms ready to be used for skinning. Those are computed
     after all tracks have been mixed */
-    struct a_transform_t *mixed_transforms;
-    mat4_t *transforms;
+    uint16_t *touched_bones;
+    struct a_transform_t *transforms;
+    mat4_t *skinning_matrices;
     vec3_t root_disp;
 };
 

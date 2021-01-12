@@ -463,7 +463,7 @@
 	<limits.h>
 	<stdlib.h>
 
-1609903594 source:c:\users\gabri\documents\compiler\metroid_thingy\game.c
+1610424864 source:c:\users\gabri\documents\compiler\metroid_thingy\game.c
 	"dstuff/ds_stack_list.h"
 	"dstuff/ds_mem.h"
 	"dstuff/ds_file.h"
@@ -478,7 +478,7 @@
 	<string.h>
 	<stdio.h>
 
-1609903453 c:\users\gabri\documents\compiler\metroid_thingy\game.h
+1610217275 c:\users\gabri\documents\compiler\metroid_thingy\game.h
 	"dstuff/ds_vector.h"
 	"dstuff/ds_matrix.h"
 	"dstuff/ds_list.h"
@@ -544,7 +544,7 @@
 	"dstuff/ds_alloc.h"
 	"draw.h"
 
-1609901382 source:c:\users\gabri\documents\compiler\metroid_thingy\anim.c
+1610378528 source:c:\users\gabri\documents\compiler\metroid_thingy\anim.c
 	<stdio.h>
 	"anim.h"
 	"r_draw.h"
@@ -552,7 +552,7 @@
 	"dstuff/ds_stack_list.h"
 	"dstuff/ds_mem.h"
 
-1609864385 c:\users\gabri\documents\compiler\metroid_thingy\anim.h
+1610209159 c:\users\gabri\documents\compiler\metroid_thingy\anim.h
 	"dstuff/ds_vector.h"
 	"dstuff/ds_matrix.h"
 	"dstuff/ds_list.h"
@@ -563,10 +563,10 @@
 	"r_com.h"
 	"r_main.h"
 
-1608999883 c:\users\gabri\documents\compiler\metroid_thingy\r_main.h
+1610375768 c:\users\gabri\documents\compiler\metroid_thingy\r_main.h
 	"r_com.h"
 
-1608963255 source:c:\users\gabri\documents\compiler\metroid_thingy\r_draw.c
+1610379908 source:c:\users\gabri\documents\compiler\metroid_thingy\r_draw.c
 	"r_draw.h"
 	"SDL2/SDL.h"
 	"GL/glew.h"
@@ -577,7 +577,7 @@
 	<stdlib.h>
 	<stdio.h>
 
-1609369745 source:c:\users\gabri\documents\compiler\metroid_thingy\r_main.c
+1610380683 source:c:\users\gabri\documents\compiler\metroid_thingy\r_main.c
 	"r_main.h"
 	"SDL2/SDL.h"
 	"GL/glew.h"
@@ -590,7 +590,7 @@
 	"r_draw.h"
 	"anim.h"
 
-1609369325 c:\users\gabri\documents\compiler\metroid_thingy\r_com.h
+1610379912 c:\users\gabri\documents\compiler\metroid_thingy\r_com.h
 	"dstuff/ds_vector.h"
 	"dstuff/ds_matrix.h"
 	"dstuff/ds_alloc.h"
@@ -606,11 +606,11 @@
 	"dstuff/ds_matrix.h"
 	"dstuff/ds_alloc.h"
 
-1608998673 c:\users\gabri\documents\compiler\metroid_thingy\world.h
+1610374527 c:\users\gabri\documents\compiler\metroid_thingy\world.h
 	<stdint.h>
 	"r_main.h"
 
-1608998696 source:c:\users\gabri\documents\compiler\metroid_thingy\world.c
+1610378198 source:c:\users\gabri\documents\compiler\metroid_thingy\world.c
 	"world.h"
 	"dstuff/ds_dbvh.h"
 	"dstuff/ds_alloc.h"

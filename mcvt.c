@@ -313,7 +313,7 @@ int main(int argc, char *argv[])
                         /* we go over all the bones... */
                         struct bone_transform_t *start_transform;
                         struct bone_transform_t *end_transform;
-                        struct a_transform_pair_t pair = {};
+                        struct a_transform_pair_t pair = {.start = 0xffff, .end = 0xffff};
                         
                         for(uint32_t start_index = 0; start_index < bone_transform_list.cursor; start_index++)
                         {
@@ -336,14 +336,13 @@ int main(int argc, char *argv[])
                                     }
                                 }
                                 
-                                if(end_transform->time > frame)
+                                if(end_index < bone_transform_list.cursor && end_transform->time > frame)
                                 {
                                     /* we check to see if the current frame is contained between those two
                                     transforms. If it is, we create a pair and store it. */
                                     pair.start = start_index;
                                     pair.end = end_index;
                                     pair.end_frame = end_transform->time;
-                                    add_list_element(&pair_list, &pair);
                                     break;
                                 }
                                 
@@ -353,6 +352,8 @@ int main(int argc, char *argv[])
                                 start_index = end_index - 1;
                             }
                         }
+                        
+                        add_list_element(&pair_list, &pair);
                     }
                 }
                 

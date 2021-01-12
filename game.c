@@ -143,6 +143,8 @@ void g_Init(uint32_t editor_active)
     g_LoadMap("map6.map");
     
     g_game_state = G_GAME_STATE_PLAYING;
+    
+    r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(8.0, 0.5, 0.0), &vec3_t_c(1.0, 0.0, 0.0), 80.0);
 }
 
 void g_Shutdown()
@@ -175,6 +177,7 @@ void g_MainLoop(uint32_t editor_active)
         }
         
         g_DrawEntities();
+        w_VisibleLights();
         r_BeginFrame();
         r_DrawBatches();
         r_DrawImmediateBatches();

@@ -26,6 +26,7 @@ struct stack_list_t r_shaders;
 struct stack_list_t r_textures;
 struct stack_list_t r_materials;
 struct stack_list_t r_models;
+struct stack_list_t r_lights;
 
 uint32_t r_vertex_buffer;
 struct ds_heap_t r_vertex_heap;
@@ -49,17 +50,31 @@ extern mat4_t r_view_matrix;
 extern mat4_t r_inv_view_matrix;
 extern mat4_t r_view_projection_matrix;
 
+uint32_t r_cluster_texture;
+struct r_cluster_t *r_clusters;
+uint32_t r_light_uniform_buffer;
+uint32_t r_light_buffer_cursor;
+struct r_l_data_t *r_light_buffer;
+uint32_t r_light_index_buffer_cursor;
+uint32_t r_light_index_uniform_buffer;
+uint16_t *r_light_index_buffer;
+
 SDL_Window *r_window;
 SDL_GLContext *r_context;
-int32_t r_width = 800;
-int32_t r_height = 600;
+int32_t r_width = 1300;
+int32_t r_height = 760;
 
 
 char *d_uniform_names[] = 
 {
     [R_UNIFORM_MVP] = "d_mvp",
+    [R_UNIFORM_MV] = "r_mv",
+    [R_UNIFORM_IVM] = "r_ivm",
     [R_UNIFORM_TEX0] = "d_tex0",
     [R_UNIFORM_TEX1] = "d_tex1",
+    [R_UNIFORM_CLUSTERS] = "r_clusters",
+//    [R_UNIFORM_LIGHTS] = "r_lights",
+//    [R_UNIFORM_LIGHT_INDICES] = "r_light_indices"
 };
 
 void r_Init()
@@ -70,6 +85,7 @@ void r_Init()
     r_materials = create_stack_list(sizeof(struct r_material_t), 32);
     r_textures = create_stack_list(sizeof(struct r_texture_t), 128);
     r_models = create_stack_list(sizeof(struct r_model_t), 512);
+    r_lights = create_stack_list(sizeof(struct r_light_t), 512);
     r_vertex_heap = ds_create_heap(R_VERTEX_BUFFER_SIZE);
     r_index_heap = ds_create_heap(R_INDEX_BUFFER_SIZE);
     
@@ -126,12 +142,36 @@ void r_Init()
     };
     r_default_texture = r_CreateTexture("default", 4, 4, GL_RGBA8, pixels);
     r_default_material = r_CreateMaterial("deafult", r_default_texture, NULL);
+    
+    uint32_t cluster_count = R_CLUSTER_ROWS * R_CLUSTER_ROW_WIDTH * R_CLUSTER_SLICES;
+    r_clusters = mem_Calloc(cluster_count, sizeof(struct r_cluster_t));
+    r_light_buffer = mem_Calloc(R_MAX_LIGHTS, sizeof(struct r_l_data_t));
+    r_light_index_buffer = mem_Calloc(cluster_count * R_MAX_CLUSTER_LIGHTS, sizeof(uint16_t));
+    
+    glGenTextures(1, &r_cluster_texture);
+    glBindTexture(GL_TEXTURE_3D, r_cluster_texture);
+    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_BASE_LEVEL, 0);
+    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAX_LEVEL, 0);
+    glTexImage3D(GL_TEXTURE_3D, 0, GL_RG16UI, R_CLUSTER_ROW_WIDTH, R_CLUSTER_ROWS, R_CLUSTER_SLICES, 0, GL_RG_INTEGER, GL_UNSIGNED_SHORT, NULL);
+    
+    glGenBuffers(1, &r_light_uniform_buffer);
+    glBindBuffer(GL_UNIFORM_BUFFER, r_light_uniform_buffer);
+    glBufferData(GL_UNIFORM_BUFFER, R_MAX_LIGHTS * sizeof(struct r_l_data_t), NULL, GL_DYNAMIC_DRAW);
+    glGenBuffers(1, &r_light_index_uniform_buffer);
+    glBindBuffer(GL_UNIFORM_BUFFER, r_light_index_uniform_buffer);
+    glBufferData(GL_UNIFORM_BUFFER, cluster_count * R_MAX_CLUSTER_LIGHTS * sizeof(uint16_t), NULL, GL_DYNAMIC_DRAW);
 }
 
 void r_Shutdown()
 {
     
 }
+
 struct r_texture_t *r_LoadTexture(char *file_name, char *name)
 {
     struct r_texture_t *texture = NULL;
@@ -403,54 +443,6 @@ struct r_model_t *r_LoadModel(char *file_name)
             weight_range_count = weight_header->range_count;
             weights = weight_data->weights;
             weight_ranges = weight_data->ranges;
-//            weights = mem_Calloc(verts->vert_count * R_MAX_VERTEX_WEIGHTS, sizeof(struct a_weight_t));
-//            weights = mem_Calloc(weight_header->weight_count, sizeof(struct a_weight_t));
-//            weight_ranges = mem_calloc(weight_header->range_count, sizeof(struct a_weight_range_t));
-//            uint32_t cur_index = 0xffffffff;
-//            uint32_t cur_index_count = 0;
-//            uint32_t first_weight;
-//            float total_weight = 0.0;
-//            
-//            
-//            for(uint32_t weight_index = 0; weight_index < weight_section->weight_count; weight_index++)
-//            {
-//                struct a_weight_record_t *weight = weight_section->weights + weight_index;
-//                if(cur_index != weight->vert_index)
-//                {
-//                    if(cur_index != 0xffffffff)
-//                    {
-////                        float missing_weight = 1.0 - total_weight;
-////                        
-////                        for(uint32_t fix_index = first_weight; fix_index < weight_count; fix_index++)
-////                        {
-////                            struct a_weight_t *fix_weight = weights + fix_index;
-////                            float proportion = fix_weight->weight / total_weight;
-////                            fix_weight->weight += missing_weight * proportion;
-////                        }
-//                        
-//                        while(cur_index_count < R_MAX_VERTEX_WEIGHTS)
-//                        {
-//                            weights[weight_count].bone_index = 0xffffffff;
-//                            weights[weight_count].weight = 0.0;
-//                            weight_count++;
-//                            cur_index_count++;
-//                        }
-//                    }
-//                    first_weight = weight_count;
-//                    cur_index = weight->vert_index;
-//                    cur_index_count = 0;
-//                    total_weight = 0.0;
-//                }
-//                
-//                if(cur_index_count < R_MAX_VERTEX_WEIGHTS)
-//                {
-//                    total_weight += weight->weight.weight;
-//                    weights[weight_count] = weight->weight;
-//                    weight_count++;
-//                    cur_index_count++;
-//                }
-//            }
-//            weight_count = verts->vert_count * R_MAX_VERTEX_WEIGHTS;
         }
         struct r_model_create_info_t create_info = {};
         create_info.vert_count = verts->vert_count;
@@ -562,6 +554,43 @@ struct r_model_t *r_ShallowCopyModel(struct r_model_t *base)
     return copy;
 }
 
+struct r_light_t *r_CreateLight(uint32_t type, vec3_t *position, vec3_t *color, float radius)
+{
+    struct r_light_t *light;
+    uint32_t index;
+    
+    index = add_stack_list_element(&r_lights, NULL);
+    light = get_stack_list_element(&r_lights, index);
+    
+    light->index = index;
+    light->data.pos_rad = vec4_t_c(position->x, position->y, position->z, radius);
+    light->data.color = *color;
+    light->data.type = type;
+    
+    return light;
+}
+
+struct r_light_t *r_GetLight(uint32_t light_index)
+{
+    struct r_light_t *light;
+    light = get_stack_list_element(&r_lights, light_index);
+    if(light && light->index == 0xffffffff)
+    {
+        light = NULL;
+    }
+    
+    return light;
+}
+
+void r_DestroyLight(struct r_light_t *light)
+{
+    if(light && light->index != 0xffffffff)
+    {
+        remove_stack_list_element(&r_lights, light->index);
+        light->index = 0xffffffff;
+    }
+}
+
 struct r_shader_t *r_LoadShader(char *vertex_file_name, char *fragment_file_name)
 {
     FILE *shader_file;
@@ -657,6 +686,16 @@ struct r_shader_t *r_LoadShader(char *vertex_file_name, char *fragment_file_name
     {
         shader->uniforms[uniform_index] = glGetUniformLocation(shader_program, d_uniform_names[uniform_index]);
     }
+    
+    uint32_t lights_uniform_block = glGetUniformBlockIndex(shader_program, "r_lights");
+    uint32_t light_indices_uniform_block = glGetUniformBlockIndex(shader_program, "r_light_indices");
+    
+    if(lights_uniform_block != 0xffffffff && light_indices_uniform_block != 0xffffffff)
+    {
+        glUniformBlockBinding(shader_program, lights_uniform_block, R_LIGHTS_UNIFORM_BUFFER_BINDING);
+        glUniformBlockBinding(shader_program, light_indices_uniform_block, R_LIGHT_INDICES_UNIFORM_BUFFER_BINDING);
+    }
+    
     shader->attribs = 0;
     
     if(glGetAttribLocation(shader_program, "d_position") != -1)
@@ -737,6 +776,11 @@ void r_BindShader(struct r_shader_t *shader)
 void r_SetUniformMatrix4(uint32_t uniform, mat4_t *matrix)
 {
     glUniformMatrix4fv(r_current_shader->uniforms[uniform], 1, GL_FALSE, (const float *)matrix->comps);
+}
+
+void r_SetUniformBuffer(uint32_t uniform, uint32_t buffer)
+{
+    
 }
 
 void r_SetUniform1i(uint32_t uniform, uint32_t value)

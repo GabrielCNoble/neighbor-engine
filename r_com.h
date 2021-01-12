@@ -38,8 +38,13 @@ struct r_material_section_t
 enum R_UNIFORM
 {
     R_UNIFORM_MVP,
+    R_UNIFORM_MV,
+    R_UNIFORM_IVM,
     R_UNIFORM_TEX0,
     R_UNIFORM_TEX1,
+    R_UNIFORM_CLUSTERS,
+//    R_UNIFORM_LIGHTS,
+//    R_UNIFORM_LIGHT_INDICES,
     R_UNIFORM_LAST,
 };
 
@@ -145,12 +150,54 @@ struct r_model_create_info_t
     struct a_weight_t *weights;
 };
 
-struct r_draw_batch_t 
+struct r_draw_batch_t  
 {
-    mat4_t model_view_projection_matrix;
+    mat4_t model_view_matrix; 
     struct r_batch_t batch;
 };
 
+enum R_LIGHT_TYPES
+{
+    R_LIGHT_TYPE_POINT = 0,
+    R_LIGHT_TYPE_SPOT,
+    R_LIGHT_TYPE_AREA,
+};
+
+struct r_l_data_t
+{
+    vec4_t pos_rad;
+    union
+    {
+        vec4_t color_type;
+        struct 
+        {
+            vec3_t color;
+            uint32_t type;
+        };
+    };
+};
+
+struct r_light_t
+{
+    struct r_l_data_t data;
+    uint32_t index;
+};
+
+struct r_cluster_t
+{
+    uint16_t start;
+    uint16_t count;
+};
+
+
+#define R_CLUSTER_ROW_WIDTH 24
+#define R_CLUSTER_ROWS 16
+#define R_CLUSTER_SLICES 16
+#define R_MAX_CLUSTER_LIGHTS 128
+#define R_MAX_LIGHTS 0xffff
+
+#define R_LIGHTS_UNIFORM_BUFFER_BINDING 0
+#define R_LIGHT_INDICES_UNIFORM_BUFFER_BINDING 1
 
 #define R_POSITION_LOCATION 0
 #define R_NORMAL_LOCATION 1

@@ -49,6 +49,7 @@ struct g_player_state_t
     float jump_disp;
     float run_frac;
     float jump_frac;
+    float run_scale;
 };
 
 enum G_GAME_STATE

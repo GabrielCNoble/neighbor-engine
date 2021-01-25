@@ -463,7 +463,7 @@
 	<limits.h>
 	<stdlib.h>
 
-1610424864 source:c:\users\gabri\documents\compiler\metroid_thingy\game.c
+1611550908 source:c:\users\gabri\documents\compiler\metroid_thingy\game.c
 	"dstuff/ds_stack_list.h"
 	"dstuff/ds_mem.h"
 	"dstuff/ds_file.h"
@@ -566,7 +566,7 @@
 1610375768 c:\users\gabri\documents\compiler\metroid_thingy\r_main.h
 	"r_com.h"
 
-1610379908 source:c:\users\gabri\documents\compiler\metroid_thingy\r_draw.c
+1611547071 source:c:\users\gabri\documents\compiler\metroid_thingy\r_draw.c
 	"r_draw.h"
 	"SDL2/SDL.h"
 	"GL/glew.h"

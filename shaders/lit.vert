@@ -15,6 +15,6 @@ void main()
 {
     gl_Position = d_mvp * d_position;
     tex_coords = d_tex_coords;
-    position = r_mv * d_position;
+    position = r_mv * vec4(d_position.xyz, 1.0);
     normal = r_mv * vec4(d_normal.xyz, 0.0);
 }

@@ -77,7 +77,7 @@
 
 - sound
     OK - "fire and forget" sound sources
-    - "stay alive after end" sound sources
+    OK - "stay alive after end" sound sources
     - looping sound sources
     - fade in
     - fade out
@@ -90,8 +90,21 @@
         OK - colors
         - textures
 
-    - lights
+    OK - lights
+    - normal mapping
+        - add default normal texture to default material, and use surface normal only to compute
+        tbn matrix
+
     - shadow maps
+        - texture atlas
+            - shadow map reusage (recompute shadows only when things changed)
+        - filtering
+
+    - cook-torrance
+    - tonemapping
+    - bloom
+    - volumetric lighting
+    - oit
 
 
 

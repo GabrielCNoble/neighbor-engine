@@ -144,7 +144,21 @@ void g_Init(uint32_t editor_active)
     
     g_game_state = G_GAME_STATE_PLAYING;
     
-    r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(8.0, 0.5, 0.0), &vec3_t_c(1.0, 0.0, 0.0), 80.0);
+    r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(4.0, -0.3, 0.2), &vec3_t_c(1.0, 0.0, 0.3), 10.0);
+    r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(8.0, -0.3, 0.2), &vec3_t_c(0.3, 1.0, 0.0), 10.0);
+    r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(12.0, -0.3, 0.2), &vec3_t_c(0.0, 0.3, 1.0), 10.0);
+    
+    r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(16.0, -0.3, 0.2), &vec3_t_c(1.0, 1.0, 0.3), 10.0);
+    r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(20.0, -0.3, 0.2), &vec3_t_c(1.0, 0.3, 1.0), 10.0);
+    r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(24.0, -0.3, 0.2), &vec3_t_c(0.3, 1.0, 1.0), 10.0);
+    
+    r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(24.0, -7.3, 0.2), &vec3_t_c(0.3, 1.0, 0.3), 10.0);
+    r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(20.0, -7.3, 0.2), &vec3_t_c(0.3, 0.3, 1.0), 10.0);
+    r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(16.0, -7.3, 0.2), &vec3_t_c(1.0, 0.3, 0.3), 10.0);
+    
+    r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(12.0, -7.3, 0.2), &vec3_t_c(1.0, 0.2, 0.0), 10.0);
+    r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(8.0, -7.3, 0.2), &vec3_t_c(0.3, 0.5, 0.5), 10.0);
+    r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(4.0, -7.3, 0.2), &vec3_t_c(0.3, 0.0, 1.0), 10.0);
 }
 
 void g_Shutdown()
@@ -199,6 +213,7 @@ void g_LoadMap(char *file_name)
 
         mat4_t cur_transform;
         mat4_t_identity(&cur_transform);
+        cur_transform.rows[2].z = 16.0;
         
         for(uint32_t index = 0; index < length; index++)
         {
@@ -287,6 +302,7 @@ void g_UpdateEntities()
 
 void g_DrawEntities()
 {
+    r_UpdateViewProjectionMatrix();
     for(uint32_t entity_index = 0; entity_index < g_entities.cursor; entity_index++)
     {
         struct g_entity_t *entity = g_GetEntity(entity_index);

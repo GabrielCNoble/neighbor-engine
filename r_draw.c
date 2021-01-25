@@ -168,7 +168,9 @@ void r_DrawBatches()
     r_BindShader(r_lit_shader);
     
 //    r_SetUniformMatrix4(R_UNIFORM_IVM, &r_inv_view_matrix);
-    r_SetUniform1i(R_UNIFORM_CLUSTERS, r_cluster_texture);
+    glActiveTexture(GL_TEXTURE0 + R_CLUSTERS_TEX_UNIT);
+    glBindTexture(GL_TEXTURE_3D, r_cluster_texture);
+    r_SetUniform1i(R_UNIFORM_CLUSTERS, R_CLUSTERS_TEX_UNIT);
     
     for(uint32_t batch_index = 0; batch_index < r_draw_batches.cursor; batch_index++)
     {

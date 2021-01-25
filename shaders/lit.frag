@@ -5,11 +5,15 @@
 #define R_CLUSTER_SLICES 16
 #define R_CLUSTER_ROWS 16
 
-in vec2 tex_coords;
-in vec4 normal;
-in vec4 position;
+in vec2 var_tex_coords;
+in vec3 var_normal;
+in vec3 var_tangent;
+in vec3 var_position;
 
-uniform sampler2D d_tex0;
+uniform sampler2D r_tex_albedo;
+uniform sampler2D r_tex_normal;
+uniform sampler2D r_tex_metalness;
+uniform sampler2D r_tex_roughness;
 uniform usampler3D r_clusters;
 
 struct r_l_data_t
@@ -124,40 +128,41 @@ vec3 tonemap(vec3 color)
 
 void main()
 {
-    vec4 albedo = texture(d_tex0, tex_coords.xy);
+    vec4 albedo = texture(r_tex_albedo, var_tex_coords.xy);
+    vec3 normal = texture(r_tex_normal, var_tex_coords.xy).rgb * 2.0 - vec3(1.0);
+    float roughness = texture(r_tex_roughness, var_tex_coords.xy).r;
+    
     uvec4 cluster = texture(r_clusters, ivec3(0, 0, 0));
     vec4 color = vec4(0.0);
     
-    vec3 nnormal = normalize(normal.xyz);
-    vec3 view_vec = normalize(-position.xyz);
+    mat3 tbn;
+    tbn[0] = normalize(var_tangent);
+    tbn[2] = normalize(var_normal);
+    tbn[1] = cross(tbn[0], tbn[1]);
+    
+    normal = normalize(tbn * normal);
+
+    vec3 view_vec = normalize(-var_position);
+    
     for(int light_index = 0; light_index < cluster.y; light_index++)
     {
         r_l_data_t light = lights[cluster.x + light_index];
         vec4 light_color = vec4(light.col_type.rgb, 0.0);
-        vec3 light_vec = light.pos_rad.xyz - position.xyz;
+        vec3 light_vec = light.pos_rad.xyz - var_position.xyz;
         float dist = length(light_vec);
         light_vec = light_vec / dist;
         dist *= dist;
 
-        float x = clamp(dot(nnormal, light_vec), 0.0, 1.0) * 10.0;
-        float spec = clamp(lighting(view_vec, light_vec, nnormal.xyz, 0.1), 0.0, 1.0);
+        float spec = clamp(lighting(view_vec, light_vec, normal.xyz, roughness), 0.0, 1.0);
         float diff = 1.0 - spec;
-        color += (((albedo / 3.14159265) * diff * light_color + light_color * spec) * x) / dist ;
+        float c = clamp(dot(normal, light_vec), 0.0, 1.0) * 10.0;
+        color += (((albedo / 3.14159265) * diff * light_color + light_color * spec) * c) / dist ;
     }
     
     color.rgb = tonemap(color.rgb * 2.0);
     color.rgb *= 1.0 / tonemap(vec3(W));
-//    float A = 0.15;
-//    float B = 0.50;
-//    float C = 0.10;
-//    float D = 0.20;
-//    float E = 0.02;
-//    float F = 0.30;
-//    float W = 11.2;
-//    
-//    color *= 1.0 / (((W * (A * W + C * B) + D * E) / (W * (A * W + B) + D * F)) - E/F);
     gl_FragColor = color;
-//    gl_FragColor = vec4(normal.xyz, 1.0);
+//    gl_FragColor = vec4(roughness);
 }
 
 

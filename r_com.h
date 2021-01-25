@@ -17,6 +17,7 @@ struct r_material_t
 {
     struct r_texture_t *diffuse_texture;
     struct r_texture_t *normal_texture;
+    struct r_texture_t *roughness_texture;
     uint32_t index;
     char *name;
 };
@@ -42,18 +43,27 @@ enum R_UNIFORM
     R_UNIFORM_IVM,
     R_UNIFORM_TEX0,
     R_UNIFORM_TEX1,
+    R_UNIFORM_ALBEDO,
+    R_UNIFORM_NORMAL,
+    R_UNIFORM_METALNESS,
+    R_UNIFORM_ROUGHNESS,
     R_UNIFORM_CLUSTERS,
-//    R_UNIFORM_LIGHTS,
-//    R_UNIFORM_LIGHT_INDICES,
     R_UNIFORM_LAST,
 };
+
+#define R_CLUSTERS_TEX_UNIT 0
+#define R_ALBEDO_TEX_UNIT 1
+#define R_NORMAL_TEX_UNIT 2
+#define R_METALNESS_TEX_UNIT 3
+#define R_ROUGHNESS_TEX_UNIT 4
 
 enum R_ATTRIBS
 {
     R_ATTRIB_POSITION = 1,
     R_ATTRIB_NORMAL = 1 << 1,
+    R_ATTRIB_TANGENT = 1 << 2,
+    R_ATTRIB_TEX_COORDS = 1 << 3,
     R_ATTRIB_COLOR = R_ATTRIB_NORMAL,
-    R_ATTRIB_TEX_COORDS = 1 << 2,
 };
 
 struct r_shader_t
@@ -201,8 +211,10 @@ struct r_cluster_t
 
 #define R_POSITION_LOCATION 0
 #define R_NORMAL_LOCATION 1
+#define R_TANGENT_LOCATION 2
+#define R_TEX_COORDS_LOCATION 3
 #define R_COLOR_LOCATION R_NORMAL_LOCATION
-#define R_TEX_COORDS_LOCATION 2
+
 #define R_VERTEX_BUFFER_SIZE (sizeof(struct r_vert_t) * 1000000)
 #define R_INDEX_BUFFER_SIZE (sizeof(uint32_t) * 1000000)
 #define R_IMMEDIATE_BUFFER_SIZE (sizeof(struct r_vert_t) * 10000)

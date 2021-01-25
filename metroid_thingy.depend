@@ -463,7 +463,7 @@
 	<limits.h>
 	<stdlib.h>
 
-1611550908 source:c:\users\gabri\documents\compiler\metroid_thingy\game.c
+1611590170 source:c:\users\gabri\documents\compiler\metroid_thingy\game.c
 	"dstuff/ds_stack_list.h"
 	"dstuff/ds_mem.h"
 	"dstuff/ds_file.h"
@@ -544,7 +544,7 @@
 	"dstuff/ds_alloc.h"
 	"draw.h"
 
-1610378528 source:c:\users\gabri\documents\compiler\metroid_thingy\anim.c
+1611587288 source:c:\users\gabri\documents\compiler\metroid_thingy\anim.c
 	<stdio.h>
 	"anim.h"
 	"r_draw.h"
@@ -563,10 +563,10 @@
 	"r_com.h"
 	"r_main.h"
 
-1610375768 c:\users\gabri\documents\compiler\metroid_thingy\r_main.h
+1611589473 c:\users\gabri\documents\compiler\metroid_thingy\r_main.h
 	"r_com.h"
 
-1611547071 source:c:\users\gabri\documents\compiler\metroid_thingy\r_draw.c
+1611589332 source:c:\users\gabri\documents\compiler\metroid_thingy\r_draw.c
 	"r_draw.h"
 	"SDL2/SDL.h"
 	"GL/glew.h"
@@ -577,7 +577,7 @@
 	<stdlib.h>
 	<stdio.h>
 
-1610380683 source:c:\users\gabri\documents\compiler\metroid_thingy\r_main.c
+1611590514 source:c:\users\gabri\documents\compiler\metroid_thingy\r_main.c
 	"r_main.h"
 	"SDL2/SDL.h"
 	"GL/glew.h"
@@ -590,7 +590,7 @@
 	"r_draw.h"
 	"anim.h"
 
-1610379912 c:\users\gabri\documents\compiler\metroid_thingy\r_com.h
+1611589415 c:\users\gabri\documents\compiler\metroid_thingy\r_com.h
 	"dstuff/ds_vector.h"
 	"dstuff/ds_matrix.h"
 	"dstuff/ds_alloc.h"

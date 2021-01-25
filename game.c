@@ -19,7 +19,7 @@ extern mat4_t r_view_projection_matrix;
 
 struct stack_list_t g_entities;
 struct stack_list_t g_triggers;
-#define G_PLAYER_AREA_Z 7.0
+#define G_PLAYER_AREA_Z 4.0
 float g_camera_z = G_PLAYER_AREA_Z;
 
 #define G_SCREEN_Y_OFFSET 20.0
@@ -41,6 +41,7 @@ struct a_animation_t *g_fall_animation;
 struct s_sound_t *g_jump_sound;
 struct s_sound_t *g_land_sound;
 struct s_sound_t *g_footstep_sounds[5];
+struct r_light_t *g_player_light;
 
 uint32_t g_game_state = G_GAME_STATE_LOADING;
 
@@ -144,21 +145,23 @@ void g_Init(uint32_t editor_active)
     
     g_game_state = G_GAME_STATE_PLAYING;
     
-    r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(4.0, -0.3, 0.2), &vec3_t_c(1.0, 0.0, 0.3), 10.0);
-    r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(8.0, -0.3, 0.2), &vec3_t_c(0.3, 1.0, 0.0), 10.0);
-    r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(12.0, -0.3, 0.2), &vec3_t_c(0.0, 0.3, 1.0), 10.0);
+    r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(4.0, -0.3, -1.5), &vec3_t_c(1.0, 0.0, 0.3), 10.0);
+    r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(8.0, -0.3, -1.5), &vec3_t_c(0.3, 1.0, 0.0), 10.0);
+    r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(12.0, -0.3, -1.5), &vec3_t_c(0.0, 0.3, 1.0), 10.0);
     
-    r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(16.0, -0.3, 0.2), &vec3_t_c(1.0, 1.0, 0.3), 10.0);
-    r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(20.0, -0.3, 0.2), &vec3_t_c(1.0, 0.3, 1.0), 10.0);
-    r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(24.0, -0.3, 0.2), &vec3_t_c(0.3, 1.0, 1.0), 10.0);
+    r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(16.0, -0.3, -1.5), &vec3_t_c(1.0, 1.0, 0.3), 10.0);
+    r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(20.0, -0.3, -1.5), &vec3_t_c(1.0, 0.3, 1.0), 10.0);
+    r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(24.0, -0.3, -1.5), &vec3_t_c(0.3, 1.0, 1.0), 10.0);
     
-    r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(24.0, -7.3, 0.2), &vec3_t_c(0.3, 1.0, 0.3), 10.0);
-    r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(20.0, -7.3, 0.2), &vec3_t_c(0.3, 0.3, 1.0), 10.0);
-    r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(16.0, -7.3, 0.2), &vec3_t_c(1.0, 0.3, 0.3), 10.0);
+    r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(24.0, -7.3, -0.5), &vec3_t_c(0.3, 1.0, 0.3), 10.0);
+    r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(20.0, -7.3, -0.5), &vec3_t_c(0.3, 0.3, 1.0), 10.0);
+    r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(16.0, -7.3, -0.5), &vec3_t_c(1.0, 0.3, 0.3), 10.0);
     
-    r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(12.0, -7.3, 0.2), &vec3_t_c(1.0, 0.2, 0.0), 10.0);
-    r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(8.0, -7.3, 0.2), &vec3_t_c(0.3, 0.5, 0.5), 10.0);
-    r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(4.0, -7.3, 0.2), &vec3_t_c(0.3, 0.0, 1.0), 10.0);
+    r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(12.0, -7.3, -0.5), &vec3_t_c(1.0, 0.2, 0.0), 10.0);
+    r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(8.0, -7.3, -0.5), &vec3_t_c(0.3, 0.5, 0.5), 10.0);
+    r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(4.0, -7.3, -0.5), &vec3_t_c(0.3, 0.0, 1.0), 10.0);
+    
+//    g_player_light = r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(0.0, 0.0, 0.0), &vec3_t_c(1.0, 1.0, 1.0), 5.0);
 }
 
 void g_Shutdown()
@@ -213,7 +216,7 @@ void g_LoadMap(char *file_name)
 
         mat4_t cur_transform;
         mat4_t_identity(&cur_transform);
-        cur_transform.rows[2].z = 16.0;
+//        cur_transform.rows[2].z = 16.0;
         
         for(uint32_t index = 0; index < length; index++)
         {
@@ -646,6 +649,11 @@ void g_PlayerThinker(struct g_entity_t *entity)
     collider->disp.x = collider_disp.x;
     
     vec4_t player_pos = entity->local_transform.rows[3];
+    
+//    g_player_light->data.pos_rad.x = player_pos.x;
+//    g_player_light->data.pos_rad.y = player_pos.y - 0.5;
+//    g_player_light->data.pos_rad.z = player_pos.z;
+    
     mat4_t_vec4_t_mul(&player_pos, &r_inv_view_matrix, &player_pos);
     disp = vec3_t_c(player_pos.x * 0.1, player_pos.y * 0.1, 0.0);
     r_TranslateView(&disp);

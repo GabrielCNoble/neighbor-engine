@@ -425,22 +425,31 @@ void a_UpdateMixer(struct a_mixer_t *mixer, float delta_time)
         struct a_weight_t *weights = model->weights + range->start;
         vec4_t position = {0.0, 0.0, 0.0, 1.0};
         vec4_t normal = {};
+        vec4_t tangent = {};
+        
         for(uint32_t weight_index = 0; weight_index < range->count; weight_index++)
         {
             struct a_weight_t *weight = weights + weight_index;
             vec4_t temp_pos = vec4_t_c(vert->pos.x, vert->pos.y, vert->pos.z, 1.0);
             vec4_t temp_normal = vec4_t_c(vert->normal.x, vert->normal.y, vert->normal.z, 0.0);
+            vec4_t temp_tangent = vec4_t_c(vert->tangent.x, vert->tangent.y, vert->tangent.z, 0.0);
+            
             mat4_t_vec4_t_mul(&temp_pos, mixer->skinning_matrices + weight->bone_index, &temp_pos);        
             mat4_t_vec4_t_mul(&temp_normal, mixer->skinning_matrices + weight->bone_index, &temp_normal);        
+            mat4_t_vec4_t_mul(&temp_tangent, mixer->skinning_matrices + weight->bone_index, &temp_tangent);        
+            
             vec4_t_mul(&temp_pos, &temp_pos, weight->weight);
             vec4_t_add(&position, &position, &temp_pos);
             vec4_t_mul(&temp_normal, &temp_normal, weight->weight);
             vec4_t_add(&normal, &normal, &temp_normal);
+            vec4_t_mul(&temp_tangent, &temp_tangent, weight->weight);
+            vec4_t_add(&tangent, &tangent, &temp_tangent);
         }
         
         vert = copy->verts + vert_index;
         vert->pos = vec3_t_c(position.x, position.y, position.z);
         vert->normal = vec3_t_c(normal.x, normal.y, normal.z);
+        vert->tangent = vec3_t_c(tangent.x, tangent.y, tangent.z);
     }
     
     r_FillVertices(copy->vert_chunk, copy->verts, copy->vert_count);

@@ -43,6 +43,9 @@ struct r_shader_t *r_current_shader;
 
 struct r_model_t *test_model;
 struct r_texture_t *r_default_texture;
+struct r_texture_t *r_default_albedo_texture;
+struct r_texture_t *r_default_normal_texture;
+struct r_texture_t *r_default_roughness_texture;
 struct r_material_t *r_default_material;
 
 extern mat4_t r_projection_matrix;
@@ -72,6 +75,10 @@ char *d_uniform_names[] =
     [R_UNIFORM_IVM] = "r_ivm",
     [R_UNIFORM_TEX0] = "d_tex0",
     [R_UNIFORM_TEX1] = "d_tex1",
+    [R_UNIFORM_ALBEDO] = "r_tex_albedo",
+    [R_UNIFORM_NORMAL] = "r_tex_normal",
+    [R_UNIFORM_METALNESS] = "r_tex_metalness",
+    [R_UNIFORM_ROUGHNESS] = "r_tex_roughness",
     [R_UNIFORM_CLUSTERS] = "r_clusters",
 //    [R_UNIFORM_LIGHTS] = "r_lights",
 //    [R_UNIFORM_LIGHT_INDICES] = "r_light_indices"
@@ -140,8 +147,14 @@ void r_Init()
         0xff777777, 0xff444444, 0xff777777, 0xff444444,
         0xff444444, 0xff777777, 0xff444444, 0xff777777,
     };
-    r_default_texture = r_CreateTexture("default", 4, 4, GL_RGBA8, pixels);
-    r_default_material = r_CreateMaterial("deafult", r_default_texture, NULL);
+    r_default_albedo_texture = r_CreateTexture("default_albedo", 4, 4, GL_RGBA8, pixels);
+    pixels[0] = 0x00ff7f7f;
+    r_default_normal_texture = r_CreateTexture("default_normal", 1, 1, GL_RGBA8, pixels);
+    pixels[0] = 0x0000003f;
+    r_default_roughness_texture = r_CreateTexture("default_roughness", 1, 1, GL_RGBA8, pixels);
+    r_default_material = r_CreateMaterial("deafult", r_default_albedo_texture, r_default_normal_texture, r_default_roughness_texture);
+    
+    r_default_texture = r_default_albedo_texture;
     
     uint32_t cluster_count = R_CLUSTER_ROWS * R_CLUSTER_ROW_WIDTH * R_CLUSTER_SLICES;
     r_clusters = mem_Calloc(cluster_count, sizeof(struct r_cluster_t));
@@ -220,7 +233,12 @@ struct r_texture_t *r_CreateTexture(char *name, uint32_t width, uint32_t height,
         case GL_RGB8:
             type = GL_UNSIGNED_BYTE;
             format = GL_RGB;
-        break;    
+        break;
+        
+        case GL_RED:
+            type = GL_UNSIGNED_BYTE;
+            format = GL_RED;
+        break;
     }
     
     texture_index = add_stack_list_element(&r_textures, NULL);
@@ -240,6 +258,8 @@ struct r_texture_t *r_CreateTexture(char *name, uint32_t width, uint32_t height,
     glTexImage2D(GL_TEXTURE_2D, 0, internal_format, width, height, 0, format, type, data);
     glGenerateMipmap(GL_TEXTURE_2D);
     glBindTexture(GL_TEXTURE_2D, 0);
+    
+    printf("%x\n", glGetError());
     
     return texture;
 }
@@ -261,7 +281,7 @@ struct r_texture_t *r_GetTexture(char *name)
     return NULL;
 }
 
-struct r_material_t *r_CreateMaterial(char *name, struct r_texture_t *diffuse_texture, struct r_texture_t *normal_texture)
+struct r_material_t *r_CreateMaterial(char *name, struct r_texture_t *diffuse_texture, struct r_texture_t *normal_texture, struct r_texture_t *roughness_texture)
 {
     uint32_t material_index;
     struct r_material_t *material;
@@ -273,6 +293,7 @@ struct r_material_t *r_CreateMaterial(char *name, struct r_texture_t *diffuse_te
     material->name = strdup(name);
     material->diffuse_texture = diffuse_texture;
     material->normal_texture = normal_texture;
+    material->roughness_texture = roughness_texture;
     
     return material;
 }
@@ -298,19 +319,17 @@ void r_BindMaterial(struct r_material_t *material)
 {
     if(material)
     {
-        if(material->diffuse_texture)
-        {
-            glActiveTexture(GL_TEXTURE0);
-            glBindTexture(GL_TEXTURE_2D, material->diffuse_texture->handle);
-            r_SetUniform1i(R_UNIFORM_TEX0, 0);
-        }   
+        glActiveTexture(GL_TEXTURE0 + R_ALBEDO_TEX_UNIT);
+        glBindTexture(GL_TEXTURE_2D, material->diffuse_texture->handle);
+        r_SetUniform1i(R_UNIFORM_ALBEDO, R_ALBEDO_TEX_UNIT);
         
-        if(material->normal_texture)
-        {
-            glActiveTexture(GL_TEXTURE1);
-            glBindTexture(GL_TEXTURE_2D, material->normal_texture->handle);
-            r_SetUniform1i(R_UNIFORM_TEX1, 1);
-        }
+        glActiveTexture(GL_TEXTURE0 + R_ROUGHNESS_TEX_UNIT);
+        glBindTexture(GL_TEXTURE_2D, material->roughness_texture->handle);
+        r_SetUniform1i(R_UNIFORM_ROUGHNESS, R_ROUGHNESS_TEX_UNIT);
+
+        glActiveTexture(GL_TEXTURE0 + R_NORMAL_TEX_UNIT);
+        glBindTexture(GL_TEXTURE_2D, material->normal_texture->handle);
+        r_SetUniform1i(R_UNIFORM_NORMAL, R_NORMAL_TEX_UNIT);
     }
 }
 
@@ -399,28 +418,30 @@ struct r_model_t *r_LoadModel(char *file_name)
                     }
                 }
                     
-                struct r_texture_t *diffuse_texture;
+                struct r_texture_t *diffuse_texture = r_default_albedo_texture;
+                struct r_texture_t *normal_texture = r_default_normal_texture;
                 
                 if(material_record->diffuse_texture[0]) 
                 {
                     diffuse_texture = r_GetTexture(material_record->diffuse_texture);
+                    
                     if(!diffuse_texture)
                     {
                         diffuse_texture = r_LoadTexture(material_record->diffuse_texture, material_record->diffuse_texture);
                     }
                 }
-                else
+                
+                if(material_record->normal_texture[0]) 
                 {
-                    diffuse_texture = r_default_texture;
+                    normal_texture = r_GetTexture(material_record->normal_texture);
+                
+                    if(!normal_texture)
+                    {
+                        normal_texture = r_LoadTexture(material_record->normal_texture, material_record->normal_texture);
+                    }
                 }
                 
-                struct r_texture_t *normal_texture = r_GetTexture(material_record->normal_texture);
-                if(!normal_texture)
-                {
-                    normal_texture = r_LoadTexture(material_record->normal_texture, material_record->normal_texture);
-                }
-                
-                material = r_CreateMaterial(batch_record->material, diffuse_texture, normal_texture);
+                material = r_CreateMaterial(batch_record->material, diffuse_texture, normal_texture, r_default_roughness_texture);
             }
             
             batches[batch_index].start = batch_record->start;
@@ -698,28 +719,34 @@ struct r_shader_t *r_LoadShader(char *vertex_file_name, char *fragment_file_name
     
     shader->attribs = 0;
     
-    if(glGetAttribLocation(shader_program, "d_position") != -1)
+    if(glGetAttribLocation(shader_program, "r_position") != -1)
     {
         shader->attribs |= R_ATTRIB_POSITION;
-        glBindAttribLocation(shader_program, R_POSITION_LOCATION, "d_position");
+        glBindAttribLocation(shader_program, R_POSITION_LOCATION, "r_position");
     }
     
-    if(glGetAttribLocation(shader_program, "d_tex_coords") != -1)
+    if(glGetAttribLocation(shader_program, "r_tex_coords") != -1)
     {
         shader->attribs |= R_ATTRIB_TEX_COORDS;
-        glBindAttribLocation(shader_program, R_TEX_COORDS_LOCATION, "d_tex_coords");
+        glBindAttribLocation(shader_program, R_TEX_COORDS_LOCATION, "r_tex_coords");
     }
     
-    if(glGetAttribLocation(shader_program, "d_normal") != -1)
+    if(glGetAttribLocation(shader_program, "r_normal") != -1)
     {
         shader->attribs |= R_ATTRIB_NORMAL;
-        glBindAttribLocation(shader_program, R_NORMAL_LOCATION, "d_normal");
+        glBindAttribLocation(shader_program, R_NORMAL_LOCATION, "r_normal");
     }
     
-    if(glGetAttribLocation(shader_program, "d_color") != -1)
+    if(glGetAttribLocation(shader_program, "r_tangent") != -1) 
+    {
+        shader->attribs |= R_ATTRIB_TANGENT;
+        glBindAttribLocation(shader_program, R_TANGENT_LOCATION, "r_tangent");
+    }
+    
+    if(glGetAttribLocation(shader_program, "r_color") != -1)
     {
         shader->attribs |= R_ATTRIB_COLOR;
-        glBindAttribLocation(shader_program, R_COLOR_LOCATION, "d_color");
+        glBindAttribLocation(shader_program, R_COLOR_LOCATION, "r_color");
     }
     
     return shader;
@@ -761,6 +788,16 @@ void r_BindShader(struct r_shader_t *shader)
             glDisableVertexArrayAttrib(r_vao, R_NORMAL_LOCATION);
         }
         
+        if(shader->attribs & R_ATTRIB_TANGENT)
+        {
+            glEnableVertexArrayAttrib(r_vao, R_TANGENT_LOCATION);
+            glVertexAttribPointer(R_TANGENT_LOCATION, 3, GL_FLOAT, GL_FALSE, sizeof(struct r_vert_t), (void *)offsetof(struct r_vert_t, tangent));
+        }
+        else
+        {
+            glDisableVertexArrayAttrib(r_vao, R_TANGENT_LOCATION);
+        }
+        
         if(shader->attribs & R_ATTRIB_TEX_COORDS)
         {
             glEnableVertexArrayAttrib(r_vao, R_TEX_COORDS_LOCATION);
@@ -785,5 +822,5 @@ void r_SetUniformBuffer(uint32_t uniform, uint32_t buffer)
 
 void r_SetUniform1i(uint32_t uniform, uint32_t value)
 {
-    glUniform1i(uniform, value);
+    glUniform1i(r_current_shader->uniforms[uniform], value);
 }

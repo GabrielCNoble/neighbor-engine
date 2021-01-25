@@ -87,13 +87,21 @@
 
 - rendering
     - "immediate" mode
+        OK - world space primitives
+        - screen space primitives
         OK - colors
         - textures
 
     OK - lights
-    - normal mapping
-        - add default normal texture to default material, and use surface normal only to compute
+    OK - normal mapping
+        OK - add default normal texture to default material, and use surface normal only to compute
         tbn matrix
+
+    - parallax occlusion mapping
+
+    - pbr
+        - metalness texture in materials
+        - roughness texture in materials
 
     - shadow maps
         - texture atlas

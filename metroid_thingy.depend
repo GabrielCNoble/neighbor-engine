@@ -420,7 +420,7 @@
 1607819065 source:c:\users\gabri\documents\compiler\metroid_thingy\input.c
 	"input.h"
 
-1608045186 c:\users\gabri\documents\compiler\metroid_thingy\lib\dstuff\ds_matrix.h
+1611811831 c:\users\gabri\documents\compiler\metroid_thingy\lib\dstuff\ds_matrix.h
 	"ds_vector.h"
 
 1607830079 c:\users\gabri\documents\compiler\metroid_thingy\lib\dstuff\ds_alloc.h
@@ -463,7 +463,7 @@
 	<limits.h>
 	<stdlib.h>
 
-1611590170 source:c:\users\gabri\documents\compiler\metroid_thingy\game.c
+1611858785 source:c:\users\gabri\documents\compiler\metroid_thingy\game.c
 	"dstuff/ds_stack_list.h"
 	"dstuff/ds_mem.h"
 	"dstuff/ds_file.h"
@@ -544,7 +544,7 @@
 	"dstuff/ds_alloc.h"
 	"draw.h"
 
-1611587288 source:c:\users\gabri\documents\compiler\metroid_thingy\anim.c
+1611660951 source:c:\users\gabri\documents\compiler\metroid_thingy\anim.c
 	<stdio.h>
 	"anim.h"
 	"r_draw.h"
@@ -559,14 +559,14 @@
 	"dstuff/ds_stack_list.h"
 	<stdint.h>
 
-1608963237 c:\users\gabri\documents\compiler\metroid_thingy\r_draw.h
+1611661503 c:\users\gabri\documents\compiler\metroid_thingy\r_draw.h
 	"r_com.h"
 	"r_main.h"
 
-1611589473 c:\users\gabri\documents\compiler\metroid_thingy\r_main.h
+1611674301 c:\users\gabri\documents\compiler\metroid_thingy\r_main.h
 	"r_com.h"
 
-1611589332 source:c:\users\gabri\documents\compiler\metroid_thingy\r_draw.c
+1611858558 source:c:\users\gabri\documents\compiler\metroid_thingy\r_draw.c
 	"r_draw.h"
 	"SDL2/SDL.h"
 	"GL/glew.h"
@@ -577,7 +577,7 @@
 	<stdlib.h>
 	<stdio.h>
 
-1611590514 source:c:\users\gabri\documents\compiler\metroid_thingy\r_main.c
+1611860075 source:c:\users\gabri\documents\compiler\metroid_thingy\r_main.c
 	"r_main.h"
 	"SDL2/SDL.h"
 	"GL/glew.h"
@@ -590,10 +590,11 @@
 	"r_draw.h"
 	"anim.h"
 
-1611589415 c:\users\gabri\documents\compiler\metroid_thingy\r_com.h
+1611858535 c:\users\gabri\documents\compiler\metroid_thingy\r_com.h
 	"dstuff/ds_vector.h"
 	"dstuff/ds_matrix.h"
 	"dstuff/ds_alloc.h"
+	"GL/glew.h"
 	<stdint.h>
 
 1608963364 source:c:\users\gabri\documents\compiler\metroid_thingy\editor.c
@@ -610,10 +611,11 @@
 	<stdint.h>
 	"r_main.h"
 
-1610378198 source:c:\users\gabri\documents\compiler\metroid_thingy\world.c
+1611858598 source:c:\users\gabri\documents\compiler\metroid_thingy\world.c
 	"world.h"
 	"dstuff/ds_dbvh.h"
 	"dstuff/ds_alloc.h"
+	"r_draw.h"
 
 1609865246 source:c:\users\gabri\documents\compiler\metroid_thingy\sound.c
 	<stdio.h>

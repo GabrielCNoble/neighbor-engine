@@ -9,8 +9,8 @@
 #include <stdio.h>
 
 
-//struct stack_list_t d_sprites[D_MAX_LAYERS];
-extern struct list_t r_draw_batches;
+extern struct list_t r_sorted_batches;
+struct r_imm_batch_t *r_cur_imm_batch;
 extern struct list_t r_immediate_batches;
 extern struct stack_list_t r_shaders;
 extern struct stack_list_t r_textures;
@@ -23,7 +23,6 @@ extern uint32_t r_index_buffer;
 extern struct ds_heap_t r_index_heap;
 extern uint32_t r_immediate_cursor;
 extern uint32_t r_immediate_buffer;
-//extern struct ds_heap_t r_immediate_heap;
     
 extern uint32_t r_vao;
 extern struct r_shader_t *r_lit_shader;
@@ -63,21 +62,23 @@ void r_BeginFrame()
         glBindBuffer(GL_UNIFORM_BUFFER, r_light_uniform_buffer);
         glBufferSubData(GL_UNIFORM_BUFFER, 0, r_light_buffer_cursor * sizeof(struct r_l_data_t), r_light_buffer);
         glBindBuffer(GL_UNIFORM_BUFFER, r_light_index_uniform_buffer);
-        glBufferSubData(GL_UNIFORM_BUFFER, 0, r_light_index_buffer_cursor * sizeof(uint16_t), r_light_index_buffer);
+        glBufferSubData(GL_UNIFORM_BUFFER, 0, R_MAX_CLUSTER_LIGHTS * R_CLUSTER_COUNT * sizeof(uint32_t), r_light_index_buffer);
     }
-    
-    glTexSubImage3D(GL_TEXTURE_3D, 0, 0, 0, 0, R_CLUSTER_ROW_WIDTH, R_CLUSTER_ROWS, R_CLUSTER_SLICES, GL_RG_INTEGER, GL_UNSIGNED_SHORT, r_clusters);
+    glActiveTexture(GL_TEXTURE0 + R_CLUSTERS_TEX_UNIT);
+    glBindTexture(GL_TEXTURE_3D, r_cluster_texture);
+    glTexSubImage3D(GL_TEXTURE_3D, 0, 0, 0, 0, R_CLUSTER_ROW_WIDTH, R_CLUSTER_ROWS, R_CLUSTER_SLICES, GL_RG_INTEGER, GL_UNSIGNED_INT, r_clusters);
     glBindBufferBase(GL_UNIFORM_BUFFER, R_LIGHTS_UNIFORM_BUFFER_BINDING, r_light_uniform_buffer);
     glBindBufferBase(GL_UNIFORM_BUFFER, R_LIGHT_INDICES_UNIFORM_BUFFER_BINDING, r_light_index_uniform_buffer);
 }
 
 void r_EndFrame()
 {
-    r_draw_batches.cursor = 0;
+    r_sorted_batches.cursor = 0;
     r_immediate_batches.cursor = 0;
     r_immediate_cursor = 0;
     r_light_buffer_cursor = 0;
     r_light_index_buffer_cursor = 0;
+    r_cur_imm_batch = NULL;
     SDL_GL_SwapWindow(r_window);
 }
 
@@ -128,8 +129,8 @@ void r_DrawModel(mat4_t *transform, struct r_model_t *model)
     mat4_t_mul(&model_view_matrix, transform, &r_inv_view_matrix);
     for(uint32_t batch_index = 0; batch_index < model->batch_count; batch_index++)
     {
-        uint32_t index = add_list_element(&r_draw_batches, NULL);
-        struct r_draw_batch_t *draw_batch = get_list_element(&r_draw_batches, index);
+        uint32_t index = add_list_element(&r_sorted_batches, NULL);
+        struct r_draw_batch_t *draw_batch = get_list_element(&r_sorted_batches, index);
         draw_batch->batch = model->batches[batch_index];
         draw_batch->model_view_matrix = model_view_matrix;
     }
@@ -140,8 +141,8 @@ void r_DrawRange(mat4_t *transform, struct r_material_t *material, uint32_t star
     mat4_t model_view_matrix;    
     mat4_t_mul(&model_view_matrix, transform, &r_inv_view_matrix);
     
-    uint32_t index = add_list_element(&r_draw_batches, NULL);
-    struct r_draw_batch_t *draw_batch = get_list_element(&r_draw_batches, index);
+    uint32_t index = add_list_element(&r_sorted_batches, NULL);
+    struct r_draw_batch_t *draw_batch = get_list_element(&r_sorted_batches, index);
     draw_batch->batch.material = material;
     draw_batch->batch.start = start;
     draw_batch->batch.count = count;
@@ -156,9 +157,9 @@ int32_t r_CompareBatches(void *a, void *b)
     return (int32_t)batch_a->batch.material - (int32_t)batch_b->batch.material;
 }
 
-void r_DrawBatches()
+void r_DrawSortedBatches()
 {   
-    qsort_list(&r_draw_batches, r_CompareBatches);
+    qsort_list(&r_sorted_batches, r_CompareBatches);
     
     struct r_material_t *current_material;
     mat4_t model_view_projection_matrix;
@@ -166,20 +167,18 @@ void r_DrawBatches()
     glBindBuffer(GL_ARRAY_BUFFER, r_vertex_buffer);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, r_index_buffer);
     r_BindShader(r_lit_shader);
-    
-//    r_SetUniformMatrix4(R_UNIFORM_IVM, &r_inv_view_matrix);
-    glActiveTexture(GL_TEXTURE0 + R_CLUSTERS_TEX_UNIT);
-    glBindTexture(GL_TEXTURE_3D, r_cluster_texture);
     r_SetUniform1i(R_UNIFORM_CLUSTERS, R_CLUSTERS_TEX_UNIT);
     
-    for(uint32_t batch_index = 0; batch_index < r_draw_batches.cursor; batch_index++)
+    for(uint32_t batch_index = 0; batch_index < r_sorted_batches.cursor; batch_index++)
     {
-        struct r_draw_batch_t *draw_batch = get_list_element(&r_draw_batches, batch_index);
+        struct r_draw_batch_t *draw_batch = get_list_element(&r_sorted_batches, batch_index);
+        
         if(draw_batch->batch.material != current_material)
         {
             current_material = draw_batch->batch.material;
             r_BindMaterial(current_material);
         }
+        
         mat4_t_mul(&model_view_projection_matrix, &draw_batch->model_view_matrix, &r_projection_matrix);
         r_SetUniformMatrix4(R_UNIFORM_MVP, &model_view_projection_matrix);
         r_SetUniformMatrix4(R_UNIFORM_MV, &draw_batch->model_view_matrix);
@@ -193,66 +192,165 @@ void r_DrawImmediateBatches()
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
     r_BindShader(r_immediate_shader);
     
-    r_SetUniformMatrix4(R_UNIFORM_MVP, &r_view_projection_matrix);
-    
     for(uint32_t batch_index = 0; batch_index < r_immediate_batches.cursor; batch_index++)
     {
-        struct r_immediate_batch_t *batch = get_list_element(&r_immediate_batches, batch_index);
-        switch(batch->mode)
+        struct r_imm_batch_t *batch = get_list_element(&r_immediate_batches, batch_index);
+        
+        if(!batch->count)
         {
-            case GL_POINTS:
-                glPointSize(batch->size);
-            break;
-            
-            case GL_LINES:
-                glLineWidth(batch->size);
-            break;
+            continue;
         }
-        glDrawArrays(batch->mode, batch->start, batch->count);
+        
+        r_SetUniformMatrix4(R_UNIFORM_MVP, &batch->transform);
+        glPolygonMode(GL_FRONT_AND_BACK, batch->polygon_mode);
+        glLineWidth(batch->size);
+        glPointSize(batch->size);
+        glDrawArrays(batch->primitive_type, batch->start, batch->count);
     }
 }
 
-void r_DrawImmediate(struct r_vert_t *verts, uint32_t count, uint32_t mode, float size)
+struct r_imm_batch_t *r_i_BeginBatch()
+{
+    if(r_cur_imm_batch && !r_cur_imm_batch->count)
+    {
+        return r_cur_imm_batch;
+    }
+    
+    uint32_t index = add_list_element(&r_immediate_batches, NULL);
+    struct r_imm_batch_t *batch = get_list_element(&r_immediate_batches, index);
+    
+    if(r_cur_imm_batch)
+    {
+        *batch = *r_cur_imm_batch;
+    }
+    else
+    {
+        batch->polygon_mode = GL_FILL;
+        batch->size = 1.0;
+        batch->primitive_type = GL_TRIANGLES;
+    }
+    
+    r_cur_imm_batch = batch;
+    batch->start = r_immediate_cursor;
+    batch->count = 0;
+    
+    return r_cur_imm_batch;
+}
+
+struct r_imm_batch_t *r_i_GetCurrentBatch()
+{
+    if(!r_cur_imm_batch)
+    {
+        r_i_BeginBatch();
+    }
+    
+    return r_cur_imm_batch;
+}
+
+void r_i_SetTransform(mat4_t *transform)
+{
+    struct r_imm_batch_t *batch = r_i_BeginBatch();
+    
+    if(!transform)
+    {
+        batch->transform = r_view_projection_matrix;
+    }
+    else
+    {
+        batch->transform = *transform;
+    }
+}
+
+void r_i_SetPolygonMode(uint16_t polygon_mode)
+{
+    struct r_imm_batch_t *batch = r_i_GetCurrentBatch();
+    
+    if(batch->polygon_mode != polygon_mode)
+    {
+        batch = r_i_BeginBatch();
+    }
+    
+    batch->polygon_mode = polygon_mode;
+}
+
+void r_i_SetSize(float size)
+{
+    struct r_imm_batch_t *batch = r_i_GetCurrentBatch();
+    
+    if(batch->size != size)
+    {
+        batch = r_i_BeginBatch();
+    }
+    
+    batch->size = size;
+}
+
+void r_i_SetPrimitiveType(uint32_t primitive_type)
+{
+    struct r_imm_batch_t *batch = r_i_GetCurrentBatch();
+    
+    if(batch->primitive_type != primitive_type)
+    {
+        batch = r_i_BeginBatch();
+    }
+    
+    batch->primitive_type = primitive_type;
+}
+
+void r_i_DrawImmediate(struct r_vert_t *verts, uint32_t count)
 {
     uint32_t index = add_list_element(&r_immediate_batches, NULL);
-    struct r_immediate_batch_t *batch = get_list_element(&r_immediate_batches, index);
-    batch->start = r_immediate_cursor;
-    batch->count = count;
-    batch->mode = mode;
-    batch->size = size;
+    struct r_imm_batch_t *batch = r_i_GetCurrentBatch();
     
+    uint32_t offset = batch->start + batch->count;
     glBindBuffer(GL_ARRAY_BUFFER, r_immediate_buffer);
-    glBufferSubData(GL_ARRAY_BUFFER, r_immediate_cursor * sizeof(struct r_vert_t), sizeof(struct r_vert_t) * count, verts);
+    glBufferSubData(GL_ARRAY_BUFFER, offset * sizeof(struct r_vert_t), sizeof(struct r_vert_t) * count, verts);
+    batch->count += count;
     r_immediate_cursor += count;
 }
 
-void r_DrawPoint(vec3_t *position, vec3_t *color, float radius)
+void r_i_DrawPoint(vec3_t *position, vec3_t *color, float radius)
 {
     struct r_vert_t vert;
     
     vert.pos = *position;
     vert.color = *color;
     
-    r_DrawImmediate(&vert, 1, GL_POINTS, radius);
+    r_i_SetPrimitiveType(GL_POINTS);
+    r_i_SetSize(radius);
+    r_i_DrawImmediate(&vert, 1);
 }
 
-void r_DrawLine(vec3_t *from, vec3_t *to, vec3_t *color)
+void r_i_DrawLine(vec3_t *from, vec3_t *to, vec3_t *color, float width)
 {
-    struct r_vert_t verts[2];
+    struct r_vert_t verts[2] = 
+    {
+        [0] = {.pos = *from, .color = *color},
+        [1] = {.pos = *to, .color = *color}
+    };
     
-    verts[0].pos = *from;
-    verts[0].color = *color;
-    
-    verts[1].pos = *to;
-    verts[1].color = *color;
-    
-    r_DrawImmediate(verts, 2, GL_LINES, 1.0);
+    r_i_SetPrimitiveType(GL_LINES);
+    r_i_SetSize(width);
+    r_i_DrawImmediate(verts, 2);
 }
 
-void r_DrawLines(struct r_vert_t *verts, uint32_t count)
-{
-    r_DrawImmediate(verts, count, GL_LINES, 1.0);
-}
+//void r_DrawLine(vec3_t *from, vec3_t *to, vec3_t *color)
+//{
+//    struct r_vert_t verts[2];
+//    
+//    verts[0].pos = *from;
+//    verts[0].color = *color;
+//    
+//    verts[1].pos = *to;
+//    verts[1].color = *color;
+//    
+//    r_DrawImmediate(verts, 2, GL_LINES, 1.0);
+//}
+//
+//void r_DrawLines(struct r_vert_t *verts, uint32_t count)
+//{
+//    r_DrawImmediate(verts, count, GL_LINES, 1.0);
+//}
 
 
 

@@ -20,7 +20,7 @@
 //extern struct ds_heap_t d_index_heap;
 
 
-struct list_t r_draw_batches;
+struct list_t r_sorted_batches;
 struct list_t r_immediate_batches;
 struct stack_list_t r_shaders;
 struct stack_list_t r_textures;
@@ -60,12 +60,15 @@ uint32_t r_light_buffer_cursor;
 struct r_l_data_t *r_light_buffer;
 uint32_t r_light_index_buffer_cursor;
 uint32_t r_light_index_uniform_buffer;
-uint16_t *r_light_index_buffer;
+uint32_t *r_light_index_buffer;
 
 SDL_Window *r_window;
 SDL_GLContext *r_context;
 int32_t r_width = 1300;
 int32_t r_height = 760;
+float r_z_near = 0.1;
+float r_z_far = 500.0;
+float r_fov = 0.68;
 
 
 char *d_uniform_names[] = 
@@ -86,8 +89,8 @@ char *d_uniform_names[] =
 
 void r_Init()
 {    
-    r_draw_batches = create_list(sizeof(struct r_draw_batch_t), 4096);
-    r_immediate_batches = create_list(sizeof(struct r_immediate_batch_t), 4096);
+    r_sorted_batches = create_list(sizeof(struct r_draw_batch_t), 4096);
+    r_immediate_batches = create_list(sizeof(struct r_imm_batch_t), 4096);
     r_shaders = create_stack_list(sizeof(struct r_shader_t), 16);
     r_materials = create_stack_list(sizeof(struct r_material_t), 32);
     r_textures = create_stack_list(sizeof(struct r_texture_t), 128);
@@ -137,7 +140,7 @@ void r_Init()
     
     r_lit_shader = r_LoadShader("shaders/lit.vert", "shaders/lit.frag");
     r_immediate_shader = r_LoadShader("shaders/immediate.vert", "shaders/immediate.frag");
-    mat4_t_persp(&r_projection_matrix, 0.68, (float)r_width / (float)r_height, 0.1, 100.0);
+    mat4_t_persp(&r_projection_matrix, r_fov, (float)r_width / (float)r_height, r_z_near, r_z_far);
     mat4_t_identity(&r_view_matrix);
     
     uint32_t pixels[] = 
@@ -156,11 +159,12 @@ void r_Init()
     
     r_default_texture = r_default_albedo_texture;
     
-    uint32_t cluster_count = R_CLUSTER_ROWS * R_CLUSTER_ROW_WIDTH * R_CLUSTER_SLICES;
-    r_clusters = mem_Calloc(cluster_count, sizeof(struct r_cluster_t));
+//    uint32_t cluster_count = R_CLUSTER_ROWS * R_CLUSTER_ROW_WIDTH * R_CLUSTER_SLICES;
+    r_clusters = mem_Calloc(R_CLUSTER_COUNT, sizeof(struct r_cluster_t));
     r_light_buffer = mem_Calloc(R_MAX_LIGHTS, sizeof(struct r_l_data_t));
-    r_light_index_buffer = mem_Calloc(cluster_count * R_MAX_CLUSTER_LIGHTS, sizeof(uint16_t));
+    r_light_index_buffer = mem_Calloc(R_CLUSTER_COUNT * R_MAX_CLUSTER_LIGHTS, sizeof(uint32_t));
     
+    glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
     glGenTextures(1, &r_cluster_texture);
     glBindTexture(GL_TEXTURE_3D, r_cluster_texture);
     glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
@@ -170,14 +174,17 @@ void r_Init()
     glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_BASE_LEVEL, 0);
     glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAX_LEVEL, 0);
-    glTexImage3D(GL_TEXTURE_3D, 0, GL_RG16UI, R_CLUSTER_ROW_WIDTH, R_CLUSTER_ROWS, R_CLUSTER_SLICES, 0, GL_RG_INTEGER, GL_UNSIGNED_SHORT, NULL);
-    
+    glTexImage3D(GL_TEXTURE_3D, 0, GL_RG32UI, R_CLUSTER_ROW_WIDTH, R_CLUSTER_ROWS, R_CLUSTER_SLICES, 0, GL_RG_INTEGER, GL_UNSIGNED_INT, NULL);
+//    printf("%x\n", glGetError());
+//    glTexSubImage3D(GL_TEXTURE_3D, 0, 0, 0, 0, 1, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE, r_clusters);
+//    printf("%x\n", glGetError());
+//    
     glGenBuffers(1, &r_light_uniform_buffer);
     glBindBuffer(GL_UNIFORM_BUFFER, r_light_uniform_buffer);
     glBufferData(GL_UNIFORM_BUFFER, R_MAX_LIGHTS * sizeof(struct r_l_data_t), NULL, GL_DYNAMIC_DRAW);
     glGenBuffers(1, &r_light_index_uniform_buffer);
     glBindBuffer(GL_UNIFORM_BUFFER, r_light_index_uniform_buffer);
-    glBufferData(GL_UNIFORM_BUFFER, cluster_count * R_MAX_CLUSTER_LIGHTS * sizeof(uint16_t), NULL, GL_DYNAMIC_DRAW);
+    glBufferData(GL_UNIFORM_BUFFER, R_CLUSTER_COUNT * R_MAX_CLUSTER_LIGHTS * sizeof(uint32_t), NULL, GL_DYNAMIC_DRAW);
 }
 
 void r_Shutdown()
@@ -258,8 +265,6 @@ struct r_texture_t *r_CreateTexture(char *name, uint32_t width, uint32_t height,
     glTexImage2D(GL_TEXTURE_2D, 0, internal_format, width, height, 0, format, type, data);
     glGenerateMipmap(GL_TEXTURE_2D);
     glBindTexture(GL_TEXTURE_2D, 0);
-    
-    printf("%x\n", glGetError());
     
     return texture;
 }
@@ -575,7 +580,7 @@ struct r_model_t *r_ShallowCopyModel(struct r_model_t *base)
     return copy;
 }
 
-struct r_light_t *r_CreateLight(uint32_t type, vec3_t *position, vec3_t *color, float radius)
+struct r_light_t *r_CreateLight(uint32_t type, vec3_t *position, vec3_t *color, float radius, float energy)
 {
     struct r_light_t *light;
     uint32_t index;
@@ -587,6 +592,7 @@ struct r_light_t *r_CreateLight(uint32_t type, vec3_t *position, vec3_t *color, 
     light->data.pos_rad = vec4_t_c(position->x, position->y, position->z, radius);
     light->data.color = *color;
     light->data.type = type;
+    light->energy = energy;
     
     return light;
 }

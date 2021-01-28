@@ -19,7 +19,7 @@ extern mat4_t r_view_projection_matrix;
 
 struct stack_list_t g_entities;
 struct stack_list_t g_triggers;
-#define G_PLAYER_AREA_Z 4.0
+#define G_PLAYER_AREA_Z 8.0
 float g_camera_z = G_PLAYER_AREA_Z;
 
 #define G_SCREEN_Y_OFFSET 20.0
@@ -145,23 +145,34 @@ void g_Init(uint32_t editor_active)
     
     g_game_state = G_GAME_STATE_PLAYING;
     
-    r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(4.0, -0.3, -1.5), &vec3_t_c(1.0, 0.0, 0.3), 10.0);
-    r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(8.0, -0.3, -1.5), &vec3_t_c(0.3, 1.0, 0.0), 10.0);
-    r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(12.0, -0.3, -1.5), &vec3_t_c(0.0, 0.3, 1.0), 10.0);
+    for(uint32_t y = 0; y < 5; y++)
+    {
+        for(uint32_t x = 0; x < 11; x++)
+        {
+            r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(x * 4.0, -7.3, y * -4.0), &vec3_t_c(1.0, 1.0, 1.0), 4.0, 5.0);
+        }
+    }
     
-    r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(16.0, -0.3, -1.5), &vec3_t_c(1.0, 1.0, 0.3), 10.0);
-    r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(20.0, -0.3, -1.5), &vec3_t_c(1.0, 0.3, 1.0), 10.0);
-    r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(24.0, -0.3, -1.5), &vec3_t_c(0.3, 1.0, 1.0), 10.0);
+//    r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(4.0, -0.3, -2.0), &vec3_t_c(1.0, 1.0, 1.0), 6.0, 5.0);
     
-    r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(24.0, -7.3, -0.5), &vec3_t_c(0.3, 1.0, 0.3), 10.0);
-    r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(20.0, -7.3, -0.5), &vec3_t_c(0.3, 0.3, 1.0), 10.0);
-    r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(16.0, -7.3, -0.5), &vec3_t_c(1.0, 0.3, 0.3), 10.0);
-    
-    r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(12.0, -7.3, -0.5), &vec3_t_c(1.0, 0.2, 0.0), 10.0);
-    r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(8.0, -7.3, -0.5), &vec3_t_c(0.3, 0.5, 0.5), 10.0);
-    r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(4.0, -7.3, -0.5), &vec3_t_c(0.3, 0.0, 1.0), 10.0);
-    
-//    g_player_light = r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(0.0, 0.0, 0.0), &vec3_t_c(1.0, 1.0, 1.0), 5.0);
+//    
+    r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(4.0, -0.3, 0.0), &vec3_t_c(1.0, 0.0, 0.0), 4.0, 5.0);
+    r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(8.0, -0.3, 0.0), &vec3_t_c(0.0, 1.0, 0.0), 4.0, 5.0);
+    r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(12.0,-0.3, 0.5), &vec3_t_c(0.0, 0.3, 1.0), 4.0, 5.0);
+//    
+    r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(16.0,-0.3, 0.5), &vec3_t_c(1.0, 1.0, 0.3), 4.0, 5.0);
+    r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(20.0,-0.3, 0.5), &vec3_t_c(1.0, 0.3, 1.0), 4.0, 5.0);
+    r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(24.0,-0.3, 0.5), &vec3_t_c(0.3, 1.0, 1.0), 4.0, 5.0);
+//    
+//    r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(24.0, -7.3, 0.5), &vec3_t_c(0.3, 1.0, 0.3), 5.0, 5.0);
+//    r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(20.0, -7.3, 0.5), &vec3_t_c(0.3, 0.3, 1.0), 5.0, 5.0);
+//    r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(16.0, -7.3, 0.5), &vec3_t_c(1.0, 0.3, 0.3), 5.0, 5.0);
+//    
+//    r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(12.0, -7.3, 0.5), &vec3_t_c(1.0, 0.2, 0.0), 5.0, 5.0);
+//    r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(8.0, -7.3, 0.5), &vec3_t_c(0.3, 0.5, 0.5), 5.0, 5.0);
+//    r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(4.0, -7.3, 0.5), &vec3_t_c(0.3, 0.0, 1.0), 5.0, 5.0);
+//    
+//    g_player_light = r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(0.0, 0.0, 0.0), &vec3_t_c(1.0, 1.0, 1.0), 5.0, 5.0);
 }
 
 void g_Shutdown()
@@ -196,7 +207,7 @@ void g_MainLoop(uint32_t editor_active)
         g_DrawEntities();
         w_VisibleLights();
         r_BeginFrame();
-        r_DrawBatches();
+        r_DrawSortedBatches();
         r_DrawImmediateBatches();
         r_EndFrame();
     }
@@ -216,7 +227,7 @@ void g_LoadMap(char *file_name)
 
         mat4_t cur_transform;
         mat4_t_identity(&cur_transform);
-//        cur_transform.rows[2].z = 16.0;
+        cur_transform.rows[2].z = 456.0;
         
         for(uint32_t index = 0; index < length; index++)
         {
@@ -448,6 +459,7 @@ void g_PlayerThinker(struct g_entity_t *entity)
     vec4_t collider_disp = {};
     float rotation = 0.0;
     int32_t move_dir = 0;
+    static float zoom = 0.0;
 //    uint32_t moving = 0;
     struct p_movable_collider_t *collider = (struct p_movable_collider_t *)entity->collider;
     struct g_player_state_t *player_state;
@@ -634,6 +646,27 @@ void g_PlayerThinker(struct g_entity_t *entity)
         }
     }
     
+    if(in_GetKeyState(SDL_SCANCODE_KP_MINUS) & IN_KEY_STATE_PRESSED)
+    {
+        zoom += 0.003;
+        if(zoom > 0.3)
+        {
+            zoom = 0.3;
+        }
+    }
+    else if(in_GetKeyState(SDL_SCANCODE_KP_PLUS) & IN_KEY_STATE_PRESSED)
+    {
+        zoom -= 0.003;
+        if(zoom < -0.3)
+        {
+            zoom = -0.3;
+        }
+    }
+    else
+    {
+        zoom *= 0.9;
+    }
+    
     player_state->collider_flags = collider->flags;
     
     run_player->scale = 1.9 * player_state->run_frac;
@@ -655,8 +688,14 @@ void g_PlayerThinker(struct g_entity_t *entity)
 //    g_player_light->data.pos_rad.z = player_pos.z;
     
     mat4_t_vec4_t_mul(&player_pos, &r_inv_view_matrix, &player_pos);
-    disp = vec3_t_c(player_pos.x * 0.1, player_pos.y * 0.1, 0.0);
+    disp = vec3_t_c(player_pos.x * 0.1, player_pos.y * 0.1, zoom);
     r_TranslateView(&disp);
+
+//    mat4_t transform;
+//    mat4_t_identity(&transform);
+//    r_i_SetTransform(NULL);
+//    r_i_DrawLine(&vec3_t_c(-0.5, 0.0, -0.9), &vec3_t_c(0.5, 0.0, 0.0), &vec3_t_c(0.0, 1.0, 0.0), 1.0);
+//    r_i_DrawPoint(&vec3_t_c(4.0, -0.3, 1.0), &vec3_t_c(0.0, 1.0, 0.0), 8.0);
 }
 
 void g_ElevatorThinker(struct g_entity_t *entity)

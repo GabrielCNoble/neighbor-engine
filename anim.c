@@ -457,33 +457,33 @@ void a_UpdateMixer(struct a_mixer_t *mixer, float delta_time)
 
 uint32_t a_DrawBones(struct a_mixer_t *mixer, uint32_t bone_index)
 {
-    struct a_bone_t *bone = mixer->skeleton->bones + bone_index;
-    mat4_t *bone_transform = mixer->skinning_matrices + bone_index;
-//    mat4_t transform;
-    struct r_vert_t verts[2];
-    
-    verts[0].pos.x = bone_transform->rows[3].x;
-    verts[0].pos.y = bone_transform->rows[3].y;
-    verts[0].pos.z = bone_transform->rows[3].z;
-    verts[0].color = vec3_t_c(1.0, 0.0, 0.0);
-    
-    r_DrawPoint(&verts[0].pos, &vec3_t_c(1.0, 1.0, 1.0), 4.0);
-    
-    bone_index++;
-    
-    for(uint32_t child_index = 0; child_index < bone->child_count; child_index++)
-    {
-        mat4_t *child_transform = mixer->skinning_matrices + bone_index;
-        verts[1].pos.x = child_transform->rows[3].x;
-        verts[1].pos.y = child_transform->rows[3].y;
-        verts[1].pos.z = child_transform->rows[3].z;
-        verts[1].color = vec3_t_c(1.0, 0.0, 0.0);
-        r_DrawLines(verts, 2);
-        
-        bone_index = a_DrawBones(mixer, bone_index);
-    }
-    
-    return bone_index;
+//    struct a_bone_t *bone = mixer->skeleton->bones + bone_index;
+//    mat4_t *bone_transform = mixer->skinning_matrices + bone_index;
+////    mat4_t transform;
+//    struct r_vert_t verts[2];
+//    
+//    verts[0].pos.x = bone_transform->rows[3].x;
+//    verts[0].pos.y = bone_transform->rows[3].y;
+//    verts[0].pos.z = bone_transform->rows[3].z;
+//    verts[0].color = vec3_t_c(1.0, 0.0, 0.0);
+//    
+//    r_DrawPoint(&verts[0].pos, &vec3_t_c(1.0, 1.0, 1.0), 4.0);
+//    
+//    bone_index++;
+//    
+//    for(uint32_t child_index = 0; child_index < bone->child_count; child_index++)
+//    {
+//        mat4_t *child_transform = mixer->skinning_matrices + bone_index;
+//        verts[1].pos.x = child_transform->rows[3].x;
+//        verts[1].pos.y = child_transform->rows[3].y;
+//        verts[1].pos.z = child_transform->rows[3].z;
+//        verts[1].color = vec3_t_c(1.0, 0.0, 0.0);
+//        r_DrawLines(verts, 2);
+//        
+//        bone_index = a_DrawBones(mixer, bone_index);
+//    }
+//    
+//    return bone_index;
 }
 
 void a_DrawSkeleton(struct a_mixer_t *mixer)

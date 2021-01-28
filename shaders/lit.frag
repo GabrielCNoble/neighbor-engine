@@ -1,9 +1,17 @@
 #version 400 core
 #extension GL_ARB_shading_language_420pack : require
+#extension GL_ARB_enhanced_layouts : require
 
 #define R_CLUSTER_ROW_WIDTH 24
 #define R_CLUSTER_SLICES 16
 #define R_CLUSTER_ROWS 16
+
+#define R_CLUSTER_MAX_X (R_CLUSTER_ROW_WIDTH - 1)
+#define R_CLUSTER_MAX_Y (R_CLUSTER_ROWS - 1)
+#define R_CLUSTER_MAX_Z (R_CLUSTER_SLICES - 1)
+
+#define WIDTH 1300
+#define HEIGHT 760
 
 in vec2 var_tex_coords;
 in vec3 var_normal;
@@ -22,6 +30,11 @@ struct r_l_data_t
     vec4 col_type;
 };
 
+struct r_index_t
+{
+    int index;
+};
+
 uniform r_lights
 {
     r_l_data_t lights[];
@@ -29,8 +42,28 @@ uniform r_lights
 
 uniform r_light_indices
 {
-    int indices[];
+    r_index_t indices[];
 };
+
+uvec4 get_cluster()
+{
+//    x *= 0.5 + 0.5;
+//    y *= 0.5 + 0.5;
+    float x = gl_FragCoord.x / WIDTH;
+    float y = gl_FragCoord.y / HEIGHT;
+    float z = -var_position.z;
+    
+    float denom = log(500.0 / 0.1);
+    float num = log(z / 0.1);
+    
+    ivec3 cluster_coord;
+    
+    cluster_coord.x = int(floor(R_CLUSTER_ROW_WIDTH * x));
+    cluster_coord.y = int(floor(R_CLUSTER_ROWS * y));
+    cluster_coord.z = int(floor(R_CLUSTER_SLICES * (num / denom)));
+    
+    return texelFetch(r_clusters, cluster_coord, 0);
+}
 
 float ggx_x(float d)
 {
@@ -132,7 +165,7 @@ void main()
     vec3 normal = texture(r_tex_normal, var_tex_coords.xy).rgb * 2.0 - vec3(1.0);
     float roughness = texture(r_tex_roughness, var_tex_coords.xy).r;
     
-    uvec4 cluster = texture(r_clusters, ivec3(0, 0, 0));
+    uvec4 cluster = get_cluster();
     vec4 color = vec4(0.0);
     
     mat3 tbn;
@@ -144,25 +177,30 @@ void main()
 
     vec3 view_vec = normalize(-var_position);
     
+    indices[0];
+    
     for(int light_index = 0; light_index < cluster.y; light_index++)
     {
-        r_l_data_t light = lights[cluster.x + light_index];
+        r_l_data_t light = lights[indices[cluster.x + light_index].index];
         vec4 light_color = vec4(light.col_type.rgb, 0.0);
         vec3 light_vec = light.pos_rad.xyz - var_position.xyz;
         float dist = length(light_vec);
+        float limit = light.pos_rad.w - dist;
+        limit = clamp(limit, 0.0, 1.0);
         light_vec = light_vec / dist;
         dist *= dist;
 
         float spec = clamp(lighting(view_vec, light_vec, normal.xyz, roughness), 0.0, 1.0);
         float diff = 1.0 - spec;
-        float c = clamp(dot(normal, light_vec), 0.0, 1.0) * 10.0;
-        color += (((albedo / 3.14159265) * diff * light_color + light_color * spec) * c) / dist ;
+        float c = clamp(dot(normal, light_vec), 0.0, 1.0) * limit;
+        color += (((albedo / 3.14159265) * diff * light_color + light_color * spec) * c) ;
     }
     
     color.rgb = tonemap(color.rgb * 2.0);
     color.rgb *= 1.0 / tonemap(vec3(W));
     gl_FragColor = color;
-//    gl_FragColor = vec4(roughness);
+
+//    gl_FragColor = vec4(normal, 1.0);
 }
 
 

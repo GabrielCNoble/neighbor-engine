@@ -4,6 +4,7 @@
 #include "dstuff/ds_vector.h"
 #include "dstuff/ds_matrix.h"
 #include "dstuff/ds_alloc.h"
+#include "GL/glew.h"
 #include <stdint.h>
 
 struct r_texture_t
@@ -99,14 +100,6 @@ struct r_batch_t
     struct r_material_t *material;
 };
 
-struct r_immediate_batch_t
-{
-    uint32_t start;
-    uint32_t count;
-    uint32_t mode;
-    float size;
-};
-
 struct r_batch_record_t
 {
     uint32_t start;
@@ -166,6 +159,30 @@ struct r_draw_batch_t
     struct r_batch_t batch;
 };
 
+//struct r_imm_batch_t
+//{
+//    uint32_t start;
+//    uint32_t count;
+//    uint32_t mode;
+//    float size;
+//};
+
+//struct r_imm_range_t
+//{
+//    uint32_t start;
+//    uint32_t count;
+//};
+
+struct r_imm_batch_t
+{
+    mat4_t transform;
+    uint32_t start;
+    uint32_t count;
+    uint16_t primitive_type;
+    uint16_t polygon_mode;
+    float size;
+};
+
 enum R_LIGHT_TYPES
 {
     R_LIGHT_TYPE_POINT = 0,
@@ -190,19 +207,35 @@ struct r_l_data_t
 struct r_light_t
 {
     struct r_l_data_t data;
+    float energy;
+    
+    uint32_t min_x : 5;
+    uint32_t min_y : 5;
+    uint32_t min_z : 5;
+    
+    uint32_t max_x : 5;
+    uint32_t max_y : 5;
+    uint32_t max_z : 5;
+    
+    uint32_t gpu_index;
     uint32_t index;
 };
 
 struct r_cluster_t
 {
-    uint16_t start;
-    uint16_t count;
+    uint32_t start;
+    uint32_t count;
 };
 
 
 #define R_CLUSTER_ROW_WIDTH 24
 #define R_CLUSTER_ROWS 16
 #define R_CLUSTER_SLICES 16
+#define R_CLUSTER_COUNT (R_CLUSTER_ROWS * R_CLUSTER_ROW_WIDTH * R_CLUSTER_SLICES)
+
+#define R_CLUSTER_MAX_X (R_CLUSTER_ROW_WIDTH - 1)
+#define R_CLUSTER_MAX_Y (R_CLUSTER_ROWS - 1)
+#define R_CLUSTER_MAX_Z (R_CLUSTER_SLICES - 1)
 #define R_MAX_CLUSTER_LIGHTS 128
 #define R_MAX_LIGHTS 0xffff
 

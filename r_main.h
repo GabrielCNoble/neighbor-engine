@@ -39,7 +39,7 @@ struct r_model_t *r_CreateModel(struct r_model_create_info_t *create_info);
 
 struct r_model_t *r_ShallowCopyModel(struct r_model_t *model);
 
-struct r_light_t *r_CreateLight(uint32_t type, vec3_t *position, vec3_t *color, float radius);
+struct r_light_t *r_CreateLight(uint32_t type, vec3_t *position, vec3_t *color, float radius, float energy);
 
 struct r_light_t *r_GetLight(uint32_t light_index);
 

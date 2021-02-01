@@ -26,14 +26,14 @@ struct list_t s_active_sources;
 void s_Init()
 {
     s_device = alcOpenDevice(NULL);
-    s_context = alcCreateContext(s_device, (ALCint []){ALC_STEREO_SOURCES, 256, 0});
+    s_context = alcCreateContext(s_device, (ALCint []){ALC_STEREO_SOURCES, 350, 0});
     alcMakeContextCurrent(s_context);
     s_sound_thread = SDL_CreateThread(s_SoundThread, "sound thread", NULL);
     
-    s_sources = create_stack_list(sizeof(struct s_source_t), 128);
-    s_active_sources = create_list(sizeof(struct s_source_t *), 128);
-    s_command_queue = create_list(sizeof(struct s_command_t), 128);
-    s_sounds = create_stack_list(sizeof(struct s_sound_t), 128);
+    s_sources = create_stack_list(sizeof(struct s_source_t), 350);
+    s_active_sources = create_list(sizeof(struct s_source_t *), 350);
+    s_command_queue = create_list(sizeof(struct s_command_t), 350);
+    s_sounds = create_stack_list(sizeof(struct s_sound_t), 350);
     
     float listener_orientation[] = 
     {

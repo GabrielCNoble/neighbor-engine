@@ -2,7 +2,7 @@
 #extension GL_ARB_shading_language_420pack : require
 #extension GL_ARB_enhanced_layouts : require
 
-#define R_CLUSTER_ROW_WIDTH 24
+#define R_CLUSTER_ROW_WIDTH 32
 #define R_CLUSTER_SLICES 16
 #define R_CLUSTER_ROWS 16
 
@@ -10,13 +10,20 @@
 #define R_CLUSTER_MAX_Y (R_CLUSTER_ROWS - 1)
 #define R_CLUSTER_MAX_Z (R_CLUSTER_SLICES - 1)
 
-#define WIDTH 1300
-#define HEIGHT 760
+//#define WIDTH 1300
+//#define HEIGHT 760
 
 in vec2 var_tex_coords;
 in vec3 var_normal;
 in vec3 var_tangent;
 in vec3 var_position;
+
+uniform float r_z_near;
+uniform float r_cluster_denom;
+uniform int r_width;
+uniform int r_height;
+//uniform int r_cluster_row_width;
+//uniform int r_cluster_rows;
 
 uniform sampler2D r_tex_albedo;
 uniform sampler2D r_tex_normal;
@@ -45,22 +52,34 @@ uniform r_light_indices
     r_index_t indices[];
 };
 
-uvec4 get_cluster()
+ivec3 get_cluster_coord()
 {
-//    x *= 0.5 + 0.5;
-//    y *= 0.5 + 0.5;
-    float x = gl_FragCoord.x / WIDTH;
-    float y = gl_FragCoord.y / HEIGHT;
+    float x = gl_FragCoord.x / float(r_width);
+    float y = gl_FragCoord.y / float(r_height);
     float z = -var_position.z;
-    
-    float denom = log(500.0 / 0.1);
-    float num = log(z / 0.1);
+    float num = log(z / r_z_near);
     
     ivec3 cluster_coord;
     
     cluster_coord.x = int(floor(R_CLUSTER_ROW_WIDTH * x));
     cluster_coord.y = int(floor(R_CLUSTER_ROWS * y));
-    cluster_coord.z = int(floor(R_CLUSTER_SLICES * (num / denom)));
+    cluster_coord.z = int(floor(R_CLUSTER_SLICES * (num / r_cluster_denom)));   
+    
+    return cluster_coord;
+}
+
+uvec4 get_cluster()
+{
+    float x = gl_FragCoord.x / float(r_width);
+    float y = gl_FragCoord.y / float(r_height);
+    float z = -var_position.z;
+    float num = log(z / r_z_near);
+    
+    ivec3 cluster_coord;
+    
+    cluster_coord.x = int(floor(R_CLUSTER_ROW_WIDTH * x));
+    cluster_coord.y = int(floor(R_CLUSTER_ROWS * y));
+    cluster_coord.z = int(floor(R_CLUSTER_SLICES * (num / r_cluster_denom)));   
     
     return texelFetch(r_clusters, cluster_coord, 0);
 }
@@ -162,7 +181,7 @@ vec3 tonemap(vec3 color)
 void main()
 {
     vec4 albedo = texture(r_tex_albedo, var_tex_coords.xy);
-    vec3 normal = texture(r_tex_normal, var_tex_coords.xy).rgb * 2.0 - vec3(1.0);
+    vec3 normal = normalize(texture(r_tex_normal, var_tex_coords.xy).rgb * 2.0 - vec3(1.0));
     float roughness = texture(r_tex_roughness, var_tex_coords.xy).r;
     
     uvec4 cluster = get_cluster();
@@ -174,10 +193,9 @@ void main()
     tbn[1] = cross(tbn[0], tbn[1]);
     
     normal = normalize(tbn * normal);
-
-    vec3 view_vec = normalize(-var_position);
     
-    indices[0];
+    vec3 view_vec = normalize(-var_position);
+    albedo /= 3.14159265;
     
     for(int light_index = 0; light_index < cluster.y; light_index++)
     {
@@ -193,14 +211,12 @@ void main()
         float spec = clamp(lighting(view_vec, light_vec, normal.xyz, roughness), 0.0, 1.0);
         float diff = 1.0 - spec;
         float c = clamp(dot(normal, light_vec), 0.0, 1.0) * limit;
-        color += (((albedo / 3.14159265) * diff * light_color + light_color * spec) * c) ;
+        color += ((albedo * diff * light_color + light_color * spec) * c) ;
     }
-    
+
     color.rgb = tonemap(color.rgb * 2.0);
     color.rgb *= 1.0 / tonemap(vec3(W));
     gl_FragColor = color;
-
-//    gl_FragColor = vec4(normal, 1.0);
 }
 
 

@@ -88,6 +88,7 @@ int32_t compare_bone_transforms(void *a, void *b)
 int main(int argc, char *argv[])
 {
     struct aiScene *scene;  
+    struct aiPropertyStore *properties;
     int32_t cur_arg = ARG_NO_ARG;
     char *input_name = NULL;
     char prepend[PATH_MAX] = "";
@@ -157,6 +158,9 @@ int main(int argc, char *argv[])
             }
         }
         
+//        properties = aiCreatePropertyStore();
+//        aiSetImportPropertyInteger(properties, AI_CONFIG_IMPORT_FBX_OPTIMIZE_EMPTY_ANIMATION_CURVES, 0);
+//        scene = aiImportFileExWithProperties((const char *)input_name, aiProcess_CalcTangentSpace | aiProcess_Triangulate, NULL, properties);
         scene = aiImportFile((const char *)input_name, aiProcess_CalcTangentSpace | aiProcess_Triangulate);
         
         if(!scene)
@@ -174,7 +178,6 @@ int main(int argc, char *argv[])
                 struct list_t node_list = create_list(sizeof(struct aiNode *), 512);
                 struct list_t bone_transform_list = create_list(sizeof(struct bone_transform_t), 512);
                 struct list_t pair_list = create_list(sizeof(struct a_transform_pair_t), 512);
-//                struct list_t range_list = create_list(sizeof(struct a_transform_range_t), 512);
                 
                 char *animation_name = animation->mName.data;
                 
@@ -216,6 +219,7 @@ int main(int argc, char *argv[])
                 }
                 
                 get_them_bones(skeleton_node, &node_list);
+                uint32_t duration = (uint32_t)((animation->mDuration / 1000.0) * animation->mTicksPerSecond);
                 
                 for(uint32_t channel_index = 0; channel_index < animation->mNumChannels; channel_index++)
                 {
@@ -233,64 +237,85 @@ int main(int argc, char *argv[])
                             struct bone_transform_t bone_transform = {};
                             bone_transform.bone_index = node_index;
                             
-                            while(rotation_index < channel->mNumRotationKeys || position_index < channel->mNumPositionKeys)
+                            if(channel->mNumPositionKeys == 1 && channel->mNumRotationKeys == 1)
                             {
-                                uint32_t lowest_time = 0xffffffff;
-                                struct bone_transform_t old_bone_transform = bone_transform;
-                                if(rotation_index < channel->mNumRotationKeys)
-                                {
-                                    struct aiQuatKey *rotation = channel->mRotationKeys + rotation_index;
-                                    
-                                    if((uint32_t)rotation->mTime <= lowest_time)
-                                    {
-                                        lowest_time = rotation->mTime;
-                                        rotation_index++;
-                                        
-                                        bone_transform.time = lowest_time;
-                                        bone_transform.transform.rot.x = rotation->mValue.x;
-                                        bone_transform.transform.rot.y = rotation->mValue.y;
-                                        bone_transform.transform.rot.z = rotation->mValue.z;
-                                        bone_transform.transform.rot.w = rotation->mValue.w;
-                                    }
-                                }
+                                bone_transform.transform.rot.x = channel->mRotationKeys->mValue.x;
+                                bone_transform.transform.rot.y = channel->mRotationKeys->mValue.y;
+                                bone_transform.transform.rot.z = channel->mRotationKeys->mValue.z;
+                                bone_transform.transform.rot.w = channel->mRotationKeys->mValue.w;
                                 
-                                if(position_index < channel->mNumPositionKeys)
+                                bone_transform.transform.pos.x = channel->mPositionKeys->mValue.x;
+                                bone_transform.transform.pos.y = channel->mPositionKeys->mValue.y;
+                                bone_transform.transform.pos.z = channel->mPositionKeys->mValue.z;
+                                
+                                bone_transform.time = 0;
+                                add_list_element(&bone_transform_list, &bone_transform);
+                                bone_transform.time = duration;
+                                add_list_element(&bone_transform_list, &bone_transform);
+                            }
+                            else
+                            {
+                                while(rotation_index < channel->mNumRotationKeys || position_index < channel->mNumPositionKeys)
                                 {
-                                    struct aiVectorKey *position = channel->mPositionKeys + position_index;
-                                    
-                                    if((uint32_t)position->mTime <= lowest_time)
+                                    uint32_t lowest_time = 0xffffffff;
+                                    struct bone_transform_t old_bone_transform = bone_transform;
+                                    if(rotation_index < channel->mNumRotationKeys)
                                     {
-                                        position_index++;
-                                        if((uint32_t)position->mTime < lowest_time)
+                                        struct aiQuatKey *rotation = channel->mRotationKeys + rotation_index;
+                                         
+                                        uint32_t time = (uint32_t)((rotation->mTime / 1000.0) * animation->mTicksPerSecond);
+                                        if(time <= lowest_time)
                                         {
-                                            /* this position keyframe comes before the rotation keyframe, which means 
-                                            only the position must be modified. So, we restore it to the value before 
-                                            the modification */
-                                            bone_transform = old_bone_transform;
+                                            lowest_time = time;
+                                            rotation_index++;
+                                            
+                                            bone_transform.time = lowest_time;
+                                            bone_transform.transform.rot.x = rotation->mValue.x;
+                                            bone_transform.transform.rot.y = rotation->mValue.y;
+                                            bone_transform.transform.rot.z = rotation->mValue.z;
+                                            bone_transform.transform.rot.w = rotation->mValue.w;
                                         }
-                                        
-                                        lowest_time = position->mTime;
-                                        bone_transform.time = lowest_time;
-                                        bone_transform.transform.pos.x = position->mValue.x;
-                                        bone_transform.transform.pos.y = position->mValue.y;
-                                        bone_transform.transform.pos.z = position->mValue.z;
                                     }
-                                }
-                                struct bone_transform_t *last_bone_transform = NULL;
-                                if(bone_transform_list.cursor)
-                                {
-                                    last_bone_transform = get_list_element(&bone_transform_list, bone_transform_list.cursor - 1);
-                                    if(bone_transform.time != last_bone_transform->time)
+                                    
+                                    if(position_index < channel->mNumPositionKeys)
                                     {
-                                        last_bone_transform = NULL;
+                                        struct aiVectorKey *position = channel->mPositionKeys + position_index;
+                                        uint32_t time = (uint32_t)((position->mTime / 1000.0) * animation->mTicksPerSecond);
+                                        if(time <= lowest_time)
+                                        {
+                                            position_index++;
+                                            if(time < lowest_time)
+                                            {
+                                                /* this position keyframe comes before the rotation keyframe, which means 
+                                                only the position must be modified. So, we restore it to the value before 
+                                                the modification */
+                                                bone_transform = old_bone_transform;
+                                            }
+                                            
+                                            lowest_time = time;
+                                            bone_transform.time = lowest_time;
+                                            bone_transform.transform.pos.x = position->mValue.x;
+                                            bone_transform.transform.pos.y = position->mValue.y;
+                                            bone_transform.transform.pos.z = position->mValue.z;
+                                        }
                                     }
-                                }
-                                
-                                if(!last_bone_transform)
-                                {                                                                            
-                                    add_list_element(&bone_transform_list, &bone_transform);
+                                    struct bone_transform_t *last_bone_transform = NULL;
+                                    if(bone_transform_list.cursor)
+                                    {
+                                        last_bone_transform = get_list_element(&bone_transform_list, bone_transform_list.cursor - 1);
+                                        if(bone_transform.time != last_bone_transform->time)
+                                        {
+                                            last_bone_transform = NULL;
+                                        }
+                                    }
+                                    
+                                    if(!last_bone_transform)
+                                    {                                                                            
+                                        add_list_element(&bone_transform_list, &bone_transform);
+                                    }
                                 }
                             }
+                            
                             
                             break;
                         }
@@ -305,7 +330,8 @@ int main(int argc, char *argv[])
                 skipped. Also required for seeking. Since it's likely animations will have more
                 than one frame, we'll have several of those lists, and the total number of of 
                 pairs will be the bone_count * animation_length */
-                for(uint32_t frame = 0; frame < (uint32_t)animation->mDuration; frame++)
+                
+                for(uint32_t frame = 0; frame < duration; frame++)
                 {
                     /* so, for every frame in the animation... */
                     for(uint32_t node_index = 0; node_index < node_list.cursor; node_index++)
@@ -358,7 +384,7 @@ int main(int argc, char *argv[])
                 }
                 
                 printf("Exporting animation '%s'...\n", animation_name);
-                printf("Duration: %f\n", animation->mDuration);
+                printf("Duration: %d\n", duration);
                 printf("Frame rate: %f\n", animation->mTicksPerSecond);
                 printf("Bones: %d\n", node_list.cursor);
                 printf("Transforms: %d\n", bone_transform_list.cursor);
@@ -371,7 +397,7 @@ int main(int argc, char *argv[])
                 header = ds_append_data(&animation_section, sizeof(*header), NULL); 
                 header->bone_count = node_list.cursor;
                 header->transform_count = bone_transform_list.cursor;
-                header->duration = (uint32_t)animation->mDuration;
+                header->duration = duration;
                 header->framerate = animation->mTicksPerSecond;
                 strcpy(header->name, animation_name);
                 
@@ -477,9 +503,6 @@ int main(int argc, char *argv[])
                     /* store all nodes that represent the skeleton this object uses in depth-first order */
                     get_them_bones(skeleton_node, &node_list);
                     
-                    struct a_skeleton_section_t *skeleton;
-                    skeleton = ds_append_data(&skeleton_section, sizeof(struct a_skeleton_section_t), NULL);
-                    
                     for(uint32_t mesh_index = 0; mesh_index < object->mNumMeshes; mesh_index++)
                     {
                         struct aiMesh *mesh = scene->mMeshes[object->mMeshes[mesh_index]];
@@ -491,12 +514,12 @@ int main(int argc, char *argv[])
                         }
                     }
                     
-                    
+                    uint32_t bone_name_len = 0;
                     
                     for(uint32_t bone_index = 0; bone_index < bone_list.cursor; bone_index++)
                     {
                         struct aiBone *bone = *(struct aiBone **)get_list_element(&bone_list, bone_index);
-                        
+                        bone_name_len += bone->mName.length + 1;
                         for(uint32_t weight_index = 0; weight_index < bone->mNumWeights; weight_index++)
                         {
                             /* for every weight of every bone... */
@@ -603,16 +626,23 @@ int main(int argc, char *argv[])
 
                     /* now we generate the actual bone/weight data to be exported... */                    
                     
+                    struct a_skeleton_section_t(node_list.cursor, bone_name_len) *skeleton;
+                    skeleton = ds_append_data(&skeleton_section, sizeof(*skeleton), NULL);
+                    
                     skeleton->bone_count = node_list.cursor;
                     for(uint32_t node_index = 0; node_index < node_list.cursor; node_index++)
                     {
                         struct aiNode *node = *(struct aiNode **)get_list_element(&node_list, node_index);
-                        struct a_bone_t *bone = ds_append_data(&skeleton_section, sizeof(struct a_bone_t), NULL);
+                        struct a_bone_t *bone = skeleton->bones + node_index;
+                        char *bone_name = skeleton->bone_names + skeleton->bone_names_length;
                         for(uint32_t bone_index = 0; bone_index < bone_list.cursor; bone_index++)
                         {
                             struct aiBone *ai_bone = *(struct aiBone **)get_list_element(&bone_list, bone_index);
                             if(!strcmp(ai_bone->mName.data, node->mName.data))
                             {
+                                strcpy(bone_name, ai_bone->mName.data);
+                                skeleton->bone_names_length += ai_bone->mName.length + 1;
+                                
                                 bone->inv_bind_matrix.rows[0].x = ai_bone->mOffsetMatrix.a1;
                                 bone->inv_bind_matrix.rows[0].y = ai_bone->mOffsetMatrix.b1;
                                 bone->inv_bind_matrix.rows[0].z = ai_bone->mOffsetMatrix.c1;

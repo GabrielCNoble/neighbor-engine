@@ -23,6 +23,8 @@ void r_DrawModel(mat4_t *transform, struct r_model_t *model);
 
 void r_DrawRange(mat4_t *transform, struct r_material_t *material, uint32_t start, uint32_t count);
 
+void r_SortBatches();
+
 void r_DrawSortedBatches();
 
 void r_DrawImmediateBatches();

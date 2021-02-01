@@ -25,6 +25,7 @@ extern uint32_t r_immediate_cursor;
 extern uint32_t r_immediate_buffer;
     
 extern uint32_t r_vao;
+extern struct r_shader_t *r_z_prepass_shader;
 extern struct r_shader_t *r_lit_shader;
 extern struct r_shader_t *r_immediate_shader;
 extern struct r_shader_t *r_current_shader;
@@ -49,13 +50,22 @@ mat4_t r_view_projection_matrix;
 
 extern SDL_Window *r_window;
 extern SDL_GLContext *r_context;
+extern float r_z_near;
+extern float r_z_far;
+extern float r_denom;
 extern int32_t r_width; 
 extern int32_t r_height; 
+extern uint32_t r_cluster_row_width;
+extern uint32_t r_cluster_rows;
+
+uint32_t r_use_z_prepass = 1;
 
 void r_BeginFrame()
 {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glBindVertexArray(r_vao);
+    
+//    uint32_t cluster_count = R_CLUSTER_ROW_WIDTH * R_CLUSTER_ROWS * R_CLUSTER_SLICES;
     
     if(r_light_buffer_cursor)
     {
@@ -69,6 +79,8 @@ void r_BeginFrame()
     glTexSubImage3D(GL_TEXTURE_3D, 0, 0, 0, 0, R_CLUSTER_ROW_WIDTH, R_CLUSTER_ROWS, R_CLUSTER_SLICES, GL_RG_INTEGER, GL_UNSIGNED_INT, r_clusters);
     glBindBufferBase(GL_UNIFORM_BUFFER, R_LIGHTS_UNIFORM_BUFFER_BINDING, r_light_uniform_buffer);
     glBindBufferBase(GL_UNIFORM_BUFFER, R_LIGHT_INDICES_UNIFORM_BUFFER_BINDING, r_light_index_uniform_buffer);
+    
+    r_denom = log(r_z_far / r_z_near);
 }
 
 void r_EndFrame()
@@ -159,13 +171,30 @@ int32_t r_CompareBatches(void *a, void *b)
 
 void r_DrawSortedBatches()
 {   
-    qsort_list(&r_sorted_batches, r_CompareBatches);
-    
     struct r_material_t *current_material;
     mat4_t model_view_projection_matrix;
+    
+    qsort_list(&r_sorted_batches, r_CompareBatches);
          
     glBindBuffer(GL_ARRAY_BUFFER, r_vertex_buffer);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, r_index_buffer);
+    
+    if(r_use_z_prepass)
+    {
+        r_BindShader(r_z_prepass_shader);
+        glDepthFunc(GL_LESS);
+        
+        for(uint32_t batch_index = 0; batch_index < r_sorted_batches.cursor; batch_index++)
+        {
+            struct r_draw_batch_t *draw_batch = get_list_element(&r_sorted_batches, batch_index);
+            mat4_t_mul(&model_view_projection_matrix, &draw_batch->model_view_matrix, &r_projection_matrix);
+            r_SetUniformMatrix4(R_UNIFORM_MVP, &model_view_projection_matrix);
+            glDrawElements(GL_TRIANGLES, draw_batch->batch.count, GL_UNSIGNED_INT, (void *)(draw_batch->batch.start * sizeof(uint32_t)));
+        }
+        
+        glDepthFunc(GL_EQUAL);
+    }
+    
     r_BindShader(r_lit_shader);
     r_SetUniform1i(R_UNIFORM_CLUSTERS, R_CLUSTERS_TEX_UNIT);
     
@@ -191,6 +220,7 @@ void r_DrawImmediateBatches()
     glBindBuffer(GL_ARRAY_BUFFER, r_immediate_buffer);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
     r_BindShader(r_immediate_shader);
+    glDepthFunc(GL_LESS);
     
     for(uint32_t batch_index = 0; batch_index < r_immediate_batches.cursor; batch_index++)
     {

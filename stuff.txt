@@ -88,14 +88,15 @@
 - rendering
     - "immediate" mode
         OK - world space primitives
-        - screen space primitives
+        OK - screen space primitives
         OK - colors
         - textures
 
+    - z-prepass
+
     OK - lights
     OK - normal mapping
-        OK - add default normal texture to default material, and use surface normal only to compute
-        tbn matrix
+        OK - add default normal texture to default material, and use surface normal only to compute tbn matrix
 
     - parallax occlusion mapping
 
@@ -103,7 +104,34 @@
         - metalness texture in materials
         - roughness texture in materials
 
-    - shadow maps
+    - shadows
+        - raytracing or shadow mapping?
+            - the raytracer would be a single compute shader, and no global acceleration structure would be used.
+            Instead, a buffer with triangles touched by all lights and a buffer with indices into this buffer,
+            with indices into the first buffer would be uploaded, and lights would linearly iterate over triangles.
+            This eleminates all the non-coherency of something like a dbvh. Finding which triangles each light touches
+            would be done by the cpu, and coarsely, using the world dbvh for that. Shadow maps for all light types would
+            be a square texture, and would natuarally store the depth for each pixel, but distorted by the current view.
+            Shadow mapping then would be simply reading from this texture and comparing the value stored against the 
+            current pixel distance to the light. The raytracing step would compute the shadow maps and project it 
+            at the same time.
+
+            Raytracing can be done in screen resolution, or in a sub multiple of it. No peter panning, and no shadow
+            acne would be present, which is good. But it's likely slower than normal shadow mapping, which is bad. Also,
+            shadow maps would need to be regenerated for all lights, every frame. So, good bye caching.
+
+
+            - normal shading maps are fast to compute, but having them in an atlas makes filtering tricky for point
+            lights. One solution could be to not filter at all. Another solution is to bite the bullet and do the 
+            damn filtering. It's gonna be slow. Another solution, instead, is to have a compute shader (or pixel shader),
+            before the lighting step, project all the shadow maps before hand, without filtering. For each light, a 
+            square piece of the shadow atlas would be allocated, and the results would be put there. Then, during
+            lighting, shadow mapping would be just a matter of reading a square texture, without having to worry
+            about filtering across borders.
+
+            This last one seems like a cool idea, but it's an extra shader execution for each light, and the amount
+            of texture memory required could easily baloon up, which is bad.
+            
         - texture atlas
             - shadow map reusage (recompute shadows only when things changed)
         - filtering

@@ -20,7 +20,10 @@ extern struct r_l_data_t *r_light_buffer;
 extern uint32_t *r_light_index_buffer;
 extern float r_z_near;
 extern float r_z_far;
+extern float r_denom;
 extern float r_fov;
+//extern uint32_t r_cluster_row_width;
+//extern uint32_t r_cluster_rows;
 
 void w_Init()
 {
@@ -56,9 +59,9 @@ void w_VisibleLights()
     r_i_SetTransform(&transform);
     r_i_SetPrimitiveType(GL_LINES);
     
-    float tan2theta = 2.0 * tan(r_fov);
+//    float tan2theta = 2.0 * tan(r_fov);
 //    float denom = log(1.0 + tan2theta / (float)R_CLUSTER_ROWS);
-    float denom = log(r_z_far / r_z_near);
+//    float denom = log(r_z_far / r_z_near);
     
     for(uint32_t light_index = 0; light_index < r_lights.cursor; light_index++)
     {
@@ -74,6 +77,8 @@ void w_VisibleLights()
             float sqrd_radius = light->data.pos_rad.w * light->data.pos_rad.w;
             float sol = 0.0;
             
+            uint32_t camera_inside = 0;
+            
             if(light_pos.z - light->data.pos_rad.w > -r_z_near)
             {
                 /* light completely behind the near plane */
@@ -86,12 +91,13 @@ void w_VisibleLights()
                 if(near_dist > 0.0)
                 {
                     /* camera is inside sphere, so it covers the whole screen */
-                    extents[0].x = -1.0;
-                    extents[0].y = 1.0;
-                    extents[1].x = -1.0;
-                    extents[1].y = 1.0;
+//                    extents[0].x = -1.0;
+//                    extents[0].y = 1.0;
+//                    extents[1].x = -1.0;
+//                    extents[1].y = 1.0;
+                    camera_inside = 1;
                 }
-                else
+                
                 {   
                     if(near_dist >= -r_z_near) 
                     {
@@ -144,7 +150,14 @@ void w_VisibleLights()
                 }
             }
             
-            if((extents[0].x - extents[0].y) * (extents[1].x - extents[1].y) == 0.0)
+            if(camera_inside)
+            {
+                extents[0].x = -1.0;
+                extents[0].y = 1.0;
+                extents[1].x = -1.0;
+                extents[1].y = 1.0;
+            }
+            else if((extents[0].x - extents[0].y) * (extents[1].x - extents[1].y) == 0.0)
             {
                 continue;
             }
@@ -158,9 +171,14 @@ void w_VisibleLights()
             if(light->max_y > R_CLUSTER_MAX_Y) light->max_y = R_CLUSTER_MAX_Y;
             
             float num = log(fmax(-light_pos.z - light->data.pos_rad.w, r_z_near) / r_z_near);
-            light->min_z = (uint32_t)floorf(R_CLUSTER_ROWS * (num / denom));
-            num = log(fmax(-light_pos.z + light->data.pos_rad.w, r_z_near) / r_z_near);
-            light->max_z = (uint32_t)floorf(R_CLUSTER_ROWS * (num / denom));
+            light->min_z = (uint32_t)floorf(R_CLUSTER_SLICES * (num / r_denom));
+            num = log(fmax(-light_pos.z + light->data.pos_rad.w, 0) / r_z_near);
+            light->max_z = (uint32_t)floorf(R_CLUSTER_SLICES * (num / r_denom));
+            
+            if(light->min_z > R_CLUSTER_MAX_Z)
+            {
+                light->min_z = R_CLUSTER_MAX_Z;
+            }
             
             if(light->max_z > R_CLUSTER_MAX_Z)
             {
@@ -232,44 +250,6 @@ void w_VisibleLights()
             }
         }
     }
-    
-    
-        
-//    for(uint32_t slice_index = 0; slice_index < R_CLUSTER_SLICES; slice_index++)
-//    {
-//        uint32_t slice_offset = slice_index * R_CLUSTER_ROWS * R_CLUSTER_ROW_WIDTH;
-//        
-//        for(uint32_t row_index = 0; row_index < R_CLUSTER_ROWS; row_index++)
-//        {
-//            uint32_t row_offset = row_index * R_CLUSTER_ROW_WIDTH;
-//            
-//            for(uint32_t cluster_index = 0; cluster_index < R_CLUSTER_ROW_WIDTH; cluster_index++)
-//            {
-//                struct r_cluster_t *cluster = r_clusters + cluster_index + row_offset + slice_offset;
-//                cluster->start = r_light_index_buffer_cursor;
-//                
-//                for(uint32_t visible_index = 0; visible_index < w_visible_lights.cursor; visible_index++)
-//                {
-//                    uint32_t light_index = *(uint32_t *)get_list_element(&w_visible_lights, visible_index);
-//                    struct r_light_t *light = r_GetLight(light_index);
-//                    
-//                    if(light->min_x <= cluster_index && light->max_x >= cluster_index)
-//                    {
-//                        if(light->min_y <= row_index && light->max_y >= row_index)
-//                        {
-//                            if(light->min_z <= slice_index && light->max_z >= slice_index)
-//                            {
-//                                r_light_index_buffer[r_light_index_buffer_cursor] = light->gpu_index;
-//                                r_light_index_buffer_cursor++;
-//                            }
-//                        }
-//                    }
-//                }
-//                
-//                cluster->count = r_light_index_buffer_cursor - cluster->start;
-//            }
-//        }
-//    }
 }
 
 void w_VisibleEntities()

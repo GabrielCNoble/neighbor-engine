@@ -37,6 +37,7 @@ uint32_t r_immediate_buffer;
 //struct ds_heap_t r_immediate_heap;
     
 uint32_t r_vao;
+struct r_shader_t *r_z_prepass_shader;
 struct r_shader_t *r_lit_shader;
 struct r_shader_t *r_immediate_shader;
 struct r_shader_t *r_current_shader;
@@ -66,8 +67,11 @@ SDL_Window *r_window;
 SDL_GLContext *r_context;
 int32_t r_width = 1300;
 int32_t r_height = 760;
+//uint32_t r_cluster_row_width;
+//uint32_t r_cluster_rows;
 float r_z_near = 0.1;
-float r_z_far = 500.0;
+float r_z_far = 1000.0;
+float r_denom = 0.0;
 float r_fov = 0.68;
 
 
@@ -83,8 +87,13 @@ char *d_uniform_names[] =
     [R_UNIFORM_METALNESS] = "r_tex_metalness",
     [R_UNIFORM_ROUGHNESS] = "r_tex_roughness",
     [R_UNIFORM_CLUSTERS] = "r_clusters",
-//    [R_UNIFORM_LIGHTS] = "r_lights",
-//    [R_UNIFORM_LIGHT_INDICES] = "r_light_indices"
+    [R_UNIFORM_CLUSTER_DENOM] = "r_cluster_denom",
+//    [R_UNIFORM_CLUSTER_ROW_WIDTH] = "r_cluster_row_width",
+//    [R_UNIFORM_CLUSTER_ROWS] = "r_cluster_rows",
+    [R_UNIFORM_Z_NEAR] = "r_z_near",
+    [R_UNIFORM_Z_FAR] = "r_z_far",
+    [R_UNIFORM_WIDTH] = "r_width",
+    [R_UNIFORM_HEIGHT] = "r_height"
 };
 
 void r_Init()
@@ -107,6 +116,8 @@ void r_Init()
     r_context = SDL_GL_CreateContext(r_window);
     SDL_GL_MakeCurrent(r_window, r_context);
     SDL_GL_SetSwapInterval(1);
+    
+    
     
     
     GLenum status = glewInit();
@@ -138,6 +149,7 @@ void r_Init()
     glBindVertexArray(r_vao);
     glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
     
+    r_z_prepass_shader = r_LoadShader("shaders/zprepass.vert", "shaders/zprepass.frag");
     r_lit_shader = r_LoadShader("shaders/lit.vert", "shaders/lit.frag");
     r_immediate_shader = r_LoadShader("shaders/immediate.vert", "shaders/immediate.frag");
     mat4_t_persp(&r_projection_matrix, r_fov, (float)r_width / (float)r_height, r_z_near, r_z_far);
@@ -155,11 +167,15 @@ void r_Init()
     r_default_normal_texture = r_CreateTexture("default_normal", 1, 1, GL_RGBA8, pixels);
     pixels[0] = 0x0000003f;
     r_default_roughness_texture = r_CreateTexture("default_roughness", 1, 1, GL_RGBA8, pixels);
+    
+    
+//    r_default_albedo_texture = r_LoadTexture("textures/PavingStones092_1K_Color.jpg", "albedo");
+//    r_default_normal_texture = r_LoadTexture("textures/PavingStones092_1K_Normal.jpg", "normal");
+    
+    
     r_default_material = r_CreateMaterial("deafult", r_default_albedo_texture, r_default_normal_texture, r_default_roughness_texture);
     
-    r_default_texture = r_default_albedo_texture;
     
-//    uint32_t cluster_count = R_CLUSTER_ROWS * R_CLUSTER_ROW_WIDTH * R_CLUSTER_SLICES;
     r_clusters = mem_Calloc(R_CLUSTER_COUNT, sizeof(struct r_cluster_t));
     r_light_buffer = mem_Calloc(R_MAX_LIGHTS, sizeof(struct r_l_data_t));
     r_light_index_buffer = mem_Calloc(R_CLUSTER_COUNT * R_MAX_CLUSTER_LIGHTS, sizeof(uint32_t));
@@ -175,16 +191,19 @@ void r_Init()
     glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_BASE_LEVEL, 0);
     glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAX_LEVEL, 0);
     glTexImage3D(GL_TEXTURE_3D, 0, GL_RG32UI, R_CLUSTER_ROW_WIDTH, R_CLUSTER_ROWS, R_CLUSTER_SLICES, 0, GL_RG_INTEGER, GL_UNSIGNED_INT, NULL);
-//    printf("%x\n", glGetError());
-//    glTexSubImage3D(GL_TEXTURE_3D, 0, 0, 0, 0, 1, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE, r_clusters);
-//    printf("%x\n", glGetError());
-//    
+
     glGenBuffers(1, &r_light_uniform_buffer);
     glBindBuffer(GL_UNIFORM_BUFFER, r_light_uniform_buffer);
     glBufferData(GL_UNIFORM_BUFFER, R_MAX_LIGHTS * sizeof(struct r_l_data_t), NULL, GL_DYNAMIC_DRAW);
     glGenBuffers(1, &r_light_index_uniform_buffer);
     glBindBuffer(GL_UNIFORM_BUFFER, r_light_index_uniform_buffer);
     glBufferData(GL_UNIFORM_BUFFER, R_CLUSTER_COUNT * R_MAX_CLUSTER_LIGHTS * sizeof(uint32_t), NULL, GL_DYNAMIC_DRAW);
+    
+//    int32_t group_size = 0;
+//    
+//    glGetIntegerv(GL_COMPUTE_WORK_GROUP_SIZE, &group_size);
+//    printf("%d\n", group_size);
+
 }
 
 void r_Shutdown()
@@ -207,6 +226,12 @@ struct r_texture_t *r_LoadTexture(char *file_name, char *name)
     
     return texture;
 }
+
+/*
+============================================================================
+============================================================================
+============================================================================
+*/
 
 struct r_texture_t *r_CreateTexture(char *name, uint32_t width, uint32_t height, uint32_t internal_format, void *data)
 {
@@ -286,6 +311,12 @@ struct r_texture_t *r_GetTexture(char *name)
     return NULL;
 }
 
+/*
+============================================================================
+============================================================================
+============================================================================
+*/
+
 struct r_material_t *r_CreateMaterial(char *name, struct r_texture_t *diffuse_texture, struct r_texture_t *normal_texture, struct r_texture_t *roughness_texture)
 {
     uint32_t material_index;
@@ -337,6 +368,12 @@ void r_BindMaterial(struct r_material_t *material)
         r_SetUniform1i(R_UNIFORM_NORMAL, R_NORMAL_TEX_UNIT);
     }
 }
+
+/*
+============================================================================
+============================================================================
+============================================================================
+*/
 
 struct ds_chunk_h r_AllocateVertices(uint32_t count)
 {
@@ -390,14 +427,14 @@ struct r_model_t *r_LoadModel(char *file_name)
         read_file(file, &file_buffer, NULL);
         fclose(file);
         
-        struct a_skeleton_section_t *skeleton_section;
+        struct a_skeleton_section_t(0, 0) *skeleton_header;
         struct a_weight_section_t(0, 0) *weight_header;
         struct r_vert_section_t *verts;
         struct r_index_section_t *indexes;
         struct r_batch_section_t *batch_section;
         struct r_material_section_t *materials;
         
-        ds_get_section_data(file_buffer, "[skeleton]", (void **)&skeleton_section, NULL);
+        ds_get_section_data(file_buffer, "[skeleton]", (void **)&skeleton_header, NULL);
         ds_get_section_data(file_buffer, "[weights]", (void **)&weight_header, NULL);
         ds_get_section_data(file_buffer, "[vertices]", (void **)&verts, NULL);
         ds_get_section_data(file_buffer, "[indices]", (void **)&indexes, NULL);
@@ -460,11 +497,12 @@ struct r_model_t *r_LoadModel(char *file_name)
         uint32_t weight_count = 0;
         uint32_t weight_range_count = 0;
         
-        if(skeleton_section && skeleton_section->bone_count)
+        if(skeleton_header && skeleton_header->bone_count)
         {
-            skeleton = a_CreateSkeleton(skeleton_section->bone_count, skeleton_section->bones);
-            struct a_weight_section_t(weight_header->weight_count, weight_header->range_count) *weight_data = (void *)weight_header;
+            struct a_skeleton_section_t(skeleton_header->bone_count, skeleton_header->bone_names_length) *skeleton_data = (void *)skeleton_header;
+            skeleton = a_CreateSkeleton(skeleton_data->bone_count, skeleton_data->bones, skeleton_data->bone_names_length, skeleton_data->bone_names);
             
+            struct a_weight_section_t(weight_header->weight_count, weight_header->range_count) *weight_data = (void *)weight_header;
             weight_count = weight_header->weight_count;
             weight_range_count = weight_header->range_count;
             weights = weight_data->weights;
@@ -580,6 +618,12 @@ struct r_model_t *r_ShallowCopyModel(struct r_model_t *base)
     return copy;
 }
 
+/*
+============================================================================
+============================================================================
+============================================================================
+*/
+
 struct r_light_t *r_CreateLight(uint32_t type, vec3_t *position, vec3_t *color, float radius, float energy)
 {
     struct r_light_t *light;
@@ -617,6 +661,12 @@ void r_DestroyLight(struct r_light_t *light)
         light->index = 0xffffffff;
     }
 }
+
+/*
+============================================================================
+============================================================================
+============================================================================
+*/
 
 struct r_shader_t *r_LoadShader(char *vertex_file_name, char *fragment_file_name)
 {
@@ -774,6 +824,12 @@ void r_BindShader(struct r_shader_t *shader)
     {
         r_current_shader = shader;
         glUseProgram(shader->handle);
+        
+        r_SetUniform1i(R_UNIFORM_WIDTH, r_width);
+        r_SetUniform1i(R_UNIFORM_HEIGHT, r_height);
+        r_SetUniform1f(R_UNIFORM_Z_NEAR, r_z_near);
+        r_SetUniform1f(R_UNIFORM_CLUSTER_DENOM, r_denom);
+        
         if(shader->attribs & R_ATTRIB_POSITION)
         {
             glEnableVertexArrayAttrib(r_vao, R_POSITION_LOCATION);
@@ -821,12 +877,18 @@ void r_SetUniformMatrix4(uint32_t uniform, mat4_t *matrix)
     glUniformMatrix4fv(r_current_shader->uniforms[uniform], 1, GL_FALSE, (const float *)matrix->comps);
 }
 
-void r_SetUniformBuffer(uint32_t uniform, uint32_t buffer)
+void r_SetUniform1f(uint32_t uniform, float value)
 {
-    
+    glUniform1f(r_current_shader->uniforms[uniform], value);
 }
 
 void r_SetUniform1i(uint32_t uniform, uint32_t value)
 {
     glUniform1i(r_current_shader->uniforms[uniform], value);
 }
+
+/*
+============================================================================
+============================================================================
+============================================================================
+*/

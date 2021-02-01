@@ -32,11 +32,17 @@ struct a_bone_t
     uint32_t child_count;
 };
 
+struct a_bone_name_t
+{
+    char *name;
+};
+
 struct a_skeleton_t
 {
     uint32_t index;
     uint32_t bone_count;
     struct a_bone_t *bones;
+    struct a_bone_name_t *names;
 };
 
 struct a_transform_pair_t
@@ -45,18 +51,6 @@ struct a_transform_pair_t
     uint16_t end;
     uint16_t end_frame;
 };
-
-//struct a_bone_transform_pair_t
-//{
-//    uint16_t bone_index;
-//    struct a_transform_pair_t pair;
-//};
-
-//struct a_transform_range_t
-//{
-//    uint16_t start;
-//    uint16_t count;
-//};
 
 enum A_ANIMATION_FLAGS
 {
@@ -91,10 +85,11 @@ struct a_mixer_t
     struct r_model_t *model;
     struct list_t players;
     struct list_t mix_players;
-    /* final transforms ready to be used for skinning. Those are computed
+    uint8_t *touched_bones;
+    /* final transforms ready to be transformed into matrices. Those are computed
     after all tracks have been mixed */
-    uint16_t *touched_bones;
     struct a_transform_t *transforms;
+    mat4_t *bone_transforms;
     mat4_t *skinning_matrices;
     vec3_t root_disp;
 };
@@ -141,11 +136,19 @@ struct a_weight_record_t
     struct a_weight_range_t ranges[r_count];                  \
 }
     
-struct a_skeleton_section_t
-{
-    uint32_t bone_count;
-    struct a_bone_t bones[];
-};
+//struct a_skeleton_section_t
+//{
+//    uint32_t bone_count;
+//    struct a_bone_t bones[];
+//};
+
+#define a_skeleton_section_t(b_count, bn_length)                       \
+{                                                                      \
+    uint32_t bone_names_length;                                        \
+    uint32_t bone_count;                                               \
+    struct a_bone_t bones[b_count];                                    \
+    char bone_names[bn_length];                                        \
+}   
 
 struct a_anim_sec_header_t
 {
@@ -168,7 +171,7 @@ void a_Shutdown();
 
 struct a_animation_t *a_LoadAnimation(char *file_name);
 
-struct a_skeleton_t *a_CreateSkeleton(uint32_t bone_count, struct a_bone_t *bones);
+struct a_skeleton_t *a_CreateSkeleton(uint32_t bone_count, struct a_bone_t *bones, uint32_t bone_names_length, char *bone_names);
 
 struct a_player_t *a_CreatePlayer();
 
@@ -185,6 +188,10 @@ void a_SetCallbackAbsolute(struct a_player_t *player, a_callback_function *funct
 void a_SetCallbackFrame(struct a_player_t *player, a_callback_function *function, void *data, uint32_t frame);
 
 struct a_mixer_t *a_MixAnimation(struct a_mixer_t *mixer, struct a_animation_t *animation, struct r_model_t *model);
+
+uint32_t a_GetBoneIndex(struct a_mixer_t *mixer, char *bone_name);
+
+mat4_t *a_GetBoneTransform(struct a_mixer_t *mixer, uint32_t bone_index);
 
 struct a_player_t *a_GetPlayer(struct a_mixer_t *mixer, uint32_t index);
 

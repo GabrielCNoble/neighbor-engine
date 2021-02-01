@@ -66,7 +66,7 @@ struct a_animation_t *a_LoadAnimation(char *file_name)
     return animation;
 }
 
-struct a_skeleton_t *a_CreateSkeleton(uint32_t bone_count, struct a_bone_t *bones)
+struct a_skeleton_t *a_CreateSkeleton(uint32_t bone_count, struct a_bone_t *bones, uint32_t bone_names_length, char *bone_names)
 {
     struct a_skeleton_t *skeleton;
     uint32_t index = add_stack_list_element(&a_skeletons, NULL);
@@ -75,7 +75,17 @@ struct a_skeleton_t *a_CreateSkeleton(uint32_t bone_count, struct a_bone_t *bone
     skeleton->index = index;
     skeleton->bone_count = bone_count;
     skeleton->bones = mem_Calloc(bone_count, sizeof(struct a_bone_t));
+    skeleton->names = mem_Calloc(bone_count, sizeof(struct a_bone_name_t));
+    skeleton->names->name = mem_Calloc(bone_names_length, 1);
     memcpy(skeleton->bones, bones, sizeof(struct a_bone_t) * bone_count);
+    memcpy(skeleton->names->name, bone_names, bone_names_length);
+    
+    for(uint32_t bone_index = 1; bone_index < bone_count; bone_index++)
+    {
+        struct a_bone_name_t *cur_name = skeleton->names + bone_index;
+        struct a_bone_name_t *prev_name = cur_name - 1;
+        cur_name->name = prev_name->name + strlen(prev_name->name) + 1;
+    }
     
     return skeleton;
 }
@@ -116,14 +126,13 @@ void a_SeekAnimationAbsolute(struct a_player_t *player, float time)
     struct a_animation_t *animation = player->animation;
     struct a_mixer_t *mixer = player->mixer;
     float total_time = (float)animation->duration / animation->framerate;
+    uint32_t laps = (uint32_t)(time / total_time);
     player->time = fmodf(time, total_time);
     uint32_t cur_frame = (uint32_t)(player->time * animation->framerate);
     uint32_t prev_frame = player->current_frame;
     
     if(player->current_frame != cur_frame)
     {
-//        struct a_transform_pair_t *pairs = animation->pairs + cur_frame * animation->bone_count;
-//        memcpy(player->pairs, pairs, sizeof(struct a_transform_pair_t) * animation->bone_count);
         player->pairs = animation->pairs + cur_frame * animation->bone_count;
         float cur_frame_time = (float)cur_frame / (float)animation->duration;
         float delta_time = player->time - cur_frame_time;
@@ -144,7 +153,7 @@ void a_SeekAnimationAbsolute(struct a_player_t *player, float time)
     for(uint32_t bone_index = 0; bone_index < animation->bone_count; bone_index++)
     {
         struct a_transform_pair_t *pair = player->pairs + bone_index;
-        
+
         if(pair->start != pair->end)
         {
             struct a_transform_t *transform = player->transforms + bone_index;
@@ -164,28 +173,33 @@ void a_SeekAnimationAbsolute(struct a_player_t *player, float time)
     
     if(mixer && (mixer->flags & A_MIXER_FLAG_COMPUTE_ROOT_DISPLACEMENT))
     {
-        struct a_transform_pair_t *pair = player->pairs;
-        struct a_transform_t *current = player->transforms;
+        struct a_transform_pair_t *first_pair = player->pairs;
+        struct a_transform_pair_t *last_pair = player->animation->pairs + player->animation->bone_count * (player->animation->duration - 1);
+        struct a_transform_t *root_transform = player->transforms;
         
-        if(pair->start != pair->end)
+        if(first_pair->start != first_pair->end)
         {
-            struct a_transform_t *start = animation->transforms + pair->start;
-        
-            if(!player->current_frame && (player->current_frame != prev_frame))
-            {
-                vec3_t start_prev_vec;
-                vec3_t cur_prev_vec;
-                vec3_t prev_offset;
-                vec3_t_sub(&start_prev_vec, &player->prev_pos, &start->pos);
-                vec3_t_sub(&cur_prev_vec, &player->prev_pos, &current->pos);
-                vec3_t_sub(&prev_offset, &start_prev_vec, &cur_prev_vec);
-                vec3_t_sub(&player->prev_pos, &start->pos, &prev_offset);
+            struct a_transform_t *first_transform = animation->transforms + first_pair->start;
+            struct a_transform_t *last_transform = animation->transforms + last_pair->end;
+            vec3_t delta;
+            
+//            printf("%d - %f\n", player->current_frame, player->scale);
+            
+//            if(laps > 1)
+//            {
+//                vec3_t_sub(&delta, &last_transform->pos, &first_transform->pos);
+//                vec3_t_fmadd(&mixer->root_disp, &mixer->root_disp, &delta, (float)(laps - 1));
+//            }
+            
+            if(laps)
+            {   
+                vec3_t_sub(&delta, &player->prev_pos, &last_transform->pos);
+                vec3_t_add(&player->prev_pos, &first_transform->pos, &delta);
             }
             
-            vec3_t disp;
-            vec3_t_sub(&disp, &current->pos, &player->prev_pos);
-            vec3_t_fmadd(&mixer->root_disp, &mixer->root_disp, &disp, 1.0);
-            player->prev_pos = current->pos;
+            vec3_t_sub(&delta, &root_transform->pos, &player->prev_pos);
+            vec3_t_fmadd(&mixer->root_disp, &mixer->root_disp, &delta, 1.0);
+            player->prev_pos = root_transform->pos;
         }
     }
 }
@@ -234,9 +248,17 @@ struct a_mixer_t *a_MixAnimation(struct a_mixer_t *mixer, struct a_animation_t *
         mixer->weight_count = model->weight_count;
         mixer->weights = model->weights;
         mixer->model = model;
+        mixer->bone_transforms = mem_Calloc(mixer->skeleton->bone_count, sizeof(mat4_t));
         mixer->skinning_matrices = mem_Calloc(mixer->skeleton->bone_count, sizeof(mat4_t));
         mixer->transforms = mem_Calloc(mixer->skeleton->bone_count, sizeof(struct a_transform_t));
-        mixer->touched_bones = mem_Calloc(mixer->skeleton->bone_count, sizeof(uint16_t));
+        
+        uint32_t touched_bones = mixer->skeleton->bone_count / 8;
+        if(mixer->skeleton->bone_count % 8)
+        {
+            touched_bones++;
+        }
+        
+        mixer->touched_bones = mem_Calloc(touched_bones, sizeof(uint8_t));
         
         if(!mixer->players.buffers)
         {
@@ -245,8 +267,7 @@ struct a_mixer_t *a_MixAnimation(struct a_mixer_t *mixer, struct a_animation_t *
             
             for(uint32_t transform_index = 0; transform_index < mixer->skeleton->bone_count; transform_index++)
             {
-//                mat4_t_identity(mixer->skinning_matrices + transform_index);
-                mixer->skinning_matrices[transform_index] = mixer->skeleton->bones[transform_index].transform;
+                mixer->bone_transforms[transform_index] = mixer->skeleton->bones[transform_index].transform;
                 mixer->transforms[transform_index].rot = vec4_t_c(0.0, 0.0, 0.0, 1.0);
                 mixer->transforms[transform_index].pos = vec3_t_c(0.0, 0.0, 0.0);
             }
@@ -261,6 +282,31 @@ struct a_mixer_t *a_MixAnimation(struct a_mixer_t *mixer, struct a_animation_t *
     }
     
     return mixer;
+}
+
+uint32_t a_GetBoneIndex(struct a_mixer_t *mixer, char *bone_name)
+{
+    for(uint32_t bone_index = 0; bone_index < mixer->skeleton->bone_count; bone_index++)
+    {
+        if(!strcmp(bone_name, mixer->skeleton->names[bone_index].name))
+        {
+            return bone_index;
+        }
+    }
+    
+    return 0xffffffff;
+}
+
+mat4_t *a_GetBoneTransform(struct a_mixer_t *mixer, uint32_t bone_index)
+{
+    mat4_t *transform = NULL;
+    
+    if(bone_index < mixer->skeleton->bone_count)
+    {
+        transform = mixer->bone_transforms + bone_index;
+    }
+    
+    return transform;
 }
 
 struct a_player_t *a_GetPlayer(struct a_mixer_t *mixer, uint32_t index)
@@ -293,7 +339,7 @@ void a_UpdateAnimations(float delta_time)
 uint32_t a_UpdateMixerTransforms(struct a_mixer_t *mixer, uint32_t bone_index, mat4_t *parent_transform)
 {
     struct a_bone_t *bone = mixer->skeleton->bones + bone_index;
-    mat4_t *transform = mixer->skinning_matrices + bone_index;
+    mat4_t *transform = mixer->bone_transforms + bone_index;
     mat4_t_mul(transform, transform, parent_transform);
     
     bone_index++;
@@ -330,11 +376,17 @@ void a_UpdateMixer(struct a_mixer_t *mixer, float delta_time)
     
     if(mixer->flags & A_MIXER_FLAG_COMPUTE_ROOT_DISPLACEMENT)
     {
-        mixer->skinning_matrices[0] = mixer->skeleton->bones->transform;
+        mixer->bone_transforms[0] = mixer->skeleton->bones->transform;
         first_bone = 1;
     }
     
-    for(uint32_t bone_index = 0; bone_index < mixer->skeleton->bone_count; bone_index++)
+    uint32_t touched_bones = mixer->skeleton->bone_count / 8;
+    if(mixer->skeleton->bone_count % 8)
+    {
+        touched_bones++;
+    }
+    
+    for(uint32_t bone_index = 0; bone_index < touched_bones; bone_index++)
     {
         mixer->touched_bones[bone_index] = 0;
     }
@@ -351,9 +403,9 @@ void a_UpdateMixer(struct a_mixer_t *mixer, float delta_time)
         {
             player = *(struct a_player_t **)get_list_element(&mixer->mix_players, player_index);
             struct a_animation_t *animation = player->animation;
-            float weight = player->weight / total_weight;
+            float weight = player->weight / denom;
             denom = total_weight;
-            
+
             for(uint32_t bone_index = first_bone; bone_index < animation->bone_count; bone_index++)
             {
                 struct a_transform_pair_t *pair = player->pairs + bone_index;
@@ -364,7 +416,7 @@ void a_UpdateMixer(struct a_mixer_t *mixer, float delta_time)
                     struct a_transform_t *mixed_transform = mixer->transforms + bone_index;
                     quat_slerp(&mixed_transform->rot, &mixed_transform->rot, &transform->rot, weight);
                     vec3_t_lerp(&mixed_transform->pos, &mixed_transform->pos, &transform->pos, weight);
-                    mixer->touched_bones[bone_index] = 1;
+                    mixer->touched_bones[bone_index / 8] |= 1 << (bone_index % 8);
                 }
             }
         }
@@ -373,9 +425,9 @@ void a_UpdateMixer(struct a_mixer_t *mixer, float delta_time)
     for(uint32_t bone_index = first_bone; bone_index < mixer->skeleton->bone_count; bone_index++)
     {
         struct a_transform_t *transform = mixer->transforms + bone_index;
-        mat4_t *mat_transform = mixer->skinning_matrices + bone_index;
+        mat4_t *mat_transform = mixer->bone_transforms + bone_index;
         
-        if(mixer->touched_bones[bone_index])
+        if(mixer->touched_bones[bone_index / 8] & (1 << (bone_index % 8)))
         {
             mat_transform->rows[0].x = 1.0 - 2.0 * (transform->rot.y * transform->rot.y + transform->rot.z * transform->rot.z);
             mat_transform->rows[0].y = 2.0 * (transform->rot.x * transform->rot.y + transform->rot.z * transform->rot.w);
@@ -402,20 +454,17 @@ void a_UpdateMixer(struct a_mixer_t *mixer, float delta_time)
         {
             *mat_transform = mixer->skeleton->bones[bone_index].transform;
         }
-        
-//        transform->rot = vec4_t_c(0.0, 0.0, 0.0, 1.0);
-//        transform->pos = vec3_t_c(0.0, 0.0, 0.0);
     }
     
     mat4_t parent_transform;
     mat4_t_identity(&parent_transform);
-    mat4_t_rotate_x(&parent_transform, -0.5);
+//    mat4_t_rotate_x(&parent_transform, -0.5);
     a_UpdateMixerTransforms(mixer, 0, &parent_transform);
 
     for(uint32_t bone_index = 0; bone_index < skeleton->bone_count; bone_index++)
     {
         mat4_t *transform = mixer->skinning_matrices + bone_index;
-        mat4_t_mul(transform, &skeleton->bones[bone_index].inv_bind_matrix, transform);
+        mat4_t_mul(transform, &skeleton->bones[bone_index].inv_bind_matrix, &mixer->bone_transforms[bone_index]);
     }
 
     for(uint32_t vert_index = 0; vert_index < model->vert_count; vert_index++)
@@ -434,9 +483,9 @@ void a_UpdateMixer(struct a_mixer_t *mixer, float delta_time)
             vec4_t temp_normal = vec4_t_c(vert->normal.x, vert->normal.y, vert->normal.z, 0.0);
             vec4_t temp_tangent = vec4_t_c(vert->tangent.x, vert->tangent.y, vert->tangent.z, 0.0);
             
-            mat4_t_vec4_t_mul(&temp_pos, mixer->skinning_matrices + weight->bone_index, &temp_pos);        
-            mat4_t_vec4_t_mul(&temp_normal, mixer->skinning_matrices + weight->bone_index, &temp_normal);        
-            mat4_t_vec4_t_mul(&temp_tangent, mixer->skinning_matrices + weight->bone_index, &temp_tangent);        
+            mat4_t_vec4_t_mul_fast(&temp_pos, mixer->skinning_matrices + weight->bone_index, &temp_pos);        
+            mat4_t_vec4_t_mul_fast(&temp_normal, mixer->skinning_matrices + weight->bone_index, &temp_normal);        
+            mat4_t_vec4_t_mul_fast(&temp_tangent, mixer->skinning_matrices + weight->bone_index, &temp_tangent);        
             
             vec4_t_mul(&temp_pos, &temp_pos, weight->weight);
             vec4_t_add(&position, &position, &temp_pos);

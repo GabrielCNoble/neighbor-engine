@@ -50,6 +50,8 @@ struct g_player_state_t
     float run_frac;
     float jump_frac;
     float run_scale;
+    float shoot_frac;
+    struct r_light_t *shot_light;
 };
 
 enum G_GAME_STATE
@@ -59,6 +61,16 @@ enum G_GAME_STATE
     G_GAME_STATE_EDITING,
     G_GAME_STATE_LOADING,
     G_GAME_STATE_QUIT,
+};
+
+struct g_projectile_t
+{
+    vec3_t position;
+    vec3_t velocity;
+    uint32_t index;
+    struct r_light_t *light;
+    uint32_t life;
+    uint32_t bouces;
 };
 
 void g_Init(uint32_t editor_active);
@@ -84,6 +96,10 @@ void g_DestroyEntity(struct g_entity_t *entity);
 void g_ParentEntity(struct g_entity_t *parent, struct g_entity_t *entity);
 
 void g_SetEntityCollider(struct g_entity_t *entity, uint32_t type, vec3_t *size);
+
+struct g_projectile_t *g_SpawnProjectile(vec3_t *position, vec3_t *velocity, vec3_t *color, float radius, uint32_t life);
+
+void g_DestroyProjectile(struct g_projectile_t *projectile);
 
 void g_PlayAnimation(struct g_entity_t *entity, struct a_animation_t *animation);
 

@@ -18,6 +18,7 @@ struct r_material_t
     struct r_texture_t *diffuse_texture;
     struct r_texture_t *normal_texture;
     struct r_texture_t *roughness_texture;
+    struct r_texture_t *height_texture;
     uint32_t index;
     char *name;
 };
@@ -43,14 +44,13 @@ enum R_UNIFORM
     R_UNIFORM_IVM,
     R_UNIFORM_TEX0,
     R_UNIFORM_TEX1,
-    R_UNIFORM_ALBEDO,
-    R_UNIFORM_NORMAL,
-    R_UNIFORM_METALNESS,
-    R_UNIFORM_ROUGHNESS,
+    R_UNIFORM_TEX_ALBEDO,
+    R_UNIFORM_TEX_NORMAL,
+    R_UNIFORM_TEX_METALNESS,
+    R_UNIFORM_TEX_ROUGHNESS,
+    R_UNIFORM_TEX_HEIGHT,
     R_UNIFORM_CLUSTERS,
     R_UNIFORM_CLUSTER_DENOM,
-//    R_UNIFORM_CLUSTER_ROW_WIDTH,
-//    R_UNIFORM_CLUSTER_ROWS,
     R_UNIFORM_Z_NEAR,
     R_UNIFORM_Z_FAR,
     R_UNIFORM_WIDTH,
@@ -63,6 +63,7 @@ enum R_UNIFORM
 #define R_NORMAL_TEX_UNIT 2
 #define R_METALNESS_TEX_UNIT 3
 #define R_ROUGHNESS_TEX_UNIT 4
+#define R_HEIGHT_TEX_UNIT 5
 
 enum R_ATTRIBS
 {
@@ -258,7 +259,7 @@ struct r_cluster_t
 
 #define R_VERTEX_BUFFER_SIZE (sizeof(struct r_vert_t) * 1000000)
 #define R_INDEX_BUFFER_SIZE (sizeof(uint32_t) * 1000000)
-#define R_IMMEDIATE_BUFFER_SIZE (sizeof(struct r_vert_t) * 10000)
+#define R_IMMEDIATE_BUFFER_SIZE (sizeof(struct r_vert_t) * 100000)
 #define R_MAX_VERTEX_WEIGHTS 16
 
 

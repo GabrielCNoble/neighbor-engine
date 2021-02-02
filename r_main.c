@@ -46,6 +46,7 @@ struct r_model_t *test_model;
 struct r_texture_t *r_default_texture;
 struct r_texture_t *r_default_albedo_texture;
 struct r_texture_t *r_default_normal_texture;
+struct r_texture_t *r_default_height_texture;
 struct r_texture_t *r_default_roughness_texture;
 struct r_material_t *r_default_material;
 
@@ -82,14 +83,13 @@ char *d_uniform_names[] =
     [R_UNIFORM_IVM] = "r_ivm",
     [R_UNIFORM_TEX0] = "d_tex0",
     [R_UNIFORM_TEX1] = "d_tex1",
-    [R_UNIFORM_ALBEDO] = "r_tex_albedo",
-    [R_UNIFORM_NORMAL] = "r_tex_normal",
-    [R_UNIFORM_METALNESS] = "r_tex_metalness",
-    [R_UNIFORM_ROUGHNESS] = "r_tex_roughness",
+    [R_UNIFORM_TEX_ALBEDO] = "r_tex_albedo",
+    [R_UNIFORM_TEX_NORMAL] = "r_tex_normal",
+    [R_UNIFORM_TEX_METALNESS] = "r_tex_metalness",
+    [R_UNIFORM_TEX_ROUGHNESS] = "r_tex_roughness",
+    [R_UNIFORM_TEX_HEIGHT] = "r_tex_height",
     [R_UNIFORM_CLUSTERS] = "r_clusters",
     [R_UNIFORM_CLUSTER_DENOM] = "r_cluster_denom",
-//    [R_UNIFORM_CLUSTER_ROW_WIDTH] = "r_cluster_row_width",
-//    [R_UNIFORM_CLUSTER_ROWS] = "r_cluster_rows",
     [R_UNIFORM_Z_NEAR] = "r_z_near",
     [R_UNIFORM_Z_FAR] = "r_z_far",
     [R_UNIFORM_WIDTH] = "r_width",
@@ -357,15 +357,15 @@ void r_BindMaterial(struct r_material_t *material)
     {
         glActiveTexture(GL_TEXTURE0 + R_ALBEDO_TEX_UNIT);
         glBindTexture(GL_TEXTURE_2D, material->diffuse_texture->handle);
-        r_SetUniform1i(R_UNIFORM_ALBEDO, R_ALBEDO_TEX_UNIT);
+        r_SetUniform1i(R_UNIFORM_TEX_ALBEDO, R_ALBEDO_TEX_UNIT);
         
         glActiveTexture(GL_TEXTURE0 + R_ROUGHNESS_TEX_UNIT);
         glBindTexture(GL_TEXTURE_2D, material->roughness_texture->handle);
-        r_SetUniform1i(R_UNIFORM_ROUGHNESS, R_ROUGHNESS_TEX_UNIT);
+        r_SetUniform1i(R_UNIFORM_TEX_ROUGHNESS, R_ROUGHNESS_TEX_UNIT);
 
         glActiveTexture(GL_TEXTURE0 + R_NORMAL_TEX_UNIT);
         glBindTexture(GL_TEXTURE_2D, material->normal_texture->handle);
-        r_SetUniform1i(R_UNIFORM_NORMAL, R_NORMAL_TEX_UNIT);
+        r_SetUniform1i(R_UNIFORM_TEX_NORMAL, R_NORMAL_TEX_UNIT);
     }
 }
 

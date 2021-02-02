@@ -59,10 +59,6 @@ void w_VisibleLights()
     r_i_SetTransform(&transform);
     r_i_SetPrimitiveType(GL_LINES);
     
-//    float tan2theta = 2.0 * tan(r_fov);
-//    float denom = log(1.0 + tan2theta / (float)R_CLUSTER_ROWS);
-//    float denom = log(r_z_far / r_z_near);
-    
     for(uint32_t light_index = 0; light_index < r_lights.cursor; light_index++)
     {
         struct r_light_t *light = r_GetLight(light_index);
@@ -77,7 +73,7 @@ void w_VisibleLights()
             float sqrd_radius = light->data.pos_rad.w * light->data.pos_rad.w;
             float sol = 0.0;
             
-            uint32_t camera_inside = 0;
+            float near_dist = light_pos.z + light->data.pos_rad.w;
             
             if(light_pos.z - light->data.pos_rad.w > -r_z_near)
             {
@@ -86,77 +82,64 @@ void w_VisibleLights()
             }
             else
             {
-                float near_dist = light_pos.z + light->data.pos_rad.w;
-                
-                if(near_dist > 0.0)
+                if(near_dist >= -r_z_near) 
                 {
-                    /* camera is inside sphere, so it covers the whole screen */
-//                    extents[0].x = -1.0;
-//                    extents[0].y = 1.0;
-//                    extents[1].x = -1.0;
-//                    extents[1].y = 1.0;
-                    camera_inside = 1;
+                    /* light touches near plane, so compute the intersection with it */
+                    sol = sqrt(fabs(sqrd_radius - (r_z_near - light_pos.z)));
                 }
                 
-                {   
-                    if(near_dist >= -r_z_near) 
+                for(uint32_t axis_index = 0; axis_index < 2; axis_index++)
+                {
+                    vec2_t light_vec;
+                    float light_a = vec3_t_dot(&axes[axis_index], &light_pos);
+                    light_vec.x = light_a;
+                    light_vec.y = light_pos.z;
+                    float center_dist = vec2_t_length(&light_vec);
+                    float tangent_dist = sqrt(fabs(center_dist * center_dist - sqrd_radius));
+                    vec2_t_mul(&light_vec, &light_vec, 1.0 / center_dist);
+                    
+                    float cos_theta = tangent_dist / center_dist;
+                    float sin_theta = light->data.pos_rad.w / center_dist;
+                    float scale = r_projection_matrix.rows[axis_index].comps[axis_index];
+                    vec2_t *extent = extents + axis_index;
+                    vec2_t b;
+                    vec2_t t;
+                    
+                    t.x = (cos_theta * light_vec.x + sin_theta * light_vec.y) * tangent_dist;
+                    t.y = (-sin_theta * light_vec.x + cos_theta * light_vec.y) * tangent_dist;
+                    b.x = (cos_theta * light_vec.x - sin_theta * light_vec.y) * tangent_dist;
+                    b.y = (sin_theta * light_vec.x + cos_theta * light_vec.y) * tangent_dist;
+                    
+                    if(b.y >= -r_z_near)
                     {
-                        /* light touches near plane, so compute the intersection with it */
-                        sol = sqrt(fabs(sqrd_radius - (r_z_near - light_pos.z)));
+                        /* tangent point behind near plane */
+                        b.x = light_a + sol;
+                        b.y = -r_z_near;
                     }
                     
-                    for(uint32_t axis_index = 0; axis_index < 2; axis_index++)
+                    if(t.y >= -r_z_near)
                     {
-                        vec2_t light_vec;
-                        float light_a = vec3_t_dot(&axes[axis_index], &light_pos);
-                        light_vec.x = light_a;
-                        light_vec.y = light_pos.z;
-                        float center_dist = vec2_t_length(&light_vec);
-                        float tangent_dist = sqrt(fabs(center_dist * center_dist - sqrd_radius));
-                        vec2_t_mul(&light_vec, &light_vec, 1.0 / center_dist);
-                        
-                        float cos_theta = tangent_dist / center_dist;
-                        float sin_theta = light->data.pos_rad.w / center_dist;
-                        float scale = r_projection_matrix.rows[axis_index].comps[axis_index];
-                        vec2_t *extent = extents + axis_index;
-                        vec2_t b;
-                        vec2_t t;
-                        
-                        t.x = (cos_theta * light_vec.x + sin_theta * light_vec.y) * tangent_dist;
-                        t.y = (-sin_theta * light_vec.x + cos_theta * light_vec.y) * tangent_dist;
-                        b.x = (cos_theta * light_vec.x - sin_theta * light_vec.y) * tangent_dist;
-                        b.y = (sin_theta * light_vec.x + cos_theta * light_vec.y) * tangent_dist;
-                        
-                        if(b.y >= -r_z_near)
-                        {
-                            /* tangent point behind near plane */
-                            b.x = light_a + sol;
-                            b.y = -r_z_near;
-                        }
-                        
-                        if(t.y >= -r_z_near)
-                        {
-                            /* tangent point behind near plane */
-                            t.x = light_a - sol;
-                            t.y = -r_z_near;
-                        }
-                        
-                        t.x = (t.x * scale) / -t.y;
-                        b.x = (b.x * scale) / -b.y;
-                        
-                        extent->x = fmin(fmax(t.x, -1.0), 1.0);
-                        extent->y = fmin(fmax(b.x, -1.0), 1.0);
+                        /* tangent point behind near plane */
+                        t.x = light_a - sol;
+                        t.y = -r_z_near;
                     }
+                    
+                    t.x = (t.x * scale) / -t.y;
+                    b.x = (b.x * scale) / -b.y;
+                    
+                    extent->x = fmin(fmax(t.x, -1.0), 1.0);
+                    extent->y = fmin(fmax(b.x, -1.0), 1.0);
                 }
             }
             
-            if(camera_inside)
+            if(near_dist > 0.0)
             {
                 extents[0].x = -1.0;
                 extents[0].y = 1.0;
                 extents[1].x = -1.0;
                 extents[1].y = 1.0;
             }
+            
             else if((extents[0].x - extents[0].y) * (extents[1].x - extents[1].y) == 0.0)
             {
                 continue;

@@ -81,6 +81,8 @@ void r_BeginFrame()
     glBindBufferBase(GL_UNIFORM_BUFFER, R_LIGHT_INDICES_UNIFORM_BUFFER_BINDING, r_light_index_uniform_buffer);
     
     r_denom = log(r_z_far / r_z_near);
+    
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 }
 
 void r_EndFrame()
@@ -111,23 +113,29 @@ void r_TranslateView(vec3_t *disp)
     r_UpdateViewProjectionMatrix();
 }
 
-void r_SetViewPitch(float pitch)
+void r_SetViewPitchYaw(float pitch, float yaw)
 {
     mat4_t pitch_matrix;
+    mat4_t yaw_matrix;
     mat4_t_identity(&pitch_matrix);
+    mat4_t_identity(&yaw_matrix);
     mat4_t_pitch(&pitch_matrix, pitch);
-    mat4_t_mul(&r_view_matrix, &r_view_matrix, &pitch_matrix);
+    mat4_t_yaw(&yaw_matrix, yaw);
+    mat4_t_mul(&pitch_matrix, &pitch_matrix, &yaw_matrix);
+    r_view_matrix.rows[0] = pitch_matrix.rows[0];
+    r_view_matrix.rows[1] = pitch_matrix.rows[1];
+    r_view_matrix.rows[2] = pitch_matrix.rows[2];
     r_UpdateViewProjectionMatrix();
 }
 
-void r_SetViewYaw(float yaw)
-{
-    mat4_t yaw_matrix;
-    mat4_t_identity(&yaw_matrix);
-    mat4_t_yaw(&yaw_matrix, yaw);
-    mat4_t_mul(&r_view_matrix, &r_view_matrix, &yaw_matrix);
-    r_UpdateViewProjectionMatrix();
-}
+//void r_SetViewYaw(float yaw)
+//{
+//    mat4_t yaw_matrix;
+//    mat4_t_identity(&yaw_matrix);
+//    mat4_t_yaw(&yaw_matrix, yaw);
+//    mat4_t_mul(&r_view_matrix, &r_view_matrix, &yaw_matrix);
+//    r_UpdateViewProjectionMatrix();
+//}
 
 void r_UpdateViewProjectionMatrix()
 {

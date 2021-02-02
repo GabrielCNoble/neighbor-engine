@@ -16,6 +16,12 @@ uint32_t in_GetKeyState(SDL_Scancode scancode);
 
 uint32_t in_GetMouseButtonState(uint32_t button);
 
+void in_SetMouseRelativeMode(uint32_t enable);
+
+void in_GetMouseDelta(float *dx, float *dy);
+
+void in_GetMousePos(float *x, float *y);
+
 
 
 

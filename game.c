@@ -21,12 +21,18 @@ extern mat4_t r_view_projection_matrix;
 struct stack_list_t g_entities;
 struct list_t g_projectiles;
 struct stack_list_t g_triggers;
-#define G_PLAYER_AREA_Z 8.0
-float g_camera_z = G_PLAYER_AREA_Z;
 
+//float g_camera_z = G_PLAYER_AREA_Z;
+
+#define G_CAMERA_Z 8.0
 #define G_SCREEN_Y_OFFSET 20.0
+#define G_CAMERA_PITCH (-0.05)
 #define G_PLAYER_RIGHT_ANGLE 0.0
 #define G_PLAYER_LEFT_ANGLE 1.0
+
+vec3_t g_camera_pos = {.z = G_CAMERA_Z};
+float g_camera_pitch = G_CAMERA_PITCH;
+float g_camera_yaw = 0.0;
 
 
 struct r_model_t *g_player_model;
@@ -84,8 +90,8 @@ void g_Init(uint32_t editor_active)
     
     g_entities = create_stack_list(sizeof(struct g_entity_t), 512);
     g_projectiles = create_list(sizeof(struct g_projectile_t), 512);
-    r_SetViewPitch(-0.05);
-    r_SetViewPos(&vec3_t_c(2.0, 3.5, g_camera_z));
+    r_SetViewPitchYaw(g_camera_pitch, g_camera_yaw);
+    r_SetViewPos(&g_camera_pos);
     
     g_player_model = r_LoadModel("models/tall_box2.mof");
     g_gun_model = r_LoadModel("models/shocksplinter.mof");
@@ -183,7 +189,7 @@ void g_Init(uint32_t editor_active)
     
     g_LoadMap("map7.png");
     
-    g_game_state = G_GAME_STATE_PLAYING;
+    g_game_state = G_GAME_STATE_EDITING;
     
 //    for(uint32_t y = 0; y < 11; y++)
 //    {
@@ -637,7 +643,7 @@ void g_PlayerThinker(struct g_entity_t *entity)
     
     if(in_GetKeyState(SDL_SCANCODE_ESCAPE) & IN_KEY_STATE_PRESSED)
     {
-        g_SetGameState(G_GAME_STATE_QUIT);
+        g_SetGameState(G_GAME_STATE_EDITING);
     }
     
     player_state = g_GetProp(entity, "player_state");
@@ -943,35 +949,19 @@ void g_PlayerThinker(struct g_entity_t *entity)
         shoot_player->weight = 0.0;
     }
     
-    
-//    mat4_t_rotate_y(&g_gun_entity->local_transform, 0.5);
-    
-//    g_gun_entity->local_transform = *g_hook_transform;
-    
-    
-    vec4_t light_pos = entity->local_transform.rows[3];
-//    mat4_t_vec4_t_mul_fast(&light_pos, &entity->local_transform, &light_pos);
-    
-//    r_i_SetTransform(NULL);
-//    r_i_SetSize(8.0);
-//    r_i_SetPolygonMode(GL_FILL);
-//    r_i_SetPrimitiveType(GL_POINTS);
-//    
-//    r_i_DrawPoint(&vec3_t_c(light_pos.x, light_pos.y, light_pos.z), &vec3_t_c(1.0, 0.0, 0.0), 8);
-    
+    vec4_t light_pos = entity->local_transform.rows[3];    
     g_player_light->data.pos_rad.x = light_pos.x;
     g_player_light->data.pos_rad.y = light_pos.y;
     g_player_light->data.pos_rad.z = light_pos.z + 1.5;
     
-    mat4_t_vec4_t_mul(&player_pos, &r_inv_view_matrix, &player_pos);
-    disp = vec3_t_c(player_pos.x * 0.1, player_pos.y * 0.1, zoom);
-    r_TranslateView(&disp);
-
-//    mat4_t transform;
-//    mat4_t_identity(&transform);
-//    r_i_SetTransform(NULL);
-//    r_i_DrawLine(&vec3_t_c(-0.5, 0.0, -0.9), &vec3_t_c(0.5, 0.0, 0.0), &vec3_t_c(0.0, 1.0, 0.0), 1.0);
-//    r_i_DrawPoint(&vec3_t_c(4.0, -0.3, 1.0), &vec3_t_c(0.0, 1.0, 0.0), 8.0);
+    mat4_t_vec4_t_mul_fast(&player_pos, &r_inv_view_matrix, &player_pos);
+    player_pos.w = 0.0;
+    player_pos.z = 0.0;
+    player_pos.y += G_SCREEN_Y_OFFSET * 0.05;
+    mat4_t_vec4_t_mul_fast(&player_pos, &r_view_matrix, &player_pos);
+    vec3_t_add(&g_camera_pos, &g_camera_pos, &vec3_t_c(player_pos.x * 0.1, player_pos.y * 0.1, zoom));
+    r_SetViewPos(&g_camera_pos);
+    r_SetViewPitchYaw(g_camera_pitch, g_camera_yaw);
 }
 
 void g_ElevatorThinker(struct g_entity_t *entity)

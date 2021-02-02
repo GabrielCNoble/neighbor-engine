@@ -415,10 +415,10 @@
 	"ds_mem.h"
 	<stdarg.h>
 
-1607818749 c:\users\gabri\documents\compiler\metroid_thingy\input.h
+1612295613 c:\users\gabri\documents\compiler\metroid_thingy\input.h
 	"SDL2/SDL.h"
 
-1607819065 source:c:\users\gabri\documents\compiler\metroid_thingy\input.c
+1612295628 source:c:\users\gabri\documents\compiler\metroid_thingy\input.c
 	"input.h"
 
 1612085528 c:\users\gabri\documents\compiler\metroid_thingy\lib\dstuff\ds_matrix.h
@@ -465,7 +465,7 @@
 	<limits.h>
 	<stdlib.h>
 
-1612132769 source:c:\users\gabri\documents\compiler\metroid_thingy\game.c
+1612191738 source:c:\users\gabri\documents\compiler\metroid_thingy\game.c
 	"dstuff/ds_stack_list.h"
 	"dstuff/ds_mem.h"
 	"dstuff/ds_file.h"
@@ -562,7 +562,7 @@
 	"dstuff/ds_stack_list.h"
 	<stdint.h>
 
-1611984333 c:\users\gabri\documents\compiler\metroid_thingy\r_draw.h
+1612193991 c:\users\gabri\documents\compiler\metroid_thingy\r_draw.h
 	"r_com.h"
 	"r_main.h"
 
@@ -570,7 +570,7 @@
 	"r_com.h"
 	"GL/glew.h"
 
-1611981002 source:c:\users\gabri\documents\compiler\metroid_thingy\r_draw.c
+1612194094 source:c:\users\gabri\documents\compiler\metroid_thingy\r_draw.c
 	"r_draw.h"
 	"SDL2/SDL.h"
 	"GL/glew.h"
@@ -581,7 +581,7 @@
 	<stdlib.h>
 	<stdio.h>
 
-1612133032 source:c:\users\gabri\documents\compiler\metroid_thingy\r_main.c
+1612185542 source:c:\users\gabri\documents\compiler\metroid_thingy\r_main.c
 	"r_main.h"
 	"SDL2/SDL.h"
 	"GL/glew.h"
@@ -594,18 +594,24 @@
 	"r_draw.h"
 	"anim.h"
 
-1612109590 c:\users\gabri\documents\compiler\metroid_thingy\r_com.h
+1612195766 c:\users\gabri\documents\compiler\metroid_thingy\r_com.h
 	"dstuff/ds_vector.h"
 	"dstuff/ds_matrix.h"
 	"dstuff/ds_alloc.h"
 	<stdint.h>
 
-1608963364 source:c:\users\gabri\documents\compiler\metroid_thingy\editor.c
+1612296631 source:c:\users\gabri\documents\compiler\metroid_thingy\editor.c
 	"editor.h"
 	"dstuff/ds_stack_list.h"
 	"dstuff/ds_list.h"
+	"dstuff/ds_mem.h"
+	"dstuff/ds_vector.h"
+	"dstuff/ds_matrix.h."
+	"game.h"
+	"input.h"
+	"r_draw.h"
 
-1608963361 c:\users\gabri\documents\compiler\metroid_thingy\editor.h
+1612309732 c:\users\gabri\documents\compiler\metroid_thingy\editor.h
 	"dstuff/ds_vector.h"
 	"dstuff/ds_matrix.h"
 	"dstuff/ds_alloc.h"
@@ -614,7 +620,7 @@
 	<stdint.h>
 	"r_main.h"
 
-1612145625 source:c:\users\gabri\documents\compiler\metroid_thingy\world.c
+1612170326 source:c:\users\gabri\documents\compiler\metroid_thingy\world.c
 	"world.h"
 	"dstuff/ds_dbvh.h"
 	"dstuff/ds_alloc.h"

@@ -13,9 +13,9 @@ void r_SetViewPos(vec3_t *pos);
 
 void r_TranslateView(vec3_t *disp);
 
-void r_SetViewPitch(float pitch);
+void r_SetViewPitchYaw(float pitch, float yaw);
 
-void r_SetViewYaw(float yaw);
+//void r_SetViewYaw(float yaw);
 
 void r_UpdateViewProjectionMatrix();
 
@@ -46,6 +46,8 @@ void r_i_DrawImmediate(struct r_vert_t *verts, uint32_t count);
 void r_i_DrawPoint(vec3_t *position, vec3_t *color, float radius);
 
 void r_i_DrawLine(vec3_t *from, vec3_t *to, vec3_t *color, float width);
+
+void r_i_DrawVerts(struct r_vert_t *verts, uint32_t count);
 
 //void r_DrawLine(vec3_t *from, vec3_t *to, vec3_t *color);
 

@@ -728,6 +728,9 @@ int main(int argc, char *argv[])
                     strcpy(batch_record.material, material_record.name);
                     batch_record.start = indices->index_count;
                     
+                    vertices->min = vec3_t_c(0.0, 0.0, 0.0);
+                    vertices->max = vec3_t_c(0.0, 0.0, 0.0);
+                    
                     for(uint32_t vert_index = 0; vert_index < mesh->mNumVertices; vert_index++)
                     {
                         struct r_vert_t vert = {};
@@ -746,6 +749,14 @@ int main(int argc, char *argv[])
                         
                         vert.tex_coords.x = mesh->mTextureCoords[0][vert_index].x;
                         vert.tex_coords.y = mesh->mTextureCoords[0][vert_index].y;
+                        
+                        if(vertices->min.x < vert.pos.x) vertices->min.x = vert.pos.x;
+                        if(vertices->min.y < vert.pos.y) vertices->min.y = vert.pos.y;
+                        if(vertices->min.z < vert.pos.z) vertices->min.z = vert.pos.z;
+                        
+                        if(vertices->max.x > vert.pos.x) vertices->max.x = vert.pos.x;
+                        if(vertices->max.y > vert.pos.y) vertices->max.y = vert.pos.y;
+                        if(vertices->max.z > vert.pos.z) vertices->max.z = vert.pos.z;
                         
                         ds_append_data(&vert_section, sizeof(struct r_vert_t), &vert);
                     }

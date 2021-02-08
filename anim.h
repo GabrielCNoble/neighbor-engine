@@ -75,6 +75,22 @@ enum A_MIXER_FLAGS
     A_MIXER_FLAG_COMPUTE_ROOT_DISPLACEMENT = 1,
 };
 
+struct a_mask_player_t
+{
+    struct a_player_t *player;
+    float weight;
+};
+
+struct a_mask_t
+{
+    char *name;
+    uint32_t index;
+    uint32_t player_count;
+    struct a_mask_player_t *players;
+    uint32_t bone_count;
+    uint32_t *bones;
+};
+
 struct a_mixer_t
 {
     uint32_t index;
@@ -85,6 +101,7 @@ struct a_mixer_t
     struct r_model_t *model;
     struct list_t players;
     struct list_t mix_players;
+    struct list_t masks;
     uint8_t *touched_bones;
     /* final transforms ready to be transformed into matrices. Those are computed
     after all tracks have been mixed */
@@ -107,6 +124,7 @@ struct a_callback_t
 struct a_player_t
 {
     uint32_t index;
+    char *name;
     float time;
     float weight;
     float scale;
@@ -173,9 +191,9 @@ struct a_animation_t *a_LoadAnimation(char *file_name);
 
 struct a_skeleton_t *a_CreateSkeleton(uint32_t bone_count, struct a_bone_t *bones, uint32_t bone_names_length, char *bone_names);
 
-struct a_player_t *a_CreatePlayer();
+struct a_player_t *a_CreatePlayer(char *player_name);
 
-struct a_player_t *a_PlayAnimation(struct a_animation_t *animation);
+struct a_player_t *a_PlayAnimation(struct a_animation_t *animation, char *player_name);
 
 void a_SeekAnimationAbsolute(struct a_player_t *player, float time);
 
@@ -187,13 +205,23 @@ void a_SetCallbackAbsolute(struct a_player_t *player, a_callback_function *funct
 
 void a_SetCallbackFrame(struct a_player_t *player, a_callback_function *function, void *data, uint32_t frame);
 
-struct a_mixer_t *a_MixAnimation(struct a_mixer_t *mixer, struct a_animation_t *animation, struct r_model_t *model);
+struct a_mixer_t *a_CreateMixer(struct r_model_t *model);
+
+void a_MixAnimation(struct a_mixer_t *mixer, struct a_animation_t *animation, char *player_name);
 
 uint32_t a_GetBoneIndex(struct a_mixer_t *mixer, char *bone_name);
 
 mat4_t *a_GetBoneTransform(struct a_mixer_t *mixer, uint32_t bone_index);
 
-struct a_player_t *a_GetPlayer(struct a_mixer_t *mixer, uint32_t index);
+struct a_mask_t *a_CreateAnimationMask(struct a_mixer_t *mixer, char *name, uint32_t player_count, char **player_names, uint32_t bone_count, char **bone_names);
+
+struct a_mask_t *a_GetAnimationMask(struct a_mixer_t *mixer, char *name);
+
+void a_DestroyAnimationMask(struct a_mixer_t *mixer, char *name);
+
+struct a_player_t *a_GetMixerPlayer(struct a_mixer_t *mixer, char *name);
+
+struct a_mask_player_t *a_GetMaskPlayer(struct a_mask_t *mask, char *name);
 
 void a_UpdateAnimations(float delta_time);
 

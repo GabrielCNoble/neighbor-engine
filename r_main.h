@@ -15,6 +15,16 @@ void r_Shutdown();
 ============================================================================
 */
 
+struct r_vis_item_t *r_AllocateVisItem(mat4_t *transform, struct r_model_t *model);
+
+void r_FreeVisItem(struct r_vis_item_t *item);
+
+/*
+============================================================================
+============================================================================
+============================================================================
+*/
+
 struct r_texture_t *r_LoadTexture(char *file_name, char *name);
 
 struct r_texture_t *r_CreateTexture(char *name, uint32_t width, uint32_t height, uint32_t internal_format, void *data);
@@ -33,6 +43,8 @@ struct r_material_t *r_CreateMaterial(char *name, struct r_texture_t *diffuse_te
 
 struct r_material_t *r_GetMaterial(char *name);
 
+struct r_material_t *r_GetDefaultMaterial();
+
 void r_BindMaterial(struct r_material_t *material);
 
 /*
@@ -47,11 +59,15 @@ void r_FreeVertices(struct ds_chunk_h chunk);
 
 void r_FillVertices(struct ds_chunk_h chunk, struct r_vert_t *vertices, uint32_t count);
 
+struct ds_chunk_t *r_GetVerticesChunk(struct ds_chunk_h chunk);
+
 struct ds_chunk_h r_AllocateIndices(uint32_t count);
 
 void r_FreeIndices(struct ds_chunk_h chunk);
 
 void r_FillIndices(struct ds_chunk_h chunk, uint32_t *indices, uint32_t count, uint32_t offset);
+
+struct ds_chunk_t *r_GetIndicesChunk(struct ds_chunk_h chunk);
 
 struct r_model_t *r_LoadModel(char *file_name);
 

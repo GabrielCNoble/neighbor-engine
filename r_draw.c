@@ -147,11 +147,11 @@ void r_DrawModel(mat4_t *transform, struct r_model_t *model)
 {
     mat4_t model_view_matrix;    
     mat4_t_mul(&model_view_matrix, transform, &r_inv_view_matrix);
-    for(uint32_t batch_index = 0; batch_index < model->batch_count; batch_index++)
+    for(uint32_t batch_index = 0; batch_index < model->batches.buffer_size; batch_index++)
     {
         uint32_t index = add_list_element(&r_sorted_batches, NULL);
         struct r_draw_batch_t *draw_batch = get_list_element(&r_sorted_batches, index);
-        draw_batch->batch = model->batches[batch_index];
+        draw_batch->batch = ((struct r_batch_t *)model->batches.buffer)[batch_index];
         draw_batch->model_view_matrix = model_view_matrix;
     }
 }

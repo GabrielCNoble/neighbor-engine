@@ -385,12 +385,13 @@
 	<stdio.h>
 	<string.h>
 
-1609638808 source:c:\users\gabri\documents\compiler\metroid_thingy\impl.c
+1612342577 source:c:\users\gabri\documents\compiler\metroid_thingy\impl.c
 	"dstuff/ds_vector.h"
 	"dstuff/ds_mem.h"
 	"dstuff/ds_stack_list.h"
 	"dstuff/ds_list.h"
 	"dstuff/ds_ringbuffer.h"
+	"dstuff/ds_buffer.h"
 	"dstuff/ds_dbvh.h"
 	"dstuff/ds_file.h"
 	"dstuff/ds_matrix.h"
@@ -408,7 +409,7 @@
 	<OpenGL/glu.h>
 	<GL/glu.h>
 
-1608859212 c:\users\gabri\documents\compiler\metroid_thingy\lib\dstuff\ds_file.h
+1612540305 c:\users\gabri\documents\compiler\metroid_thingy\lib\dstuff\ds_file.h
 	<stdio.h>
 	<stdint.h>
 	<stdlib.h>
@@ -465,7 +466,7 @@
 	<limits.h>
 	<stdlib.h>
 
-1612191738 source:c:\users\gabri\documents\compiler\metroid_thingy\game.c
+1612750457 source:c:\users\gabri\documents\compiler\metroid_thingy\game.c
 	"dstuff/ds_stack_list.h"
 	"dstuff/ds_mem.h"
 	"dstuff/ds_file.h"
@@ -481,13 +482,14 @@
 	<string.h>
 	<stdio.h>
 
-1612132335 c:\users\gabri\documents\compiler\metroid_thingy\game.h
+1612714274 c:\users\gabri\documents\compiler\metroid_thingy\game.h
 	"dstuff/ds_vector.h"
 	"dstuff/ds_matrix.h"
 	"dstuff/ds_list.h"
 	"physics.h"
 	"anim.h"
 	"r_draw.h"
+	"r_vis.h"
 	<stdint.h>
 
 1593151698 c:\users\gabri\documents\compiler\metroid_thingy\lib\stb\stb_image.h
@@ -547,7 +549,7 @@
 	"dstuff/ds_alloc.h"
 	"draw.h"
 
-1612088216 source:c:\users\gabri\documents\compiler\metroid_thingy\anim.c
+1612750777 source:c:\users\gabri\documents\compiler\metroid_thingy\anim.c
 	<stdio.h>
 	"anim.h"
 	"r_draw.h"
@@ -555,7 +557,7 @@
 	"dstuff/ds_stack_list.h"
 	"dstuff/ds_mem.h"
 
-1612079813 c:\users\gabri\documents\compiler\metroid_thingy\anim.h
+1612750762 c:\users\gabri\documents\compiler\metroid_thingy\anim.h
 	"dstuff/ds_vector.h"
 	"dstuff/ds_matrix.h"
 	"dstuff/ds_list.h"
@@ -566,11 +568,11 @@
 	"r_com.h"
 	"r_main.h"
 
-1611984340 c:\users\gabri\documents\compiler\metroid_thingy\r_main.h
+1612660355 c:\users\gabri\documents\compiler\metroid_thingy\r_main.h
 	"r_com.h"
 	"GL/glew.h"
 
-1612194094 source:c:\users\gabri\documents\compiler\metroid_thingy\r_draw.c
+1612540479 source:c:\users\gabri\documents\compiler\metroid_thingy\r_draw.c
 	"r_draw.h"
 	"SDL2/SDL.h"
 	"GL/glew.h"
@@ -581,7 +583,7 @@
 	<stdlib.h>
 	<stdio.h>
 
-1612185542 source:c:\users\gabri\documents\compiler\metroid_thingy\r_main.c
+1612660402 source:c:\users\gabri\documents\compiler\metroid_thingy\r_main.c
 	"r_main.h"
 	"SDL2/SDL.h"
 	"GL/glew.h"
@@ -594,33 +596,36 @@
 	"r_draw.h"
 	"anim.h"
 
-1612195766 c:\users\gabri\documents\compiler\metroid_thingy\r_com.h
+1612660301 c:\users\gabri\documents\compiler\metroid_thingy\r_com.h
 	"dstuff/ds_vector.h"
 	"dstuff/ds_matrix.h"
 	"dstuff/ds_alloc.h"
+	"dstuff/ds_buffer.h"
 	<stdint.h>
 
-1612296631 source:c:\users\gabri\documents\compiler\metroid_thingy\editor.c
+1612540440 source:c:\users\gabri\documents\compiler\metroid_thingy\editor.c
 	"editor.h"
 	"dstuff/ds_stack_list.h"
 	"dstuff/ds_list.h"
 	"dstuff/ds_mem.h"
 	"dstuff/ds_vector.h"
-	"dstuff/ds_matrix.h."
+	"dstuff/ds_matrix.h"
 	"game.h"
 	"input.h"
 	"r_draw.h"
 
-1612309732 c:\users\gabri\documents\compiler\metroid_thingy\editor.h
+1612450115 c:\users\gabri\documents\compiler\metroid_thingy\editor.h
 	"dstuff/ds_vector.h"
 	"dstuff/ds_matrix.h"
 	"dstuff/ds_alloc.h"
+	"dstuff/ds_buffer.h"
+	"r_com.h"
 
-1610374527 c:\users\gabri\documents\compiler\metroid_thingy\world.h
+1612541511 c:\users\gabri\documents\compiler\metroid_thingy\world.h
 	<stdint.h>
 	"r_main.h"
 
-1612170326 source:c:\users\gabri\documents\compiler\metroid_thingy\world.c
+1612620219 source:c:\users\gabri\documents\compiler\metroid_thingy\world.c
 	"world.h"
 	"dstuff/ds_dbvh.h"
 	"dstuff/ds_alloc.h"
@@ -691,4 +696,14 @@
 	<sys/types.h>
 	<inttypes.h>
 	<ogg/config_types.h>
+
+1612705506 c:\users\gabri\documents\compiler\metroid_thingy\lib\dstuff\ds_buffer.h
+	"ds_mem.h"
+
+1612665465 c:\users\gabri\documents\compiler\metroid_thingy\r_vis.h
+	"r_com.h"
+	"r_draw.h"
+
+1612660410 source:c:\users\gabri\documents\compiler\metroid_thingy\r_vis.c
+	"r_vis.h"
 

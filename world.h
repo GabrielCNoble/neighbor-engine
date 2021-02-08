@@ -16,9 +16,9 @@ void w_Shutdown();
 
 void w_FillGeometry(struct r_vert_t *verts, uint32_t vert_count, uint32_t *indices, uint32_t indice_count);
 
-void w_VisibleLights();
+//void w_VisibleLights();
 
-void w_VisibleEntities();
+//void w_VisibleEntities();
 
 void w_DrawWorld();
 

@@ -14,6 +14,66 @@ struct ed_context_t ed_contexts[ED_CONTEXT_LAST];
 uint32_t ed_grid_vert_count;
 struct r_vert_t *ed_grid;
 
+uint32_t ed_cube_brush_indices [] = 
+{
+    /* -Z */
+    0, 1, 2, 2, 3, 0,
+    
+    /* +Z */
+    4, 5, 6, 6, 7, 4,
+    
+    /* -X */
+    8, 9, 10, 10, 11, 8,
+    
+    /* +X */
+    12, 13, 14, 14, 15, 12,
+    
+    /* -Y */
+    16, 17, 18, 18, 19, 16,
+    
+    /* +Y */
+    19, 20, 21, 21, 22, 19
+};
+
+struct r_vert_t ed_cube_brush_verts[] = 
+{
+    /* -Z */
+    {.pos = vec3_t_c(-0.5, 0.5,-0.5), .normal = vec3_t_c(0, 0,-1), .tangent = vec3_t_c(1, 0, 0), .tex_coords = vec2_t_c(0, 1)},
+    {.pos = vec3_t_c(-0.5,-0.5,-0.5), .normal = vec3_t_c(0, 0,-1), .tangent = vec3_t_c(1, 0, 0), .tex_coords = vec2_t_c(0, 0)},
+    {.pos = vec3_t_c( 0.5,-0.5,-0.5), .normal = vec3_t_c(0, 0,-1), .tangent = vec3_t_c(1, 0, 0), .tex_coords = vec2_t_c(1, 0)},
+    {.pos = vec3_t_c( 0.5, 0.5,-0.5), .normal = vec3_t_c(0, 0,-1), .tangent = vec3_t_c(1, 0, 0), .tex_coords = vec2_t_c(1, 1)},
+    
+    /* +Z */
+    {.pos = vec3_t_c( 0.5, 0.5, 0.5), .normal = vec3_t_c(0, 0, 1), .tangent = vec3_t_c(-1, 0, 0), .tex_coords = vec2_t_c(0, 1)},
+    {.pos = vec3_t_c( 0.5,-0.5, 0.5), .normal = vec3_t_c(0, 0, 1), .tangent = vec3_t_c(-1, 0, 0), .tex_coords = vec2_t_c(0, 0)},
+    {.pos = vec3_t_c(-0.5,-0.5, 0.5), .normal = vec3_t_c(0, 0, 1), .tangent = vec3_t_c(-1, 0, 0), .tex_coords = vec2_t_c(1, 0)},
+    {.pos = vec3_t_c(-0.5, 0.5, 0.5), .normal = vec3_t_c(0, 0, 1), .tangent = vec3_t_c(-1, 0, 0), .tex_coords = vec2_t_c(1, 1)},
+    
+    /* -X */
+    {.pos = vec3_t_c(-0.5, 0.5,-0.5), .normal = vec3_t_c(-1, 0, 0), .tangent = vec3_t_c(0, 0,-1), .tex_coords = vec2_t_c(0, 1)},
+    {.pos = vec3_t_c(-0.5,-0.5,-0.5), .normal = vec3_t_c(-1, 0, 0), .tangent = vec3_t_c(0, 0,-1), .tex_coords = vec2_t_c(0, 0)},
+    {.pos = vec3_t_c(-0.5,-0.5, 0.5), .normal = vec3_t_c(-1, 0, 0), .tangent = vec3_t_c(0, 0,-1), .tex_coords = vec2_t_c(1, 0)},
+    {.pos = vec3_t_c(-0.5, 0.5, 0.5), .normal = vec3_t_c(-1, 0, 0), .tangent = vec3_t_c(0, 0,-1), .tex_coords = vec2_t_c(1, 1)},
+    
+    /* +X */
+    {.pos = vec3_t_c( 0.5, 0.5, 0.5), .normal = vec3_t_c(1, 0, 0), .tangent = vec3_t_c(0, 0, 1), .tex_coords = vec2_t_c(0, 1)},
+    {.pos = vec3_t_c( 0.5,-0.5, 0.5), .normal = vec3_t_c(1, 0, 0), .tangent = vec3_t_c(0, 0, 1), .tex_coords = vec2_t_c(0, 0)},
+    {.pos = vec3_t_c( 0.5,-0.5,-0.5), .normal = vec3_t_c(1, 0, 0), .tangent = vec3_t_c(0, 0, 1), .tex_coords = vec2_t_c(1, 0)},
+    {.pos = vec3_t_c( 0.5, 0.5,-0.5), .normal = vec3_t_c(1, 0, 0), .tangent = vec3_t_c(0, 0, 1), .tex_coords = vec2_t_c(1, 1)},
+    
+    /* -Y */
+    {.pos = vec3_t_c(-0.5,-0.5, 0.5), .normal = vec3_t_c(0,-1, 0), .tangent = vec3_t_c(-1, 0, 0), .tex_coords = vec2_t_c(0, 1)},
+    {.pos = vec3_t_c(-0.5,-0.5,-0.5), .normal = vec3_t_c(0,-1, 0), .tangent = vec3_t_c(-1, 0, 0), .tex_coords = vec2_t_c(0, 0)},
+    {.pos = vec3_t_c( 0.5,-0.5,-0.5), .normal = vec3_t_c(0,-1, 0), .tangent = vec3_t_c(-1, 0, 0), .tex_coords = vec2_t_c(1, 0)},
+    {.pos = vec3_t_c( 0.5,-0.5, 0.5), .normal = vec3_t_c(0,-1, 0), .tangent = vec3_t_c(-1, 0, 0), .tex_coords = vec2_t_c(1, 1)},
+    
+    /* +Y */
+    {.pos = vec3_t_c(-0.5, 0.5,-0.5), .normal = vec3_t_c(0, 1, 0), .tangent = vec3_t_c(1, 0, 0), .tex_coords = vec2_t_c(0, 1)},
+    {.pos = vec3_t_c(-0.5, 0.5, 0.5), .normal = vec3_t_c(0, 1, 0), .tangent = vec3_t_c(1, 0, 0), .tex_coords = vec2_t_c(0, 0)},
+    {.pos = vec3_t_c( 0.5, 0.5, 0.5), .normal = vec3_t_c(0, 1, 0), .tangent = vec3_t_c(1, 0, 0), .tex_coords = vec2_t_c(1, 0)},
+    {.pos = vec3_t_c( 0.5, 0.5,-0.5), .normal = vec3_t_c(0, 1, 0), .tangent = vec3_t_c(1, 0, 0), .tex_coords = vec2_t_c(1, 1)},
+};
+
 float ed_camera_pitch;
 float ed_camera_yaw;
 vec3_t ed_camera_pos;
@@ -94,7 +154,6 @@ void ed_Init()
     ed_contexts[ED_CONTEXT_WORLD].current_state = ED_WORLD_CONTEXT_STATE_IDLE;
     ed_contexts[ED_CONTEXT_WORLD].context_data = &ed_world_context_data;
     ed_world_context_data.selections = create_list(sizeof(struct ed_selection_t), 512);
-    
     ed_active_context = ed_contexts + ED_CONTEXT_WORLD;
 }
 
@@ -293,10 +352,92 @@ void ed_WorldContextStateCreateingBrush(struct ed_context_t *context, uint32_t j
 
 void ed_DrawBrushes()
 {
-    
+    for(uint32_t brush_index = 0; brush_index < ed_brushes.cursor; brush_index++)
+    {
+        struct ed_brush_t *brush = get_stack_list_element(&ed_brushes, brush_index);
+        
+        if(brush->index == 0xffffffff)
+        {
+            continue;
+        }
+        
+        
+    }
 }
 
-void ed_CreateBrush(vec3_t *position, mat3_t *orientation, vec3_t *size)
+struct ed_brush_t *ed_CreateBrush(vec3_t *position, mat3_t *orientation, vec3_t *size)
 {
+    uint32_t index;
+    struct ed_brush_t *brush;
     
+    index = add_stack_list_element(&ed_brushes, NULL);
+    brush = get_stack_list_element(&ed_brushes, index);
+    brush->index = index;
+    
+//    brush->indices = ds_create_buffer(sizeof(uint32_t), 36);
+//    memcpy(brush->indices.buffer, ed_cube_brush_indices, sizeof(uint32_t) * brush->indices.buffer_size);
+//    brush->vertices = ds_create_buffer(sizeof(struct r_vert_t), 24);
+//    memcpy(brush->vertices.buffer, ed_cube_brush_verts, sizeof(struct r_vert_t) * brush->vertices.buffer_size);
+    
+//    brush->vert_chunk = DS_INVALID_CHUNK_HANDLE;
+//    brush->index_chunk = DS_INVALID_CHUNK_HANDLE;
+//    brush->batches = create_list(sizeof(struct r_batch_t), 6);
+//    struct r_batch_t *batch = get_list_element(&brush->batches, 0);
+//    batch->material = r_GetDefaultMaterial();
+//    batch->start = 0;
+//    batch->count = 
+    
+    ed_UpdateBrush(brush);
+    
+    return brush;
 }
+
+void ed_UpdateBrush(struct ed_brush_t *brush)
+{
+//    struct ds_chunk_t *vert_chunk;
+//    struct ds_chunk_t *index_chunk;
+//    
+//    vert_chunk = r_GetVerticesChunk(brush->vert_chunk);
+//    index_chunk = r_GetIndicesChunk(brush->index_chunk);
+//    
+//    if(!vert_chunk)
+//    {
+//        brush->vert_chunk = r_AllocateVertices(brush->vertice_count);
+//        brush->index_chunk = r_AllocateIndices(brush->indice_count);
+//    }
+//    else
+//    {
+//        if(vert_chunk->size / sizeof(struct r_vert_t) < brush->vertice_count)
+//        {
+//            r_FreeVertices(brush->vert_chunk);
+//            brush->vert_chunk = r_AllocateVertices(brush->vertice_count);
+//        }
+//        
+//        if(index_chunk->size / sizeof(uint32_t) < brush->indice_count)
+//        {
+//            r_FreeIndices(brush->index_chunk);
+//            brush->index_chunk = r_AllocateIndices(brush->indice_count);
+//        }
+//    }
+//    
+//    
+//    r_FillVertices(brush->vert_chunk, brush->vertices, brush->vertice_count);
+//    r_FillIndices(brush->index_chunk, brush->indices, brush->indice_count, 0);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -4,6 +4,7 @@
 #include "dstuff/ds_vector.h"
 #include "dstuff/ds_matrix.h"
 #include "dstuff/ds_alloc.h"
+#include "dstuff/ds_buffer.h"
 #include <stdint.h>
 
 struct r_texture_t
@@ -96,6 +97,8 @@ struct r_vert_t
 
 struct r_vert_section_t
 {
+    vec3_t min;
+    vec3_t max;
     uint32_t vert_count;
     struct r_vert_t verts[];
 };
@@ -131,18 +134,23 @@ struct r_model_t
     uint32_t index;
     struct ds_chunk_h vert_chunk;
     struct ds_chunk_h index_chunk;
-    uint32_t vert_count;
-    struct r_vert_t *verts;
-    uint32_t indice_count;
-    uint32_t *indices;
-    uint32_t batch_count;
-    struct r_batch_t *batches;
+    struct ds_buffer_t verts;
+    struct ds_buffer_t indices;
+    struct ds_buffer_t batches;
+//    uint32_t vert_count;
+//    struct r_vert_t *verts;
+//    uint32_t indice_count;
+//    uint32_t *indices;
+//    uint32_t batch_count;
+//    struct r_batch_t *batches;
     struct a_skeleton_t *skeleton;
-    uint32_t weight_range_count;
-    struct a_weight_range_t *weight_ranges;
-    uint32_t weight_count;
-    struct a_weight_t *weights;
-    struct r_model_t *base; 
+//    uint32_t weight_range_count;
+    struct ds_buffer_t weight_ranges;
+//    uint32_t weight_count;
+    struct ds_buffer_t weights;
+    struct r_model_t *base;
+    vec3_t min;
+    vec3_t max;
 };
 
 struct r_model_create_info_t
@@ -158,6 +166,8 @@ struct r_model_create_info_t
     struct a_weight_range_t *weight_ranges;
     uint32_t weight_count;
     struct a_weight_t *weights;
+    vec3_t min;
+    vec3_t max;
 };
 
 struct r_draw_batch_t  
@@ -232,6 +242,13 @@ struct r_cluster_t
 {
     uint32_t start;
     uint32_t count;
+};
+
+struct r_vis_item_t
+{
+    mat4_t *transform;
+    uint32_t index;
+    struct r_model_t *model;
 };
 
 

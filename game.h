@@ -7,6 +7,7 @@
 #include "physics.h"
 #include "anim.h"
 #include "r_draw.h"
+#include "r_vis.h"
 #include <stdint.h>
 
 struct g_prop_t
@@ -31,6 +32,7 @@ struct g_entity_t
     struct p_collider_t *collider;
     struct r_model_t *model;
     struct a_mixer_t *mixer;
+    struct r_vis_item_t *item;
 };
 
 enum G_PLAYER_FLAGS
@@ -85,8 +87,6 @@ void g_LoadMap(char *file_name);
 
 void g_UpdateEntities();
 
-void g_DrawEntities();
-
 struct g_entity_t *g_CreateEntity(mat4_t *transform, thinker_t *thinker, struct r_model_t *model);
 
 struct g_entity_t *g_GetEntity(uint32_t index);
@@ -101,7 +101,7 @@ struct g_projectile_t *g_SpawnProjectile(vec3_t *position, vec3_t *velocity, vec
 
 void g_DestroyProjectile(struct g_projectile_t *projectile);
 
-void g_PlayAnimation(struct g_entity_t *entity, struct a_animation_t *animation);
+void g_PlayAnimation(struct g_entity_t *entity, struct a_animation_t *animation, char *player_name);
 
 void *g_GetProp(struct g_entity_t *entity, char *prop_name);
 

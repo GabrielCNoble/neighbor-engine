@@ -60,6 +60,74 @@ uint32_t g_hook_index;
 mat4_t *g_hook_transform;
 
 uint32_t g_game_state = G_GAME_STATE_LOADING;
+char *upper_body_bones[] = 
+{
+    "head",
+    "neck",
+    "KTF.R",
+    "KTF.L",
+    "chest",
+    "hip",
+    
+    "upperarm.R",
+    "upperarm.L",
+    "lowerarm.R",
+    "lowerarm.L",
+    "hand.R",
+    "hand.L",
+    
+    "tooseup.R",
+    "toosemid.R",
+    "lowertoose.R",
+    "upfinger4.R",
+    "midfinger4.R",
+    "lowerfinger4.R",
+    "upfinger3.R",
+    "midfinger3.R",
+    "lowerfinger3.R",
+    "upfinger2.R",
+    "midfinger2.R",
+    "lowerfinger2.R",
+    "upfinger.R",
+    "midfinger.R",
+    "lowerfinger.R",
+    
+    "tooseup.L",
+    "toosemid.L",
+    "lowertoose.L",
+    "upfinger4.L",
+    "midfinger4.L",
+    "lowerfinger4.L",
+    "upfinger3.L",
+    "midfinger3.L",
+    "lowerfinger3.L",
+    "upfinger2.L",
+    "midfinger2.L",
+    "lowerfinger2.L",
+    "upfinger.L",
+    "midfinger.L",
+    "lowerfinger.L",
+};
+uint32_t upper_body_bone_count = sizeof(upper_body_bones) / sizeof(upper_body_bones[0]);
+char *upper_body_players[] = {"shoot_player"};
+
+char *lower_body_bones[] = 
+{
+    "wiest",
+    "upperleg.R",
+    "upperleg.L",
+    "lowerleg.R",
+    "lowerleg.L",
+    "foot.R",
+    "foot.L",
+    "toose.R",
+    "toose.L",
+    "hellikk.R",
+    "hellikk.L",
+    "Bone",
+};
+uint32_t lower_body_bone_count = sizeof(lower_body_bones) / sizeof(lower_body_bones[0]);
+char *lower_body_players[] = {"run_player"};
 
 extern uint32_t r_use_z_prepass;
 
@@ -93,10 +161,10 @@ void g_Init(uint32_t editor_active)
     r_SetViewPitchYaw(g_camera_pitch, g_camera_yaw);
     r_SetViewPos(&g_camera_pos);
     
-    g_player_model = r_LoadModel("models/tall_box2.mof");
+//    g_player_model = r_LoadModel("models/tall_box2.mof");
     g_gun_model = r_LoadModel("models/shocksplinter.mof");
-    g_floor_tile_model = r_LoadModel("models/floor_tile.mof");
-    g_wall_tile_model = r_LoadModel("models/wall_tile.mof");
+//    g_floor_tile_model = r_LoadModel("models/floor_tile.mof");
+//    g_wall_tile_model = r_LoadModel("models/wall_tile.mof");
     g_wiggle_model = r_LoadModel("models/dude.mof");
     g_cube_model = r_LoadModel("models/cube.mof");
     g_run_animation = a_LoadAnimation("models/run.anf");
@@ -145,19 +213,24 @@ void g_Init(uint32_t editor_active)
     transform.rows[2].x *= SCALE;
     transform.rows[2].y *= SCALE;
     transform.rows[2].z *= SCALE;
-    transform.rows[3] = vec4_t_c(8.0, -2.0, 0.0, 1.0);
+    transform.rows[3] = vec4_t_c(8.0, -3.0, 0.0, 1.0);
     
     g_player_entity = g_CreateEntity(&transform, g_PlayerThinker, g_wiggle_model);
     g_SetEntityCollider(g_player_entity, P_COLLIDER_TYPE_MOVABLE, &vec3_t_c(1.0, 2.0, 1.0));
-    g_PlayAnimation(g_player_entity, g_run_animation);
-    g_PlayAnimation(g_player_entity, g_idle_animation);
-    g_PlayAnimation(g_player_entity, g_jump_animation);
-    g_PlayAnimation(g_player_entity, g_fall_animation);
-    g_PlayAnimation(g_player_entity, g_shoot_animation);
-    g_player_entity->mixer->flags |= A_MIXER_FLAG_COMPUTE_ROOT_DISPLACEMENT;
-    struct a_player_t *player = a_GetPlayer(g_player_entity->mixer, 0);
-    a_SetCallbackFrame(player, g_TestCallback, g_player_entity, 8);
-    a_SetCallbackFrame(player, g_TestCallback, g_player_entity, 20);
+    g_PlayAnimation(g_player_entity, g_run_animation, "run_player");
+//    g_PlayAnimation(g_player_entity, g_idle_animation, "idle_player");
+//    g_PlayAnimation(g_player_entity, g_jump_animation, "jump_player");
+//    g_PlayAnimation(g_player_entity, g_fall_animation, "fall_player");
+    g_PlayAnimation(g_player_entity, g_shoot_animation, "shoot_player");
+//    g_player_entity->mixer->flags |= A_MIXER_FLAG_COMPUTE_ROOT_DISPLACEMENT;
+//    struct a_player_t *player = a_GetMixerPlayer(g_player_entity->mixer, "run_player");
+    a_CreateAnimationMask(g_player_entity->mixer, "lower_body", 1, lower_body_players, lower_body_bone_count, lower_body_bones);
+    struct a_mask_t *mask = a_CreateAnimationMask(g_player_entity->mixer, "upper_body", 1, upper_body_players, upper_body_bone_count, upper_body_bones);
+    struct a_mask_player_t *player = a_GetMaskPlayer(mask, "shoot_player");
+    player->player->scale = 0.3;
+    player->weight = 0.2;
+//    a_SetCallbackFrame(player, g_TestCallback, g_player_entity, 8);
+//    a_SetCallbackFrame(player, g_TestCallback, g_player_entity, 20);
     
     mat4_t_identity(&transform);
     transform.rows[0].x *= 0.5;
@@ -224,9 +297,9 @@ void g_Init(uint32_t editor_active)
 //    r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(8.0, -7.3, 0.5), &vec3_t_c(0.3, 0.5, 0.5), 5.0, 5.0);
 //    r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(4.0, -7.3, 0.5), &vec3_t_c(0.3, 0.0, 1.0), 5.0, 5.0);
 //    
-    g_player_light = r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(0.0, 0.0, 0.0), &vec3_t_c(1.0, 1.0, 1.0), 8.0, 5.0);
-    g_hook_index = a_GetBoneIndex(g_player_entity->mixer, "hand.R");
-    g_hook_transform = a_GetBoneTransform(g_player_entity->mixer, g_hook_index);
+    g_player_light = r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(8.0, -3.0, 3.0), &vec3_t_c(1.0, 1.0, 1.0), 8.0, 5.0);
+//    g_hook_index = a_GetBoneIndex(g_player_entity->mixer, "hand.R");
+//    g_hook_transform = a_GetBoneTransform(g_player_entity->mixer, g_hook_index);
 }
 
 void g_Shutdown()
@@ -258,8 +331,8 @@ void g_MainLoop(uint32_t editor_active)
             break;
         }
         
-        g_DrawEntities();
-        w_VisibleLights();
+        r_VisibleLights();
+        r_VisibleVisItems();
         r_BeginFrame();
         r_DrawSortedBatches();
         r_DrawImmediateBatches();
@@ -464,20 +537,6 @@ void g_UpdateEntities()
 //    }
 }
 
-void g_DrawEntities()
-{
-    r_UpdateViewProjectionMatrix();
-    for(uint32_t entity_index = 0; entity_index < g_entities.cursor; entity_index++)
-    {
-        struct g_entity_t *entity = g_GetEntity(entity_index);
-        
-        if(entity && entity->model)
-        {
-            r_DrawModel(&entity->transform, entity->model);
-        }
-    }
-}
-
 struct g_entity_t *g_CreateEntity(mat4_t *transform, thinker_t *thinker, struct r_model_t *model)
 {
     uint32_t entity_index;
@@ -491,6 +550,7 @@ struct g_entity_t *g_CreateEntity(mat4_t *transform, thinker_t *thinker, struct 
     entity->transform = *transform;
     entity->model = model;
     entity->thinker = thinker;
+    entity->item = r_AllocateVisItem(&entity->transform, entity->model);
     
     return entity;
 }
@@ -549,13 +609,16 @@ void g_DestroyProjectile(struct g_projectile_t *projectile)
     
 }
 
-void g_PlayAnimation(struct g_entity_t *entity, struct a_animation_t *animation)
+void g_PlayAnimation(struct g_entity_t *entity, struct a_animation_t *animation, char *player_name)
 {
     if(!entity->mixer)
     {
         entity->model = r_ShallowCopyModel(entity->model);
+        entity->mixer = a_CreateMixer(entity->model);
+        entity->item->model = entity->model;
     }
-    entity->mixer = a_MixAnimation(entity->mixer, animation, entity->model);
+    
+    a_MixAnimation(entity->mixer, animation, player_name);
 }
 
 //struct g_trigger_t *g_CreateTrigger(vec3_t *position, vec3_t *size, thinker_t *thinker)
@@ -633,327 +696,307 @@ void g_PlayerThinker(struct g_entity_t *entity)
     int32_t move_dir = 0;
     static float zoom = 0.0;
 //    uint32_t moving = 0;
-    struct p_movable_collider_t *collider = (struct p_movable_collider_t *)entity->collider;
-    struct g_player_state_t *player_state;
-    struct a_player_t *run_player = a_GetPlayer(entity->mixer, 0);    
-    struct a_player_t *idle_player = a_GetPlayer(entity->mixer, 1);
-    struct a_player_t *jump_player = a_GetPlayer(entity->mixer, 2);
-    struct a_player_t *fall_player = a_GetPlayer(entity->mixer, 3);
-    struct a_player_t *shoot_player = a_GetPlayer(entity->mixer, 4);
-    
+
+
+//    struct p_movable_collider_t *collider = (struct p_movable_collider_t *)entity->collider;
+//    struct g_player_state_t *player_state;
+//    struct a_player_t *run_player = a_GetMixerPlayer(entity->mixer, "run_player");    
+//    struct a_player_t *idle_player = a_GetMixerPlayer(entity->mixer, "idle_player");
+//    struct a_player_t *jump_player = a_GetMixerPlayer(entity->mixer, "jump_player");
+//    struct a_player_t *fall_player = a_GetMixerPlayer(entity->mixer, "fall_player");
+//    struct a_player_t *shoot_player = a_GetMixerPlayer(entity->mixer, "shoot_player");
+//    
     if(in_GetKeyState(SDL_SCANCODE_ESCAPE) & IN_KEY_STATE_PRESSED)
     {
         g_SetGameState(G_GAME_STATE_EDITING);
     }
-    
-    player_state = g_GetProp(entity, "player_state");
-    if(!player_state)
-    {
-        player_state = g_SetProp(entity, "player_state", sizeof(struct g_player_state_t), &(struct g_player_state_t){});
-        player_state->run_scale = 1.0;
-        player_state->shoot_frac = 0.0;
-    }
-    
-    if(in_GetKeyState(SDL_SCANCODE_A) & IN_KEY_STATE_PRESSED)
-    {
-        move_dir--;
-    }
-    if(in_GetKeyState(SDL_SCANCODE_D) & IN_KEY_STATE_PRESSED)
-    {
-        move_dir++;
-    }
-    
-    if(move_dir > 0)
-    {
-        if(player_state->direction == G_PLAYER_LEFT_ANGLE)
-        {
-            player_state->flags |= G_PLAYER_FLAG_TURNING;
-            player_state->run_frac = 0.0;
-        }
-    }
-    else if(move_dir < 0)
-    {
-        if(player_state->direction == G_PLAYER_RIGHT_ANGLE)
-        {
-            player_state->flags |= G_PLAYER_FLAG_TURNING | G_PLAYER_FLAG_TURNING_LEFT;
-            player_state->run_frac = 0.0;
-        }
-    }
-    else
-    {
-        collider->disp.x = 0.0;
-        player_state->run_frac = 0.0;
-    }
-     
-    if(player_state->flags & G_PLAYER_FLAG_TURNING)
-    {
-        if(player_state->flags & G_PLAYER_FLAG_TURNING_LEFT)
-        {
-            rotation = 0.1;
-            player_state->direction += 0.1;
-            if(player_state->direction >= 1.0)
-            {
-                player_state->flags &= ~(G_PLAYER_FLAG_TURNING | G_PLAYER_FLAG_TURNING_LEFT); 
-                player_state->direction = 1.0;
-            }
-        }
-        else
-        {
-            rotation = -0.1;
-            player_state->direction -= 0.1;
-            if(player_state->direction <= 0.0)
-            {
-                player_state->flags &= ~G_PLAYER_FLAG_TURNING; 
-                player_state->direction = 0.0;
-            }
-        }
-    }
-    else if(move_dir != 0)
-    {
-        collider_disp.x = -entity->mixer->root_disp.y * SCALE;
-        player_state->run_frac += 0.1;
-    }
-    
-    if(in_GetKeyState(SDL_SCANCODE_SPACE) & IN_KEY_STATE_PRESSED)
-    {
-        if(in_GetKeyState(SDL_SCANCODE_SPACE) & IN_KEY_STATE_JUST_PRESSED && collider->flags & P_COLLIDER_FLAG_ON_GROUND)
-        {
-            player_state->flags |= G_PlAYER_FLAG_JUMPING;
-            player_state->jump_y = collider->position.y;
-            player_state->jump_disp = 0.2;
-            player_state->jump_frac = 0.0;
-            s_PlaySound(g_jump_sound, &vec3_t_c(0.0, 0.0, 0.0), 0.6, 0);
-        }
-    }
-    else
-    {
-        player_state->flags &= ~G_PlAYER_FLAG_JUMPING;
-    }
-    
-    if(player_state->jump_disp > 0.0)
-    {
-        if(collider->flags & P_COLLIDER_FLAG_TOP_COLLIDED)
-        {
-            player_state->jump_disp = 0.0;
-            player_state->flags &= ~G_PlAYER_FLAG_JUMPING;
-        }
-        else
-        {
-            if(player_state->flags & G_PlAYER_FLAG_JUMPING)
-            {
-                if(collider->position.y - player_state->jump_y > 3.0)
-                {
-                    player_state->jump_disp *= 0.9;
-                }
-            }
-            else
-            {
-                player_state->jump_disp *= 0.5;
-            }
-            
-            if(player_state->jump_disp < 0.04)
-            {
-                player_state->flags &= ~G_PlAYER_FLAG_JUMPING;
-                player_state->jump_disp = 0.0;
-            }
-            
-            collider->disp.y = player_state->jump_disp;
-        }
-    }
-    else
-    {
-        collider->disp.y -= 0.01;
-    }
-    
-    if(player_state->run_frac > 1.0)
-    {
-        player_state->run_frac = 1.0;
-    }
-    
-    if(player_state->flags & G_PlAYER_FLAG_JUMPING)
-    {
-        player_state->jump_frac += 0.12;
-        if(player_state->jump_frac > 0.99)
-        {
-            player_state->jump_frac = 0.99;
-        }
-            
-        run_player->weight = 0.0;
-        idle_player->scale = 0.0;
-        idle_player->weight = 0.0;
-        jump_player->weight = 1.0;
-        jump_player->scale = 0.0;
-        fall_player->weight = 0.0;
-        fall_player->scale = 0.0;
-        
-        a_SeekAnimationRelative(jump_player, player_state->jump_frac);
-    }
-    else
-    {
-        if(collider->flags & P_COLLIDER_FLAG_ON_GROUND)
-        {
-            if(!(player_state->collider_flags & P_COLLIDER_FLAG_ON_GROUND))
-            {
-                s_PlaySound(g_footstep_sounds[0], &vec3_t_c(0.0, 0.0, 0.0), 1.0, 0);
-            }
-            run_player->weight = player_state->run_frac;
-            idle_player->scale = 0.6 * (1.0 - player_state->run_frac);
-            idle_player->weight = 1.0 - player_state->run_frac;
-            jump_player->weight = 0.0;
-            fall_player->weight = 0.0;
-            player_state->jump_frac = 1.0;
-        }
-        else
-        {
-            jump_player->weight = 0.0;
-            fall_player->weight = 1.0;
-            run_player->weight = 0.0;
-            idle_player->weight = 0.0;
-            player_state->jump_frac -= 0.05;
-            if(player_state->jump_frac < 0.0)
-            {
-                player_state->jump_frac = 0.0;
-            }
-            
-            a_SeekAnimationRelative(fall_player, (1.0 - player_state->jump_frac) * 0.999);
-        }
-    }
-    
-    if(in_GetKeyState(SDL_SCANCODE_KP_MINUS) & IN_KEY_STATE_PRESSED)
-    {
-        zoom += 0.003;
-        if(zoom > 0.3)
-        {
-            zoom = 0.3;
-        }
-    }
-    else if(in_GetKeyState(SDL_SCANCODE_KP_PLUS) & IN_KEY_STATE_PRESSED)
-    {
-        zoom -= 0.003;
-        if(zoom < -0.3)
-        {
-            zoom = -0.3;
-        }
-    }
-    else
-    {
-        zoom *= 0.9;
-    }
-    
-//    if(in_GetKeyState(SDL_SCANCODE_Z) & IN_KEY_STATE_JUST_PRESSED)
+//    
+//    player_state = g_GetProp(entity, "player_state");
+//    if(!player_state)
 //    {
-//        r_use_z_prepass ^= 1;
-//        printf("z prepass %s\n", r_use_z_prepass ? "on" : "off");
+//        player_state = g_SetProp(entity, "player_state", sizeof(struct g_player_state_t), &(struct g_player_state_t){});
+//        player_state->run_scale = 1.0;
+//        player_state->shoot_frac = 0.0;
 //    }
 //    
-//    if(in_GetKeyState(SDL_SCANCODE_LSHIFT) & IN_KEY_STATE_PRESSED)
+//    if(in_GetKeyState(SDL_SCANCODE_A) & IN_KEY_STATE_PRESSED)
 //    {
-//        player_state->run_scale += 0.03;
-//        if(player_state->run_scale > 25.0)
+//        move_dir--;
+//    }
+//    if(in_GetKeyState(SDL_SCANCODE_D) & IN_KEY_STATE_PRESSED)
+//    {
+//        move_dir++;
+//    }
+//    
+//    if(move_dir > 0)
+//    {
+//        if(player_state->direction == G_PLAYER_LEFT_ANGLE)
 //        {
-//            player_state->run_scale = 25.0;
+//            player_state->flags |= G_PLAYER_FLAG_TURNING;
+//            player_state->run_frac = 0.0;
+//        }
+//    }
+//    else if(move_dir < 0)
+//    {
+//        if(player_state->direction == G_PLAYER_RIGHT_ANGLE)
+//        {
+//            player_state->flags |= G_PLAYER_FLAG_TURNING | G_PLAYER_FLAG_TURNING_LEFT;
+//            player_state->run_frac = 0.0;
 //        }
 //    }
 //    else
 //    {
-//        player_state->run_scale *= 0.99;
-//        if(player_state->run_scale < 1.0)
+//        collider->disp.x = 0.0;
+//        player_state->run_frac = 0.0;
+//    }
+//     
+//    if(player_state->flags & G_PLAYER_FLAG_TURNING)
+//    {
+//        if(player_state->flags & G_PLAYER_FLAG_TURNING_LEFT)
 //        {
-//            player_state->run_scale = 1.0;
+//            rotation = 0.1;
+//            player_state->direction += 0.1;
+//            if(player_state->direction >= 1.0)
+//            {
+//                player_state->flags &= ~(G_PLAYER_FLAG_TURNING | G_PLAYER_FLAG_TURNING_LEFT); 
+//                player_state->direction = 1.0;
+//            }
+//        }
+//        else
+//        {
+//            rotation = -0.1;
+//            player_state->direction -= 0.1;
+//            if(player_state->direction <= 0.0)
+//            {
+//                player_state->flags &= ~G_PLAYER_FLAG_TURNING; 
+//                player_state->direction = 0.0;
+//            }
 //        }
 //    }
-    
-    player_state->collider_flags = collider->flags;
-    run_player->scale = 1.9 * player_state->run_frac * player_state->run_scale;
-    
-    mat4_t yaw_matrix;
-    mat4_t_identity(&yaw_matrix);
-    mat4_t_rotate_z(&yaw_matrix, player_state->direction);
-    
-    mat4_t_vec4_t_mul(&collider_disp, &yaw_matrix, &collider_disp);
-    mat4_t_identity(&yaw_matrix);
-    mat4_t_rotate_z(&yaw_matrix, rotation);
-    
-    mat4_t_mul(&entity->local_transform, &yaw_matrix, &entity->local_transform);
-    collider->disp.x = collider_disp.x;
-    
+//    else if(move_dir != 0)
+//    {
+//        collider_disp.x = -entity->mixer->root_disp.y * SCALE;
+//        player_state->run_frac += 0.1;
+//    }
+//    
+//    if(in_GetKeyState(SDL_SCANCODE_SPACE) & IN_KEY_STATE_PRESSED)
+//    {
+//        if(in_GetKeyState(SDL_SCANCODE_SPACE) & IN_KEY_STATE_JUST_PRESSED && collider->flags & P_COLLIDER_FLAG_ON_GROUND)
+//        {
+//            player_state->flags |= G_PlAYER_FLAG_JUMPING;
+//            player_state->jump_y = collider->position.y;
+//            player_state->jump_disp = 0.2;
+//            player_state->jump_frac = 0.0;
+//            s_PlaySound(g_jump_sound, &vec3_t_c(0.0, 0.0, 0.0), 0.6, 0);
+//        }
+//    }
+//    else
+//    {
+//        player_state->flags &= ~G_PlAYER_FLAG_JUMPING;
+//    }
+//    
+//    if(player_state->jump_disp > 0.0)
+//    {
+//        if(collider->flags & P_COLLIDER_FLAG_TOP_COLLIDED)
+//        {
+//            player_state->jump_disp = 0.0;
+//            player_state->flags &= ~G_PlAYER_FLAG_JUMPING;
+//        }
+//        else
+//        {
+//            if(player_state->flags & G_PlAYER_FLAG_JUMPING)
+//            {
+//                if(collider->position.y - player_state->jump_y > 3.0)
+//                {
+//                    player_state->jump_disp *= 0.9;
+//                }
+//            }
+//            else
+//            {
+//                player_state->jump_disp *= 0.5;
+//            }
+//            
+//            if(player_state->jump_disp < 0.04)
+//            {
+//                player_state->flags &= ~G_PlAYER_FLAG_JUMPING;
+//                player_state->jump_disp = 0.0;
+//            }
+//            
+//            collider->disp.y = player_state->jump_disp;
+//        }
+//    }
+//    else
+//    {
+//        collider->disp.y -= 0.01;
+//    }
+//    
+//    if(player_state->run_frac > 1.0)
+//    {
+//        player_state->run_frac = 1.0;
+//    }
+//    
+//    if(player_state->flags & G_PlAYER_FLAG_JUMPING)
+//    {
+//        player_state->jump_frac += 0.12;
+//        if(player_state->jump_frac > 0.99)
+//        {
+//            player_state->jump_frac = 0.99;
+//        }
+//            
+//        run_player->weight = 0.0;
+//        idle_player->scale = 0.0;
+//        idle_player->weight = 0.0;
+//        jump_player->weight = 1.0;
+//        jump_player->scale = 0.0;
+//        fall_player->weight = 0.0;
+//        fall_player->scale = 0.0;
+//        
+//        a_SeekAnimationRelative(jump_player, player_state->jump_frac);
+//    }
+//    else
+//    {
+//        if(collider->flags & P_COLLIDER_FLAG_ON_GROUND)
+//        {
+//            if(!(player_state->collider_flags & P_COLLIDER_FLAG_ON_GROUND))
+//            {
+//                s_PlaySound(g_footstep_sounds[0], &vec3_t_c(0.0, 0.0, 0.0), 1.0, 0);
+//            }
+//            run_player->weight = player_state->run_frac;
+//            idle_player->scale = 0.6 * (1.0 - player_state->run_frac);
+//            idle_player->weight = 1.0 - player_state->run_frac;
+//            jump_player->weight = 0.0;
+//            fall_player->weight = 0.0;
+//            player_state->jump_frac = 1.0;
+//        }
+//        else
+//        {
+//            jump_player->weight = 0.0;
+//            fall_player->weight = 1.0;
+//            run_player->weight = 0.0;
+//            idle_player->weight = 0.0;
+//            player_state->jump_frac -= 0.05;
+//            if(player_state->jump_frac < 0.0)
+//            {
+//                player_state->jump_frac = 0.0;
+//            }
+//            
+//            a_SeekAnimationRelative(fall_player, (1.0 - player_state->jump_frac) * 0.999);
+//        }
+//    }
+//    
+//    if(in_GetKeyState(SDL_SCANCODE_KP_MINUS) & IN_KEY_STATE_PRESSED)
+//    {
+//        zoom += 0.003;
+//        if(zoom > 0.3)
+//        {
+//            zoom = 0.3;
+//        }
+//    }
+//    else if(in_GetKeyState(SDL_SCANCODE_KP_PLUS) & IN_KEY_STATE_PRESSED)
+//    {
+//        zoom -= 0.003;
+//        if(zoom < -0.3)
+//        {
+//            zoom = -0.3;
+//        }
+//    }
+//    else
+//    {
+//        zoom *= 0.9;
+//    }
+//
+//    
+//    player_state->collider_flags = collider->flags;
+//    run_player->scale = 1.9 * player_state->run_frac * player_state->run_scale;
+//    
+//    mat4_t yaw_matrix;
+//    mat4_t_identity(&yaw_matrix);
+//    mat4_t_rotate_z(&yaw_matrix, player_state->direction);
+//    
+//    mat4_t_vec4_t_mul(&collider_disp, &yaw_matrix, &collider_disp);
+//    mat4_t_identity(&yaw_matrix);
+//    mat4_t_rotate_z(&yaw_matrix, rotation);
+//    
+//    mat4_t_mul(&entity->local_transform, &yaw_matrix, &entity->local_transform);
+//    collider->disp.x = collider_disp.x;
+//    
     vec4_t player_pos = entity->local_transform.rows[3];
-    mat4_t_identity(&g_gun_entity->local_transform);
-//    g_gun_entity->local_transform.rows[0].x *= 1;
-//    g_gun_entity->local_transform.rows[1].y *= 0.7;
-//    g_gun_entity->local_transform.rows[2].z *= 0.7;
-    g_gun_entity->local_transform.rows[3].z = 0.1;
-    g_gun_entity->local_transform.rows[3].x = -0.85;
-    mat4_t_rotate_x(&g_gun_entity->local_transform, -0.5);
-    mat4_t_rotate_z(&g_gun_entity->local_transform, -0.5);
-    mat4_t_rotate_y(&g_gun_entity->local_transform, -0.5);
-    mat4_t_mul(&g_gun_entity->local_transform, &g_gun_entity->local_transform, g_hook_transform);
-    mat4_t_mul(&g_gun_entity->local_transform, &g_gun_entity->local_transform, &entity->local_transform);    
-    
-    vec4_t spawn_point = vec4_t_c(0.0, -2.5, 0.5, 1.0);
-//    mat4_t_vec4_t_mul(&spawn_point, g_hook_transform, &spawn_point);
-    mat4_t_vec4_t_mul(&spawn_point, &entity->local_transform, &spawn_point);
-    
-    float rx = (((float)(rand() % 513) / 512.0) * 2.0 - 1.0) * 0.35;
-//    float ry = (float)(rand() % 129) / 128.0;
-    
-    vec4_t spawn_direction = vec4_t_c(0.0, -16.0, rx, 0.0);
-    mat4_t_vec4_t_mul(&spawn_direction, &entity->local_transform, &spawn_direction);
-    
-    if((in_GetKeyState(SDL_SCANCODE_C) & IN_KEY_STATE_PRESSED) && !player_state->shoot_frac)
-    {
-        player_state->shoot_frac = 0.1;
-        vec3_t color;
-        
-        color.x = (float)(rand() % 513) / 512.0;
-        color.y = (float)(rand() % 513) / 512.0;
-        color.z = (float)(rand() % 513) / 512.0;
-        
-        vec3_t_normalize(&color, &color);
-        
-        s_PlaySound(g_shot_sound, &vec3_t_c(0.0, 0.0, 0.0), 0.6, 0);
-        g_SpawnProjectile(&vec3_t_c(spawn_point.x, spawn_point.y, spawn_point.z), 
-                          &vec3_t_c(spawn_direction.x, spawn_direction.y, spawn_direction.z), &color, 4.0, 480);
-                          
-        player_state->shot_light = r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(spawn_point.x, spawn_point.y, spawn_point.z), &color, 8.0, 60.0);
-    }
-    
-    if(player_state->shoot_frac)
-    {
-        if(player_state->shot_light && player_state->shoot_frac > 0.2)
-        {
-            r_DestroyLight(player_state->shot_light);
-            player_state->shot_light = NULL;
-        }
-        
-        uint32_t stop = 0;
-        player_state->shoot_frac += 0.20;
-        if(player_state->shoot_frac > 0.9999)
-        {
-            player_state->shoot_frac = 0.9999;
-            stop = 1;
-        }
-        
-        shoot_player->weight = 1.0;
-        shoot_player->scale = 0.0;
-        idle_player->weight = 0.0;
-        a_SeekAnimationRelative(shoot_player, player_state->shoot_frac);
-        
-        if(stop)
-        {
-            player_state->shoot_frac = 0.0;
-        }
-    }
-    else
-    {
-        shoot_player->weight = 0.0;
-    }
-    
-    vec4_t light_pos = entity->local_transform.rows[3];    
-    g_player_light->data.pos_rad.x = light_pos.x;
-    g_player_light->data.pos_rad.y = light_pos.y;
-    g_player_light->data.pos_rad.z = light_pos.z + 1.5;
-    
+//    mat4_t_identity(&g_gun_entity->local_transform);
+////    g_gun_entity->local_transform.rows[0].x *= 1;
+////    g_gun_entity->local_transform.rows[1].y *= 0.7;
+////    g_gun_entity->local_transform.rows[2].z *= 0.7;
+//    g_gun_entity->local_transform.rows[3].z = 0.1;
+//    g_gun_entity->local_transform.rows[3].x = -0.85;
+//    mat4_t_rotate_x(&g_gun_entity->local_transform, -0.5);
+//    mat4_t_rotate_z(&g_gun_entity->local_transform, -0.5);
+//    mat4_t_rotate_y(&g_gun_entity->local_transform, -0.5);
+//    mat4_t_mul(&g_gun_entity->local_transform, &g_gun_entity->local_transform, g_hook_transform);
+//    mat4_t_mul(&g_gun_entity->local_transform, &g_gun_entity->local_transform, &entity->local_transform);    
+//    
+//    vec4_t spawn_point = vec4_t_c(0.0, -2.5, 0.5, 1.0);
+////    mat4_t_vec4_t_mul(&spawn_point, g_hook_transform, &spawn_point);
+//    mat4_t_vec4_t_mul(&spawn_point, &entity->local_transform, &spawn_point);
+//    
+//    float rx = (((float)(rand() % 513) / 512.0) * 2.0 - 1.0) * 0.35;
+////    float ry = (float)(rand() % 129) / 128.0;
+//    
+//    vec4_t spawn_direction = vec4_t_c(0.0, -16.0, rx, 0.0);
+//    mat4_t_vec4_t_mul(&spawn_direction, &entity->local_transform, &spawn_direction);
+//    
+//    if((in_GetKeyState(SDL_SCANCODE_C) & IN_KEY_STATE_PRESSED) && !player_state->shoot_frac)
+//    {
+//        player_state->shoot_frac = 0.1;
+//        vec3_t color;
+//        
+//        color.x = (float)(rand() % 513) / 512.0;
+//        color.y = (float)(rand() % 513) / 512.0;
+//        color.z = (float)(rand() % 513) / 512.0;
+//        
+//        vec3_t_normalize(&color, &color);
+//        
+//        s_PlaySound(g_shot_sound, &vec3_t_c(0.0, 0.0, 0.0), 0.6, 0);
+//        g_SpawnProjectile(&vec3_t_c(spawn_point.x, spawn_point.y, spawn_point.z), 
+//                          &vec3_t_c(spawn_direction.x, spawn_direction.y, spawn_direction.z), &color, 4.0, 480);
+//                          
+//        player_state->shot_light = r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(spawn_point.x, spawn_point.y, spawn_point.z), &color, 8.0, 60.0);
+//    }
+//    
+//    if(player_state->shoot_frac)
+//    {
+//        if(player_state->shot_light && player_state->shoot_frac > 0.2)
+//        {
+//            r_DestroyLight(player_state->shot_light);
+//            player_state->shot_light = NULL;
+//        }
+//        
+//        uint32_t stop = 0;
+//        player_state->shoot_frac += 0.20;
+//        if(player_state->shoot_frac > 0.9999)
+//        {
+//            player_state->shoot_frac = 0.9999;
+//            stop = 1;
+//        }
+//        
+//        shoot_player->weight = 1.0;
+//        shoot_player->scale = 0.0;
+//        idle_player->weight = 0.0;
+//        a_SeekAnimationRelative(shoot_player, player_state->shoot_frac);
+//        
+//        if(stop)
+//        {
+//            player_state->shoot_frac = 0.0;
+//        }
+//    }
+//    else
+//    {
+//        shoot_player->weight = 0.0;
+//    }
+//    
+//    vec4_t light_pos = entity->local_transform.rows[3];    
+//    g_player_light->data.pos_rad.x = light_pos.x;
+//    g_player_light->data.pos_rad.y = light_pos.y;
+//    g_player_light->data.pos_rad.z = light_pos.z + 1.5;
+//    
     mat4_t_vec4_t_mul_fast(&player_pos, &r_inv_view_matrix, &player_pos);
     player_pos.w = 0.0;
     player_pos.z = 0.0;

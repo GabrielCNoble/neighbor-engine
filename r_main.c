@@ -27,6 +27,8 @@ struct stack_list_t r_textures;
 struct stack_list_t r_materials;
 struct stack_list_t r_models;
 struct stack_list_t r_lights;
+struct stack_list_t r_vis_items;
+struct list_t r_visible_lights;
 
 uint32_t r_vertex_buffer;
 struct ds_heap_t r_vertex_heap;
@@ -98,6 +100,7 @@ char *d_uniform_names[] =
 
 void r_Init()
 {    
+    r_vis_items = create_stack_list(sizeof(struct r_vis_item_t), 4096);
     r_sorted_batches = create_list(sizeof(struct r_draw_batch_t), 4096);
     r_immediate_batches = create_list(sizeof(struct r_imm_batch_t), 4096);
     r_shaders = create_stack_list(sizeof(struct r_shader_t), 16);
@@ -105,6 +108,7 @@ void r_Init()
     r_textures = create_stack_list(sizeof(struct r_texture_t), 128);
     r_models = create_stack_list(sizeof(struct r_model_t), 512);
     r_lights = create_stack_list(sizeof(struct r_light_t), 512);
+    r_visible_lights = create_list(sizeof(uint32_t), 512);
     r_vertex_heap = ds_create_heap(R_VERTEX_BUFFER_SIZE);
     r_index_heap = ds_create_heap(R_INDEX_BUFFER_SIZE);
     
@@ -210,6 +214,38 @@ void r_Shutdown()
 {
     
 }
+
+/*
+============================================================================
+============================================================================
+============================================================================
+*/
+
+struct r_vis_item_t *r_AllocateVisItem(mat4_t *transform, struct r_model_t *model)
+{
+    uint32_t index;
+    struct r_vis_item_t *item;
+    
+    index = add_stack_list_element(&r_vis_items, NULL);
+    item = get_stack_list_element(&r_vis_items, index);
+    
+    item->index = index;
+    item->model = model;
+    item->transform = transform;
+    
+    return item;
+}
+
+void r_FreeVisItem(struct r_vis_item_t *item)
+{
+    
+}
+
+/*
+============================================================================
+============================================================================
+============================================================================
+*/
 
 struct r_texture_t *r_LoadTexture(char *file_name, char *name)
 {
@@ -351,6 +387,11 @@ struct r_material_t *r_GetMaterial(char *name)
     return NULL;
 }
 
+struct r_material_t *r_GetDefaultMaterial()
+{
+    return r_default_material;
+}
+
 void r_BindMaterial(struct r_material_t *material)
 {
     if(material)
@@ -392,6 +433,11 @@ void r_FillVertices(struct ds_chunk_h chunk, struct r_vert_t *vertices, uint32_t
     glBufferSubData(GL_ARRAY_BUFFER, chunk_ptr->start, sizeof(struct r_vert_t) * count, vertices);
 }
 
+struct ds_chunk_t *r_GetVerticesChunk(struct ds_chunk_h chunk)
+{
+    return ds_get_chunk_pointer(&r_vertex_heap, chunk);
+}
+
 struct ds_chunk_h r_AllocateIndices(uint32_t count)
 {
     return ds_alloc_chunk(&r_index_heap, sizeof(uint32_t) * count, sizeof(uint32_t));
@@ -415,6 +461,11 @@ void r_FillIndices(struct ds_chunk_h chunk, uint32_t *indices, uint32_t count, u
     }
     
     glUnmapBuffer(GL_ELEMENT_ARRAY_BUFFER);
+}
+
+struct ds_chunk_t *r_GetIndicesChunk(struct ds_chunk_h chunk)
+{
+    return ds_get_chunk_pointer(&r_index_heap, chunk);
 }
 
 struct r_model_t *r_LoadModel(char *file_name)
@@ -520,6 +571,8 @@ struct r_model_t *r_LoadModel(char *file_name)
         create_info.weights = weights;
         create_info.weight_range_count = weight_range_count;
         create_info.weight_ranges = weight_ranges;
+        create_info.min = verts->min;
+        create_info.max = verts->max;
         
         
         model = r_CreateModel(&create_info);
@@ -550,33 +603,36 @@ struct r_model_t *r_CreateModel(struct r_model_create_info_t *create_info)
     chunk = ds_get_chunk_pointer(&r_index_heap, model->index_chunk);
     start = chunk->start / sizeof(uint32_t);
     
-    model->batch_count = create_info->batch_count;
-    model->batches = mem_Calloc(create_info->batch_count, sizeof(struct r_batch_t));
-    memcpy(model->batches, create_info->batches, sizeof(struct r_batch_t) * model->batch_count);
+//    model->batch_count = create_info->batch_count;
+    model->batches = ds_create_buffer(sizeof(struct r_batch_t), create_info->batch_count);
+    memcpy(model->batches.buffer, create_info->batches, sizeof(struct r_batch_t) * create_info->batch_count);
     for(uint32_t batch_index = 0; batch_index < create_info->batch_count; batch_index++)
     {
-        model->batches[batch_index].start += start;
+        ((struct r_batch_t *)model->batches.buffer)[batch_index].start += start;
     }
     model->skeleton = create_info->skeleton;
     
     if(create_info->weight_count && create_info->weight_range_count)
     {
-        model->weight_count = create_info->weight_count;
-        model->weights = mem_Calloc(create_info->weight_count, sizeof(struct a_weight_t));
-        memcpy(model->weights, create_info->weights, sizeof(struct a_weight_t) * create_info->weight_count);
+//        model->weight_count = create_info->weight_count;
+        model->weights = ds_create_buffer(sizeof(struct a_weight_t), create_info->weight_count);
+        memcpy(model->weights.buffer, create_info->weights, sizeof(struct a_weight_t) * create_info->weight_count);
         
-        model->weight_range_count = create_info->weight_range_count;
-        model->weight_ranges = mem_Calloc(create_info->weight_range_count, sizeof(struct a_weight_range_t));
-        memcpy(model->weight_ranges, create_info->weight_ranges, sizeof(struct a_weight_range_t) * create_info->weight_range_count);
+//        model->weight_range_count = create_info->weight_range_count;
+        model->weight_ranges = ds_create_buffer(sizeof(struct a_weight_range_t), create_info->weight_range_count);
+        memcpy(model->weight_ranges.buffer, create_info->weight_ranges, sizeof(struct a_weight_range_t) * create_info->weight_range_count);
     }
     
-    model->vert_count = create_info->vert_count;
-    model->verts = mem_Calloc(create_info->vert_count, sizeof(struct r_vert_t));
-    memcpy(model->verts, create_info->verts, sizeof(struct r_vert_t) * create_info->vert_count);
+//    model->vert_count = create_info->vert_count;
+    model->verts = ds_create_buffer(sizeof(struct r_vert_t), create_info->vert_count);
+    memcpy(model->verts.buffer, create_info->verts, sizeof(struct r_vert_t) * create_info->vert_count);
     
-    model->indice_count = create_info->index_count;
-    model->indices = mem_Calloc(create_info->index_count, sizeof(uint32_t));
-    memcpy(model->indices, create_info->indices, sizeof(uint32_t) * create_info->index_count);
+//    model->indice_count = create_info->index_count;
+    model->indices = ds_create_buffer(sizeof(uint32_t), create_info->index_count);
+    memcpy(model->indices.buffer, create_info->indices, sizeof(uint32_t) * create_info->index_count);
+    
+    model->min = create_info->min;
+    model->max = create_info->max;
     
     return model;
 }
@@ -590,27 +646,27 @@ struct r_model_t *r_ShallowCopyModel(struct r_model_t *base)
     memcpy(copy, base, sizeof(struct r_model_t));
     copy->index = index;
     
-    copy->verts = mem_Calloc(copy->vert_count, sizeof(struct r_vert_t));
-    memcpy(copy->verts, base->verts, sizeof(struct r_vert_t) * copy->vert_count);
+    copy->verts = ds_create_buffer(sizeof(struct r_vert_t), base->verts.buffer_size);
+    memcpy(copy->verts.buffer, base->verts.buffer, sizeof(struct r_vert_t) * copy->verts.buffer_size);
     
-    copy->vert_chunk = r_AllocateVertices(copy->vert_count);
-    r_FillVertices(copy->vert_chunk, copy->verts, copy->vert_count);
+    copy->vert_chunk = r_AllocateVertices(copy->verts.buffer_size);
+    r_FillVertices(copy->vert_chunk, copy->verts.buffer, copy->verts.buffer_size);
     chunk = ds_get_chunk_pointer(&r_vertex_heap, copy->vert_chunk);
     uint32_t new_start = chunk->start / sizeof(struct r_vert_t);
     
-    copy->index_chunk = r_AllocateIndices(copy->indice_count);
-    r_FillIndices(copy->index_chunk, copy->indices, copy->indice_count, new_start);
+    copy->index_chunk = r_AllocateIndices(copy->indices.buffer_size);
+    r_FillIndices(copy->index_chunk, copy->indices.buffer, copy->indices.buffer_size, new_start);
     chunk = ds_get_chunk_pointer(&r_index_heap, copy->index_chunk);
     new_start = chunk->start / sizeof(uint32_t);
     chunk = ds_get_chunk_pointer(&r_index_heap, base->index_chunk);
     uint32_t old_start = chunk->start / sizeof(uint32_t);
     
-    copy->batches = mem_Calloc(copy->batch_count, sizeof(struct r_batch_t));
-    for(uint32_t batch_index = 0; batch_index < copy->batch_count; batch_index++)
+    copy->batches = ds_create_buffer(sizeof(struct r_batch_t), base->batches.buffer_size);
+    for(uint32_t batch_index = 0; batch_index < copy->batches.buffer_size; batch_index++)
     {
-        copy->batches[batch_index] = base->batches[batch_index];
-        copy->batches[batch_index].start -= old_start;
-        copy->batches[batch_index].start += new_start;
+        ((struct r_batch_t *)copy->batches.buffer)[batch_index] = ((struct r_batch_t *)base->batches.buffer)[batch_index];
+        ((struct r_batch_t *)copy->batches.buffer)[batch_index].start -= old_start;
+        ((struct r_batch_t *)copy->batches.buffer)[batch_index].start += new_start;
     }
     
     copy->base = base;

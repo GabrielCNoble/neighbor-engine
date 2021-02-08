@@ -4,14 +4,34 @@
 #include "dstuff/ds_vector.h"
 #include "dstuff/ds_matrix.h"
 #include "dstuff/ds_alloc.h"
+#include "dstuff/ds_buffer.h"
+#include "r_com.h"
+
+struct ed_polygon_t
+{
+    struct ds_buffer_t verts;
+};
+
+struct ed_face_t
+{
+    struct r_material_t *material;
+    struct ed_polygon_t polygon;
+};
 
 struct ed_brush_t
 {
     mat3_t orientation;
     vec3_t position;
-    vec3_t size;
-    struct ds_chunk_h vert_chunk;
-    struct ds_chunk_h index_chunk;
+    uint32_t index;
+    struct list_t batches;
+    struct list_t faces;
+    
+//    struct ds_buffer_t indices;
+//    struct ds_buffer_t vertices;
+    
+//    uint32_t vert_start;
+//    struct ds_chunk_h vert_chunk;
+//    struct ds_chunk_h index_chunk;
 };
 
 struct ed_context_t;
@@ -95,6 +115,8 @@ void ed_WorldContextLeftClickState(struct ed_context_t *context, uint32_t just_c
 
 void ed_WorldContextStateCreateingBrush(struct ed_context_t *context, uint32_t just_changed);
 
-void ed_CreateBrush(vec3_t *position, mat3_t *orientation, vec3_t *size);
+struct ed_brush_t *ed_CreateBrush(vec3_t *position, mat3_t *orientation, vec3_t *size);
+
+void ed_UpdateBrush(struct ed_brush_t *brush);
 
 #endif // ED_H

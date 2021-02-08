@@ -13,6 +13,9 @@
 #define DS_RINGBUFFER_IMPLEMENTATION
 #include "dstuff/ds_ringbuffer.h"
 
+#define DS_BUFFER_IMPLEMENTATION
+#include "dstuff/ds_buffer.h"
+
 #define DS_DBVH_IMPLEMENTATION
 #include "dstuff/ds_dbvh.h"
 

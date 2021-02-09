@@ -716,7 +716,7 @@ void g_PlayerThinker(struct g_entity_t *entity)
     static float zoom = 0.0;
 //    uint32_t moving = 0;
 
-
+ 
     struct p_movable_collider_t *collider = (struct p_movable_collider_t *)entity->collider;
     struct g_player_state_t *player_state;
     struct a_mask_t *upper_body_mask = a_GetAnimationMask(entity->mixer, "upper_body");

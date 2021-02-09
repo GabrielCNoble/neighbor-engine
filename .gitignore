@@ -9,6 +9,9 @@
 *.jpg
 *.dll
 *.txt
+*.cbp
+*.depend
+*.layout
 lib
 models
 textures

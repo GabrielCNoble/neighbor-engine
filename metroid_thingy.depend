@@ -466,7 +466,7 @@
 	<limits.h>
 	<stdlib.h>
 
-1612750457 source:c:\users\gabri\documents\compiler\metroid_thingy\game.c
+1612840998 source:c:\users\gabri\documents\compiler\metroid_thingy\game.c
 	"dstuff/ds_stack_list.h"
 	"dstuff/ds_mem.h"
 	"dstuff/ds_file.h"
@@ -549,7 +549,7 @@
 	"dstuff/ds_alloc.h"
 	"draw.h"
 
-1612750777 source:c:\users\gabri\documents\compiler\metroid_thingy\anim.c
+1612840965 source:c:\users\gabri\documents\compiler\metroid_thingy\anim.c
 	<stdio.h>
 	"anim.h"
 	"r_draw.h"

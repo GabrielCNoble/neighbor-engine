@@ -366,17 +366,20 @@ struct a_mask_t *a_GetAnimationMask(struct a_mixer_t *mixer, char *name)
 
 void a_DestroyAnimationMask(struct a_mixer_t *mixer, char *name)
 {
-//    struct a_mask_t *mask;
-//    
-//    mask = a_GetAnimationMask(mixer, name);
-//    
-//    if(mask)
-//    {
-//        mem_Free(mask->bones);
-//        mem_Free(mask->player_weights);
-//        remove_stack_list_element(&mixer->mask, mask->index);
-//        mask->index = 0xffffffff;
-//    }
+    struct a_mask_t *mask;
+    
+    for(uint32_t mask_index = 0; mask_index < mixer->masks.cursor; mask_index++)
+    {
+        struct a_mask_t *mask = *(struct a_mask_t **)get_list_element(&mixer->masks, mask_index);
+        if(!strcmp(mask->name, name))
+        {
+            mem_Free(mask->bones);
+            mem_Free(mask->players);
+            remove_stack_list_element(&a_masks, mask->index);
+            remove_list_element(&mixer->masks, mask_index);
+            break;
+        }
+    }
 }
 
 struct a_player_t *a_GetMixerPlayer(struct a_mixer_t *mixer, char *name)
@@ -501,9 +504,13 @@ void a_UpdateMixer(struct a_mixer_t *mixer, float delta_time)
             {
                 struct a_mask_player_t *second_player = mask->players + player_index;
                 struct a_transform_t *second_transform = second_player->player->transforms + mask->bones[bone_index];
-                first_weight = second_player->weight / (first_weight + second_player->weight);
-                quat_slerp(&mixer_transform->rot, &mixer_transform->rot, &second_transform->rot, first_weight);
-                vec3_t_lerp(&mixer_transform->pos, &mixer_transform->pos, &second_transform->pos, first_weight);
+                float denom = first_weight + second_player->weight;
+                if(denom)
+                {
+                    first_weight = second_player->weight / denom;
+                    quat_slerp(&mixer_transform->rot, &mixer_transform->rot, &second_transform->rot, first_weight);
+                    vec3_t_lerp(&mixer_transform->pos, &mixer_transform->pos, &second_transform->pos, first_weight);
+                }
             }
         }
     }

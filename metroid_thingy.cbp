@@ -16,20 +16,6 @@
 					<Add option="-g" />
 				</Compiler>
 			</Target>
-			<Target title="libvorbis">
-				<Option output="bin/libvorbis/metroid_thingy" prefix_auto="1" extension_auto="1" />
-				<Option working_dir="" />
-				<Option object_output="obj/libvorbis/" />
-				<Option type="2" />
-				<Option compiler="gcc" />
-				<Option createDefFile="1" />
-				<Compiler>
-					<Add option="-O2" />
-				</Compiler>
-				<Linker>
-					<Add option="-s" />
-				</Linker>
-			</Target>
 		</Build>
 		<Compiler>
 			<Add option="-Wall" />
@@ -66,7 +52,6 @@
 		<Unit filename="editor.h" />
 		<Unit filename="game.c">
 			<Option compilerVar="CC" />
-			<Option target="Debug" />
 		</Unit>
 		<Unit filename="game.h" />
 		<Unit filename="impl.c">
@@ -96,6 +81,10 @@
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="r_main.h" />
+		<Unit filename="r_vis.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="r_vis.h" />
 		<Unit filename="sound.c">
 			<Option compilerVar="CC" />
 		</Unit>

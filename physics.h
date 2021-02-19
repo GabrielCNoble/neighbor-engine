@@ -2,6 +2,7 @@
 #define PHYSICS_H
 
 #include "dstuff/ds_vector.h"
+#include "dstuff/ds_matrix.h"
 #include "dstuff/ds_list.h"
 #include <stdint.h>
 
@@ -31,6 +32,7 @@ enum P_COLLIDER_FLAGS
     uint32_t type;          \
     uint32_t index;         \
     uint32_t node_index;    \
+    mat3_t orientation;     \
     vec3_t position;        \
     vec3_t size;            \
     void *user_data
@@ -106,7 +108,7 @@ void p_Init();
 
 void p_Shutdown();
 
-struct p_collider_t *p_CreateCollider(uint32_t type, vec3_t *position, vec3_t *size);
+struct p_collider_t *p_CreateCollider(uint32_t type, vec3_t *position, mat3_t *orientation, vec3_t *size);
 
 struct p_collider_t *p_GetCollider(uint32_t type, uint32_t index);
 
@@ -114,9 +116,17 @@ struct p_collider_t *p_GetCollision(struct p_collider_t *collider, uint32_t coll
 
 void p_DisplaceCollider(struct p_collider_t *collider, vec3_t *disp);
 
+//void p_RotateColliderX(struct p_collider_t *collider, float angle);
+//
+//void p_RotateColliderY(struct p_collider_t *collider, float angle);
+//
+//void p_RotateColliderZ(struct p_collider_t *collider, float angle);
+
 void p_UpdateColliders();
 
 void p_ComputeCollisionPlanes(struct p_collider_t *collider_a, struct p_collider_t *collider_b, struct p_col_plane_t **planes, uint32_t *plane_count);
+
+void p_UpdateColliderNode(struct p_collider_t *collider);
 
 void p_ComputeMoveBox(struct p_collider_t *collider, vec3_t *min, vec3_t *max);
 

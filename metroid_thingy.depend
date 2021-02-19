@@ -1,5 +1,5 @@
 # depslib dependency file v1.0
-1608960248 source:c:\users\gabri\documents\compiler\metroid_thingy\main.c
+1613276515 source:c:\users\gabri\documents\compiler\metroid_thingy\main.c
 	"SDL2/SDL.h"
 	<stdio.h>
 	"game.h"
@@ -355,7 +355,7 @@
 	"d_com.h"
 	"d_load.h"
 
-1612081884 c:\users\gabri\documents\compiler\metroid_thingy\lib\dstuff\ds_vector.h
+1613495664 c:\users\gabri\documents\compiler\metroid_thingy\lib\dstuff\ds_vector.h
 	<math.h>
 	<intrin.h>
 
@@ -422,7 +422,7 @@
 1612295628 source:c:\users\gabri\documents\compiler\metroid_thingy\input.c
 	"input.h"
 
-1612085528 c:\users\gabri\documents\compiler\metroid_thingy\lib\dstuff\ds_matrix.h
+1613225157 c:\users\gabri\documents\compiler\metroid_thingy\lib\dstuff\ds_matrix.h
 	"ds_vector.h"
 	<intrin.h>
 
@@ -431,7 +431,7 @@
 	"ds_list.h"
 	<stdint.h>
 
-1600124682 c:\users\gabri\documents\compiler\metroid_thingy\lib\dstuff\ds_list.h
+1613273259 c:\users\gabri\documents\compiler\metroid_thingy\lib\dstuff\ds_list.h
 	<stdint.h>
 	<string.h>
 	<stdlib.h>
@@ -466,7 +466,7 @@
 	<limits.h>
 	<stdlib.h>
 
-1612840998 source:c:\users\gabri\documents\compiler\metroid_thingy\game.c
+1613688200 source:c:\users\gabri\documents\compiler\metroid_thingy\game.c
 	"dstuff/ds_stack_list.h"
 	"dstuff/ds_mem.h"
 	"dstuff/ds_file.h"
@@ -509,19 +509,22 @@
 	<intrin.h>
 	<arm_neon.h>
 
-1609900447 source:c:\users\gabri\documents\compiler\metroid_thingy\physics.c
+1613688354 source:c:\users\gabri\documents\compiler\metroid_thingy\physics.c
+	<float.h>
 	"physics.h"
 	"dstuff/ds_stack_list.h"
 	"dstuff/ds_list.h"
 	"dstuff/ds_mem.h"
 	"dstuff/ds_dbvh.h"
+	"r_draw.h"
 
-1608524993 c:\users\gabri\documents\compiler\metroid_thingy\physics.h
+1613670019 c:\users\gabri\documents\compiler\metroid_thingy\physics.h
 	"dstuff/ds_vector.h"
+	"dstuff/ds_matrix.h"
 	"dstuff/ds_list.h"
 	<stdint.h>
 
-1608517830 c:\users\gabri\documents\compiler\metroid_thingy\lib\dstuff\ds_dbvh.h
+1613237231 c:\users\gabri\documents\compiler\metroid_thingy\lib\dstuff\ds_dbvh.h
 	<stdint.h>
 	"ds_vector.h"
 	"ds_list.h"
@@ -549,7 +552,7 @@
 	"dstuff/ds_alloc.h"
 	"draw.h"
 
-1612840965 source:c:\users\gabri\documents\compiler\metroid_thingy\anim.c
+1613276515 source:c:\users\gabri\documents\compiler\metroid_thingy\anim.c
 	<stdio.h>
 	"anim.h"
 	"r_draw.h"
@@ -557,7 +560,7 @@
 	"dstuff/ds_stack_list.h"
 	"dstuff/ds_mem.h"
 
-1612750762 c:\users\gabri\documents\compiler\metroid_thingy\anim.h
+1613276515 c:\users\gabri\documents\compiler\metroid_thingy\anim.h
 	"dstuff/ds_vector.h"
 	"dstuff/ds_matrix.h"
 	"dstuff/ds_list.h"
@@ -568,7 +571,7 @@
 	"r_com.h"
 	"r_main.h"
 
-1612660355 c:\users\gabri\documents\compiler\metroid_thingy\r_main.h
+1613276515 c:\users\gabri\documents\compiler\metroid_thingy\r_main.h
 	"r_com.h"
 	"GL/glew.h"
 
@@ -583,7 +586,7 @@
 	<stdlib.h>
 	<stdio.h>
 
-1612660402 source:c:\users\gabri\documents\compiler\metroid_thingy\r_main.c
+1613276515 source:c:\users\gabri\documents\compiler\metroid_thingy\r_main.c
 	"r_main.h"
 	"SDL2/SDL.h"
 	"GL/glew.h"
@@ -596,14 +599,14 @@
 	"r_draw.h"
 	"anim.h"
 
-1612660301 c:\users\gabri\documents\compiler\metroid_thingy\r_com.h
+1613276515 c:\users\gabri\documents\compiler\metroid_thingy\r_com.h
 	"dstuff/ds_vector.h"
 	"dstuff/ds_matrix.h"
 	"dstuff/ds_alloc.h"
 	"dstuff/ds_buffer.h"
 	<stdint.h>
 
-1612540440 source:c:\users\gabri\documents\compiler\metroid_thingy\editor.c
+1613276515 source:c:\users\gabri\documents\compiler\metroid_thingy\editor.c
 	"editor.h"
 	"dstuff/ds_stack_list.h"
 	"dstuff/ds_list.h"
@@ -614,7 +617,7 @@
 	"input.h"
 	"r_draw.h"
 
-1612450115 c:\users\gabri\documents\compiler\metroid_thingy\editor.h
+1613276515 c:\users\gabri\documents\compiler\metroid_thingy\editor.h
 	"dstuff/ds_vector.h"
 	"dstuff/ds_matrix.h"
 	"dstuff/ds_alloc.h"
@@ -697,7 +700,7 @@
 	<inttypes.h>
 	<ogg/config_types.h>
 
-1612705506 c:\users\gabri\documents\compiler\metroid_thingy\lib\dstuff\ds_buffer.h
+1613268639 c:\users\gabri\documents\compiler\metroid_thingy\lib\dstuff\ds_buffer.h
 	"ds_mem.h"
 
 1612665465 c:\users\gabri\documents\compiler\metroid_thingy\r_vis.h

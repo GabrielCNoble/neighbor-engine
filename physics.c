@@ -1,8 +1,10 @@
+#include <float.h>
 #include "physics.h"
 #include "dstuff/ds_stack_list.h"
 #include "dstuff/ds_list.h"
 #include "dstuff/ds_mem.h"
 #include "dstuff/ds_dbvh.h"
+#include "r_draw.h"
 
 
 struct stack_list_t p_colliders[P_COLLIDER_TYPE_LAST];
@@ -39,7 +41,7 @@ void p_Shutdown()
     
 }
 
-struct p_collider_t *p_CreateCollider(uint32_t type, vec3_t *position, vec3_t *size)
+struct p_collider_t *p_CreateCollider(uint32_t type, vec3_t *position, mat3_t *orientation, vec3_t *size)
 {
     uint32_t collider_index;
     struct p_collider_t *collider;
@@ -48,6 +50,16 @@ struct p_collider_t *p_CreateCollider(uint32_t type, vec3_t *position, vec3_t *s
     collider = get_stack_list_element(&p_colliders[type], collider_index);
     
     collider->index = collider_index;
+    
+    if(!orientation)
+    {
+        mat3_t_identity(&collider->orientation);
+    }
+    else
+    {
+        collider->orientation = *orientation;
+    }
+    
     collider->position = *position;
     collider->size = *size;
     collider->type = type;
@@ -67,6 +79,8 @@ struct p_collider_t *p_CreateCollider(uint32_t type, vec3_t *position, vec3_t *s
     struct dbvh_node_t *node = get_dbvh_node_pointer(dbvh, collider->node_index);
     vec3_t_fmadd(&node->min, &collider->position, &collider->size, -0.5);
     vec3_t_fmadd(&node->max, &collider->position, &collider->size, 0.5);
+    
+    
     node->contents = collider;
     insert_node_into_dbvh(dbvh, collider->node_index);
     
@@ -134,6 +148,22 @@ void p_DisplaceCollider(struct p_collider_t *collider, vec3_t *disp)
     }
 }
 
+//void p_RotateColliderX(struct p_collider_t *collider, float angle)
+//{
+//    mat3_t_rotate_x(&collider->orientation, angle);
+//    p_ComputeAabb(collider);
+//}
+//
+//void p_RotateColliderY(struct p_collider_t *collider, float angle)
+//{
+//    
+//}
+//
+//void p_RotateColliderZ(struct p_collider_t *collider, float angle)
+//{
+//    
+//}
+
 uint32_t p_BoxIntersect(vec3_t *box_a0, vec3_t *box_a1, vec3_t *box_b0, vec3_t *box_b1)
 {
     return box_a0->x < box_b1->x && box_a1->x > box_b0->x && 
@@ -146,6 +176,52 @@ void p_UpdateColliders()
     p_collisions.cursor = 0;
     p_frame++;
     
+    r_i_SetTransform(NULL);
+    r_i_SetPrimitiveType(GL_LINES);
+    vec3_t corners[8];
+    
+//    static uint32_t skip = 0;
+//    static struct p_trace_t skip_trace = {};
+    
+//    for(uint32_t collider_index = 0; collider_index < p_colliders[P_COLLIDER_TYPE_STATIC].cursor; collider_index++)
+//    {
+//        struct p_collider_t *collider = p_GetCollider(P_COLLIDER_TYPE_STATIC, collider_index);
+//        if(collider)
+//        {
+//            struct dbvh_node_t *node = get_dbvh_node_pointer(&p_main_dbvh, collider->node_index);
+//            
+//            corners[0] = vec3_t_c(node->min.x, node->max.y, node->min.z);
+//            corners[1] = vec3_t_c(node->min.x, node->min.y, node->min.z);
+//            corners[2] = vec3_t_c(node->max.x, node->min.y, node->min.z);
+//            corners[3] = vec3_t_c(node->max.x, node->max.y, node->min.z); 
+//            
+//            corners[4] = vec3_t_c(node->min.x, node->max.y, node->max.z);
+//            corners[5] = vec3_t_c(node->min.x, node->min.y, node->max.z);
+//            corners[6] = vec3_t_c(node->max.x, node->min.y, node->max.z);
+//            corners[7] = vec3_t_c(node->max.x, node->max.y, node->max.z); 
+//            
+//            r_i_DrawLine(&corners[0], &corners[1], &vec3_t_c(0.0, 1.0, 0.0), 1.0);
+//            r_i_DrawLine(&corners[1], &corners[2], &vec3_t_c(0.0, 1.0, 0.0), 1.0);
+//            r_i_DrawLine(&corners[2], &corners[3], &vec3_t_c(0.0, 1.0, 0.0), 1.0);
+//            r_i_DrawLine(&corners[3], &corners[0], &vec3_t_c(0.0, 1.0, 0.0), 1.0);
+//            
+//            r_i_DrawLine(&corners[4], &corners[5], &vec3_t_c(0.0, 1.0, 0.0), 1.0);
+//            r_i_DrawLine(&corners[5], &corners[6], &vec3_t_c(0.0, 1.0, 0.0), 1.0);
+//            r_i_DrawLine(&corners[6], &corners[7], &vec3_t_c(0.0, 1.0, 0.0), 1.0);
+//            r_i_DrawLine(&corners[7], &corners[4], &vec3_t_c(0.0, 1.0, 0.0), 1.0);
+//            
+//            r_i_DrawLine(&corners[0], &corners[4], &vec3_t_c(0.0, 1.0, 0.0), 1.0);
+//            r_i_DrawLine(&corners[1], &corners[5], &vec3_t_c(0.0, 1.0, 0.0), 1.0);
+//            r_i_DrawLine(&corners[2], &corners[6], &vec3_t_c(0.0, 1.0, 0.0), 1.0);
+//            r_i_DrawLine(&corners[3], &corners[7], &vec3_t_c(0.0, 1.0, 0.0), 1.0);
+//        }
+//    }
+//    
+//    if(skip)
+//    {
+//        return;
+//    }
+    
     for(uint32_t col_a_index = 0; col_a_index < p_colliders[P_COLLIDER_TYPE_MOVABLE].cursor; col_a_index++)
     {
         struct p_movable_collider_t *collider_a = (struct p_movable_collider_t *)p_GetCollider(P_COLLIDER_TYPE_MOVABLE, col_a_index);
@@ -157,12 +233,10 @@ void p_UpdateColliders()
         
 //        collider_a->disp.y -= 0.01;
         collider_a->flags &= ~(P_COLLIDER_FLAG_ON_GROUND | P_COLLIDER_FLAG_TOP_COLLIDED);
-        
         collider_a->first_collision = p_collisions.cursor;
         
         for(uint32_t bump_index = 0; bump_index < 8; bump_index++)
         {
-            /* static colliders */
             struct p_trace_t closest_trace = {};
             closest_trace.time = 1.0;
             vec3_t box_a[2];
@@ -175,7 +249,65 @@ void p_UpdateColliders()
                 struct p_collider_t *collider_b = *(struct p_collider_t **)get_list_element(contents, collider_index);
                 if((struct p_collider_t *)collider_b != (struct p_collider_t *)collider_a)
                 {
-                    p_ComputeCollision((struct p_collider_t *)collider_a, collider_b, &closest_trace);
+                    struct p_trace_t cur_trace = closest_trace;
+                    p_ComputeCollision((struct p_collider_t *)collider_a, collider_b, &cur_trace);
+//                    if(!collider_b->index)
+//                    {
+//                        r_i_SetTransform(NULL);
+//                        
+//                        uint32_t plane_count;
+//                        struct p_col_plane_t *planes;
+//                        p_ComputeCollisionPlanes((struct p_collider_t *)collider_a, (struct p_collider_t *)collider_b, &planes, &plane_count);
+//                        
+//                        r_i_SetPrimitiveType(GL_LINES);
+//                        for(uint32_t plane_index = 0; plane_index < plane_count; plane_index++)
+//                        {
+//                            vec3_t end;
+//                            struct p_col_plane_t *plane = planes + plane_index;
+//                            vec3_t_add(&end, &plane->point, &plane->normal);
+//                            r_i_DrawLine(&plane->point, &end, &vec3_t_c(0.0, 1.0, 0.0), 1.0);
+//                        }
+//                        
+//                        r_i_SetPrimitiveType(GL_POINTS);
+//                        for(uint32_t plane_index = 0; plane_index < plane_count; plane_index++)
+//                        {
+//                            struct p_col_plane_t *plane = planes + plane_index;
+//                            r_i_DrawPoint(&plane->point, &vec3_t_c(1.0, 0.0, 0.0), 8.0);
+//                        }
+//                        
+////                        r_i_DrawPoint(&collider_a->position, &vec3_t_c(0.0, 0.0, 1.0), 8.0);
+//                        
+//                        struct dbvh_node_t *node = get_dbvh_node_pointer(&p_main_dbvh, collider_a->node_index);
+//            
+//                        corners[0] = vec3_t_c(node->min.x, node->max.y, node->min.z);
+//                        corners[1] = vec3_t_c(node->min.x, node->min.y, node->min.z);
+//                        corners[2] = vec3_t_c(node->max.x, node->min.y, node->min.z);
+//                        corners[3] = vec3_t_c(node->max.x, node->max.y, node->min.z); 
+//                        
+//                        corners[4] = vec3_t_c(node->min.x, node->max.y, node->max.z);
+//                        corners[5] = vec3_t_c(node->min.x, node->min.y, node->max.z);
+//                        corners[6] = vec3_t_c(node->max.x, node->min.y, node->max.z);
+//                        corners[7] = vec3_t_c(node->max.x, node->max.y, node->max.z); 
+//                        
+//                        r_i_DrawLine(&corners[0], &corners[1], &vec3_t_c(1.0, 1.0, 0.0), 1.0);
+//                        r_i_DrawLine(&corners[1], &corners[2], &vec3_t_c(1.0, 1.0, 0.0), 1.0);
+//                        r_i_DrawLine(&corners[2], &corners[3], &vec3_t_c(1.0, 1.0, 0.0), 1.0);
+//                        r_i_DrawLine(&corners[3], &corners[0], &vec3_t_c(1.0, 1.0, 0.0), 1.0);
+//                        
+//                        r_i_DrawLine(&corners[4], &corners[5], &vec3_t_c(1.0, 1.0, 0.0), 1.0);
+//                        r_i_DrawLine(&corners[5], &corners[6], &vec3_t_c(1.0, 1.0, 0.0), 1.0);
+//                        r_i_DrawLine(&corners[6], &corners[7], &vec3_t_c(1.0, 1.0, 0.0), 1.0);
+//                        r_i_DrawLine(&corners[7], &corners[4], &vec3_t_c(1.0, 1.0, 0.0), 1.0);
+//                        
+//                        r_i_DrawLine(&corners[0], &corners[4], &vec3_t_c(1.0, 1.0, 0.0), 1.0);
+//                        r_i_DrawLine(&corners[1], &corners[5], &vec3_t_c(1.0, 1.0, 0.0), 1.0);
+//                        r_i_DrawLine(&corners[2], &corners[6], &vec3_t_c(1.0, 1.0, 0.0), 1.0);
+//                        r_i_DrawLine(&corners[3], &corners[7], &vec3_t_c(1.0, 1.0, 0.0), 1.0);
+//                    }
+//                    else
+                    {
+                        closest_trace = cur_trace;
+                    }
                 }
             }
             
@@ -209,35 +341,6 @@ void p_UpdateColliders()
         }
         
         collider_a->collision_count = p_collisions.cursor - collider_a->first_collision;
-        
-//        for(uint32_t trigger_index = 0; trigger_index < p_colliders[P_COLLIDER_TYPE_TRIGGER].cursor; trigger_index++)
-//        {
-//            struct p_trigger_collider_t *trigger_collider = get_stack_list_element(&p_colliders[P_COLLIDER_TYPE_TRIGGER], trigger_index);
-//            if(trigger_collider->index != 0xffffffff)
-//            {
-//                trigger_collider->collisions.cursor = 0;
-//            }
-//        }
-        
-//        /* triggers */
-//        struct p_trace_t closest_trace = {};
-//        closest_trace.time = 1.0;
-//        vec3_t min;
-//        vec3_t max;
-//        
-//        p_ComputeMoveBox((struct p_collider_t *)collider_a, &min, &max);
-//        
-//        struct list_t *contents = box_on_dbvh_contents(&p_trigger_dbvh, &max, &min);
-//        
-//        for(uint32_t collider_index = 0; collider_index < contents->cursor; collider_index++)
-//        {
-//            struct p_trigger_collider_t *trigger = *(struct p_trigger_collider_t **)get_list_element(contents, collider_index);
-//            
-//            if(p_ComputeCollision((struct p_collider_t *)collider_a, (struct p_collider_t *)trigger, &closest_trace))
-//            {
-//                add_list_element(&trigger->collisions, &collider_a);
-//            }
-//        }
     }
     
     for(uint32_t trigger_index = 0; trigger_index < p_colliders[P_COLLIDER_TYPE_TRIGGER].cursor; trigger_index++)
@@ -268,35 +371,111 @@ void p_UpdateColliders()
 
 void p_ComputeCollisionPlanes(struct p_collider_t *collider_a, struct p_collider_t *collider_b, struct p_col_plane_t **planes, uint32_t *plane_count)
 {
+    float extents[3];
     uint32_t plane_index;
-    for(plane_index = 0; plane_index < 6; plane_index++)
+    struct p_col_plane_t *col_planes = p_col_planes;
+    vec3_t size_a;
+    vec3_t size_b;
+//    mat3_t *orientation_a;
+    
+    vec3_t_mul(&size_a, &collider_a->size, 0.5);
+    vec3_t_mul(&size_b, &collider_b->size, 0.5);
+//    orientation_a = &collider_a->orientation;
+    
+    for(uint32_t axis_index = 0; axis_index < 3; axis_index++)
     {
-        struct p_col_plane_t *plane = p_col_planes + plane_index;
-        plane->normal = p_col_normals[plane_index];
-        float size;
+        vec3_t *axis = collider_b->orientation.rows + axis_index;
         
-        switch(plane_index)
-        {
-            case 0: case 1:
-                size = collider_a->size.x + collider_b->size.x;
-            break;
-            
-            case 2: case 3:
-                size = collider_a->size.y + collider_b->size.y;
-            break;
-            
-            case 4: case 5:
-                size = (collider_a->size.z + collider_b->size.z);
-            break;
-        }
-        
-        vec3_t dir;
-        vec3_t_mul(&dir, &plane->normal, size * 0.5);
-        vec3_t_add(&plane->point, &collider_b->position, &dir);
+        extents[axis_index] = size_a.x * fabs(vec3_t_dot(&collider_a->orientation.rows[0], axis)) + 
+                              size_a.y * fabs(vec3_t_dot(&collider_a->orientation.rows[1], axis)) +
+                              size_a.z * fabs(vec3_t_dot(&collider_a->orientation.rows[2], axis));
     }
     
-    *planes = p_col_planes;
+    for(plane_index = 0; plane_index < 6; plane_index++)
+    {
+        struct p_col_plane_t *plane = col_planes + plane_index;
+        
+        plane->normal = collider_b->orientation.rows[plane_index >> 1];
+        
+        if(plane_index & 1)
+        {
+            vec3_t_mul(&plane->normal, &plane->normal, -1.0);
+        }
+        
+        vec3_t_mul(&plane->point, &plane->normal, extents[plane_index >> 1] + size_b.comps[plane_index >> 1]);
+        vec3_t_add(&plane->point, &plane->point, &collider_b->position);        
+    }
+    
+    *planes = col_planes;
     *plane_count = plane_index;
+    col_planes += plane_index;
+    
+    
+    for(uint32_t axis_index = 0; axis_index < 3; axis_index++)
+    {
+        vec3_t *axis = collider_a->orientation.rows + axis_index;
+        
+        extents[axis_index] = size_b.x * fabs(vec3_t_dot(&collider_b->orientation.rows[0], axis)) + 
+                              size_b.y * fabs(vec3_t_dot(&collider_b->orientation.rows[1], axis)) +
+                              size_b.z * fabs(vec3_t_dot(&collider_b->orientation.rows[2], axis));
+    }
+    
+    for(plane_index = 0; plane_index < 6; plane_index++)
+    {
+        struct p_col_plane_t *plane = col_planes + plane_index;
+        
+        plane->normal = collider_a->orientation.rows[plane_index >> 1];
+        
+        if(plane_index & 1)
+        {
+            vec3_t_mul(&plane->normal, &plane->normal, -1.0);
+        }
+        
+        vec3_t_mul(&plane->point, &plane->normal, extents[plane_index >> 1] + size_a.comps[plane_index >> 1]);
+        vec3_t_add(&plane->point, &plane->point, &collider_b->position);        
+    }
+    
+    (*plane_count) += plane_index;
+}
+
+void p_UpdateColliderNode(struct p_collider_t *collider)
+{
+    vec3_t corners[8];
+    vec3_t size = collider->size;
+    vec3_t up;
+    vec3_t max = vec3_t_c(-FLT_MAX, -FLT_MAX, -FLT_MAX);
+    vec3_t min = vec3_t_c(FLT_MAX, FLT_MAX, FLT_MAX);
+    vec3_t_mul(&size, &size, 0.5);
+    
+    corners[0] = vec3_t_c(-size.x, -size.y, -size.z);
+    corners[1] = vec3_t_c( size.x, -size.y, -size.z);
+    corners[2] = vec3_t_c( size.x, -size.y,  size.z);
+    corners[3] = vec3_t_c(-size.x, -size.y,  size.z);
+    
+    for(uint32_t corner_index = 0; corner_index < 4; corner_index++)
+    {
+        vec3_t *corner = corners + corner_index;
+        mat3_t_vec3_t_mul(corner, corner, &collider->orientation);
+        vec3_t_max(&max, &max, corner);
+        vec3_t_min(&min, &min, corner);
+    }
+    
+    vec3_t_mul(&up, &collider->orientation.rows[1], collider->size.y);
+    
+    for(uint32_t corner_index = 4; corner_index < 8; corner_index++)
+    {
+        vec3_t *corner = corners + corner_index;
+        vec3_t_add(corner, corner - 4, &up);
+        vec3_t_max(&max, &max, corner);
+        vec3_t_min(&min, &min, corner);
+    }
+    
+    struct dbvh_node_t *node = get_dbvh_node_pointer(&p_main_dbvh, collider->node_index);
+    vec3_t_add(&node->min, &min, &collider->position);
+    vec3_t_add(&node->max, &max, &collider->position);
+    
+    uint32_t sibling_index = nodes_smallest_volume(&p_main_dbvh, collider->node_index);
+    pair_dbvh_nodes(&p_main_dbvh, collider->node_index, sibling_index);
 }
 
 void p_ComputeMoveBox(struct p_collider_t *collider, vec3_t *min, vec3_t *max)

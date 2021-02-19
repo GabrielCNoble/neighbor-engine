@@ -237,6 +237,8 @@ void g_Init(uint32_t editor_active)
     
     mask = a_GetAnimationMask(g_player_entity->mixer, "lower_body");
     player = a_GetMaskPlayer(mask, "run_player");
+    a_SetCallbackFrame(player->player, g_TestCallback, g_player_entity, 8);
+    a_SetCallbackFrame(player->player, g_TestCallback, g_player_entity, 20);
     player->weight = 0.0;
     player = a_GetMaskPlayer(mask, "idle_player");
     player->weight = 0.0;
@@ -248,8 +250,7 @@ void g_Init(uint32_t editor_active)
 //    struct a_mask_player_t *player = a_GetMaskPlayer(mask, "shoot_player");
 //    player->player->scale = 0.79;
 //    player->weight = 0.2;
-//    a_SetCallbackFrame(player, g_TestCallback, g_player_entity, 8);
-//    a_SetCallbackFrame(player, g_TestCallback, g_player_entity, 20);
+    
     
     mat4_t_identity(&transform);
     transform.rows[0].x *= 0.5;
@@ -258,6 +259,19 @@ void g_Init(uint32_t editor_active)
     mat4_t_rotate_x(&transform, -0.5);
     mat4_t_rotate_y(&transform, 0.5);
     g_gun_entity = g_CreateEntity(&transform, NULL, g_gun_model);
+    
+    mat4_t_identity(&transform);
+    transform.rows[0].x *= 2.0;
+    transform.rows[1].y *= 2.0;
+    transform.rows[2].z *= 2.0;
+    mat4_t_rotate_z(&transform, 0.2);
+    transform.rows[3].y = 0.0;
+    transform.rows[3].x = 5.8;
+    
+    struct g_entity_t *rotated_entity = g_CreateEntity(&transform, NULL, g_cube_model);
+    g_SetEntityCollider(rotated_entity, P_COLLIDER_TYPE_STATIC, &vec3_t_c(4.0, 4.0, 4.0));
+    mat3_t_rotate_z(&rotated_entity->collider->orientation, 0.2);
+    p_UpdateColliderNode(rotated_entity->collider);
     
 //    player = a_GetPlayer(g_player_entity->mixer, 2);
 //    player->scale = 0.0;
@@ -279,7 +293,7 @@ void g_Init(uint32_t editor_active)
 //    player->scale = 0.0;
     
     
-    g_LoadMap("map7.png");
+    g_LoadMap("map8.png");
     
     g_game_state = G_GAME_STATE_EDITING;
     
@@ -602,7 +616,7 @@ void g_ParentEntity(struct g_entity_t *parent, struct g_entity_t *entity)
 void g_SetEntityCollider(struct g_entity_t *entity, uint32_t type, vec3_t *size)
 {
     vec3_t position = vec3_t_c_vec4_t(&entity->transform.rows[3]);
-    entity->collider = p_CreateCollider(type, &position, size);
+    entity->collider = p_CreateCollider(type, &position, NULL, size);
     entity->collider->user_data = entity;
 }
 
@@ -841,7 +855,7 @@ void g_PlayerThinker(struct g_entity_t *entity)
         {
             if(player_state->flags & G_PlAYER_FLAG_JUMPING)
             {
-                if(collider->position.y - player_state->jump_y > 3.0)
+                if(collider->position.y - player_state->jump_y > 3.5)
                 {
                     player_state->jump_disp *= 0.9;
                 }

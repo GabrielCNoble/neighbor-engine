@@ -38,7 +38,7 @@ struct aiNode* find_node(struct aiNode *cur_node, char *name)
     {
         return cur_node;
     }
-    
+
     for(uint32_t child_index = 0; child_index < cur_node->mNumChildren; child_index++)
     {
         if(find_node(cur_node->mChildren[child_index], name))
@@ -46,7 +46,7 @@ struct aiNode* find_node(struct aiNode *cur_node, char *name)
             return cur_node->mChildren[child_index];
         }
     }
-    
+
     return NULL;
 }
 
@@ -79,7 +79,7 @@ int32_t compare_bone_transforms(void *a, void *b)
 {
     struct bone_transform_t *keyframe_a = (struct bone_transform_t *)a;
     struct bone_transform_t *keyframe_b = (struct bone_transform_t *)b;
-    
+
     if(keyframe_a->time > keyframe_b->time) return 1;
     else if(keyframe_a->time < keyframe_b->time)return -1;
     return 0;
@@ -87,7 +87,7 @@ int32_t compare_bone_transforms(void *a, void *b)
 
 int main(int argc, char *argv[])
 {
-    struct aiScene *scene;  
+    struct aiScene *scene;
     struct aiPropertyStore *properties;
     int32_t cur_arg = ARG_NO_ARG;
     char *input_name = NULL;
@@ -131,18 +131,18 @@ int main(int argc, char *argv[])
                     case ARG_INPUT_NAME:
                         input_name = argv[arg_index];
                     break;
-                    
+
                     case ARG_PREPEND:
                         strcpy(prepend, ds_path_FormatPath(argv[arg_index]));
                     break;
                 }
-                
+
                 cur_arg = ARG_NO_ARG;
             }
-            
+
             arg_index++;
         }
-        
+
         if(cur_arg != ARG_NO_ARG)
         {
             switch(cur_arg)
@@ -151,24 +151,24 @@ int main(int argc, char *argv[])
                     printf("missing input file name!\n");
                     return -1;
                 break;
-                
+
                 case ARG_PREPEND:
                     printf("missing prepend!\n");
                 break;
             }
         }
-        
+
 //        properties = aiCreatePropertyStore();
 //        aiSetImportPropertyInteger(properties, AI_CONFIG_IMPORT_FBX_OPTIMIZE_EMPTY_ANIMATION_CURVES, 0);
 //        scene = aiImportFileExWithProperties((const char *)input_name, aiProcess_CalcTangentSpace | aiProcess_Triangulate, NULL, properties);
         scene = aiImportFile((const char *)input_name, aiProcess_CalcTangentSpace | aiProcess_Triangulate);
-        
+
         if(!scene)
         {
             printf("couldn't load file %s\n", input_name);
             return -1;
         }
-        
+
         if(!no_anim)
         {
             for(uint32_t animation_index = 0; animation_index < scene->mNumAnimations; animation_index++)
@@ -178,9 +178,9 @@ int main(int argc, char *argv[])
                 struct list_t node_list = create_list(sizeof(struct aiNode *), 512);
                 struct list_t bone_transform_list = create_list(sizeof(struct bone_transform_t), 512);
                 struct list_t pair_list = create_list(sizeof(struct a_transform_pair_t), 512);
-                
+
                 char *animation_name = animation->mName.data;
-                
+
                 while(*animation_name != '|' && *animation_name) animation_name++;
                 if(!(*animation_name))
                 {
@@ -190,12 +190,12 @@ int main(int argc, char *argv[])
                 {
                     animation_name++;
                 }
-                
+
                 strcpy(output_name, prepend);
                 strcat(output_name, "/");
                 strcat(output_name, animation_name);
                 strcat(output_name, ".anf");
-                
+
                 if(file_exists(output_name) && !overwrite)
                 {
                     printf("An animation file named '%s' already exists in the output directory.\n", output_name);
@@ -212,42 +212,46 @@ int main(int argc, char *argv[])
                         break;
                     }
                 }
-                
+
                 while(skeleton_node->mParent != scene->mRootNode)
                 {
                     skeleton_node = skeleton_node->mParent;
                 }
-                
+
+                /* get bones in depth-first order */
                 get_them_bones(skeleton_node, &node_list);
                 uint32_t duration = (uint32_t)((animation->mDuration / 1000.0) * animation->mTicksPerSecond);
-                
+
                 for(uint32_t channel_index = 0; channel_index < animation->mNumChannels; channel_index++)
                 {
+                    /* each channel contains all the keyframes of a single node */
                     struct aiNodeAnim *channel = animation->mChannels[channel_index];
                     uint32_t rotation_index = 0;
                     uint32_t position_index = 0;
                     uint32_t scale_index = 0;
-                    
+
                     for(uint32_t node_index = 0; node_index < node_list.cursor; node_index++)
                     {
                         struct aiNode *node = *(struct aiNode **)get_list_element(&node_list, node_index);
-                        
+
                         if(!strcmp(node->mName.data, channel->mNodeName.data))
                         {
                             struct bone_transform_t bone_transform = {};
                             bone_transform.bone_index = node_index;
-                            
+
                             if(channel->mNumPositionKeys == 1 && channel->mNumRotationKeys == 1)
                             {
+                                /* this channel has a single keyframe, but we need a keyframe at the start and
+                                end of the animation, so we duplicate it  */
                                 bone_transform.transform.rot.x = channel->mRotationKeys->mValue.x;
                                 bone_transform.transform.rot.y = channel->mRotationKeys->mValue.y;
                                 bone_transform.transform.rot.z = channel->mRotationKeys->mValue.z;
                                 bone_transform.transform.rot.w = channel->mRotationKeys->mValue.w;
-                                
+
                                 bone_transform.transform.pos.x = channel->mPositionKeys->mValue.x;
                                 bone_transform.transform.pos.y = channel->mPositionKeys->mValue.y;
                                 bone_transform.transform.pos.z = channel->mPositionKeys->mValue.z;
-                                
+
                                 bone_transform.time = 0;
                                 add_list_element(&bone_transform_list, &bone_transform);
                                 bone_transform.time = duration;
@@ -257,41 +261,46 @@ int main(int argc, char *argv[])
                             {
                                 while(rotation_index < channel->mNumRotationKeys || position_index < channel->mNumPositionKeys)
                                 {
+                                    /* this bone has more than on keyframe, so we accumulate them all. A bone might have a
+                                    rotation without translation (or vice versa) in a given keyframe. If this is the case,
+                                    we just duplicate the one that's missing from the previous keyframe */
                                     uint32_t lowest_time = 0xffffffff;
                                     struct bone_transform_t old_bone_transform = bone_transform;
                                     if(rotation_index < channel->mNumRotationKeys)
                                     {
                                         struct aiQuatKey *rotation = channel->mRotationKeys + rotation_index;
-                                         
+
                                         uint32_t time = (uint32_t)((rotation->mTime / 1000.0) * animation->mTicksPerSecond);
-                                        if(time <= lowest_time)
-                                        {
-                                            lowest_time = time;
-                                            rotation_index++;
-                                            
-                                            bone_transform.time = lowest_time;
-                                            bone_transform.transform.rot.x = rotation->mValue.x;
-                                            bone_transform.transform.rot.y = rotation->mValue.y;
-                                            bone_transform.transform.rot.z = rotation->mValue.z;
-                                            bone_transform.transform.rot.w = rotation->mValue.w;
-                                        }
+//                                        if(time <= lowest_time)
+//                                        {
+                                        lowest_time = time;
+                                        rotation_index++;
+
+                                        bone_transform.time = lowest_time;
+                                        bone_transform.transform.rot.x = rotation->mValue.x;
+                                        bone_transform.transform.rot.y = rotation->mValue.y;
+                                        bone_transform.transform.rot.z = rotation->mValue.z;
+                                        bone_transform.transform.rot.w = rotation->mValue.w;
+//                                        }
                                     }
-                                    
+
                                     if(position_index < channel->mNumPositionKeys)
                                     {
                                         struct aiVectorKey *position = channel->mPositionKeys + position_index;
                                         uint32_t time = (uint32_t)((position->mTime / 1000.0) * animation->mTicksPerSecond);
                                         if(time <= lowest_time)
                                         {
+                                            /* this position keyframe may be for the same frame, or for a different that comes before
+                                            the rotation keyframe */
                                             position_index++;
                                             if(time < lowest_time)
                                             {
-                                                /* this position keyframe comes before the rotation keyframe, which means 
-                                                only the position must be modified. So, we restore it to the value before 
+                                                /* this position keyframe comes before the rotation keyframe, which means
+                                                only the position must be modified. So, we restore it to the value before
                                                 the modification */
                                                 bone_transform = old_bone_transform;
                                             }
-                                            
+
                                             lowest_time = time;
                                             bone_transform.time = lowest_time;
                                             bone_transform.transform.pos.x = position->mValue.x;
@@ -299,6 +308,10 @@ int main(int argc, char *argv[])
                                             bone_transform.transform.pos.z = position->mValue.z;
                                         }
                                     }
+
+
+                                    /* make sure we don't have duplicate frames, because for some reason assimp
+                                    sometimes handles us that...? */
                                     struct bone_transform_t *last_bone_transform = NULL;
                                     if(bone_transform_list.cursor)
                                     {
@@ -308,29 +321,29 @@ int main(int argc, char *argv[])
                                             last_bone_transform = NULL;
                                         }
                                     }
-                                    
+
                                     if(!last_bone_transform)
-                                    {                                                                            
+                                    {
                                         add_list_element(&bone_transform_list, &bone_transform);
                                     }
                                 }
                             }
-                            
-                            
+
                             break;
                         }
                     }
                 }
-                
+
+                /* sort keyframes by time */
                 qsort_list(&bone_transform_list, compare_bone_transforms);
-                
-                
+
+
                 /* for each frame in the animation, we need a list of pairs, sorted by bone.
                 This is required to keep the skeleton in a consistent state even if frames are
                 skipped. Also required for seeking. Since it's likely animations will have more
-                than one frame, we'll have several of those lists, and the total number of of 
-                pairs will be the bone_count * animation_length */
-                
+                than one frame, we'll have several of those lists, and the total number of pairs
+                will be the bone_count * animation_length */
+
                 for(uint32_t frame = 0; frame < duration; frame++)
                 {
                     /* so, for every frame in the animation... */
@@ -340,28 +353,33 @@ int main(int argc, char *argv[])
                         struct bone_transform_t *start_transform;
                         struct bone_transform_t *end_transform;
                         struct a_transform_pair_t pair = {.start = 0xffff, .end = 0xffff};
-                        
+
                         for(uint32_t start_index = 0; start_index < bone_transform_list.cursor; start_index++)
                         {
                             start_transform = get_list_element(&bone_transform_list, start_index);
                             if(start_transform->bone_index == node_index && start_transform->time <= frame)
                             {
                                 /* we find the first transform that starts at the current frame, or before
-                                it, that belongs to the current bone... */
+                                it, that belongs to the current bone. We take transforms that start before
+                                the current frame because we're looking for a pair of tranforms that enclose
+                                the current frame, and a pair of transforms might get used by several consecutive
+                                frames */
+
                                 uint32_t end_index = start_index + 1;
+
                                 for(; end_index < bone_transform_list.cursor; end_index++)
                                 {
                                     /* we then find the next transform for this bone after the first we found. Since all
-                                    transforms are sorted by time, and there's only one transform per frame for each bone, 
-                                    this transform has to have a frametime higher than the first */
-                                    
+                                    transforms are sorted by time, and there's only one transform per frame for each bone,
+                                    this transform has to have a frame time higher than the first */
+
                                     end_transform = get_list_element(&bone_transform_list, end_index);
                                     if(end_transform->bone_index == node_index)
                                     {
                                         break;
                                     }
                                 }
-                                
+
                                 if(end_index < bone_transform_list.cursor && end_transform->time > frame)
                                 {
                                     /* we check to see if the current frame is contained between those two
@@ -371,86 +389,86 @@ int main(int argc, char *argv[])
                                     pair.end_frame = end_transform->time;
                                     break;
                                 }
-                                
+
                                 /* otherwise, the current frame is outside the interval defined by the two
-                                frames, and we continue the search from the second transform we found for this 
+                                frames, and we continue the search from the second transform we found for this
                                 bone, now treating it as the start transform */
                                 start_index = end_index - 1;
                             }
                         }
-                        
+
                         add_list_element(&pair_list, &pair);
                     }
                 }
-                
+
                 printf("Exporting animation '%s'...\n", animation_name);
                 printf("Duration: %d\n", duration);
                 printf("Frame rate: %f\n", animation->mTicksPerSecond);
                 printf("Bones: %d\n", node_list.cursor);
                 printf("Transforms: %d\n", bone_transform_list.cursor);
                 printf("Pairs: %d\n", pair_list.cursor);
-                
+
                 struct ds_section_t animation_section = {};
                 strcpy(animation_section.info.name, "[animation]");
 
                 struct a_anim_sec_header_t *header;
-                header = ds_append_data(&animation_section, sizeof(*header), NULL); 
+                header = ds_append_data(&animation_section, sizeof(*header), NULL);
                 header->bone_count = node_list.cursor;
                 header->transform_count = bone_transform_list.cursor;
                 header->duration = duration;
                 header->framerate = animation->mTicksPerSecond;
                 strcpy(header->name, animation_name);
-                
+
                 struct a_anim_sec_data_t(header->transform_count, pair_list.cursor) *data;
                 data = ds_append_data(&animation_section, sizeof(*data), NULL);
-                
+
                 for(uint32_t transform_index = 0; transform_index < bone_transform_list.cursor; transform_index++)
                 {
                     struct bone_transform_t *transform = get_list_element(&bone_transform_list, transform_index);
                     data->transforms[transform_index] = transform->transform;
                 }
-                
+
                 for(uint32_t pair_index = 0; pair_index < pair_list.cursor; pair_index++)
                 {
                     data->pairs[pair_index] = *(struct a_transform_pair_t *)get_list_element(&pair_list, pair_index);
                 }
-                
+
                 void *buffer;
                 uint32_t buffer_size;
-                
+
                 struct ds_section_t *sections[] = {&animation_section};
-                
+
                 ds_serialize_sections(&buffer, &buffer_size, 1, sections);
                 ds_free_section(&animation_section);
                 destroy_list(&node_list);
                 destroy_list(&bone_transform_list);
                 destroy_list(&pair_list);
-                
+
                 FILE *file = fopen(output_name, "wb");
                 fwrite(buffer, buffer_size, 1, file);
                 fclose(file);
                 mem_Free(buffer);
-                
+
                 printf("Animation '%s' exported!\n\n", animation_name);
             }
         }
-        
+
         if(!no_model)
         {
             for(uint32_t object_index = 0; object_index < scene->mRootNode->mNumChildren; object_index++)
             {
                 struct aiNode *object = scene->mRootNode->mChildren[object_index];
-                
+
                 if(!object->mMeshes)
                 {
                     continue;
                 }
-                
+
                 strcpy(output_name, prepend);
                 strcat(output_name, "/");
                 strcat(output_name, object->mName.data);
                 strcat(output_name, ".mof");
-                
+
                 if(file_exists(output_name) && !overwrite)
                 {
                     printf("A model file named '%s' already exists in the output directory.\n", output_name);
@@ -462,13 +480,13 @@ int main(int argc, char *argv[])
                         scanf("%c", &choice);
                     }
                     while(choice == '\n');
-                    
+
                     if(choice != 'y' || choice != 'Y')
                     {
                         break;
                     }
                 }
-                
+
                 struct ds_section_t skeleton_section = {};
                 strcpy(skeleton_section.info.name, "[skeleton]");
                 struct ds_section_t weight_section = {};
@@ -481,41 +499,41 @@ int main(int argc, char *argv[])
                 strcpy(vert_section.info.name, "[vertices]");
                 struct ds_section_t index_section = {};
                 strcpy(index_section.info.name, "[indices]");
-                
+
                 struct aiMesh *mesh = scene->mMeshes[object->mMeshes[0]];
                 uint32_t bone_count = 0;
                 uint32_t weight_count = 0;
                 uint32_t range_count = 0;
-                
+
                 if(mesh->mBones)
                 {
                     struct list_t bone_list = create_list(sizeof(struct aiBone *), 512);
                     struct list_t node_list = create_list(sizeof(struct aiNode *), 512);
                     struct list_t weight_list = create_list(sizeof(struct vert_weight_t), 512);
                     struct list_t range_list = create_list(sizeof(struct a_weight_range_t), 512);
-                
+
                     struct aiNode *skeleton_node = find_node(scene->mRootNode, mesh->mBones[0]->mName.data);
-                    
+
                     while(skeleton_node->mParent != scene->mRootNode)
                     {
                         skeleton_node = skeleton_node->mParent;
                     }
                     /* store all nodes that represent the skeleton this object uses in depth-first order */
                     get_them_bones(skeleton_node, &node_list);
-                    
+
                     for(uint32_t mesh_index = 0; mesh_index < object->mNumMeshes; mesh_index++)
                     {
                         struct aiMesh *mesh = scene->mMeshes[object->mMeshes[mesh_index]];
-                        
+
                         for(uint32_t bone_index = 0; bone_index < mesh->mNumBones; bone_index++)
                         {
                             /* store all bones all meshes of this object use */
                             add_list_element(&bone_list, mesh->mBones + bone_index);
                         }
                     }
-                    
+
                     uint32_t bone_name_len = 0;
-                    
+
                     for(uint32_t bone_index = 0; bone_index < bone_list.cursor; bone_index++)
                     {
                         struct aiBone *bone = *(struct aiBone **)get_list_element(&bone_list, bone_index);
@@ -525,11 +543,11 @@ int main(int argc, char *argv[])
                             /* for every weight of every bone... */
                             struct aiVertexWeight *weight = bone->mWeights + weight_index;
                             struct vert_weight_t vert_weight = {};
-                            
+
                             /* keep which vertex it belongs to... */
                             vert_weight.vert_index = weight->mVertexId;
                             vert_weight.weight.weight = weight->mWeight;
-                            
+
                             for(uint32_t node_index = 0; node_index < node_list.cursor; node_index++)
                             {
                                 struct aiNode *node = *(struct aiNode **)get_list_element(&node_list, node_index);
@@ -540,12 +558,12 @@ int main(int argc, char *argv[])
                                     break;
                                 }
                             }
-                            
+
                             /* we store in a temporary list because we'll need to sort them by vertex index */
                             add_list_element(&weight_list, &vert_weight);
                         }
                     }
-                    
+
                     /* sort the list by vertex index, so weights of vertex 0 comes before all weights
                     of vertex 1, and so on. Here we'll export everything that assimp has got to give us,
                     even though we'll likely limit the number of weights per vertex during import (likely
@@ -558,11 +576,21 @@ int main(int argc, char *argv[])
                     struct a_weight_range_t range = {};
                     do
                     {
+                        /* we'll also sort the list by weight value, so larger weights come before
+                        smaller weights. This is to have guarantee that the larger weights are considered
+                        in case the importer decides to not use every weight. */
+
+
+                        /* we'll be sorting the list in parts. Each part is composed by weights
+                        that point to the same vertex. So, all weights of vertex 0 will be sorted
+                        by weight, then all weights of vertex 1, and so on.*/
+
                         vert_weight = get_list_element(&weight_list, right);
                         cur_vert = vert_weight->vert_index;
                         range.start = right;
                         while(vert_weight && vert_weight->vert_index == cur_vert)
                         {
+                            /* count how many weights there are for the current vertex */
                             right++;
                             vert_weight = get_list_element(&weight_list, right);
                         }
@@ -575,7 +603,11 @@ int main(int argc, char *argv[])
                         left = right;
                     }
                     while(vert_weight);
-                    
+
+                    /* for some funny reason assimp doesn't seem to like giving weights that amount to
+                    1.0 (or something decently close to it), so we'll scale all the weights here to make
+                    sure they add up to one (or something decently close to it). Larger weights get rescaled
+                    more than smaller weights, since they contribute more to the final result. */
                     cur_vert = 0xffffffff;
                     float total_weight = 0.0;
                     uint32_t first_weight = 0;
@@ -602,33 +634,33 @@ int main(int argc, char *argv[])
                             first_weight = weight_index;
                             cur_vert = vert_weight->vert_index;
                         }
-                        
+
                         total_weight += vert_weight->weight.weight;
                     }
-                     
+
                     struct a_weight_section_t(weight_list.cursor, range_list.cursor) *weights;
                     weights = ds_append_data(&weight_section, sizeof(*weights), NULL);
-                    
+
                     weights->weight_count = weight_list.cursor;
                     weights->range_count = range_list.cursor;
-                    
+
                     for(uint32_t weight_index = 0; weight_index < weights->weight_count; weight_index++)
                     {
                         struct vert_weight_t *weight = get_list_element(&weight_list, weight_index);
                         weights->weights[weight_index] = weight->weight;
                     }
-                    
+
                     for(uint32_t range_index = 0; range_index < weights->range_count; range_index++)
                     {
                         struct a_weight_range_t *range = get_list_element(&range_list, range_index);
                         weights->ranges[range_index] = *range;
                     }
 
-                    /* now we generate the actual bone/weight data to be exported... */                    
-                    
+                    /* now we generate the actual bone/weight data to be exported... */
+
                     struct a_skeleton_section_t(node_list.cursor, bone_name_len) *skeleton;
                     skeleton = ds_append_data(&skeleton_section, sizeof(*skeleton), NULL);
-                    
+
                     skeleton->bone_count = node_list.cursor;
                     for(uint32_t node_index = 0; node_index < node_list.cursor; node_index++)
                     {
@@ -642,7 +674,7 @@ int main(int argc, char *argv[])
                             {
                                 strcpy(bone_name, ai_bone->mName.data);
                                 skeleton->bone_names_length += ai_bone->mName.length + 1;
-                                
+
                                 bone->inv_bind_matrix.rows[0].x = ai_bone->mOffsetMatrix.a1;
                                 bone->inv_bind_matrix.rows[0].y = ai_bone->mOffsetMatrix.b1;
                                 bone->inv_bind_matrix.rows[0].z = ai_bone->mOffsetMatrix.c1;
@@ -662,7 +694,7 @@ int main(int argc, char *argv[])
                                 break;
                             }
                         }
-                        
+
                         bone->transform.rows[0].x = node->mTransformation.a1;
                         bone->transform.rows[0].y = node->mTransformation.b1;
                         bone->transform.rows[0].z = node->mTransformation.c1;
@@ -681,88 +713,89 @@ int main(int argc, char *argv[])
                         bone->transform.rows[3].w = node->mTransformation.d4;
                         bone->child_count = node->mNumChildren;
                     }
-                    
+
                     bone_count = node_list.cursor;
                     weight_count = weight_list.cursor;
                     range_count = range_list.cursor;
-                    
+
                     destroy_list(&weight_list);
                     destroy_list(&range_list);
                     destroy_list(&node_list);
                     destroy_list(&bone_list);
                 }
-                
+
                 struct r_material_section_t *materials = ds_append_data(&material_section, sizeof(struct r_material_section_t), NULL);
                 struct r_batch_section_t *batches = ds_append_data(&batch_section, sizeof(struct r_batch_section_t), NULL);
                 struct r_index_section_t *indices = ds_append_data(&index_section, sizeof(struct r_index_section_t), NULL);
                 struct r_vert_section_t *vertices = ds_append_data(&vert_section, sizeof(struct r_vert_section_t), NULL);
-                
+
                 batches->batch_count = object->mNumMeshes;
                 materials->material_count = object->mNumMeshes;
-                
+
                 for(uint32_t batch_index = 0; batch_index < object->mNumMeshes; batch_index++)
                 {
                     struct aiMesh *mesh = scene->mMeshes[object->mMeshes[batch_index]];
                     struct r_batch_record_t batch_record = {};
-                    
+
                     struct r_material_record_t material_record = {};
                     struct aiMaterial *material = scene->mMaterials[mesh->mMaterialIndex];
                     struct aiString name;
-                    
+
                     aiGetMaterialString(material, AI_MATKEY_NAME, &name);
                     strcpy(material_record.name, name.data);
-                    
+
                     if(aiGetMaterialString(material, AI_MATKEY_TEXTURE_DIFFUSE(0), &name) == aiReturn_SUCCESS)
                     {
                         strcpy(material_record.diffuse_texture, name.data);
                     }
-                    
+
                     if(aiGetMaterialString(material, AI_MATKEY_TEXTURE_NORMALS(0), &name) == aiReturn_SUCCESS)
                     {
                         strcpy(material_record.normal_texture, name.data);
                     }
-                    
+
                     ds_append_data(&material_section, sizeof(struct r_material_record_t), &material_record);
-                    
-                    
+
+
                     strcpy(batch_record.material, material_record.name);
                     batch_record.start = indices->index_count;
-                    
+
                     vertices->min = vec3_t_c(0.0, 0.0, 0.0);
                     vertices->max = vec3_t_c(0.0, 0.0, 0.0);
-                    
+
                     for(uint32_t vert_index = 0; vert_index < mesh->mNumVertices; vert_index++)
                     {
                         struct r_vert_t vert = {};
-                        
+
                         vert.pos.x = mesh->mVertices[vert_index].x;
                         vert.pos.y = mesh->mVertices[vert_index].y;
                         vert.pos.z = mesh->mVertices[vert_index].z;
-                        
+
                         vert.normal.x = mesh->mNormals[vert_index].x;
                         vert.normal.y = mesh->mNormals[vert_index].y;
                         vert.normal.z = mesh->mNormals[vert_index].z;
-                        
+                        vert.normal.w = 0.0;
+
                         vert.tangent.x = mesh->mTangents[vert_index].x;
                         vert.tangent.y = mesh->mTangents[vert_index].y;
                         vert.tangent.z = mesh->mTangents[vert_index].z;
-                        
+
                         vert.tex_coords.x = mesh->mTextureCoords[0][vert_index].x;
                         vert.tex_coords.y = mesh->mTextureCoords[0][vert_index].y;
-                        
+
                         if(vertices->min.x < vert.pos.x) vertices->min.x = vert.pos.x;
                         if(vertices->min.y < vert.pos.y) vertices->min.y = vert.pos.y;
                         if(vertices->min.z < vert.pos.z) vertices->min.z = vert.pos.z;
-                        
+
                         if(vertices->max.x > vert.pos.x) vertices->max.x = vert.pos.x;
                         if(vertices->max.y > vert.pos.y) vertices->max.y = vert.pos.y;
                         if(vertices->max.z > vert.pos.z) vertices->max.z = vert.pos.z;
-                        
+
                         ds_append_data(&vert_section, sizeof(struct r_vert_t), &vert);
                     }
-                    
+
                     vertices->vert_count += mesh->mNumVertices;
-                    
+
                     for(uint32_t face_index = 0; face_index < mesh->mNumFaces; face_index++)
                     {
                         struct aiFace *face = mesh->mFaces + face_index;
@@ -770,28 +803,28 @@ int main(int argc, char *argv[])
                         indices->index_count += face->mNumIndices;
                         ds_append_data(&index_section, sizeof(uint32_t) * face->mNumIndices, face->mIndices);
                     }
-                    
+
                     ds_append_data(&batch_section, sizeof(struct r_batch_record_t), &batch_record);
                 }
-                
+
                 printf("Exporting model '%s'...\n", object->mName.data);
                 printf("Vertices: %d\n", vertices->vert_count);
                 printf("Indices: %d\n", indices->index_count);
                 printf("Batches: %d\n", batches->batch_count);
-                
+
                 void *buffer;
                 uint32_t buffer_size;
                 uint32_t section_count = 4;
-                struct ds_section_t *sections[] = 
+                struct ds_section_t *sections[] =
                 {
                     &material_section,
                     &batch_section,
                     &vert_section,
-                    &index_section, 
+                    &index_section,
                     NULL,
                     NULL,
                 };
-                
+
                 if(bone_count)
                 {
                     printf("Bones: %d\n", bone_count);
@@ -801,24 +834,24 @@ int main(int argc, char *argv[])
                     sections[5] = &weight_section;
                     section_count = 6;
                 }
-                
+
                 ds_serialize_sections(&buffer, &buffer_size, section_count, sections);
-                
+
                 for(uint32_t section_index = 0; section_index < section_count; section_index++)
                 {
                     ds_free_section(sections[section_index]);
                 }
-                
+
                 FILE *file = fopen(output_name, "wb");
                 fwrite(buffer, buffer_size, 1, file);
                 fclose(file);
                 mem_Free(buffer);
-                
+
                 printf("Model '%s' exported!\n\n", object->mName.data);
             }
         }
     }
-    
+
     return 0;
 }
 

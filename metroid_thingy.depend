@@ -1,10 +1,10 @@
 # depslib dependency file v1.0
-1613276515 source:c:\users\gabri\documents\compiler\metroid_thingy\main.c
+1613287314 source:c:\users\gabri\documents\compiler\metroid_thingy\main.c
 	"SDL2/SDL.h"
 	<stdio.h>
 	"game.h"
 
-1564029384 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl.h
+1564040184 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl.h
 	"SDL_main.h"
 	"SDL_stdinc.h"
 	"SDL_assert.h"
@@ -37,12 +37,12 @@
 	"begin_code.h"
 	"close_code.h"
 
-1564029384 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_main.h
+1564040184 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_main.h
 	"SDL_stdinc.h"
 	"begin_code.h"
 	"close_code.h"
 
-1564029384 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_stdinc.h
+1564040184 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_stdinc.h
 	"SDL_config.h"
 	<sys/types.h>
 	<stdio.h>
@@ -71,27 +71,27 @@
 	"begin_code.h"
 	"close_code.h"
 
-1564029384 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_config.h
+1564040184 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_config.h
 	"SDL_platform.h"
 
-1564029384 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_platform.h
+1564040184 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_platform.h
 	"AvailabilityMacros.h"
 	"TargetConditionals.h"
 	<winapifamily.h>
 	"begin_code.h"
 	"close_code.h"
 
-1564029384 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\begin_code.h
+1564040184 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\begin_code.h
 
-1564029384 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\close_code.h
+1564040184 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\close_code.h
 
-1564029384 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_assert.h
+1564040184 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_assert.h
 	"SDL_config.h"
 	"begin_code.h"
 	<signal.h>
 	"close_code.h"
 
-1564029384 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_atomic.h
+1564040184 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_atomic.h
 	"SDL_stdinc.h"
 	"SDL_platform.h"
 	"begin_code.h"
@@ -99,7 +99,7 @@
 	<mbarrier.h>
 	"close_code.h"
 
-1564029384 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_audio.h
+1564040184 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_audio.h
 	"SDL_stdinc.h"
 	"SDL_error.h"
 	"SDL_endian.h"
@@ -109,24 +109,24 @@
 	"begin_code.h"
 	"close_code.h"
 
-1564029384 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_error.h
+1564040184 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_error.h
 	"SDL_stdinc.h"
 	"begin_code.h"
 	"close_code.h"
 
-1564029384 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_endian.h
+1564040184 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_endian.h
 	"SDL_stdinc.h"
 	<endian.h>
 	"begin_code.h"
 	"close_code.h"
 
-1564029384 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_mutex.h
+1564040184 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_mutex.h
 	"SDL_stdinc.h"
 	"SDL_error.h"
 	"begin_code.h"
 	"close_code.h"
 
-1564029384 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_thread.h
+1564040184 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_thread.h
 	"SDL_stdinc.h"
 	"SDL_error.h"
 	"SDL_atomic.h"
@@ -137,18 +137,18 @@
 	<stdlib.h>
 	"close_code.h"
 
-1564029384 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_rwops.h
+1564040184 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_rwops.h
 	"SDL_stdinc.h"
 	"SDL_error.h"
 	"begin_code.h"
 	"close_code.h"
 
-1564029384 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_clipboard.h
+1564040184 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_clipboard.h
 	"SDL_stdinc.h"
 	"begin_code.h"
 	"close_code.h"
 
-1564029384 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_cpuinfo.h
+1564040184 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_cpuinfo.h
 	"SDL_stdinc.h"
 	<intrin.h>
 	<intrin.h>
@@ -167,7 +167,7 @@
 	"begin_code.h"
 	"close_code.h"
 
-1564029384 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_events.h
+1564040184 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_events.h
 	"SDL_stdinc.h"
 	"SDL_error.h"
 	"SDL_video.h"
@@ -181,7 +181,7 @@
 	"begin_code.h"
 	"close_code.h"
 
-1564029384 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_video.h
+1564040184 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_video.h
 	"SDL_stdinc.h"
 	"SDL_pixels.h"
 	"SDL_rect.h"
@@ -189,13 +189,13 @@
 	"begin_code.h"
 	"close_code.h"
 
-1564029384 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_pixels.h
+1564040184 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_pixels.h
 	"SDL_stdinc.h"
 	"SDL_endian.h"
 	"begin_code.h"
 	"close_code.h"
 
-1564029384 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_rect.h
+1564040184 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_rect.h
 	"SDL_stdinc.h"
 	"SDL_error.h"
 	"SDL_pixels.h"
@@ -203,7 +203,7 @@
 	"begin_code.h"
 	"close_code.h"
 
-1564029384 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_surface.h
+1564040184 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_surface.h
 	"SDL_stdinc.h"
 	"SDL_pixels.h"
 	"SDL_rect.h"
@@ -212,11 +212,11 @@
 	"begin_code.h"
 	"close_code.h"
 
-1564029384 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_blendmode.h
+1564040184 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_blendmode.h
 	"begin_code.h"
 	"close_code.h"
 
-1564029384 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_keyboard.h
+1564040184 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_keyboard.h
 	"SDL_stdinc.h"
 	"SDL_error.h"
 	"SDL_keycode.h"
@@ -224,27 +224,27 @@
 	"begin_code.h"
 	"close_code.h"
 
-1564029384 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_keycode.h
+1564040184 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_keycode.h
 	"SDL_stdinc.h"
 	"SDL_scancode.h"
 
-1564029384 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_scancode.h
+1564040184 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_scancode.h
 	"SDL_stdinc.h"
 
-1564029384 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_mouse.h
+1564040184 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_mouse.h
 	"SDL_stdinc.h"
 	"SDL_error.h"
 	"SDL_video.h"
 	"begin_code.h"
 	"close_code.h"
 
-1564029384 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_joystick.h
+1564040184 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_joystick.h
 	"SDL_stdinc.h"
 	"SDL_error.h"
 	"begin_code.h"
 	"close_code.h"
 
-1564029384 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_gamecontroller.h
+1564040184 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_gamecontroller.h
 	"SDL_stdinc.h"
 	"SDL_error.h"
 	"SDL_rwops.h"
@@ -252,11 +252,11 @@
 	"begin_code.h"
 	"close_code.h"
 
-1564029384 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_quit.h
+1564040184 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_quit.h
 	"SDL_stdinc.h"
 	"SDL_error.h"
 
-1564029384 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_gesture.h
+1564040184 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_gesture.h
 	"SDL_stdinc.h"
 	"SDL_error.h"
 	"SDL_video.h"
@@ -264,66 +264,66 @@
 	"begin_code.h"
 	"close_code.h"
 
-1564029384 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_touch.h
+1564040184 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_touch.h
 	"SDL_stdinc.h"
 	"SDL_error.h"
 	"SDL_video.h"
 	"begin_code.h"
 	"close_code.h"
 
-1564029384 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_filesystem.h
+1564040184 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_filesystem.h
 	"SDL_stdinc.h"
 	"begin_code.h"
 	"close_code.h"
 
-1564029384 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_haptic.h
+1564040184 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_haptic.h
 	"SDL_stdinc.h"
 	"SDL_error.h"
 	"SDL_joystick.h"
 	"begin_code.h"
 	"close_code.h"
 
-1564029384 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_hints.h
+1564040184 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_hints.h
 	"SDL_stdinc.h"
 	"begin_code.h"
 	"close_code.h"
 
-1564029384 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_loadso.h
+1564040184 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_loadso.h
 	"SDL_stdinc.h"
 	"SDL_error.h"
 	"begin_code.h"
 	"close_code.h"
 
-1564029384 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_log.h
+1564040184 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_log.h
 	"SDL_stdinc.h"
 	"begin_code.h"
 	"close_code.h"
 
-1564029384 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_messagebox.h
+1564040184 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_messagebox.h
 	"SDL_stdinc.h"
 	"SDL_video.h"
 	"begin_code.h"
 	"close_code.h"
 
-1564029384 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_power.h
+1564040184 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_power.h
 	"SDL_stdinc.h"
 	"begin_code.h"
 	"close_code.h"
 
-1564029384 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_render.h
+1564040184 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_render.h
 	"SDL_stdinc.h"
 	"SDL_rect.h"
 	"SDL_video.h"
 	"begin_code.h"
 	"close_code.h"
 
-1564029384 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_sensor.h
+1564040184 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_sensor.h
 	"SDL_stdinc.h"
 	"SDL_error.h"
 	"begin_code.h"
 	"close_code.h"
 
-1564029384 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_shape.h
+1564040184 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_shape.h
 	"SDL_stdinc.h"
 	"SDL_pixels.h"
 	"SDL_rect.h"
@@ -332,7 +332,7 @@
 	"begin_code.h"
 	"close_code.h"
 
-1564029384 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_system.h
+1564040184 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_system.h
 	"SDL_stdinc.h"
 	"SDL_keyboard.h"
 	"SDL_render.h"
@@ -340,13 +340,13 @@
 	"begin_code.h"
 	"close_code.h"
 
-1564029384 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_timer.h
+1564040184 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_timer.h
 	"SDL_stdinc.h"
 	"SDL_error.h"
 	"begin_code.h"
 	"close_code.h"
 
-1564029384 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_version.h
+1564040184 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_version.h
 	"SDL_stdinc.h"
 	"begin_code.h"
 	"close_code.h"
@@ -355,7 +355,7 @@
 	"d_com.h"
 	"d_load.h"
 
-1613495664 c:\users\gabri\documents\compiler\metroid_thingy\lib\dstuff\ds_vector.h
+1613506464 c:\users\gabri\documents\compiler\metroid_thingy\lib\dstuff\ds_vector.h
 	<math.h>
 	<intrin.h>
 
@@ -370,14 +370,14 @@
 	<stdlib.h>
 	<stdio.h>
 
-1599740400 c:\users\gabri\documents\compiler\metroid_thingy\lib\dstuff\ds_stack_list.h
+1599751200 c:\users\gabri\documents\compiler\metroid_thingy\lib\dstuff\ds_stack_list.h
 	<stdint.h>
 	<string.h>
 	<stdlib.h>
 	<stdio.h>
 	"ds_mem.h"
 
-1608346258 c:\users\gabri\documents\compiler\metroid_thingy\lib\dstuff\ds_mem.h
+1608357058 c:\users\gabri\documents\compiler\metroid_thingy\lib\dstuff\ds_mem.h
 	<stdint.h>
 	<string.h>
 	<stdlib.h>
@@ -385,7 +385,7 @@
 	<stdio.h>
 	<string.h>
 
-1612342577 source:c:\users\gabri\documents\compiler\metroid_thingy\impl.c
+1612353376 source:c:\users\gabri\documents\compiler\metroid_thingy\impl.c
 	"dstuff/ds_vector.h"
 	"dstuff/ds_mem.h"
 	"dstuff/ds_stack_list.h"
@@ -400,7 +400,7 @@
 	"dstuff/ds_obj.h"
 	"stb/stb_image.h"
 
-1501501581 c:\users\gabri\documents\compiler\metroid_thingy\lib\glew\include\gl\glew.h
+1501512380 c:\users\gabri\documents\compiler\metroid_thingy\lib\glew\include\gl\glew.h
 	<stddef.h>
 	<inttypes.h>
 	<stdint.h>
@@ -409,29 +409,29 @@
 	<OpenGL/glu.h>
 	<GL/glu.h>
 
-1612540305 c:\users\gabri\documents\compiler\metroid_thingy\lib\dstuff\ds_file.h
+1612551104 c:\users\gabri\documents\compiler\metroid_thingy\lib\dstuff\ds_file.h
 	<stdio.h>
 	<stdint.h>
 	<stdlib.h>
 	"ds_mem.h"
 	<stdarg.h>
 
-1612295613 c:\users\gabri\documents\compiler\metroid_thingy\input.h
+1622131650 c:\users\gabri\documents\compiler\metroid_thingy\input.h
 	"SDL2/SDL.h"
 
-1612295628 source:c:\users\gabri\documents\compiler\metroid_thingy\input.c
+1622131657 source:c:\users\gabri\documents\compiler\metroid_thingy\input.c
 	"input.h"
 
-1613225157 c:\users\gabri\documents\compiler\metroid_thingy\lib\dstuff\ds_matrix.h
+1613235956 c:\users\gabri\documents\compiler\metroid_thingy\lib\dstuff\ds_matrix.h
 	"ds_vector.h"
 	<intrin.h>
 
-1607830079 c:\users\gabri\documents\compiler\metroid_thingy\lib\dstuff\ds_alloc.h
+1607840878 c:\users\gabri\documents\compiler\metroid_thingy\lib\dstuff\ds_alloc.h
 	"ds_stack_list.h"
 	"ds_list.h"
 	<stdint.h>
 
-1613273259 c:\users\gabri\documents\compiler\metroid_thingy\lib\dstuff\ds_list.h
+1613284058 c:\users\gabri\documents\compiler\metroid_thingy\lib\dstuff\ds_list.h
 	<stdint.h>
 	<string.h>
 	<stdlib.h>
@@ -446,7 +446,7 @@
 	<errno.h>
 	<stdlib.h>
 
-1607880039 c:\users\gabri\documents\compiler\metroid_thingy\lib\dstuff\ds_obj.h
+1607890838 c:\users\gabri\documents\compiler\metroid_thingy\lib\dstuff\ds_obj.h
 	"ds_xchg.h"
 	"ds_file.h"
 	"ds_path.h"
@@ -455,18 +455,18 @@
 	<stdlib.h>
 	<limits.h>
 
-1593151702 c:\users\gabri\documents\compiler\metroid_thingy\lib\dstuff\ds_xchg.h
+1593162502 c:\users\gabri\documents\compiler\metroid_thingy\lib\dstuff\ds_xchg.h
 	"ds_list.h"
 	"ds_vector.h"
 
-1600052733 c:\users\gabri\documents\compiler\metroid_thingy\lib\dstuff\ds_path.h
+1600063532 c:\users\gabri\documents\compiler\metroid_thingy\lib\dstuff\ds_path.h
 	<stdint.h>
 	<dirent.h>
 	<string.h>
 	<limits.h>
 	<stdlib.h>
 
-1613688200 source:c:\users\gabri\documents\compiler\metroid_thingy\game.c
+1623772299 source:c:\users\gabri\documents\compiler\metroid_thingy\game.c
 	"dstuff/ds_stack_list.h"
 	"dstuff/ds_mem.h"
 	"dstuff/ds_file.h"
@@ -482,7 +482,7 @@
 	<string.h>
 	<stdio.h>
 
-1612714274 c:\users\gabri\documents\compiler\metroid_thingy\game.h
+1612725074 c:\users\gabri\documents\compiler\metroid_thingy\game.h
 	"dstuff/ds_vector.h"
 	"dstuff/ds_matrix.h"
 	"dstuff/ds_list.h"
@@ -492,7 +492,7 @@
 	"r_vis.h"
 	<stdint.h>
 
-1593151698 c:\users\gabri\documents\compiler\metroid_thingy\lib\stb\stb_image.h
+1593162498 c:\users\gabri\documents\compiler\metroid_thingy\lib\stb\stb_image.h
 	"stb_image.h"
 	<stdio.h>
 	<stdlib.h>
@@ -509,7 +509,7 @@
 	<intrin.h>
 	<arm_neon.h>
 
-1613688354 source:c:\users\gabri\documents\compiler\metroid_thingy\physics.c
+1621960669 source:c:\users\gabri\documents\compiler\metroid_thingy\physics.c
 	<float.h>
 	"physics.h"
 	"dstuff/ds_stack_list.h"
@@ -518,13 +518,13 @@
 	"dstuff/ds_dbvh.h"
 	"r_draw.h"
 
-1613670019 c:\users\gabri\documents\compiler\metroid_thingy\physics.h
+1613747992 c:\users\gabri\documents\compiler\metroid_thingy\physics.h
 	"dstuff/ds_vector.h"
 	"dstuff/ds_matrix.h"
 	"dstuff/ds_list.h"
 	<stdint.h>
 
-1613237231 c:\users\gabri\documents\compiler\metroid_thingy\lib\dstuff\ds_dbvh.h
+1613248030 c:\users\gabri\documents\compiler\metroid_thingy\lib\dstuff\ds_dbvh.h
 	<stdint.h>
 	"ds_vector.h"
 	"ds_list.h"
@@ -552,7 +552,7 @@
 	"dstuff/ds_alloc.h"
 	"draw.h"
 
-1613276515 source:c:\users\gabri\documents\compiler\metroid_thingy\anim.c
+1623724910 source:c:\users\gabri\documents\compiler\metroid_thingy\anim.c
 	<stdio.h>
 	"anim.h"
 	"r_draw.h"
@@ -560,22 +560,22 @@
 	"dstuff/ds_stack_list.h"
 	"dstuff/ds_mem.h"
 
-1613276515 c:\users\gabri\documents\compiler\metroid_thingy\anim.h
+1623724432 c:\users\gabri\documents\compiler\metroid_thingy\anim.h
 	"dstuff/ds_vector.h"
 	"dstuff/ds_matrix.h"
 	"dstuff/ds_list.h"
 	"dstuff/ds_stack_list.h"
 	<stdint.h>
 
-1612193991 c:\users\gabri\documents\compiler\metroid_thingy\r_draw.h
+1623928627 c:\users\gabri\documents\compiler\metroid_thingy\r_draw.h
 	"r_com.h"
 	"r_main.h"
 
-1613276515 c:\users\gabri\documents\compiler\metroid_thingy\r_main.h
+1622130339 c:\users\gabri\documents\compiler\metroid_thingy\r_main.h
 	"r_com.h"
 	"GL/glew.h"
 
-1612540479 source:c:\users\gabri\documents\compiler\metroid_thingy\r_draw.c
+1623928733 source:c:\users\gabri\documents\compiler\metroid_thingy\r_draw.c
 	"r_draw.h"
 	"SDL2/SDL.h"
 	"GL/glew.h"
@@ -585,8 +585,10 @@
 	"dstuff/ds_obj.h"
 	<stdlib.h>
 	<stdio.h>
+	<stddef.h>
+	<stdalign.h>
 
-1613276515 source:c:\users\gabri\documents\compiler\metroid_thingy\r_main.c
+1623777363 source:c:\users\gabri\documents\compiler\metroid_thingy\r_main.c
 	"r_main.h"
 	"SDL2/SDL.h"
 	"GL/glew.h"
@@ -599,15 +601,18 @@
 	"r_draw.h"
 	"anim.h"
 
-1613276515 c:\users\gabri\documents\compiler\metroid_thingy\r_com.h
+1623928526 c:\users\gabri\documents\compiler\metroid_thingy\r_com.h
 	"dstuff/ds_vector.h"
 	"dstuff/ds_matrix.h"
 	"dstuff/ds_alloc.h"
 	"dstuff/ds_buffer.h"
 	<stdint.h>
+	<stddef.h>
+	<stdalign.h>
 
-1613276515 source:c:\users\gabri\documents\compiler\metroid_thingy\editor.c
+1623774278 source:c:\users\gabri\documents\compiler\metroid_thingy\editor.c
 	"editor.h"
+	"ed_bsp.h"
 	"dstuff/ds_stack_list.h"
 	"dstuff/ds_list.h"
 	"dstuff/ds_mem.h"
@@ -617,24 +622,24 @@
 	"input.h"
 	"r_draw.h"
 
-1613276515 c:\users\gabri\documents\compiler\metroid_thingy\editor.h
+1622144460 c:\users\gabri\documents\compiler\metroid_thingy\editor.h
 	"dstuff/ds_vector.h"
 	"dstuff/ds_matrix.h"
 	"dstuff/ds_alloc.h"
 	"dstuff/ds_buffer.h"
-	"r_com.h"
+	"ed_com.h"
 
-1612541511 c:\users\gabri\documents\compiler\metroid_thingy\world.h
+1612552310 c:\users\gabri\documents\compiler\metroid_thingy\world.h
 	<stdint.h>
 	"r_main.h"
 
-1612620219 source:c:\users\gabri\documents\compiler\metroid_thingy\world.c
+1612631018 source:c:\users\gabri\documents\compiler\metroid_thingy\world.c
 	"world.h"
 	"dstuff/ds_dbvh.h"
 	"dstuff/ds_alloc.h"
 	"r_draw.h"
 
-1612100463 source:c:\users\gabri\documents\compiler\metroid_thingy\sound.c
+1621509526 source:c:\users\gabri\documents\compiler\metroid_thingy\sound.c
 	<stdio.h>
 	"sound.h"
 	"al.h"
@@ -648,22 +653,22 @@
 	"vorbisfile.h"
 	"tinycthread.h"
 
-1609643381 c:\users\gabri\documents\compiler\metroid_thingy\sound.h
+1609654180 c:\users\gabri\documents\compiler\metroid_thingy\sound.h
 	"dstuff/ds_vector.h"
 	<stdint.h>
 
-1165606258 c:\users\gabri\documents\compiler\metroid_thingy\lib\openal\include\al.h
+1165617058 c:\users\gabri\documents\compiler\metroid_thingy\lib\openal\include\al.h
 
-1176490968 c:\users\gabri\documents\compiler\metroid_thingy\lib\openal\include\alc.h
+1176501768 c:\users\gabri\documents\compiler\metroid_thingy\lib\openal\include\alc.h
 
-1602482595 c:\users\gabri\documents\compiler\metroid_thingy\lib\dstuff\ds_ringbuffer.h
+1602493394 c:\users\gabri\documents\compiler\metroid_thingy\lib\dstuff\ds_ringbuffer.h
 	<stdint.h>
 	<string.h>
 	<stdlib.h>
 	<stdio.h>
 	"ds_mem.h"
 
-1602257547 source:c:\users\gabri\documents\compiler\metroid_thingy\lib\tinycthread\tinycthread.c
+1602268346 source:c:\users\gabri\documents\compiler\metroid_thingy\lib\tinycthread\tinycthread.c
 	"tinycthread.h"
 	<stdlib.h>
 	<signal.h>
@@ -675,23 +680,23 @@
 	<sys/timeb.h>
 	<winnt.h>
 
-1602257547 c:\users\gabri\documents\compiler\metroid_thingy\lib\tinycthread\tinycthread.h
+1602268346 c:\users\gabri\documents\compiler\metroid_thingy\lib\tinycthread\tinycthread.h
 	<time.h>
 	<pthread.h>
 	<windows.h>
 
-1609642873 c:\users\gabri\documents\compiler\metroid_thingy\lib\vorbis\include\vorbisfile.h
+1609653672 c:\users\gabri\documents\compiler\metroid_thingy\lib\vorbis\include\vorbisfile.h
 	<stdio.h>
 	"codec.h"
 
-1609642873 c:\users\gabri\documents\compiler\metroid_thingy\lib\vorbis\include\codec.h
+1609653672 c:\users\gabri\documents\compiler\metroid_thingy\lib\vorbis\include\codec.h
 	<ogg/ogg.h>
 
-1534188849 c:\users\gabri\documents\compiler\metroid_thingy\lib\vorbis\include\ogg\ogg.h
+1534199648 c:\users\gabri\documents\compiler\metroid_thingy\lib\vorbis\include\ogg\ogg.h
 	<stddef.h>
 	"os_types.h"
 
-1497273272 c:\users\gabri\documents\compiler\metroid_thingy\lib\vorbis\include\ogg\os_types.h
+1497284072 c:\users\gabri\documents\compiler\metroid_thingy\lib\vorbis\include\ogg\os_types.h
 	<stdint.h>
 	<sys/types.h>
 	<stdint.h>
@@ -700,13 +705,33 @@
 	<inttypes.h>
 	<ogg/config_types.h>
 
-1613268639 c:\users\gabri\documents\compiler\metroid_thingy\lib\dstuff\ds_buffer.h
+1621109233 c:\users\gabri\documents\compiler\metroid_thingy\lib\dstuff\ds_buffer.h
 	"ds_mem.h"
 
-1612665465 c:\users\gabri\documents\compiler\metroid_thingy\r_vis.h
+1620790837 c:\users\gabri\documents\compiler\metroid_thingy\r_vis.h
 	"r_com.h"
 	"r_draw.h"
 
-1612660410 source:c:\users\gabri\documents\compiler\metroid_thingy\r_vis.c
+1621960680 source:c:\users\gabri\documents\compiler\metroid_thingy\r_vis.c
 	"r_vis.h"
+	"game.h"
+
+1622147311 source:c:\users\gabri\documents\compiler\metroid_thingy\ed_bsp.c
+	"ed_bsp.h"
+	<stdlib.h>
+
+1621504849 c:\users\gabri\documents\compiler\metroid_thingy\ed_bsp.h
+	<stdint.h>
+	<stddef.h>
+	"ed_com.h"
+	"dstuff/ds_vector.h"
+	"dstuff/ds_list.h"
+	"dstuff/ds_buffer.h"
+
+1621541634 c:\users\gabri\documents\compiler\metroid_thingy\ed_com.h
+	<stdint.h>
+	"dstuff/ds_buffer.h"
+	"dstuff/ds_vector.h"
+	"dstuff/ds_matrix.h"
+	"r_com.h"
 

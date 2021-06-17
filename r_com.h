@@ -6,6 +6,8 @@
 #include "dstuff/ds_alloc.h"
 #include "dstuff/ds_buffer.h"
 #include <stdint.h>
+#include <stddef.h>
+#include <stdalign.h>
 
 struct r_texture_t
 {
@@ -14,7 +16,7 @@ struct r_texture_t
     char *name;
 };
 
-struct r_material_t 
+struct r_material_t
 {
     struct r_texture_t *diffuse_texture;
     struct r_texture_t *normal_texture;
@@ -24,14 +26,14 @@ struct r_material_t
     char *name;
 };
 
-struct r_material_record_t 
+struct r_material_record_t
 {
     char name[64];
     char diffuse_texture[64];
     char normal_texture[64];
 };
 
-struct r_material_section_t 
+struct r_material_section_t
 {
     uint32_t material_count;
     struct r_material_record_t materials[];
@@ -40,9 +42,9 @@ struct r_material_section_t
 
 enum R_UNIFORM
 {
-    R_UNIFORM_MVP,
-    R_UNIFORM_MV,
-    R_UNIFORM_IVM,
+    R_UNIFORM_MODEL_VIEW_PROJECTION_MATRIX,
+    R_UNIFORM_MODEL_VIEW_MATRIX,
+    R_UNIFORM_INVERSE_VIEW_MATRIX,
     R_UNIFORM_TEX0,
     R_UNIFORM_TEX1,
     R_UNIFORM_TEX_ALBEDO,
@@ -88,8 +90,8 @@ struct r_vert_t
     vec3_t pos;
     union
     {
-        vec3_t normal;
-        vec3_t color;
+        vec4_t normal;
+        vec4_t color;
     };
     vec3_t tangent;
     vec2_t tex_coords;
@@ -129,7 +131,7 @@ struct r_index_section_t
     uint32_t indexes[];
 };
 
-struct r_model_t 
+struct r_model_t
 {
     uint32_t index;
     struct ds_chunk_h vert_chunk;
@@ -153,6 +155,27 @@ struct r_model_t
     vec3_t max;
 };
 
+struct r_model_geometry_t
+{
+    uint32_t vert_count;
+    struct r_vert_t *verts;
+    uint32_t batch_count;
+    struct r_batch_t *batches;
+    uint32_t index_count;
+    uint32_t *indices;
+    vec3_t min;
+    vec3_t max;
+};
+
+struct r_model_skeleton_t
+{
+    struct a_skeleton_t *skeleton;
+    uint32_t weight_range_count;
+    struct a_weight_range_t *weight_ranges;
+    uint32_t weight_count;
+    struct a_weight_t *weights;
+};
+
 struct r_model_create_info_t
 {
     uint32_t vert_count;
@@ -170,9 +193,9 @@ struct r_model_create_info_t
     vec3_t max;
 };
 
-struct r_draw_batch_t  
+struct r_draw_batch_t
 {
-    mat4_t model_view_matrix; 
+    mat4_t model_view_matrix;
     struct r_batch_t batch;
 };
 
@@ -190,15 +213,15 @@ struct r_draw_batch_t
 //    uint32_t count;
 //};
 
-struct r_imm_batch_t
-{
-    mat4_t transform;
-    uint32_t start;
-    uint32_t count;
-    uint16_t primitive_type;
-    uint16_t polygon_mode;
-    float size;
-};
+//struct r_imm_batch_t
+//{
+//    mat4_t transform;
+//    uint32_t start;
+//    uint32_t count;
+//    uint16_t primitive_type;
+//    uint16_t polygon_mode;
+//    float size;
+//};
 
 enum R_LIGHT_TYPES
 {
@@ -213,7 +236,7 @@ struct r_l_data_t
     union
     {
         vec4_t color_type;
-        struct 
+        struct
         {
             vec3_t color;
             uint32_t type;
@@ -225,15 +248,15 @@ struct r_light_t
 {
     struct r_l_data_t data;
     float energy;
-    
+
     uint32_t min_x : 7;
     uint32_t min_y : 7;
     uint32_t min_z : 5;
-    
+
     uint32_t max_x : 7;
     uint32_t max_y : 7;
     uint32_t max_z : 5;
-    
+
     uint32_t gpu_index;
     uint32_t index;
 };
@@ -251,6 +274,151 @@ struct r_vis_item_t
     struct r_model_t *model;
 };
 
+struct r_world_cmd_t
+{
+    struct r_material_t *material;
+    uint32_t start;
+    uint32_t count;
+};
+
+struct r_entity_cmd_t
+{
+    mat4_t model_view_matrix;
+    struct r_material_t *material;
+    uint32_t start;
+    uint32_t count;
+};
+
+enum R_IMMEDIATE_DATA_FLAGS
+{
+    R_IMMEDIATE_DATA_FLAG_BIG = 1,
+    R_IMMEDIATE_DATA_FLAG_EXTERN = 1 << 1
+};
+
+struct r_immediate_data_header_t
+{
+    uint32_t flags;
+};
+
+enum R_I_CMDS
+{
+    R_I_CMD_DRAW = 0,
+    R_I_CMD_SET_STATE,
+//    R_I_CMD_SET_TEXTURE,
+//    R_I_CMD_SET_SHADER,
+    R_I_CMD_SET_MATRIX,
+};
+
+enum R_I_DRAW_CMDS
+{
+    R_I_DRAW_CMD_POINT_LIST = 0,
+    R_I_DRAW_CMD_LINE_LIST,
+    R_I_DRAW_CMD_LINE_STRIP,
+    R_I_DRAW_CMD_TRIANGLE_LIST
+};
+
+enum R_I_SET_STATE_CMDS
+{
+    R_I_SET_STATE_CMD_SHADER,
+    R_I_SET_STATE_CMD_TEXTURE,
+    R_I_SET_STATE_CMD_BLENDING,
+};
+
+enum R_I_SET_MATRIX_CMDS
+{
+    R_I_SET_MATRIX_CMD_MODEL_MATRIX = 0,
+    R_I_SET_MATRIX_CMD_VIEW_PROJECTION_MATRIX
+};
+
+
+#define R_IMMEDIATE_DATA_SLOT_SIZE (alignof(max_align_t))
+/* sizeof(struct r_immediate_data_t) has to be <= R_IMMEDIATE_DATA_SLOT_SIZE,
+and R_IMMEDIATE_DATA_SLOT_SIZE has to be what it is. This is to guarantee that
+the address right after this struct is suitably aligned for any kind of type*/
+struct r_immediate_data_t
+{
+    uint32_t flags;
+    void *data;
+};
+
+struct r_immediate_cmd_t
+{
+    void *data;
+    uint16_t type;
+    uint16_t sub_type;
+};
+
+struct r_immediate_verts_t
+{
+    uint32_t count;
+    float size;
+    struct r_vert_t verts[];
+};
+
+struct r_immediate_indices_t
+{
+    uint32_t count;
+    uint32_t indices[];
+};
+
+struct r_immediate_geometry_t
+{
+    struct r_immediate_verts_t *verts;
+    struct r_immediate_indices_t *indices;
+};
+
+struct r_immediate_transform_t
+{
+    mat4_t transform;
+    uint32_t unset;
+};
+
+struct r_immediate_texture_t
+{
+    struct r_texture_t *texture;
+    uint32_t tex_unit;
+};
+
+struct r_immediate_shader_t
+{
+    struct r_shader_t *shader;
+};
+
+struct r_immediate_blending_t
+{
+    uint16_t enable;
+    uint16_t src_factor;
+    uint16_t dst_factor;
+};
+
+struct r_immediate_depth_t
+{
+    uint16_t enable;
+    uint16_t func;
+};
+
+struct r_immediate_stencil_t
+{
+    uint16_t enable;
+
+    uint16_t stencil_fail;
+    uint16_t depth_fail;
+    uint16_t depth_pass;
+
+    uint16_t operation;
+    uint8_t mask;
+    uint8_t ref;
+};
+
+struct r_immediate_state_t
+{
+    struct r_immediate_shader_t *shader;
+    struct r_immediate_blending_t *blending;
+    struct r_immediate_depth_t *depth;
+    struct r_immediate_stencil_t *stencil;
+    struct r_immediate_texture_t *textures;
+    uint32_t texture_count;
+};
 
 #define R_CLUSTER_ROW_WIDTH 32
 #define R_CLUSTER_ROWS 16

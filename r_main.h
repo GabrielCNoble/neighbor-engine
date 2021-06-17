@@ -73,6 +73,10 @@ struct r_model_t *r_LoadModel(char *file_name);
 
 struct r_model_t *r_CreateModel(struct r_model_create_info_t *create_info);
 
+struct r_model_t *r_CreateModel2(struct r_model_geometry_t *geometry, struct r_model_skeleton_t *skeleton);
+
+void r_UpdateModelGeometry(struct r_model_t *model, struct r_model_geometry_t *geometry);
+
 struct r_model_t *r_ShallowCopyModel(struct r_model_t *model);
 
 /*
@@ -98,6 +102,8 @@ struct r_shader_t *r_LoadShader(char *vertex_file_name, char *fragment_file_name
 void r_FreeShader(struct r_shader_t *shader);
 
 void r_BindShader(struct r_shader_t *shader);
+
+uint32_t r_GetUniformIndex(struct r_shader_t *shader, char *name);
 
 void r_SetUniformMatrix4(uint32_t uniform, mat4_t *matrix);
 

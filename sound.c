@@ -29,15 +29,15 @@ void s_Init()
     s_context = alcCreateContext(s_device, (ALCint []){ALC_STEREO_SOURCES, 350, 0});
     alcMakeContextCurrent(s_context);
     s_sound_thread = SDL_CreateThread(s_SoundThread, "sound thread", NULL);
-    
+
     s_sources = create_stack_list(sizeof(struct s_source_t), 350);
     s_active_sources = create_list(sizeof(struct s_source_t *), 350);
     s_command_queue = create_list(sizeof(struct s_command_t), 350);
     s_sounds = create_stack_list(sizeof(struct s_sound_t), 350);
-    
-    float listener_orientation[] = 
+
+    float listener_orientation[] =
     {
-        0.0, 0.0, -1.0, 
+        0.0, 0.0, -1.0,
         0.0, 1.0, 0.0,
     };
     alListener3f(AL_POSITION, 0.0, 0.0, 0.0);
@@ -46,14 +46,14 @@ void s_Init()
 
 void s_Shutdown()
 {
-    
+
 }
 
 struct s_sound_t *s_LoadSound(char *file_name)
 {
     struct s_sound_t *sound = NULL;
     uint32_t index;
-    
+
     if(file_exists(file_name))
     {
         OggVorbis_File file;
@@ -75,24 +75,24 @@ struct s_sound_t *s_LoadSound(char *file_name)
         index = add_stack_list_element(&s_sounds, NULL);
         sound = get_stack_list_element(&s_sounds, index);
         sound->index = index;
-        
+
         uint32_t format;
         switch(info->channels)
         {
             case 1:
                 format = AL_FORMAT_MONO16;
             break;
-            
+
             case 2:
                 format = AL_FORMAT_STEREO16;
             break;
         }
-        
+
         alGenBuffers(1, &sound->buffer);
         alBufferData(sound->buffer, format, buffer, buffer_size, info->rate);
         ov_clear(&file);
     }
-    
+
     return sound;
 }
 
@@ -100,22 +100,22 @@ struct s_source_t *s_AllocateSource()
 {
     struct s_source_t *source;
     uint32_t index;
-    
+
     spnl_lock(&s_source_spinlock);
     index = add_stack_list_element(&s_sources, NULL);
     spnl_unlock(&s_source_spinlock);
-    
+
     source = get_stack_list_element(&s_sources, index);
-    
+
     source->index = index;
     source->sound = NULL;
     source->volume = 1.0;
-    
+
     if(!source->source)
     {
         alGenSources(1, &source->source);
     }
-    
+
     return source;
 }
 
@@ -138,15 +138,15 @@ struct s_source_t *s_PlaySound(struct s_sound_t *sound, vec3_t *position, float 
     {
         source = s_AllocateSource();
     }
-    
+
     command.type = S_COMMAND_PLAY_SOUND;
     command.sound = sound;
     command.source = source;
     command.position = *position;
     command.volume = volume;
-    
+
     s_QueueCommand(&command);
-    
+
     return source;
 }
 
@@ -197,28 +197,28 @@ int s_SoundThread(void *arg)
                     {
                         command->source = s_AllocateSource();
                     }
-                    
+
                     command->source->sound = command->sound;
                     command->source->position = command->position;
                     command->source->volume = command->volume;
-                    
+
                     alSourcei(command->source->source, AL_BUFFER, command->sound->buffer);
                     alSourcef(command->source->source, AL_GAIN, command->volume);
                     alSourcefv(command->source->source, AL_POSITION, command->position.comps);
                     alSourcei(command->source->source, AL_SOURCE_RELATIVE, AL_TRUE);
-                    
+
                     add_list_element(&s_active_sources, &command->source);
-                    
+
                     /* fallthrough */
-                    
+
                 case S_COMMAND_RESUME_SOURCE:
                     alSourcePlay(command->source->source);
                 break;
-                
+
                 case S_COMMAND_PAUSE_SOURCE:
                     alSourcePause(command->source->source);
                 break;
-                
+
                 case S_COMMAND_STOP_SOURCE:
                     alSourceStop(command->source->source);
                 break;
@@ -226,7 +226,7 @@ int s_SoundThread(void *arg)
         }
         s_command_queue.cursor = 0;
         spnl_unlock(&s_command_spinlock);
-        
+
         for(uint32_t source_index = 0; source_index < s_active_sources.cursor; source_index++)
         {
             struct s_source_t *source = *(struct s_source_t **)get_list_element(&s_active_sources, source_index);
@@ -238,12 +238,12 @@ int s_SoundThread(void *arg)
                 {
                     remove_list_element(&s_active_sources, source_index);
                     source_index--;
-                    s_FreeSource(source); 
+                    s_FreeSource(source);
                 }
-                
+
                 continue;
             }
-            
+
             alSourcefv(source->source, AL_POSITION, source->position.comps);
             alSourcef(source->source, AL_GAIN, source->volume);
         }

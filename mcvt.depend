@@ -1,5 +1,5 @@
 # depslib dependency file v1.0
-1612342577 source:c:\users\gabri\documents\compiler\metroid_thingy\impl.c
+1612353376 source:c:\users\gabri\documents\compiler\metroid_thingy\impl.c
 	"dstuff/ds_vector.h"
 	"dstuff/ds_mem.h"
 	"dstuff/ds_stack_list.h"
@@ -14,11 +14,11 @@
 	"dstuff/ds_obj.h"
 	"stb/stb_image.h"
 
-1612081884 c:\users\gabri\documents\compiler\metroid_thingy\lib\dstuff\ds_vector.h
+1613506464 c:\users\gabri\documents\compiler\metroid_thingy\lib\dstuff\ds_vector.h
 	<math.h>
 	<intrin.h>
 
-1608346258 c:\users\gabri\documents\compiler\metroid_thingy\lib\dstuff\ds_mem.h
+1608357058 c:\users\gabri\documents\compiler\metroid_thingy\lib\dstuff\ds_mem.h
 	<stdint.h>
 	<string.h>
 	<stdlib.h>
@@ -26,21 +26,21 @@
 	<stdio.h>
 	<string.h>
 
-1599740400 c:\users\gabri\documents\compiler\metroid_thingy\lib\dstuff\ds_stack_list.h
-	<stdint.h>
-	<string.h>
-	<stdlib.h>
-	<stdio.h>
-	"ds_mem.h"
-
-1600124682 c:\users\gabri\documents\compiler\metroid_thingy\lib\dstuff\ds_list.h
+1599751200 c:\users\gabri\documents\compiler\metroid_thingy\lib\dstuff\ds_stack_list.h
 	<stdint.h>
 	<string.h>
 	<stdlib.h>
 	<stdio.h>
 	"ds_mem.h"
 
-1608517830 c:\users\gabri\documents\compiler\metroid_thingy\lib\dstuff\ds_dbvh.h
+1613284058 c:\users\gabri\documents\compiler\metroid_thingy\lib\dstuff\ds_list.h
+	<stdint.h>
+	<string.h>
+	<stdlib.h>
+	<stdio.h>
+	"ds_mem.h"
+
+1613248030 c:\users\gabri\documents\compiler\metroid_thingy\lib\dstuff\ds_dbvh.h
 	<stdint.h>
 	"ds_vector.h"
 	"ds_list.h"
@@ -48,30 +48,30 @@
 	<stdio.h>
 	<float.h>
 
-1612540305 c:\users\gabri\documents\compiler\metroid_thingy\lib\dstuff\ds_file.h
+1612551104 c:\users\gabri\documents\compiler\metroid_thingy\lib\dstuff\ds_file.h
 	<stdio.h>
 	<stdint.h>
 	<stdlib.h>
 	"ds_mem.h"
 	<stdarg.h>
 
-1612085528 c:\users\gabri\documents\compiler\metroid_thingy\lib\dstuff\ds_matrix.h
+1613235956 c:\users\gabri\documents\compiler\metroid_thingy\lib\dstuff\ds_matrix.h
 	"ds_vector.h"
 	<intrin.h>
 
-1607830079 c:\users\gabri\documents\compiler\metroid_thingy\lib\dstuff\ds_alloc.h
+1607840878 c:\users\gabri\documents\compiler\metroid_thingy\lib\dstuff\ds_alloc.h
 	"ds_stack_list.h"
 	"ds_list.h"
 	<stdint.h>
 
-1600052733 c:\users\gabri\documents\compiler\metroid_thingy\lib\dstuff\ds_path.h
+1600063532 c:\users\gabri\documents\compiler\metroid_thingy\lib\dstuff\ds_path.h
 	<stdint.h>
 	<dirent.h>
 	<string.h>
 	<limits.h>
 	<stdlib.h>
 
-1607880039 c:\users\gabri\documents\compiler\metroid_thingy\lib\dstuff\ds_obj.h
+1607890838 c:\users\gabri\documents\compiler\metroid_thingy\lib\dstuff\ds_obj.h
 	"ds_xchg.h"
 	"ds_file.h"
 	"ds_path.h"
@@ -80,11 +80,11 @@
 	<stdlib.h>
 	<limits.h>
 
-1593151702 c:\users\gabri\documents\compiler\metroid_thingy\lib\dstuff\ds_xchg.h
+1593162502 c:\users\gabri\documents\compiler\metroid_thingy\lib\dstuff\ds_xchg.h
 	"ds_list.h"
 	"ds_vector.h"
 
-1593151698 c:\users\gabri\documents\compiler\metroid_thingy\lib\stb\stb_image.h
+1593162498 c:\users\gabri\documents\compiler\metroid_thingy\lib\stb\stb_image.h
 	"stb_image.h"
 	<stdio.h>
 	<stdlib.h>
@@ -101,7 +101,7 @@
 	<intrin.h>
 	<arm_neon.h>
 
-1612541070 source:c:\users\gabri\documents\compiler\metroid_thingy\mcvt.c
+1622147744 source:c:\users\gabri\documents\compiler\metroid_thingy\mcvt.c
 	"assimp/cimport.h"
 	"assimp/scene.h"
 	"assimp/postprocess.h"
@@ -115,14 +115,14 @@
 	<stdio.h>
 	<float.h>
 
-1608086284 c:\users\gabri\documents\compiler\metroid_thingy\lib\assimp\include\assimp\cimport.h
+1608097084 c:\users\gabri\documents\compiler\metroid_thingy\lib\assimp\include\assimp\cimport.h
 	<assimp/importerdesc.h>
 	<assimp/types.h>
 
-1608086284 c:\users\gabri\documents\compiler\metroid_thingy\lib\assimp\include\assimp\importerdesc.h
+1608097084 c:\users\gabri\documents\compiler\metroid_thingy\lib\assimp\include\assimp\importerdesc.h
 	<assimp/types.h>
 
-1608086284 c:\users\gabri\documents\compiler\metroid_thingy\lib\assimp\include\assimp\types.h
+1608097084 c:\users\gabri\documents\compiler\metroid_thingy\lib\assimp\include\assimp\types.h
 	<limits.h>
 	<stddef.h>
 	<stdint.h>
@@ -145,53 +145,53 @@
 	"matrix4x4.inl"
 	"quaternion.inl"
 
-1608086284 c:\users\gabri\documents\compiler\metroid_thingy\lib\assimp\include\assimp\defs.h
+1608097084 c:\users\gabri\documents\compiler\metroid_thingy\lib\assimp\include\assimp\defs.h
 	<assimp/config.h>
 
-1608086555 c:\users\gabri\documents\compiler\metroid_thingy\lib\assimp\include\assimp\config.h
+1608097354 c:\users\gabri\documents\compiler\metroid_thingy\lib\assimp\include\assimp\config.h
 
-1608086284 c:\users\gabri\documents\compiler\metroid_thingy\lib\assimp\include\assimp\vector2.h
+1608097084 c:\users\gabri\documents\compiler\metroid_thingy\lib\assimp\include\assimp\vector2.h
 	<cmath>
 	<math.h>
 	"defs.h"
 
-1608086284 c:\users\gabri\documents\compiler\metroid_thingy\lib\assimp\include\assimp\vector3.h
+1608097084 c:\users\gabri\documents\compiler\metroid_thingy\lib\assimp\include\assimp\vector3.h
 	<cmath>
 	<math.h>
 	<assimp/defs.h>
 
-1608086284 c:\users\gabri\documents\compiler\metroid_thingy\lib\assimp\include\assimp\color4.h
+1608097084 c:\users\gabri\documents\compiler\metroid_thingy\lib\assimp\include\assimp\color4.h
 	<assimp/defs.h>
 
-1608086284 c:\users\gabri\documents\compiler\metroid_thingy\lib\assimp\include\assimp\matrix3x3.h
+1608097084 c:\users\gabri\documents\compiler\metroid_thingy\lib\assimp\include\assimp\matrix3x3.h
 	<assimp/defs.h>
 
-1608086284 c:\users\gabri\documents\compiler\metroid_thingy\lib\assimp\include\assimp\matrix4x4.h
+1608097084 c:\users\gabri\documents\compiler\metroid_thingy\lib\assimp\include\assimp\matrix4x4.h
 	<assimp/vector3.h>
 	<assimp/defs.h>
 
-1608086284 c:\users\gabri\documents\compiler\metroid_thingy\lib\assimp\include\assimp\quaternion.h
+1608097084 c:\users\gabri\documents\compiler\metroid_thingy\lib\assimp\include\assimp\quaternion.h
 	<assimp/defs.h>
 
-1608086284 c:\users\gabri\documents\compiler\metroid_thingy\lib\assimp\include\assimp\vector2.inl
+1608097084 c:\users\gabri\documents\compiler\metroid_thingy\lib\assimp\include\assimp\vector2.inl
 	<assimp/vector2.h>
 	<cmath>
 
-1608086284 c:\users\gabri\documents\compiler\metroid_thingy\lib\assimp\include\assimp\vector3.inl
+1608097084 c:\users\gabri\documents\compiler\metroid_thingy\lib\assimp\include\assimp\vector3.inl
 	<assimp/vector3.h>
 	<cmath>
 
-1608086284 c:\users\gabri\documents\compiler\metroid_thingy\lib\assimp\include\assimp\color4.inl
+1608097084 c:\users\gabri\documents\compiler\metroid_thingy\lib\assimp\include\assimp\color4.inl
 	<assimp/color4.h>
 
-1608086284 c:\users\gabri\documents\compiler\metroid_thingy\lib\assimp\include\assimp\matrix3x3.inl
+1608097084 c:\users\gabri\documents\compiler\metroid_thingy\lib\assimp\include\assimp\matrix3x3.inl
 	<assimp/matrix3x3.h>
 	<assimp/matrix4x4.h>
 	<algorithm>
 	<cmath>
 	<limits>
 
-1608086284 c:\users\gabri\documents\compiler\metroid_thingy\lib\assimp\include\assimp\matrix4x4.inl
+1608097084 c:\users\gabri\documents\compiler\metroid_thingy\lib\assimp\include\assimp\matrix4x4.inl
 	"matrix4x4.h"
 	"matrix3x3.h"
 	"quaternion.h"
@@ -200,14 +200,14 @@
 	<limits>
 	<cmath>
 
-1608086284 c:\users\gabri\documents\compiler\metroid_thingy\lib\assimp\include\assimp\mathfunctions.h
+1608097084 c:\users\gabri\documents\compiler\metroid_thingy\lib\assimp\include\assimp\mathfunctions.h
 	<limits>
 
-1608086284 c:\users\gabri\documents\compiler\metroid_thingy\lib\assimp\include\assimp\quaternion.inl
+1608097084 c:\users\gabri\documents\compiler\metroid_thingy\lib\assimp\include\assimp\quaternion.inl
 	<assimp/quaternion.h>
 	<cmath>
 
-1608086284 c:\users\gabri\documents\compiler\metroid_thingy\lib\assimp\include\assimp\scene.h
+1608097084 c:\users\gabri\documents\compiler\metroid_thingy\lib\assimp\include\assimp\scene.h
 	<assimp/types.h>
 	<assimp/texture.h>
 	<assimp/mesh.h>
@@ -218,46 +218,46 @@
 	<assimp/metadata.h>
 	<cstdlib>
 
-1608086284 c:\users\gabri\documents\compiler\metroid_thingy\lib\assimp\include\assimp\texture.h
+1608097084 c:\users\gabri\documents\compiler\metroid_thingy\lib\assimp\include\assimp\texture.h
 	<assimp/types.h>
 	"./Compiler/pushpack1.h"
 	"./Compiler/poppack1.h"
 
-1608086284 c:\users\gabri\documents\compiler\metroid_thingy\lib\assimp\include\assimp\compiler\pushpack1.h
+1608097084 c:\users\gabri\documents\compiler\metroid_thingy\lib\assimp\include\assimp\compiler\pushpack1.h
 
-1608086284 c:\users\gabri\documents\compiler\metroid_thingy\lib\assimp\include\assimp\compiler\poppack1.h
+1608097084 c:\users\gabri\documents\compiler\metroid_thingy\lib\assimp\include\assimp\compiler\poppack1.h
 
-1608086284 c:\users\gabri\documents\compiler\metroid_thingy\lib\assimp\include\assimp\mesh.h
+1608097084 c:\users\gabri\documents\compiler\metroid_thingy\lib\assimp\include\assimp\mesh.h
 	<assimp/aabb.h>
 	<assimp/types.h>
 
-1608086284 c:\users\gabri\documents\compiler\metroid_thingy\lib\assimp\include\assimp\aabb.h
+1608097084 c:\users\gabri\documents\compiler\metroid_thingy\lib\assimp\include\assimp\aabb.h
 	<assimp/vector3.h>
 
-1608086284 c:\users\gabri\documents\compiler\metroid_thingy\lib\assimp\include\assimp\light.h
+1608097084 c:\users\gabri\documents\compiler\metroid_thingy\lib\assimp\include\assimp\light.h
 	<assimp/types.h>
 
-1608086284 c:\users\gabri\documents\compiler\metroid_thingy\lib\assimp\include\assimp\camera.h
+1608097084 c:\users\gabri\documents\compiler\metroid_thingy\lib\assimp\include\assimp\camera.h
 	"types.h"
 
-1608086284 c:\users\gabri\documents\compiler\metroid_thingy\lib\assimp\include\assimp\material.h
+1608097084 c:\users\gabri\documents\compiler\metroid_thingy\lib\assimp\include\assimp\material.h
 	<assimp/types.h>
 	"./Compiler/pushpack1.h"
 	"./Compiler/poppack1.h"
 	"material.inl"
 
-1608086284 c:\users\gabri\documents\compiler\metroid_thingy\lib\assimp\include\assimp\material.inl
+1608097084 c:\users\gabri\documents\compiler\metroid_thingy\lib\assimp\include\assimp\material.inl
 
-1608086284 c:\users\gabri\documents\compiler\metroid_thingy\lib\assimp\include\assimp\anim.h
+1608097084 c:\users\gabri\documents\compiler\metroid_thingy\lib\assimp\include\assimp\anim.h
 	<assimp/quaternion.h>
 	<assimp/types.h>
 
-1608086284 c:\users\gabri\documents\compiler\metroid_thingy\lib\assimp\include\assimp\metadata.h
+1608097084 c:\users\gabri\documents\compiler\metroid_thingy\lib\assimp\include\assimp\metadata.h
 	"Compiler/pstdint.h"
 	<stdint.h>
 	<string>
 
-1543976507 c:\users\gabri\documents\compiler\metroid_thingy\lib\assimp\include\assimp\compiler\pstdint.h
+1543987306 c:\users\gabri\documents\compiler\metroid_thingy\lib\assimp\include\assimp\compiler\pstdint.h
 	<stddef.h>
 	<limits.h>
 	<signal.h>
@@ -268,7 +268,7 @@
 	<stdio.h>
 	<string.h>
 
-1608086284 c:\users\gabri\documents\compiler\metroid_thingy\lib\assimp\include\assimp\postprocess.h
+1608097084 c:\users\gabri\documents\compiler\metroid_thingy\lib\assimp\include\assimp\postprocess.h
 	<assimp/types.h>
 
 1608220393 c:\users\gabri\documents\compiler\metroid_thingy\d_com.h
@@ -277,27 +277,27 @@
 	"dstuff/ds_alloc.h"
 	<stdint.h>
 
-1612540952 c:\users\gabri\documents\compiler\metroid_thingy\r_com.h
+1622147195 c:\users\gabri\documents\compiler\metroid_thingy\r_com.h
 	"dstuff/ds_vector.h"
 	"dstuff/ds_matrix.h"
 	"dstuff/ds_alloc.h"
 	"dstuff/ds_buffer.h"
 	<stdint.h>
 
-1612079813 c:\users\gabri\documents\compiler\metroid_thingy\anim.h
+1613287314 c:\users\gabri\documents\compiler\metroid_thingy\anim.h
 	"dstuff/ds_vector.h"
 	"dstuff/ds_matrix.h"
 	"dstuff/ds_list.h"
 	"dstuff/ds_stack_list.h"
 	<stdint.h>
 
-1602482595 c:\users\gabri\documents\compiler\metroid_thingy\lib\dstuff\ds_ringbuffer.h
+1602493394 c:\users\gabri\documents\compiler\metroid_thingy\lib\dstuff\ds_ringbuffer.h
 	<stdint.h>
 	<string.h>
 	<stdlib.h>
 	<stdio.h>
 	"ds_mem.h"
 
-1612540452 c:\users\gabri\documents\compiler\metroid_thingy\lib\dstuff\ds_buffer.h
+1621109233 c:\users\gabri\documents\compiler\metroid_thingy\lib\dstuff\ds_buffer.h
 	"ds_mem.h"
 

@@ -20,8 +20,15 @@
 //extern struct ds_heap_t d_index_heap;
 
 
-struct list_t r_sorted_batches;
-struct list_t r_immediate_batches;
+
+struct list_t r_world_cmds;
+struct list_t r_entity_cmds;
+struct list_t r_immediate_cmds;
+struct list_t r_immediate_data;
+
+
+//struct list_t r_sorted_batches;
+//struct list_t r_immediate_batches;
 struct stack_list_t r_shaders;
 struct stack_list_t r_textures;
 struct stack_list_t r_materials;
@@ -35,9 +42,10 @@ struct ds_heap_t r_vertex_heap;
 uint32_t r_index_buffer;
 struct ds_heap_t r_index_heap;
 uint32_t r_immediate_cursor;
-uint32_t r_immediate_buffer;
+uint32_t r_immediate_vertex_buffer;
+uint32_t r_immediate_index_buffer;
 //struct ds_heap_t r_immediate_heap;
-    
+
 uint32_t r_vao;
 struct r_shader_t *r_z_prepass_shader;
 struct r_shader_t *r_lit_shader;
@@ -69,7 +77,7 @@ uint32_t *r_light_index_buffer;
 SDL_Window *r_window;
 SDL_GLContext *r_context;
 int32_t r_width = 1300;
-int32_t r_height = 760;
+int32_t r_height = 700;
 //uint32_t r_cluster_row_width;
 //uint32_t r_cluster_rows;
 float r_z_near = 0.1;
@@ -78,11 +86,11 @@ float r_denom = 0.0;
 float r_fov = 0.68;
 
 
-char *d_uniform_names[] = 
+char *d_uniform_names[] =
 {
-    [R_UNIFORM_MVP] = "d_mvp",
-    [R_UNIFORM_MV] = "r_mv",
-    [R_UNIFORM_IVM] = "r_ivm",
+    [R_UNIFORM_MODEL_VIEW_PROJECTION_MATRIX] = "r_model_view_projection_matrix",
+    [R_UNIFORM_MODEL_VIEW_MATRIX] = "r_model_view_matrix",
+    [R_UNIFORM_INVERSE_VIEW_MATRIX] = "r_inverse_view_matrix",
     [R_UNIFORM_TEX0] = "d_tex0",
     [R_UNIFORM_TEX1] = "d_tex1",
     [R_UNIFORM_TEX_ALBEDO] = "r_tex_albedo",
@@ -99,10 +107,17 @@ char *d_uniform_names[] =
 };
 
 void r_Init()
-{    
-    r_vis_items = create_stack_list(sizeof(struct r_vis_item_t), 4096);
-    r_sorted_batches = create_list(sizeof(struct r_draw_batch_t), 4096);
-    r_immediate_batches = create_list(sizeof(struct r_imm_batch_t), 4096);
+{
+//    r_vis_items = create_stack_list(sizeof(struct r_vis_item_t), 4096);
+//    r_sorted_batches = create_list(sizeof(struct r_draw_batch_t), 4096);
+//    r_immediate_batches = create_list(sizeof(struct r_imm_batch_t), 4096);
+
+    r_world_cmds = create_list(sizeof(struct r_world_cmd_t), 4096);
+    r_entity_cmds = create_list(sizeof(struct r_entity_cmd_t), 4096);
+    r_immediate_cmds = create_list(sizeof(struct r_immediate_cmd_t), 4096);
+    r_immediate_data = create_list(R_IMMEDIATE_DATA_SLOT_SIZE, 32768);
+
+
     r_shaders = create_stack_list(sizeof(struct r_shader_t), 16);
     r_materials = create_stack_list(sizeof(struct r_material_t), 32);
     r_textures = create_stack_list(sizeof(struct r_texture_t), 128);
@@ -111,55 +126,55 @@ void r_Init()
     r_visible_lights = create_list(sizeof(uint32_t), 512);
     r_vertex_heap = ds_create_heap(R_VERTEX_BUFFER_SIZE);
     r_index_heap = ds_create_heap(R_INDEX_BUFFER_SIZE);
-    
+
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
-    
+
     r_window = SDL_CreateWindow("doh", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, r_width, r_height, SDL_WINDOW_OPENGL);
     r_context = SDL_GL_CreateContext(r_window);
     SDL_GL_MakeCurrent(r_window, r_context);
     SDL_GL_SetSwapInterval(1);
-    
-    
-    
-    
+
+
+
+
     GLenum status = glewInit();
     if(status != GLEW_OK)
     {
         printf("oh, fuck...\n");
         printf("%s\n", glewGetErrorString(status));
     }
-    
+
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
-    
+
     glClearColor(0.0, 0.0, 0.0, 1.0);
     glClearDepth(1.0);
 
     glGenBuffers(1, &r_vertex_buffer);
     glBindBuffer(GL_ARRAY_BUFFER, r_vertex_buffer);
     glBufferData(GL_ARRAY_BUFFER, R_VERTEX_BUFFER_SIZE, NULL, GL_DYNAMIC_DRAW);
-    glGenBuffers(1, &r_immediate_buffer);
-    glBindBuffer(GL_ARRAY_BUFFER, r_immediate_buffer);
+    glGenBuffers(1, &r_immediate_vertex_buffer);
+    glBindBuffer(GL_ARRAY_BUFFER, r_immediate_vertex_buffer);
     glBufferData(GL_ARRAY_BUFFER, R_IMMEDIATE_BUFFER_SIZE, NULL, GL_DYNAMIC_DRAW);
     glGenBuffers(1, &r_index_buffer);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, r_index_buffer);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, R_INDEX_BUFFER_SIZE, NULL, GL_DYNAMIC_DRAW);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-    
+
     glGenVertexArrays(1, &r_vao);
     glBindVertexArray(r_vao);
     glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
-    
-    r_z_prepass_shader = r_LoadShader("shaders/zprepass.vert", "shaders/zprepass.frag");
-    r_lit_shader = r_LoadShader("shaders/lit.vert", "shaders/lit.frag");
-    r_immediate_shader = r_LoadShader("shaders/immediate.vert", "shaders/immediate.frag");
+
+    r_z_prepass_shader = r_LoadShader("shaders/r_prez.vert", "shaders/r_prez.frag");
+    r_lit_shader = r_LoadShader("shaders/r_cfwd.vert", "shaders/r_cfwd.frag");
+    r_immediate_shader = r_LoadShader("shaders/r_imm.vert", "shaders/r_imm.frag");
     mat4_t_persp(&r_projection_matrix, r_fov, (float)r_width / (float)r_height, r_z_near, r_z_far);
     mat4_t_identity(&r_view_matrix);
-    
-    uint32_t pixels[] = 
+
+    uint32_t pixels[] =
     {
         0xff777777, 0xff444444, 0xff777777, 0xff444444,
         0xff444444, 0xff777777, 0xff444444, 0xff777777,
@@ -171,19 +186,19 @@ void r_Init()
     r_default_normal_texture = r_CreateTexture("default_normal", 1, 1, GL_RGBA8, pixels);
     pixels[0] = 0x0000003f;
     r_default_roughness_texture = r_CreateTexture("default_roughness", 1, 1, GL_RGBA8, pixels);
-    
-    
+
+
 //    r_default_albedo_texture = r_LoadTexture("textures/PavingStones092_1K_Color.jpg", "albedo");
 //    r_default_normal_texture = r_LoadTexture("textures/PavingStones092_1K_Normal.jpg", "normal");
-    
-    
+
+
     r_default_material = r_CreateMaterial("deafult", r_default_albedo_texture, r_default_normal_texture, r_default_roughness_texture);
-    
-    
+
+
     r_clusters = mem_Calloc(R_CLUSTER_COUNT, sizeof(struct r_cluster_t));
     r_light_buffer = mem_Calloc(R_MAX_LIGHTS, sizeof(struct r_l_data_t));
     r_light_index_buffer = mem_Calloc(R_CLUSTER_COUNT * R_MAX_CLUSTER_LIGHTS, sizeof(uint32_t));
-    
+
     glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
     glGenTextures(1, &r_cluster_texture);
     glBindTexture(GL_TEXTURE_3D, r_cluster_texture);
@@ -202,9 +217,9 @@ void r_Init()
     glGenBuffers(1, &r_light_index_uniform_buffer);
     glBindBuffer(GL_UNIFORM_BUFFER, r_light_index_uniform_buffer);
     glBufferData(GL_UNIFORM_BUFFER, R_CLUSTER_COUNT * R_MAX_CLUSTER_LIGHTS * sizeof(uint32_t), NULL, GL_DYNAMIC_DRAW);
-    
+
 //    int32_t group_size = 0;
-//    
+//
 //    glGetIntegerv(GL_COMPUTE_WORK_GROUP_SIZE, &group_size);
 //    printf("%d\n", group_size);
 
@@ -212,7 +227,7 @@ void r_Init()
 
 void r_Shutdown()
 {
-    
+
 }
 
 /*
@@ -225,20 +240,20 @@ struct r_vis_item_t *r_AllocateVisItem(mat4_t *transform, struct r_model_t *mode
 {
     uint32_t index;
     struct r_vis_item_t *item;
-    
+
     index = add_stack_list_element(&r_vis_items, NULL);
     item = get_stack_list_element(&r_vis_items, index);
-    
+
     item->index = index;
     item->model = model;
     item->transform = transform;
-    
+
     return item;
 }
 
 void r_FreeVisItem(struct r_vis_item_t *item)
 {
-    
+
 }
 
 /*
@@ -259,7 +274,7 @@ struct r_texture_t *r_LoadTexture(char *file_name, char *name)
         texture = r_CreateTexture(name, width, height, GL_RGBA8, pixels);
         mem_Free(pixels);
     }
-    
+
     return texture;
 }
 
@@ -275,45 +290,45 @@ struct r_texture_t *r_CreateTexture(char *name, uint32_t width, uint32_t height,
     struct r_texture_t *texture;
     uint32_t format;
     uint32_t type;
-    
+
     switch(internal_format)
     {
         case GL_RGBA8:
             type = GL_UNSIGNED_BYTE;
             format = GL_RGBA;
         break;
-        
+
         case GL_RGBA16:
             type = GL_UNSIGNED_SHORT;
             format = GL_RGBA;
         break;
-        
+
         case GL_RGBA16F:
             type = GL_FLOAT;
             format = GL_RGBA;
         break;
-        
+
         case GL_RGBA32F:
             type = GL_FLOAT;
             format = GL_RGBA;
         break;
-        
+
         case GL_RGB8:
             type = GL_UNSIGNED_BYTE;
             format = GL_RGB;
         break;
-        
+
         case GL_RED:
             type = GL_UNSIGNED_BYTE;
             format = GL_RED;
         break;
     }
-    
+
     texture_index = add_stack_list_element(&r_textures, NULL);
     texture = get_stack_list_element(&r_textures, texture_index);
     texture->index = texture_index;
     texture->name = strdup(name);
-    
+
     glGenTextures(1, &texture->handle);
     glBindTexture(GL_TEXTURE_2D, texture->handle);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
@@ -326,7 +341,7 @@ struct r_texture_t *r_CreateTexture(char *name, uint32_t width, uint32_t height,
     glTexImage2D(GL_TEXTURE_2D, 0, internal_format, width, height, 0, format, type, data);
     glGenerateMipmap(GL_TEXTURE_2D);
     glBindTexture(GL_TEXTURE_2D, 0);
-    
+
     return texture;
 }
 
@@ -343,7 +358,7 @@ struct r_texture_t *r_GetTexture(char *name)
             }
         }
     }
-    
+
     return NULL;
 }
 
@@ -357,16 +372,16 @@ struct r_material_t *r_CreateMaterial(char *name, struct r_texture_t *diffuse_te
 {
     uint32_t material_index;
     struct r_material_t *material;
-    
+
     material_index = add_stack_list_element(&r_materials, NULL);
     material = get_stack_list_element(&r_materials, material_index);
-    
+
     material->index = material_index;
     material->name = strdup(name);
     material->diffuse_texture = diffuse_texture;
     material->normal_texture = normal_texture;
     material->roughness_texture = roughness_texture;
-    
+
     return material;
 }
 
@@ -383,7 +398,7 @@ struct r_material_t *r_GetMaterial(char *name)
             }
         }
     }
-    
+
     return NULL;
 }
 
@@ -399,7 +414,7 @@ void r_BindMaterial(struct r_material_t *material)
         glActiveTexture(GL_TEXTURE0 + R_ALBEDO_TEX_UNIT);
         glBindTexture(GL_TEXTURE_2D, material->diffuse_texture->handle);
         r_SetUniform1i(R_UNIFORM_TEX_ALBEDO, R_ALBEDO_TEX_UNIT);
-        
+
         glActiveTexture(GL_TEXTURE0 + R_ROUGHNESS_TEX_UNIT);
         glBindTexture(GL_TEXTURE_2D, material->roughness_texture->handle);
         r_SetUniform1i(R_UNIFORM_TEX_ROUGHNESS, R_ROUGHNESS_TEX_UNIT);
@@ -454,12 +469,12 @@ void r_FillIndices(struct ds_chunk_h chunk, uint32_t *indices, uint32_t count, u
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, r_index_buffer);
     uint32_t start = chunk_ptr->start / sizeof(uint32_t);
     uint32_t *index_buffer = (uint32_t *)glMapBuffer(GL_ELEMENT_ARRAY_BUFFER, GL_READ_WRITE) + start;
-    
+
     for(uint32_t index = 0; index < count; index++)
     {
         index_buffer[index] = indices[index] + offset;
     }
-    
+
     glUnmapBuffer(GL_ELEMENT_ARRAY_BUFFER);
 }
 
@@ -477,28 +492,28 @@ struct r_model_t *r_LoadModel(char *file_name)
         FILE *file = fopen(file_name, "rb");
         read_file(file, &file_buffer, NULL);
         fclose(file);
-        
+
         struct a_skeleton_section_t(0, 0) *skeleton_header;
         struct a_weight_section_t(0, 0) *weight_header;
         struct r_vert_section_t *verts;
         struct r_index_section_t *indexes;
         struct r_batch_section_t *batch_section;
         struct r_material_section_t *materials;
-        
+
         ds_get_section_data(file_buffer, "[skeleton]", (void **)&skeleton_header, NULL);
         ds_get_section_data(file_buffer, "[weights]", (void **)&weight_header, NULL);
         ds_get_section_data(file_buffer, "[vertices]", (void **)&verts, NULL);
         ds_get_section_data(file_buffer, "[indices]", (void **)&indexes, NULL);
         ds_get_section_data(file_buffer, "[batches]", (void **)&batch_section, NULL);
         ds_get_section_data(file_buffer, "[materials]", (void **)&materials, NULL);
-        
+
         struct r_batch_t *batches = mem_Calloc(batch_section->batch_count, sizeof(struct r_batch_t));
-        
+
         for(uint32_t batch_index = 0; batch_index < batch_section->batch_count; batch_index++)
         {
             struct r_batch_record_t *batch_record = batch_section->batches + batch_index;
             struct r_material_t *material = r_GetMaterial(batch_record->material);
-            
+
             if(!material)
             {
                 struct r_material_record_t *material_record;
@@ -510,49 +525,49 @@ struct r_model_t *r_LoadModel(char *file_name)
                         break;
                     }
                 }
-                    
+
                 struct r_texture_t *diffuse_texture = r_default_albedo_texture;
                 struct r_texture_t *normal_texture = r_default_normal_texture;
-                
-                if(material_record->diffuse_texture[0]) 
+
+                if(material_record->diffuse_texture[0])
                 {
                     diffuse_texture = r_GetTexture(material_record->diffuse_texture);
-                    
+
                     if(!diffuse_texture)
                     {
                         diffuse_texture = r_LoadTexture(material_record->diffuse_texture, material_record->diffuse_texture);
                     }
                 }
-                
-                if(material_record->normal_texture[0]) 
+
+                if(material_record->normal_texture[0])
                 {
                     normal_texture = r_GetTexture(material_record->normal_texture);
-                
+
                     if(!normal_texture)
                     {
                         normal_texture = r_LoadTexture(material_record->normal_texture, material_record->normal_texture);
                     }
                 }
-                
+
                 material = r_CreateMaterial(batch_record->material, diffuse_texture, normal_texture, r_default_roughness_texture);
             }
-            
+
             batches[batch_index].start = batch_record->start;
             batches[batch_index].count = batch_record->count;
             batches[batch_index].material = material;
         }
-        
+
         struct a_skeleton_t *skeleton = NULL;
         struct a_weight_t *weights = NULL;
         struct a_weight_range_t *weight_ranges = NULL;
         uint32_t weight_count = 0;
         uint32_t weight_range_count = 0;
-        
+
         if(skeleton_header && skeleton_header->bone_count)
         {
             struct a_skeleton_section_t(skeleton_header->bone_count, skeleton_header->bone_names_length) *skeleton_data = (void *)skeleton_header;
             skeleton = a_CreateSkeleton(skeleton_data->bone_count, skeleton_data->bones, skeleton_data->bone_names_length, skeleton_data->bone_names);
-            
+
             struct a_weight_section_t(weight_header->weight_count, weight_header->range_count) *weight_data = (void *)weight_header;
             weight_count = weight_header->weight_count;
             weight_range_count = weight_header->range_count;
@@ -573,68 +588,165 @@ struct r_model_t *r_LoadModel(char *file_name)
         create_info.weight_ranges = weight_ranges;
         create_info.min = verts->min;
         create_info.max = verts->max;
-        
-        
+
+
         model = r_CreateModel(&create_info);
         mem_Free(batches);
         mem_Free(file_buffer);
     }
-    
+
     return model;
 }
 
 struct r_model_t *r_CreateModel(struct r_model_create_info_t *create_info)
 {
+//    struct r_model_t *model;
+//    uint32_t index;
+//
+//    index = add_stack_list_element(&r_models, NULL);
+//    model = get_stack_list_element(&r_models, index);
+//    model->index = index;
+//    model->base = NULL;
+//    model->vert_chunk = r_AllocateVertices(create_info->vert_count);
+//    r_FillVertices(model->vert_chunk, create_info->verts, create_info->vert_count);
+//
+//    struct ds_chunk_t *chunk = ds_get_chunk_pointer(&r_vertex_heap, model->vert_chunk);
+//    uint32_t start = chunk->start / sizeof(struct r_vert_t);
+//    model->index_chunk = r_AllocateIndices(create_info->index_count);
+//    r_FillIndices(model->index_chunk, create_info->indices, create_info->index_count, start);
+//
+//    chunk = ds_get_chunk_pointer(&r_index_heap, model->index_chunk);
+//    start = chunk->start / sizeof(uint32_t);
+//
+//    model->batches = ds_create_buffer(sizeof(struct r_batch_t), create_info->batch_count);
+//    memcpy(model->batches.buffer, create_info->batches, sizeof(struct r_batch_t) * create_info->batch_count);
+//    for(uint32_t batch_index = 0; batch_index < create_info->batch_count; batch_index++)
+//    {
+//        ((struct r_batch_t *)model->batches.buffer)[batch_index].start += start;
+//    }
+//    model->skeleton = create_info->skeleton;
+//
+//    if(create_info->weight_count && create_info->weight_range_count)
+//    {
+//        model->weights = ds_create_buffer(sizeof(struct a_weight_t), create_info->weight_count);
+//        memcpy(model->weights.buffer, create_info->weights, sizeof(struct a_weight_t) * create_info->weight_count);
+//
+//        model->weight_ranges = ds_create_buffer(sizeof(struct a_weight_range_t), create_info->weight_range_count);
+//        memcpy(model->weight_ranges.buffer, create_info->weight_ranges, sizeof(struct a_weight_range_t) * create_info->weight_range_count);
+//    }
+//
+//    model->verts = ds_create_buffer(sizeof(struct r_vert_t), create_info->vert_count);
+//    memcpy(model->verts.buffer, create_info->verts, sizeof(struct r_vert_t) * create_info->vert_count);
+//
+//    model->indices = ds_create_buffer(sizeof(uint32_t), create_info->index_count);
+//    memcpy(model->indices.buffer, create_info->indices, sizeof(uint32_t) * create_info->index_count);
+//
+//    model->min = create_info->min;
+//    model->max = create_info->max;
+//
+//    return model;
+
+    struct r_model_geometry_t geometry = {};
+    struct r_model_skeleton_t skeleton = {};
+
+    geometry.batches = create_info->batches;
+    geometry.batch_count = create_info->batch_count;
+    geometry.indices = create_info->indices;
+    geometry.index_count = create_info->index_count;
+    geometry.verts = create_info->verts;
+    geometry.vert_count = create_info->vert_count;
+    geometry.min = create_info->min;
+    geometry.max = create_info->max;
+
+    if(create_info->weight_count && create_info->weight_range_count)
+    {
+        skeleton.skeleton = create_info->skeleton;
+        skeleton.weights = create_info->weights;
+        skeleton.weight_count = create_info->weight_count;
+        skeleton.weight_ranges = create_info->weight_ranges;
+        skeleton.weight_range_count = create_info->weight_range_count;
+
+        return r_CreateModel2(&geometry, &skeleton);
+    }
+
+    return r_CreateModel2(&geometry, NULL);
+}
+
+struct r_model_t *r_CreateModel2(struct r_model_geometry_t *geometry, struct r_model_skeleton_t *skeleton)
+{
     struct r_model_t *model;
     uint32_t index;
-    
+
     index = add_stack_list_element(&r_models, NULL);
     model = get_stack_list_element(&r_models, index);
     model->index = index;
     model->base = NULL;
-    model->vert_chunk = r_AllocateVertices(create_info->vert_count);
-    r_FillVertices(model->vert_chunk, create_info->verts, create_info->vert_count);
-    
+    model->verts = ds_create_buffer(sizeof(struct r_vert_t), 0);
+    model->indices = ds_create_buffer(sizeof(uint32_t), 0);
+    model->batches = ds_create_buffer(sizeof(struct r_batch_t), 0);
+
+    r_UpdateModelGeometry(model, geometry);
+
+    if(skeleton)
+    {
+        model->skeleton = skeleton->skeleton;
+
+        if(skeleton->weight_count && skeleton->weight_range_count)
+        {
+            model->weights = ds_create_buffer(sizeof(struct a_weight_t), skeleton->weight_count);
+            memcpy(model->weights.buffer, skeleton->weights, sizeof(struct a_weight_t) * skeleton->weight_count);
+
+            model->weight_ranges = ds_create_buffer(sizeof(struct a_weight_range_t), skeleton->weight_range_count);
+            memcpy(model->weight_ranges.buffer, skeleton->weight_ranges, sizeof(struct a_weight_range_t) * skeleton->weight_range_count);
+        }
+    }
+
+    model->min = geometry->min;
+    model->max = geometry->max;
+
+    return model;
+}
+
+void r_UpdateModelGeometry(struct r_model_t *model, struct r_model_geometry_t *geometry)
+{
+    if(geometry->vert_count > model->verts.buffer_size)
+    {
+        if(model->vert_chunk.index != DS_INVALID_CHUNK_INDEX)
+        {
+            r_FreeVertices(model->vert_chunk);
+        }
+
+        model->vert_chunk = r_AllocateVertices(geometry->vert_count);
+    }
+
+    r_FillVertices(model->vert_chunk, geometry->verts, geometry->vert_count);
+
     struct ds_chunk_t *chunk = ds_get_chunk_pointer(&r_vertex_heap, model->vert_chunk);
     uint32_t start = chunk->start / sizeof(struct r_vert_t);
-    model->index_chunk = r_AllocateIndices(create_info->index_count);
-    r_FillIndices(model->index_chunk, create_info->indices, create_info->index_count, start);
-    
+
+    if(geometry->index_count > model->indices.buffer_size)
+    {
+        if(model->index_chunk.index != DS_INVALID_CHUNK_INDEX)
+        {
+            r_FreeIndices(model->index_chunk);
+        }
+
+        model->index_chunk = r_AllocateIndices(geometry->index_count);
+    }
+
+    r_FillIndices(model->index_chunk, geometry->indices, geometry->index_count, start);
+
     chunk = ds_get_chunk_pointer(&r_index_heap, model->index_chunk);
     start = chunk->start / sizeof(uint32_t);
-    
-//    model->batch_count = create_info->batch_count;
-    model->batches = ds_create_buffer(sizeof(struct r_batch_t), create_info->batch_count);
-    memcpy(model->batches.buffer, create_info->batches, sizeof(struct r_batch_t) * create_info->batch_count);
-    for(uint32_t batch_index = 0; batch_index < create_info->batch_count; batch_index++)
+
+    ds_fill_buffer(&model->verts, 0, geometry->verts, geometry->vert_count);
+    ds_fill_buffer(&model->indices, 0, geometry->indices, geometry->index_count);
+    ds_fill_buffer(&model->batches, 0, geometry->batches, geometry->batch_count);
+
+    for(uint32_t batch_index = 0; batch_index < geometry->batch_count; batch_index++)
     {
         ((struct r_batch_t *)model->batches.buffer)[batch_index].start += start;
     }
-    model->skeleton = create_info->skeleton;
-    
-    if(create_info->weight_count && create_info->weight_range_count)
-    {
-//        model->weight_count = create_info->weight_count;
-        model->weights = ds_create_buffer(sizeof(struct a_weight_t), create_info->weight_count);
-        memcpy(model->weights.buffer, create_info->weights, sizeof(struct a_weight_t) * create_info->weight_count);
-        
-//        model->weight_range_count = create_info->weight_range_count;
-        model->weight_ranges = ds_create_buffer(sizeof(struct a_weight_range_t), create_info->weight_range_count);
-        memcpy(model->weight_ranges.buffer, create_info->weight_ranges, sizeof(struct a_weight_range_t) * create_info->weight_range_count);
-    }
-    
-//    model->vert_count = create_info->vert_count;
-    model->verts = ds_create_buffer(sizeof(struct r_vert_t), create_info->vert_count);
-    memcpy(model->verts.buffer, create_info->verts, sizeof(struct r_vert_t) * create_info->vert_count);
-    
-//    model->indice_count = create_info->index_count;
-    model->indices = ds_create_buffer(sizeof(uint32_t), create_info->index_count);
-    memcpy(model->indices.buffer, create_info->indices, sizeof(uint32_t) * create_info->index_count);
-    
-    model->min = create_info->min;
-    model->max = create_info->max;
-    
-    return model;
 }
 
 struct r_model_t *r_ShallowCopyModel(struct r_model_t *base)
@@ -645,32 +757,32 @@ struct r_model_t *r_ShallowCopyModel(struct r_model_t *base)
     copy = get_stack_list_element(&r_models, index);
     memcpy(copy, base, sizeof(struct r_model_t));
     copy->index = index;
-    
+
     copy->verts = ds_create_buffer(sizeof(struct r_vert_t), base->verts.buffer_size);
     memcpy(copy->verts.buffer, base->verts.buffer, sizeof(struct r_vert_t) * copy->verts.buffer_size);
-    
+
     copy->vert_chunk = r_AllocateVertices(copy->verts.buffer_size);
     r_FillVertices(copy->vert_chunk, copy->verts.buffer, copy->verts.buffer_size);
     chunk = ds_get_chunk_pointer(&r_vertex_heap, copy->vert_chunk);
     uint32_t new_start = chunk->start / sizeof(struct r_vert_t);
-    
+
     copy->index_chunk = r_AllocateIndices(copy->indices.buffer_size);
     r_FillIndices(copy->index_chunk, copy->indices.buffer, copy->indices.buffer_size, new_start);
     chunk = ds_get_chunk_pointer(&r_index_heap, copy->index_chunk);
     new_start = chunk->start / sizeof(uint32_t);
     chunk = ds_get_chunk_pointer(&r_index_heap, base->index_chunk);
     uint32_t old_start = chunk->start / sizeof(uint32_t);
-    
+
     copy->batches = ds_create_buffer(sizeof(struct r_batch_t), base->batches.buffer_size);
     for(uint32_t batch_index = 0; batch_index < copy->batches.buffer_size; batch_index++)
     {
         ((struct r_batch_t *)copy->batches.buffer)[batch_index] = ((struct r_batch_t *)base->batches.buffer)[batch_index];
-        ((struct r_batch_t *)copy->batches.buffer)[batch_index].start -= old_start;
+//        ((struct r_batch_t *)copy->batches.buffer)[batch_index].start -= old_start;
         ((struct r_batch_t *)copy->batches.buffer)[batch_index].start += new_start;
     }
-    
+
     copy->base = base;
-    
+
     return copy;
 }
 
@@ -684,16 +796,16 @@ struct r_light_t *r_CreateLight(uint32_t type, vec3_t *position, vec3_t *color, 
 {
     struct r_light_t *light;
     uint32_t index;
-    
+
     index = add_stack_list_element(&r_lights, NULL);
     light = get_stack_list_element(&r_lights, index);
-    
+
     light->index = index;
     light->data.pos_rad = vec4_t_c(position->x, position->y, position->z, radius);
     light->data.color = *color;
     light->data.type = type;
     light->energy = energy;
-    
+
     return light;
 }
 
@@ -705,7 +817,7 @@ struct r_light_t *r_GetLight(uint32_t light_index)
     {
         light = NULL;
     }
-    
+
     return light;
 }
 
@@ -735,20 +847,20 @@ struct r_shader_t *r_LoadShader(char *vertex_file_name, char *fragment_file_name
     int32_t compilation_status;
     int32_t info_log_length;
     char *info_log;
-    
+
     if(!file_exists(vertex_file_name))
     {
         printf("couldn't load vertex shader %s\n", vertex_file_name);
         return NULL;
     }
-    
+
     if(!file_exists(fragment_file_name))
     {
         printf("couldn't load fragment shader %s\n", fragment_file_name);
         return NULL;
     }
-    
-    
+
+
     shader_file = fopen(vertex_file_name, "rb");
     read_file(shader_file, (void **)&shader_source, NULL);
     fclose(shader_file);
@@ -768,7 +880,7 @@ struct r_shader_t *r_LoadShader(char *vertex_file_name, char *fragment_file_name
         glDeleteShader(vertex_shader);
         return NULL;
     }
-    
+
     shader_file = fopen(fragment_file_name, "rb");
     read_file(shader_file, (void **)&shader_source, NULL);
     fclose(shader_file);
@@ -789,8 +901,8 @@ struct r_shader_t *r_LoadShader(char *vertex_file_name, char *fragment_file_name
         glDeleteShader(fragment_shader);
         return NULL;
     }
-    
-    
+
+
     shader_program = glCreateProgram();
     glAttachShader(shader_program, vertex_shader);
     glAttachShader(shader_program, fragment_shader);
@@ -809,58 +921,58 @@ struct r_shader_t *r_LoadShader(char *vertex_file_name, char *fragment_file_name
         glDeleteProgram(shader_program);
         return NULL;
     }
-    
+
     uint32_t shader_index = add_stack_list_element(&r_shaders, NULL);
     shader = get_stack_list_element(&r_shaders, shader_index);
     shader->index = shader_index;
     shader->handle = shader_program;
-    
+
     for(uint32_t uniform_index = 0; uniform_index < R_UNIFORM_LAST; uniform_index++)
     {
         shader->uniforms[uniform_index] = glGetUniformLocation(shader_program, d_uniform_names[uniform_index]);
     }
-    
+
     uint32_t lights_uniform_block = glGetUniformBlockIndex(shader_program, "r_lights");
     uint32_t light_indices_uniform_block = glGetUniformBlockIndex(shader_program, "r_light_indices");
-    
+
     if(lights_uniform_block != 0xffffffff && light_indices_uniform_block != 0xffffffff)
     {
         glUniformBlockBinding(shader_program, lights_uniform_block, R_LIGHTS_UNIFORM_BUFFER_BINDING);
         glUniformBlockBinding(shader_program, light_indices_uniform_block, R_LIGHT_INDICES_UNIFORM_BUFFER_BINDING);
     }
-    
+
     shader->attribs = 0;
-    
+
     if(glGetAttribLocation(shader_program, "r_position") != -1)
     {
         shader->attribs |= R_ATTRIB_POSITION;
         glBindAttribLocation(shader_program, R_POSITION_LOCATION, "r_position");
     }
-    
+
     if(glGetAttribLocation(shader_program, "r_tex_coords") != -1)
     {
         shader->attribs |= R_ATTRIB_TEX_COORDS;
         glBindAttribLocation(shader_program, R_TEX_COORDS_LOCATION, "r_tex_coords");
     }
-    
+
     if(glGetAttribLocation(shader_program, "r_normal") != -1)
     {
         shader->attribs |= R_ATTRIB_NORMAL;
         glBindAttribLocation(shader_program, R_NORMAL_LOCATION, "r_normal");
     }
-    
-    if(glGetAttribLocation(shader_program, "r_tangent") != -1) 
+
+    if(glGetAttribLocation(shader_program, "r_tangent") != -1)
     {
         shader->attribs |= R_ATTRIB_TANGENT;
         glBindAttribLocation(shader_program, R_TANGENT_LOCATION, "r_tangent");
     }
-    
+
     if(glGetAttribLocation(shader_program, "r_color") != -1)
     {
         shader->attribs |= R_ATTRIB_COLOR;
         glBindAttribLocation(shader_program, R_COLOR_LOCATION, "r_color");
     }
-    
+
     return shader;
 }
 
@@ -880,12 +992,12 @@ void r_BindShader(struct r_shader_t *shader)
     {
         r_current_shader = shader;
         glUseProgram(shader->handle);
-        
+
         r_SetUniform1i(R_UNIFORM_WIDTH, r_width);
         r_SetUniform1i(R_UNIFORM_HEIGHT, r_height);
         r_SetUniform1f(R_UNIFORM_Z_NEAR, r_z_near);
         r_SetUniform1f(R_UNIFORM_CLUSTER_DENOM, r_denom);
-        
+
         if(shader->attribs & R_ATTRIB_POSITION)
         {
             glEnableVertexArrayAttrib(r_vao, R_POSITION_LOCATION);
@@ -895,17 +1007,17 @@ void r_BindShader(struct r_shader_t *shader)
         {
             glDisableVertexArrayAttrib(r_vao, R_POSITION_LOCATION);
         }
-        
+
         if(shader->attribs & R_ATTRIB_NORMAL)
         {
             glEnableVertexArrayAttrib(r_vao, R_NORMAL_LOCATION);
-            glVertexAttribPointer(R_NORMAL_LOCATION, 3, GL_FLOAT, GL_FALSE, sizeof(struct r_vert_t), (void *)offsetof(struct r_vert_t, normal));
+            glVertexAttribPointer(R_NORMAL_LOCATION, 4, GL_FLOAT, GL_FALSE, sizeof(struct r_vert_t), (void *)offsetof(struct r_vert_t, normal));
         }
         else
         {
             glDisableVertexArrayAttrib(r_vao, R_NORMAL_LOCATION);
         }
-        
+
         if(shader->attribs & R_ATTRIB_TANGENT)
         {
             glEnableVertexArrayAttrib(r_vao, R_TANGENT_LOCATION);
@@ -915,7 +1027,7 @@ void r_BindShader(struct r_shader_t *shader)
         {
             glDisableVertexArrayAttrib(r_vao, R_TANGENT_LOCATION);
         }
-        
+
         if(shader->attribs & R_ATTRIB_TEX_COORDS)
         {
             glEnableVertexArrayAttrib(r_vao, R_TEX_COORDS_LOCATION);
@@ -926,6 +1038,11 @@ void r_BindShader(struct r_shader_t *shader)
             glDisableVertexArrayAttrib(r_vao, R_TEX_COORDS_LOCATION);
         }
     }
+}
+
+uint32_t r_GetUniformIndex(struct r_shader_t *shader, char *name)
+{
+    return glGetUniformLocation(shader->handle, name);
 }
 
 void r_SetUniformMatrix4(uint32_t uniform, mat4_t *matrix)

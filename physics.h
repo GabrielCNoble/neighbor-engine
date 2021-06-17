@@ -12,6 +12,8 @@ struct p_col_plane_t
 {
     vec3_t normal;
     vec3_t point;
+    vec3_t t0;
+    vec3_t t1;
 };
 
 enum P_COLLIDER_TYPE
@@ -28,13 +30,14 @@ enum P_COLLIDER_FLAGS
     P_COLLIDER_FLAG_TOP_COLLIDED = 1 << 1,
 };
 
-#define P_COLLIDER_FIELDS   \
-    uint32_t type;          \
-    uint32_t index;         \
-    uint32_t node_index;    \
-    mat3_t orientation;     \
-    vec3_t position;        \
-    vec3_t size;            \
+#define P_COLLIDER_FIELDS           \
+    uint32_t type;                  \
+    uint32_t index;                 \
+    uint32_t node_index;            \
+    uint32_t planes_index;          \
+    mat3_t orientation;             \
+    vec3_t position;                \
+    vec3_t size;                    \
     void *user_data
 
 struct p_collider_t
@@ -116,15 +119,17 @@ struct p_collider_t *p_GetCollision(struct p_collider_t *collider, uint32_t coll
 
 void p_DisplaceCollider(struct p_collider_t *collider, vec3_t *disp);
 
-//void p_RotateColliderX(struct p_collider_t *collider, float angle);
-//
-//void p_RotateColliderY(struct p_collider_t *collider, float angle);
-//
-//void p_RotateColliderZ(struct p_collider_t *collider, float angle);
+void p_RotateColliderX(struct p_collider_t *collider, float angle);
+
+void p_RotateColliderY(struct p_collider_t *collider, float angle);
+
+void p_RotateColliderZ(struct p_collider_t *collider, float angle);
 
 void p_UpdateColliders();
 
-void p_ComputeCollisionPlanes(struct p_collider_t *collider_a, struct p_collider_t *collider_b, struct p_col_plane_t **planes, uint32_t *plane_count);
+void p_GenColPlanes(struct p_collider_t *collider);
+
+void p_GenPairColPlanes(struct p_collider_t *collider_a, struct p_collider_t *collider_b, struct p_col_plane_t **planes, uint32_t *plane_count);
 
 void p_UpdateColliderNode(struct p_collider_t *collider);
 

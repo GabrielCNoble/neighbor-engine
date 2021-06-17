@@ -58,13 +58,13 @@ ivec3 get_cluster_coord()
     float y = gl_FragCoord.y / float(r_height);
     float z = -var_position.z;
     float num = log(z / r_z_near);
-    
+
     ivec3 cluster_coord;
-    
+
     cluster_coord.x = int(floor(R_CLUSTER_ROW_WIDTH * x));
     cluster_coord.y = int(floor(R_CLUSTER_ROWS * y));
-    cluster_coord.z = int(floor(R_CLUSTER_SLICES * (num / r_cluster_denom)));   
-    
+    cluster_coord.z = int(floor(R_CLUSTER_SLICES * (num / r_cluster_denom)));
+
     return cluster_coord;
 }
 
@@ -74,13 +74,13 @@ uvec4 get_cluster()
     float y = gl_FragCoord.y / float(r_height);
     float z = -var_position.z;
     float num = log(z / r_z_near);
-    
+
     ivec3 cluster_coord;
-    
+
     cluster_coord.x = int(floor(R_CLUSTER_ROW_WIDTH * x));
     cluster_coord.y = int(floor(R_CLUSTER_ROWS * y));
-    cluster_coord.z = int(floor(R_CLUSTER_SLICES * (num / r_cluster_denom)));   
-    
+    cluster_coord.z = int(floor(R_CLUSTER_SLICES * (num / r_cluster_denom)));
+
     return texelFetch(r_clusters, cluster_coord, 0);
 }
 
@@ -111,7 +111,7 @@ float ggx_pg(vec3 dir, vec3 normal, vec3 half_vec, float a)
     voh2 *= voh2;
     float tan2 = (1.0 - voh2) / voh2;
     return (2.0 ) / (1.0 + sqrt(1 + a * a * tan2));
-    
+
 //    float ddn = dot(dir, normal);
 //    float ddnsqrd = ddn * ddn;
 //    float asqrd = a * a;
@@ -173,7 +173,7 @@ float E = 0.02;
 float F = 0.30;
 float W = 11.2;
 
-vec3 tonemap(vec3 color) 
+vec3 tonemap(vec3 color)
 {
     return ((color * (A * color + C * B) + D * E) / (color * (A * color + B) + D * F)) - vec3(E/F);
 }
@@ -183,20 +183,20 @@ void main()
     vec4 albedo = texture(r_tex_albedo, var_tex_coords.xy);
     vec3 normal = normalize(texture(r_tex_normal, var_tex_coords.xy).rgb * 2.0 - vec3(1.0));
     float roughness = texture(r_tex_roughness, var_tex_coords.xy).r;
-    
+
     uvec4 cluster = get_cluster();
     vec4 color = vec4(0.0);
-    
+
     mat3 tbn;
     tbn[0] = normalize(var_tangent);
     tbn[2] = normalize(var_normal);
     tbn[1] = cross(tbn[0], tbn[1]);
-    
+
     normal = normalize(tbn * normal);
-    
+
     vec3 view_vec = normalize(-var_position);
     albedo /= 3.14159265;
-    
+
     for(int light_index = 0; light_index < cluster.y; light_index++)
     {
         r_l_data_t light = lights[indices[cluster.x + light_index].index];

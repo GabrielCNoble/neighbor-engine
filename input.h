@@ -20,7 +20,9 @@ void in_SetMouseRelativeMode(uint32_t enable);
 
 void in_GetMouseDelta(float *dx, float *dy);
 
-void in_GetMousePos(float *x, float *y);
+void in_GetNormalizedMousePos(float *x, float *y);
+
+void in_GetMousePos(int32_t *x, int32_t *y);
 
 
 

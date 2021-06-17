@@ -6,6 +6,10 @@
 
 void r_VisibleLights();
 
+void r_VisibleEntities();
+
+void r_VisibleWorld();
+
 void r_VisibleVisItems();
 
 #endif // R_VIS_H

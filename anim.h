@@ -7,12 +7,17 @@
 #include "dstuff/ds_stack_list.h"
 #include <stdint.h>
 
+/* influence of a single bone. No vertex id is necessary here, because
+those weights are sorted by vertex id */
 struct a_weight_t
 {
     uint32_t bone_index;
     float weight;
 };
 
+/* range of bone weights per vertex. There's also no need to store a vertex id here
+because those are also sorted by vertex id when exported. So, the first in the list
+belongs to vertex 0, the second to vertex 1, and so on */
 struct a_weight_range_t
 {
     uint32_t start;
@@ -25,7 +30,7 @@ struct a_transform_t
     vec3_t pos;
 };
 
-struct a_bone_t  
+struct a_bone_t
 {
     mat4_t transform;
     mat4_t inv_bind_matrix;
@@ -45,10 +50,14 @@ struct a_skeleton_t
     struct a_bone_name_t *names;
 };
 
+/* pair of transforms to be used for a specific frame */
 struct a_transform_pair_t
 {
+    /* start and end transforms */
     uint16_t start;
     uint16_t end;
+
+    /* this is necessary for interpolation */
     uint16_t end_frame;
 };
 
@@ -67,6 +76,8 @@ struct a_animation_t
     uint32_t bone_count;
     uint32_t transform_count;
     struct a_transform_t *transforms;
+    /* each bone has one of those for each animation frame. If a bone doesn't get
+    modified at all by this animation, every pair will reference invalid transforms */
     struct a_transform_pair_t *pairs;
 };
 
@@ -103,10 +114,12 @@ struct a_mixer_t
     struct list_t mix_players;
     struct list_t masks;
     uint8_t *touched_bones;
-    /* final transforms ready to be transformed into matrices. Those are computed
-    after all tracks have been mixed */
-    struct a_transform_t *transforms;
+    /* result of all mixed players */
+    struct a_transform_t *mixed_transforms;
+    /* mixed transforms, with the bone_to_world transforms concatenated */
     mat4_t *bone_transforms;
+    /* skinning matrices, which are just the inverse bind
+    pose with the bone_to_world transforms concatenated */
     mat4_t *skinning_matrices;
     vec3_t root_disp;
 };
@@ -140,7 +153,7 @@ struct a_player_t
 
 
 /* serialization structs */
-struct a_weight_record_t 
+struct a_weight_record_t
 {
     uint32_t vert_index;
     struct a_weight_t weight;
@@ -153,7 +166,7 @@ struct a_weight_record_t
     struct a_weight_t weights[w_count];                       \
     struct a_weight_range_t ranges[r_count];                  \
 }
-    
+
 //struct a_skeleton_section_t
 //{
 //    uint32_t bone_count;
@@ -166,7 +179,7 @@ struct a_weight_record_t
     uint32_t bone_count;                                               \
     struct a_bone_t bones[b_count];                                    \
     char bone_names[bn_length];                                        \
-}   
+}
 
 struct a_anim_sec_header_t
 {

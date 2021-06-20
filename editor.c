@@ -14,7 +14,7 @@ struct ed_context_t *ed_active_context;
 struct ed_context_t ed_contexts[ED_CONTEXT_LAST];
 //uint32_t ed_grid_vert_count;
 //struct r_vert_t *ed_grid;
-struct r_immediate_verts_t *ed_grid;
+struct r_i_verts_t *ed_grid;
 struct stack_list_t ed_polygons;
 struct stack_list_t ed_bsp_nodes;
 
@@ -107,7 +107,7 @@ struct ed_world_context_data_t ed_world_context_data;
 void ed_Init()
 {
     ed_brushes = create_stack_list(sizeof(struct ed_brush_t), 512);
-    ed_grid = mem_Calloc(1, sizeof(struct r_immediate_verts_t) + sizeof(struct r_vert_t) * 6);
+    ed_grid = r_i_AllocImmediateExternData(sizeof(struct r_i_verts_t) + sizeof(struct r_vert_t) * 6);
 
     ed_grid->count = 6;
     ed_grid->verts[0].pos = vec3_t_c(-ED_GRID_QUAD_SIZE, 0.0, -ED_GRID_QUAD_SIZE);
@@ -276,11 +276,11 @@ void ed_WorldContextUpdate()
         mat4_t_comp(&model_matrix, &brush->orientation, &brush->position);
         r_i_SetModelMatrix(&model_matrix);
         r_i_SetViewProjectionMatrix(NULL);
-        uint32_t verts_size = sizeof(struct r_immediate_verts_t) + sizeof(struct r_vert_t) * brush->model->verts.buffer_size;
-        uint32_t indices_size = sizeof(struct r_immediate_indices_t) + sizeof(uint32_t) * brush->model->indices.buffer_size;
+        uint32_t verts_size = sizeof(struct r_i_verts_t) + sizeof(struct r_vert_t) * brush->model->verts.buffer_size;
+        uint32_t indices_size = sizeof(struct r_i_indices_t) + sizeof(uint32_t) * brush->model->indices.buffer_size;
 
-        struct r_immediate_verts_t *verts = r_i_AllocImmediateData(verts_size);
-        struct r_immediate_indices_t *indices = r_i_AllocImmediateData(indices_size);
+        struct r_i_verts_t *verts = r_i_AllocImmediateData(verts_size);
+        struct r_i_indices_t *indices = r_i_AllocImmediateData(indices_size);
 
         verts->count = brush->model->verts.buffer_size;
         indices->count = brush->model->indices.buffer_size;
@@ -351,55 +351,62 @@ void ed_WorldContextStateBrushBox(struct ed_context_t *context, uint32_t just_ch
 
     if(in_GetMouseButtonState(SDL_BUTTON_LEFT) & IN_KEY_STATE_PRESSED)
     {
-        vec3_t mouse_pos;
-        vec3_t camera_pos;
-        vec4_t mouse_vec = {};
-
-        float aspect = (float)r_width / (float)r_height;
-        float top = tan(r_fov) * r_z_near;
-        float right = top * aspect;
-
-        in_GetNormalizedMousePos(&mouse_vec.x, &mouse_vec.y);
-        mouse_vec.x *= right;
-        mouse_vec.y *= top;
-        mouse_vec.z = -r_z_near;
-        vec4_t_normalize(&mouse_vec, &mouse_vec);
-        mat4_t_vec4_t_mul_fast(&mouse_vec, &r_view_matrix, &mouse_vec);
-
-        camera_pos.x = r_view_matrix.rows[3].x;
-        camera_pos.y = r_view_matrix.rows[3].y;
-        camera_pos.z = r_view_matrix.rows[3].z;
-
-        mouse_pos.x = camera_pos.x + mouse_vec.x;
-        mouse_pos.y = camera_pos.y + mouse_vec.y;
-        mouse_pos.z = camera_pos.z + mouse_vec.z;
-
-        float dist_a = camera_pos.y;
-        float dist_b = mouse_pos.y;
-        float denom = (dist_a - dist_b);
-
-        r_i_SetModelMatrix(NULL);
-        r_i_SetViewProjectionMatrix(NULL);
-
-        if(denom)
+        if(in_GetKeyState(SDL_SCANCODE_ESCAPE) & IN_KEY_STATE_PRESSED)
         {
-            float frac = dist_a / denom;
-            vec3_t intersection = {};
-            vec3_t_fmadd(&intersection, &camera_pos, &vec3_t_c(mouse_vec.x, mouse_vec.y, mouse_vec.z), frac);
+            ed_SetContextState(context, ED_WORLD_CONTEXT_STATE_IDLE);
+        }
+        else
+        {
+            vec3_t mouse_pos;
+            vec3_t camera_pos;
+            vec4_t mouse_vec = {};
 
-            if(just_changed)
+            float aspect = (float)r_width / (float)r_height;
+            float top = tan(r_fov) * r_z_near;
+            float right = top * aspect;
+
+            in_GetNormalizedMousePos(&mouse_vec.x, &mouse_vec.y);
+            mouse_vec.x *= right;
+            mouse_vec.y *= top;
+            mouse_vec.z = -r_z_near;
+            vec4_t_normalize(&mouse_vec, &mouse_vec);
+            mat4_t_vec4_t_mul_fast(&mouse_vec, &r_view_matrix, &mouse_vec);
+
+            camera_pos.x = r_view_matrix.rows[3].x;
+            camera_pos.y = r_view_matrix.rows[3].y;
+            camera_pos.z = r_view_matrix.rows[3].z;
+
+            mouse_pos.x = camera_pos.x + mouse_vec.x;
+            mouse_pos.y = camera_pos.y + mouse_vec.y;
+            mouse_pos.z = camera_pos.z + mouse_vec.z;
+
+            float dist_a = camera_pos.y;
+            float dist_b = mouse_pos.y;
+            float denom = (dist_a - dist_b);
+
+            r_i_SetModelMatrix(NULL);
+            r_i_SetViewProjectionMatrix(NULL);
+
+            if(denom)
             {
-                context_data->box_start = intersection;
+                float frac = dist_a / denom;
+                vec3_t intersection = {};
+                vec3_t_fmadd(&intersection, &camera_pos, &vec3_t_c(mouse_vec.x, mouse_vec.y, mouse_vec.z), frac);
+
+                if(just_changed)
+                {
+                    context_data->box_start = intersection;
+                }
+
+                context_data->box_end = intersection;
+                vec3_t start = context_data->box_start;
+                vec3_t end = context_data->box_end;
+
+                r_i_DrawLine(&start, &vec3_t_c(start.x, start.y, end.z), &vec4_t_c(0.0, 1.0, 0.0, 1.0), 2.0);
+                r_i_DrawLine(&vec3_t_c(start.x, start.y, end.z), &end, &vec4_t_c(0.0, 1.0, 0.0, 1.0), 2.0);
+                r_i_DrawLine(&end, &vec3_t_c(end.x, start.y, start.z), &vec4_t_c(0.0, 1.0, 0.0, 1.0), 2.0);
+                r_i_DrawLine(&vec3_t_c(end.x, start.y, start.z), &start, &vec4_t_c(0.0, 1.0, 0.0, 1.0), 2.0);
             }
-
-            context_data->box_end = intersection;
-            vec3_t start = context_data->box_start;
-            vec3_t end = context_data->box_end;
-
-            r_i_DrawLine(&start, &vec3_t_c(start.x, start.y, end.z), &vec4_t_c(0.0, 1.0, 0.0, 1.0), 2.0);
-            r_i_DrawLine(&vec3_t_c(start.x, start.y, end.z), &end, &vec4_t_c(0.0, 1.0, 0.0, 1.0), 2.0);
-            r_i_DrawLine(&end, &vec3_t_c(end.x, start.y, start.z), &vec4_t_c(0.0, 1.0, 0.0, 1.0), 2.0);
-            r_i_DrawLine(&vec3_t_c(end.x, start.y, start.z), &start, &vec4_t_c(0.0, 1.0, 0.0, 1.0), 2.0);
         }
     }
     else
@@ -483,10 +490,11 @@ void ed_DrawGrid()
     r_i_SetModelMatrix(NULL);
     r_i_SetViewProjectionMatrix(NULL);
     r_i_SetBlending(GL_TRUE, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    r_i_SetCullFace(GL_FALSE, 0);
     r_i_SetShader(ed_center_grid_shader);
     r_i_DrawVerts(R_I_DRAW_CMD_TRIANGLE_LIST, ed_grid);
     r_i_SetShader(NULL);
-    r_i_SetBlending(GL_FALSE, GL_ONE, GL_ZERO);
+    r_i_SetBlending(GL_TRUE, GL_ONE, GL_ZERO);
     r_i_DrawLine(&vec3_t_c(-10000.0, 0.0, 0.0), &vec3_t_c(10000.0, 0.0, 0.0), &vec4_t_c(1.0, 0.0, 0.0, 1.0), 3.0);
     r_i_DrawLine(&vec3_t_c(0.0, 0.0, -10000.0), &vec3_t_c(0.0, 0.0, 10000.0), &vec4_t_c(0.0, 0.0, 1.0, 1.0), 3.0);
 }

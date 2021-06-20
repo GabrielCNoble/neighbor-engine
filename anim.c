@@ -474,17 +474,6 @@ void a_UpdateMixer(struct a_mixer_t *mixer, float delta_time)
         first_bone = 1;
     }
 
-    uint32_t touched_bones = mixer->skeleton->bone_count / 8;
-    if(mixer->skeleton->bone_count % 8)
-    {
-        touched_bones++;
-    }
-
-    for(uint32_t bone_index = 0; bone_index < touched_bones; bone_index++)
-    {
-        mixer->touched_bones[bone_index] = 0;
-    }
-
     if(mixer->masks.cursor)
     {
         for(uint32_t mask_index = 0; mask_index < mixer->masks.cursor; mask_index++)
@@ -543,7 +532,6 @@ void a_UpdateMixer(struct a_mixer_t *mixer, float delta_time)
                         struct a_transform_t *mixed_transform = mixer->mixed_transforms + bone_index;
                         quat_slerp(&mixed_transform->rot, &mixed_transform->rot, &transform->rot, weight);
                         vec3_t_lerp(&mixed_transform->pos, &mixed_transform->pos, &transform->pos, weight);
-//                        mixer->touched_bones[bone_index / 8] |= 1 << (bone_index % 8);
                     }
                 }
             }

@@ -416,13 +416,14 @@
 	"ds_mem.h"
 	<stdarg.h>
 
-1622131650 c:\users\gabri\documents\compiler\metroid_thingy\input.h
+1624210811 c:\users\gabri\documents\compiler\metroid_thingy\input.h
 	"SDL2/SDL.h"
 
-1622131657 source:c:\users\gabri\documents\compiler\metroid_thingy\input.c
+1624210807 source:c:\users\gabri\documents\compiler\metroid_thingy\input.c
 	"input.h"
+	<stdio.h>
 
-1613235956 c:\users\gabri\documents\compiler\metroid_thingy\lib\dstuff\ds_matrix.h
+1624049283 c:\users\gabri\documents\compiler\metroid_thingy\lib\dstuff\ds_matrix.h
 	"ds_vector.h"
 	<intrin.h>
 
@@ -466,7 +467,7 @@
 	<limits.h>
 	<stdlib.h>
 
-1623772299 source:c:\users\gabri\documents\compiler\metroid_thingy\game.c
+1624205154 source:c:\users\gabri\documents\compiler\metroid_thingy\game.c
 	"dstuff/ds_stack_list.h"
 	"dstuff/ds_mem.h"
 	"dstuff/ds_file.h"
@@ -479,6 +480,7 @@
 	"editor.h"
 	"world.h"
 	"sound.h"
+	"gui.h"
 	<string.h>
 	<stdio.h>
 
@@ -509,7 +511,7 @@
 	<intrin.h>
 	<arm_neon.h>
 
-1621960669 source:c:\users\gabri\documents\compiler\metroid_thingy\physics.c
+1623931070 source:c:\users\gabri\documents\compiler\metroid_thingy\physics.c
 	<float.h>
 	"physics.h"
 	"dstuff/ds_stack_list.h"
@@ -518,7 +520,7 @@
 	"dstuff/ds_dbvh.h"
 	"r_draw.h"
 
-1613747992 c:\users\gabri\documents\compiler\metroid_thingy\physics.h
+1623931070 c:\users\gabri\documents\compiler\metroid_thingy\physics.h
 	"dstuff/ds_vector.h"
 	"dstuff/ds_matrix.h"
 	"dstuff/ds_list.h"
@@ -552,7 +554,7 @@
 	"dstuff/ds_alloc.h"
 	"draw.h"
 
-1623724910 source:c:\users\gabri\documents\compiler\metroid_thingy\anim.c
+1624205154 source:c:\users\gabri\documents\compiler\metroid_thingy\anim.c
 	<stdio.h>
 	"anim.h"
 	"r_draw.h"
@@ -560,22 +562,22 @@
 	"dstuff/ds_stack_list.h"
 	"dstuff/ds_mem.h"
 
-1623724432 c:\users\gabri\documents\compiler\metroid_thingy\anim.h
+1623931070 c:\users\gabri\documents\compiler\metroid_thingy\anim.h
 	"dstuff/ds_vector.h"
 	"dstuff/ds_matrix.h"
 	"dstuff/ds_list.h"
 	"dstuff/ds_stack_list.h"
 	<stdint.h>
 
-1623928627 c:\users\gabri\documents\compiler\metroid_thingy\r_draw.h
+1624205151 c:\users\gabri\documents\compiler\metroid_thingy\r_draw.h
 	"r_com.h"
 	"r_main.h"
 
-1622130339 c:\users\gabri\documents\compiler\metroid_thingy\r_main.h
+1623931070 c:\users\gabri\documents\compiler\metroid_thingy\r_main.h
 	"r_com.h"
 	"GL/glew.h"
 
-1623928733 source:c:\users\gabri\documents\compiler\metroid_thingy\r_draw.c
+1624205151 source:c:\users\gabri\documents\compiler\metroid_thingy\r_draw.c
 	"r_draw.h"
 	"SDL2/SDL.h"
 	"GL/glew.h"
@@ -588,7 +590,7 @@
 	<stddef.h>
 	<stdalign.h>
 
-1623777363 source:c:\users\gabri\documents\compiler\metroid_thingy\r_main.c
+1624205151 source:c:\users\gabri\documents\compiler\metroid_thingy\r_main.c
 	"r_main.h"
 	"SDL2/SDL.h"
 	"GL/glew.h"
@@ -601,7 +603,7 @@
 	"r_draw.h"
 	"anim.h"
 
-1623928526 c:\users\gabri\documents\compiler\metroid_thingy\r_com.h
+1624205151 c:\users\gabri\documents\compiler\metroid_thingy\r_com.h
 	"dstuff/ds_vector.h"
 	"dstuff/ds_matrix.h"
 	"dstuff/ds_alloc.h"
@@ -610,7 +612,7 @@
 	<stddef.h>
 	<stdalign.h>
 
-1623774278 source:c:\users\gabri\documents\compiler\metroid_thingy\editor.c
+1624211036 source:c:\users\gabri\documents\compiler\metroid_thingy\editor.c
 	"editor.h"
 	"ed_bsp.h"
 	"dstuff/ds_stack_list.h"
@@ -622,7 +624,7 @@
 	"input.h"
 	"r_draw.h"
 
-1622144460 c:\users\gabri\documents\compiler\metroid_thingy\editor.h
+1623931070 c:\users\gabri\documents\compiler\metroid_thingy\editor.h
 	"dstuff/ds_vector.h"
 	"dstuff/ds_matrix.h"
 	"dstuff/ds_alloc.h"
@@ -639,7 +641,7 @@
 	"dstuff/ds_alloc.h"
 	"r_draw.h"
 
-1621509526 source:c:\users\gabri\documents\compiler\metroid_thingy\sound.c
+1623931070 source:c:\users\gabri\documents\compiler\metroid_thingy\sound.c
 	<stdio.h>
 	"sound.h"
 	"al.h"
@@ -708,19 +710,19 @@
 1621109233 c:\users\gabri\documents\compiler\metroid_thingy\lib\dstuff\ds_buffer.h
 	"ds_mem.h"
 
-1620790837 c:\users\gabri\documents\compiler\metroid_thingy\r_vis.h
+1623931070 c:\users\gabri\documents\compiler\metroid_thingy\r_vis.h
 	"r_com.h"
 	"r_draw.h"
 
-1621960680 source:c:\users\gabri\documents\compiler\metroid_thingy\r_vis.c
+1623931070 source:c:\users\gabri\documents\compiler\metroid_thingy\r_vis.c
 	"r_vis.h"
 	"game.h"
 
-1622147311 source:c:\users\gabri\documents\compiler\metroid_thingy\ed_bsp.c
+1623931070 source:c:\users\gabri\documents\compiler\metroid_thingy\ed_bsp.c
 	"ed_bsp.h"
 	<stdlib.h>
 
-1621504849 c:\users\gabri\documents\compiler\metroid_thingy\ed_bsp.h
+1623931070 c:\users\gabri\documents\compiler\metroid_thingy\ed_bsp.h
 	<stdint.h>
 	<stddef.h>
 	"ed_com.h"
@@ -728,10 +730,122 @@
 	"dstuff/ds_list.h"
 	"dstuff/ds_buffer.h"
 
-1621541634 c:\users\gabri\documents\compiler\metroid_thingy\ed_com.h
+1623931070 c:\users\gabri\documents\compiler\metroid_thingy\ed_com.h
 	<stdint.h>
 	"dstuff/ds_buffer.h"
 	"dstuff/ds_vector.h"
 	"dstuff/ds_matrix.h"
 	"r_com.h"
+
+1623932508 source:c:\users\gabri\documents\compiler\metroid_thingy\lib\cimgui\cimgui.cpp
+	"./imgui/imgui.h"
+	"./imgui/misc/freetype/imgui_freetype.h"
+	"./imgui/imgui_internal.h"
+	"cimgui.h"
+
+1623932044 c:\users\gabri\documents\compiler\metroid_thingy\lib\cimgui\imgui\imgui.h
+	"imconfig.h"
+	<float.h>
+	<stdarg.h>
+	<stddef.h>
+	<string.h>
+	<assert.h>
+	<stdint.h>
+	"imgui_user.h"
+
+1623932044 c:\users\gabri\documents\compiler\metroid_thingy\lib\cimgui\imgui\imconfig.h
+
+1623932044 c:\users\gabri\documents\compiler\metroid_thingy\lib\cimgui\imgui\imgui_internal.h
+	<stdio.h>
+	<stdlib.h>
+	<math.h>
+	<limits.h>
+	<immintrin.h>
+	"imstb_textedit.h"
+
+1623932044 c:\users\gabri\documents\compiler\metroid_thingy\lib\cimgui\imgui\imstb_textedit.h
+	<string.h>
+
+1623932508 c:\users\gabri\documents\compiler\metroid_thingy\lib\cimgui\cimgui.h
+	<stdio.h>
+	<stdint.h>
+	<stdarg.h>
+	<stdbool.h>
+
+1623932044 source:c:\users\gabri\documents\compiler\metroid_thingy\lib\cimgui\imgui\imgui.cpp
+	"imgui.h"
+	"imgui_internal.h"
+	<ctype.h>
+	<stdio.h>
+	<stddef.h>
+	<stdint.h>
+	<Windows.h>
+	<windows.h>
+	<TargetConditionals.h>
+	"stb_sprintf.h"
+	<Carbon/Carbon.h>
+	"imgui_user.inl"
+
+1623932044 source:c:\users\gabri\documents\compiler\metroid_thingy\lib\cimgui\imgui\imgui_demo.cpp
+	"imgui.h"
+	<ctype.h>
+	<limits.h>
+	<math.h>
+	<stdio.h>
+	<stdlib.h>
+	<stddef.h>
+	<stdint.h>
+
+1623932044 source:c:\users\gabri\documents\compiler\metroid_thingy\lib\cimgui\imgui\imgui_draw.cpp
+	"imgui.h"
+	"imgui_internal.h"
+	"misc/freetype/imgui_freetype.h"
+	<stdio.h>
+	<alloca.h>
+	<malloc.h>
+	<stdlib.h>
+	"imstb_rectpack.h"
+	"imstb_truetype.h"
+
+1594903896 c:\users\gabri\documents\compiler\metroid_thingy\lib\cimgui\imgui\imstb_rectpack.h
+	<stdlib.h>
+	<assert.h>
+
+1623932044 c:\users\gabri\documents\compiler\metroid_thingy\lib\cimgui\imgui\imstb_truetype.h
+	"stb_truetype.h"
+	<stdio.h>
+	"stb_truetype.h"
+	<math.h>
+	<math.h>
+	<math.h>
+	<math.h>
+	<math.h>
+	<stdlib.h>
+	<assert.h>
+	<string.h>
+	<string.h>
+
+1623932044 source:c:\users\gabri\documents\compiler\metroid_thingy\lib\cimgui\imgui\imgui_tables.cpp
+	"imgui.h"
+	"imgui_internal.h"
+	<stddef.h>
+	<stdint.h>
+
+1623932044 source:c:\users\gabri\documents\compiler\metroid_thingy\lib\cimgui\imgui\imgui_widgets.cpp
+	"imgui.h"
+	"imgui_internal.h"
+	<ctype.h>
+	<stddef.h>
+	<stdint.h>
+	"imstb_textedit.h"
+
+1623943442 c:\users\gabri\documents\compiler\metroid_thingy\gui.h
+	"cimgui/cimgui.h"
+
+1624210824 source:c:\users\gabri\documents\compiler\metroid_thingy\gui.c
+	"gui.h"
+	"r_main.h"
+	"r_draw.h"
+	"input.h"
+	<stdint.h>
 

@@ -8,7 +8,7 @@
 		<Build>
 			<Target title="Debug">
 				<Option output="./metroid_thingy" prefix_auto="1" extension_auto="1" />
-				<Option object_output="./" />
+				<Option object_output="./debug/" />
 				<Option type="1" />
 				<Option compiler="gcc" />
 				<Option parameters="-ed" />
@@ -16,10 +16,20 @@
 					<Add option="-g" />
 				</Compiler>
 			</Target>
+			<Target title="Release">
+				<Option output="./metroid_thingy" prefix_auto="1" extension_auto="1" />
+				<Option object_output="./release/" />
+				<Option type="1" />
+				<Option compiler="gcc" />
+				<Option parameters="-ed" />
+				<Compiler>
+					<Add option="-O3" />
+				</Compiler>
+			</Target>
 		</Build>
 		<Compiler>
 			<Add option="-Wall" />
-			<Add option="-g" />
+			<Add option="-std=c11" />
 			<Add option="-Wno-missing-braces" />
 			<Add directory="lib/SDL/include" />
 			<Add directory="lib" />
@@ -60,6 +70,10 @@
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="game.h" />
+		<Unit filename="gui.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="gui.h" />
 		<Unit filename="impl.c">
 			<Option compilerVar="CC" />
 		</Unit>
@@ -67,6 +81,19 @@
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="input.h" />
+		<Unit filename="lib/cimgui/cimgui.cpp" />
+		<Unit filename="lib/cimgui/cimgui.h" />
+		<Unit filename="lib/cimgui/imgui/imconfig.h" />
+		<Unit filename="lib/cimgui/imgui/imgui.cpp" />
+		<Unit filename="lib/cimgui/imgui/imgui.h" />
+		<Unit filename="lib/cimgui/imgui/imgui_demo.cpp" />
+		<Unit filename="lib/cimgui/imgui/imgui_draw.cpp" />
+		<Unit filename="lib/cimgui/imgui/imgui_internal.h" />
+		<Unit filename="lib/cimgui/imgui/imgui_tables.cpp" />
+		<Unit filename="lib/cimgui/imgui/imgui_widgets.cpp" />
+		<Unit filename="lib/cimgui/imgui/imstb_rectpack.h" />
+		<Unit filename="lib/cimgui/imgui/imstb_textedit.h" />
+		<Unit filename="lib/cimgui/imgui/imstb_truetype.h" />
 		<Unit filename="lib/tinycthread/tinycthread.c">
 			<Option compilerVar="CC" />
 		</Unit>

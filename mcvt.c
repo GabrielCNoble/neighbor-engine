@@ -794,15 +794,26 @@ int main(int argc, char *argv[])
                         ds_append_data(&vert_section, sizeof(struct r_vert_t), &vert);
                     }
 
-                    vertices->vert_count += mesh->mNumVertices;
-
                     for(uint32_t face_index = 0; face_index < mesh->mNumFaces; face_index++)
                     {
                         struct aiFace *face = mesh->mFaces + face_index;
+
+                        for(uint32_t index = 0; index < face->mNumIndices; index++)
+                        {
+                            face->mIndices[index] += vertices->vert_count;
+                        }
+
                         batch_record.count += face->mNumIndices;
                         indices->index_count += face->mNumIndices;
                         ds_append_data(&index_section, sizeof(uint32_t) * face->mNumIndices, face->mIndices);
+
+//                        for(uint32_t index = 0; index < face->mNumIndices; index++)
+//                        {
+//                            face->mIndices[index] -= vertices->vert_count;
+//                        }
                     }
+
+                    vertices->vert_count += mesh->mNumVertices;
 
                     ds_append_data(&batch_section, sizeof(struct r_batch_record_t), &batch_record);
                 }

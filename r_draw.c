@@ -19,6 +19,7 @@ extern struct list_t r_world_cmds;
 extern struct list_t r_entity_cmds;
 extern struct list_t r_immediate_cmds;
 extern struct list_t r_immediate_data;
+struct r_i_state_t *r_i_current_state = NULL;
 
 extern struct stack_list_t r_shaders;
 extern struct stack_list_t r_textures;
@@ -73,6 +74,7 @@ void r_BeginFrame()
 {
     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
     glViewport(0, 0, r_width, r_height);
+    glDisable(GL_SCISSOR_TEST);
 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glBindVertexArray(r_vao);
@@ -104,6 +106,7 @@ void r_EndFrame()
     r_entity_cmds.cursor = 0;
     r_immediate_cmds.cursor = 0;
     r_immediate_data.cursor = 0;
+    r_i_current_state = NULL;
     SDL_GL_SwapWindow(r_window);
 }
 
@@ -213,7 +216,11 @@ void r_DrawCmds()
     glBindBuffer(GL_ARRAY_BUFFER, r_vertex_buffer);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, r_index_buffer);
     glEnable(GL_DEPTH_TEST);
+    glEnable(GL_CULL_FACE);
+    glCullFace(GL_BACK);
     glDisable(GL_BLEND);
+    glDisable(GL_SCISSOR_TEST);
+    glScissor(0, 0, r_width, r_height);
     glDepthFunc(GL_LESS);
 
 //    if(r_use_z_prepass)
@@ -258,27 +265,24 @@ void r_DrawCmds()
     mat4_t_identity(&model_matrix);
 
     glBindBuffer(GL_ARRAY_BUFFER, r_immediate_vertex_buffer);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, r_immediate_index_buffer);
     r_BindShader(r_immediate_shader);
 
-    struct r_immediate_shader_t *immediate_shader = NULL;
-    struct r_immediate_blending_t *immediate_blending = NULL;
-    struct r_immediate_depth_t *immediate_depth = NULL;
-    struct r_immediate_stencil_t *immediate_stencil = NULL;
-    struct r_immediate_texture_t *immediate_texture = NULL;
-    struct r_immediate_transform_t *immediate_model_matrix = NULL;
-    struct r_immediate_transform_t *immediate_view_projection_matrix = NULL;
-    uint32_t immediate_texture_count = 0;
+    struct r_i_state_t *immediate_state = NULL;
+    struct r_i_transform_t *immediate_view_projection_matrix = NULL;
+    struct r_i_transform_t *immediate_model_matrix = NULL;
+    struct r_i_verts_t *immediate_verts = NULL;
+    struct r_i_indices_t *immediate_indices = NULL;
 
     for(uint32_t cmd_index = 0; cmd_index < r_immediate_cmds.cursor; cmd_index++)
     {
-        struct r_immediate_cmd_t *cmd = get_list_element(&r_immediate_cmds, cmd_index);
+        struct r_i_cmd_t *cmd = get_list_element(&r_immediate_cmds, cmd_index);
 
         switch(cmd->type)
         {
             case R_I_CMD_SET_MATRIX:
             {
-                struct r_immediate_transform_t *transform = cmd->data;
+                struct r_i_transform_t *transform = cmd->data;
 
                 switch(cmd->sub_type)
                 {
@@ -304,149 +308,183 @@ void r_DrawCmds()
             break;
 
             case R_I_CMD_SET_STATE:
+                immediate_state = cmd->data;
+            break;
+
+            case R_I_CMD_SET_BUFFERS:
             {
-                struct r_immediate_state_t *state = cmd->data;
-
-                if(state->shader)
-                {
-                    immediate_shader = state->shader;
-                }
-
-                if(state->blending)
-                {
-                    immediate_blending = state->blending;
-                }
-
-                if(state->depth)
-                {
-                    immediate_depth = state->depth;
-                }
-
-                if(state->stencil)
-                {
-                    immediate_stencil = state->stencil;
-                }
-
-                if(state->textures)
-                {
-                    immediate_texture = state->textures;
-                    immediate_texture_count = state->texture_count;
-                }
+                struct r_i_geometry_t *geometry = cmd->data;
+                immediate_verts = geometry->verts;
+                immediate_indices = geometry->indices;
             }
             break;
 
             case R_I_CMD_DRAW:
             {
-                if(immediate_shader)
+                if(immediate_state)
                 {
-                    r_BindShader(immediate_shader->shader);
+                    if(immediate_state->shader)
+                    {
+                        r_BindShader(immediate_state->shader->shader);
+                    }
+
+                    if(immediate_state->textures)
+                    {
+                        for(uint32_t texture_index = 0; texture_index < immediate_state->texture_count; texture_index++)
+                        {
+                            struct r_i_texture_t *texture = immediate_state->textures + texture_index;
+                            glActiveTexture(texture->tex_unit);
+
+                            if(texture->texture)
+                            {
+                                glBindTexture(GL_TEXTURE_2D, texture->texture->handle);
+                            }
+                            else
+                            {
+                                glBindTexture(GL_TEXTURE_2D, 0);
+                            }
+
+                            r_SetUniform1i(R_UNIFORM_TEX0 + texture_index, texture->tex_unit - GL_TEXTURE0);
+                        }
+                    }
+
+                    if(immediate_state->blending)
+                    {
+                        if(immediate_state->blending->enable)
+                        {
+                            glEnable(GL_BLEND);
+                            glBlendFunc(immediate_state->blending->src_factor, immediate_state->blending->dst_factor);
+                        }
+                        else
+                        {
+                            glDisable(GL_BLEND);
+                        }
+                    }
+
+                    if(immediate_state->stencil)
+                    {
+                        if(immediate_state->stencil->enable)
+                        {
+                            glEnable(GL_STENCIL_TEST);
+                            glStencilOp(immediate_state->stencil->stencil_fail, immediate_state->stencil->depth_fail, immediate_state->stencil->depth_pass);
+                            glStencilFunc(immediate_state->stencil->operation, immediate_state->stencil->ref, immediate_state->stencil->mask);
+                        }
+                        else
+                        {
+                            glDisable(GL_STENCIL_TEST);
+                        }
+                    }
+
+                    if(immediate_state->depth)
+                    {
+                        if(immediate_state->depth->enable)
+                        {
+                            glEnable(GL_DEPTH_TEST);
+                            glDepthFunc(immediate_state->depth->func);
+                        }
+                        else
+                        {
+                            glDisable(GL_DEPTH_TEST);
+                        }
+                    }
+
+                    if(immediate_state->cull_face)
+                    {
+                        if(immediate_state->cull_face->enable)
+                        {
+                            glEnable(GL_CULL_FACE);
+                            glCullFace(immediate_state->cull_face->cull_face);
+                        }
+                        else
+                        {
+                            glDisable(GL_CULL_FACE);
+                        }
+                    }
+
+                    if(immediate_state->scissor)
+                    {
+                        if(immediate_state->scissor->enable)
+                        {
+                            glEnable(GL_SCISSOR_TEST);
+                            glScissor(immediate_state->scissor->x, immediate_state->scissor->y, immediate_state->scissor->width, immediate_state->scissor->height);
+                        }
+                        else
+                        {
+                            glDisable(GL_SCISSOR_TEST);
+                        }
+                    }
                 }
 
-                if(immediate_texture)
-                {
-                    for(uint32_t texture_index = 0; texture_index < immediate_texture_count; texture_index++)
-                    {
-                        struct r_immediate_texture_t *texture = immediate_texture + texture_index;
-                        glActiveTexture(texture->tex_unit);
-                        glBindTexture(GL_TEXTURE_2D, texture->texture->handle);
-                    }
-                }
-
-                if(immediate_blending)
-                {
-                    if(immediate_blending->enable)
-                    {
-                        glEnable(GL_BLEND);
-                        glBlendFunc(immediate_blending->src_factor, immediate_blending->dst_factor);
-                    }
-                    else
-                    {
-                        glDisable(GL_BLEND);
-                    }
-                }
-
-                if(immediate_stencil)
-                {
-                    if(immediate_stencil->enable)
-                    {
-                        glEnable(GL_STENCIL_TEST);
-                        glStencilOp(immediate_stencil->stencil_fail, immediate_stencil->depth_fail, immediate_stencil->depth_pass);
-                        glStencilFunc(immediate_stencil->operation, immediate_stencil->ref, immediate_stencil->mask);
-                    }
-                    else
-                    {
-                        glDisable(GL_STENCIL_TEST);
-                    }
-                }
-
-                if(immediate_depth)
-                {
-                    if(immediate_depth->enable)
-                    {
-                        glEnable(GL_DEPTH_TEST);
-                        glDepthFunc(immediate_depth->func);
-                    }
-                    else
-                    {
-                        glDisable(GL_DEPTH_TEST);
-                    }
-                }
-
-                if(immediate_model_matrix || immediate_view_projection_matrix || immediate_shader)
+                if(immediate_model_matrix || immediate_view_projection_matrix || (immediate_state && immediate_state->shader))
                 {
                     mat4_t_mul(&model_view_projection_matrix, &model_matrix, &view_projection_matrix);
                     r_SetUniformMatrix4(R_UNIFORM_MODEL_VIEW_PROJECTION_MATRIX, &model_view_projection_matrix);
-                    immediate_model_matrix = NULL;
-                    immediate_view_projection_matrix = NULL;
                 }
 
-                immediate_texture = NULL;
-                immediate_blending = NULL;
-                immediate_shader = NULL;
-                immediate_stencil = NULL;
+                immediate_model_matrix = NULL;
+                immediate_view_projection_matrix = NULL;
+                immediate_state = NULL;
 
-                uint32_t mode;
-                struct r_immediate_geometry_t *geometry = cmd->data;
-                struct r_immediate_verts_t *verts = geometry->verts;
-                struct r_immediate_indices_t *indices = geometry->indices;
+                uint32_t mode = 0;
+                struct r_i_draw_list_t *draw_list = cmd->data;
+//                struct r_i_verts_t *verts = draw_list->verts;
+//                struct r_i_indices_t *indices = draw_list->indices;
 
-                if(verts)
+//                if(verts)
+//                {
+                switch(cmd->sub_type)
                 {
-                    switch(cmd->sub_type)
+                    case R_I_DRAW_CMD_LINE_LIST:
+//                        glLineWidth(verts->size);
+                        mode = GL_LINES;
+                    break;
+
+                    case R_I_DRAW_CMD_POINT_LIST:
+//                        glPointSize(verts->size);
+                        mode = GL_POINTS;
+                    break;
+
+                    case R_I_DRAW_CMD_TRIANGLE_LIST:
+                        mode = GL_TRIANGLES;
+                    break;
+                }
+
+                if(immediate_verts)
+                {
+                    glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(struct r_vert_t) * immediate_verts->count, immediate_verts->verts);
+                    immediate_verts = NULL;
+                }
+
+                if(immediate_indices)
+                {
+                    glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, sizeof(uint32_t) * immediate_indices->count, immediate_indices->indices);
+                    immediate_indices = NULL;
+                }
+
+                if(draw_list->indexed)
+                {
+                    for(uint32_t cmd_index = 0; cmd_index < draw_list->command_count; cmd_index++)
                     {
-                        case R_I_DRAW_CMD_LINE_LIST:
-                            glLineWidth(verts->size);
-                            mode = GL_LINES;
-                        break;
-
-                        case R_I_DRAW_CMD_POINT_LIST:
-                            glPointSize(verts->size);
-                            mode = GL_POINTS;
-                        break;
-
-                        case R_I_DRAW_CMD_TRIANGLE_LIST:
-                            mode = GL_TRIANGLES;
-                        break;
-                    }
-
-                    glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(struct r_vert_t) * verts->count, verts->verts);
-
-                    if(indices)
-                    {
-                        glDrawElements(mode, indices->count, GL_UNSIGNED_INT, indices->indices);
-                    }
-                    else
-                    {
-                        glDrawArrays(mode, 0, verts->count);
+                        struct r_i_draw_cmd_t *draw_cmd = draw_list->commands + cmd_index;
+                        glDrawElements(mode, draw_cmd->count, GL_UNSIGNED_INT, (void *)(draw_cmd->start * sizeof(uint32_t)));
                     }
                 }
+                else
+                {
+                    for(uint32_t cmd_index = 0; cmd_index < draw_list->command_count; cmd_index++)
+                    {
+                        struct r_i_draw_cmd_t *draw_cmd = draw_list->commands + cmd_index;
+                        glDrawArrays(mode, draw_cmd->start, draw_cmd->count);
+                    }
+                }
+//                }
             }
             break;
         }
 
         if(cmd->data)
         {
-            struct r_immediate_data_t *data = (struct r_immediate_data_t *)((char *)cmd->data - R_IMMEDIATE_DATA_SLOT_SIZE);
+            struct r_i_data_t *data = (struct r_i_data_t *)((char *)cmd->data - R_IMMEDIATE_DATA_SLOT_SIZE);
             if(data->flags & R_IMMEDIATE_DATA_FLAG_BIG)
             {
                 mem_Free(data);
@@ -457,7 +495,7 @@ void r_DrawCmds()
 
 void *r_i_AllocImmediateData(uint32_t size)
 {
-    struct r_immediate_data_t *data;
+    struct r_i_data_t *data;
 
     uint32_t required_size = R_IMMEDIATE_DATA_SLOT_SIZE + size;
 
@@ -478,8 +516,8 @@ void *r_i_AllocImmediateData(uint32_t size)
 
         uint32_t data_index = add_list_element(&r_immediate_data, NULL);
         data = get_list_element(&r_immediate_data, data_index);
-        available_slots--;
-        r_immediate_data.cursor += available_slots;
+        required_slots--;
+        r_immediate_data.cursor += required_slots;
         data->flags = 0;
     }
     else
@@ -490,29 +528,62 @@ void *r_i_AllocImmediateData(uint32_t size)
 
     /* this is guaranteed to give an properly aligned address for any data type */
     data->data = (char *)data + R_IMMEDIATE_DATA_SLOT_SIZE;
-
+    memset(data->data, 0, size);
     return data->data;
+}
+
+void *r_i_AllocImmediateExternData(uint32_t size)
+{
+    struct r_i_data_t *data;
+    data = mem_Calloc(1, sizeof(struct r_i_data_t) + size);
+    data->flags = R_IMMEDIATE_DATA_FLAG_EXTERN;
+    data->data = (char *)data + R_IMMEDIATE_DATA_SLOT_SIZE;
+    return data->data;
+}
+
+void r_i_FreeImmediateExternData(void *data)
+{
+    struct r_i_data_t *immediate_data = (struct r_i_data_t *)((char *)data - R_IMMEDIATE_DATA_SLOT_SIZE);
+    mem_Free(immediate_data);
 }
 
 void r_i_ImmediateCmd(uint16_t type, uint16_t sub_type, void *data)
 {
     uint32_t cmd_index = add_list_element(&r_immediate_cmds, NULL);
-    struct r_immediate_cmd_t *cmd = get_list_element(&r_immediate_cmds, cmd_index);
+    struct r_i_cmd_t *cmd = get_list_element(&r_immediate_cmds, cmd_index);
 
     cmd->data = data;
     cmd->type = type;
     cmd->sub_type = sub_type;
 }
 
-void r_i_SetState(struct r_immediate_state_t *state)
+struct r_i_state_t *r_i_GetCurrentState()
 {
-    r_i_ImmediateCmd(R_I_CMD_SET_STATE, 0, state);
+    if(!r_i_current_state)
+    {
+        r_i_current_state = r_i_AllocImmediateData(sizeof(struct r_i_state_t));
+    }
+
+    return r_i_current_state;
+}
+
+void r_i_SetCurrentState()
+{
+    if(r_i_current_state)
+    {
+        r_i_ImmediateCmd(R_I_CMD_SET_STATE, 0, r_i_current_state);
+        r_i_current_state = NULL;
+    }
 }
 
 void r_i_SetShader(struct r_shader_t *shader)
 {
-    struct r_immediate_state_t *state = r_i_AllocImmediateData(sizeof(struct r_immediate_state_t));
-    state->shader = r_i_AllocImmediateData(sizeof(struct r_immediate_state_t));
+    struct r_i_state_t *state = r_i_GetCurrentState();
+
+    if(!state->shader)
+    {
+        state->shader = r_i_AllocImmediateData(sizeof(struct r_i_shader_t));
+    }
 
     if(!shader)
     {
@@ -522,48 +593,108 @@ void r_i_SetShader(struct r_shader_t *shader)
     {
         state->shader->shader = shader;
     }
-
-    r_i_SetState(state);
 }
 
 void r_i_SetBlending(uint16_t enable, uint16_t src_factor, uint16_t dst_factor)
 {
-    struct r_immediate_state_t *state = r_i_AllocImmediateData(sizeof(struct r_immediate_state_t));
-    state->blending = r_i_AllocImmediateData(sizeof(struct r_immediate_blending_t));
+    struct r_i_state_t *state = r_i_GetCurrentState();
+
+    if(!state->blending)
+    {
+        state->blending = r_i_AllocImmediateData(sizeof(struct r_i_blending_t));
+    }
+
     state->blending->enable = enable;
     state->blending->src_factor = src_factor;
     state->blending->dst_factor = dst_factor;
-    r_i_SetState(state);
 }
 
 void r_i_SetDepth(uint16_t enable, uint16_t func)
 {
-    struct r_immediate_state_t *state = r_i_AllocImmediateData(sizeof(struct r_immediate_state_t));
-    state->depth = r_i_AllocImmediateData(sizeof(struct r_immediate_depth_t));
+    struct r_i_state_t *state = r_i_GetCurrentState(sizeof(struct r_i_state_t));
+
+    if(!state->depth)
+    {
+        state->depth = r_i_AllocImmediateData(sizeof(struct r_i_depth_t));
+    }
+
     state->depth->enable = enable;
     state->depth->func = func;
-    r_i_SetState(state);
 }
 
-void r_i_SetTextures(uint32_t texture_count, struct r_immediate_texture_t *textures)
+void r_i_SetCullFace(uint16_t enable, uint16_t cull_face)
 {
-    struct r_immediate_state_t *state = r_i_AllocImmediateData(sizeof(struct r_immediate_state_t));
+    struct r_i_state_t *state = r_i_GetCurrentState(sizeof(struct r_i_state_t));
+
+    if(!state->cull_face)
+    {
+        state->cull_face = r_i_AllocImmediateData(sizeof(struct r_i_cull_face_t));
+    }
+
+    state->cull_face->enable = enable;
+    state->cull_face->cull_face = cull_face;
+}
+
+void r_i_SetStencil(uint16_t enable, uint16_t sfail, uint16_t dfail, uint16_t dpass, uint16_t op, uint8_t mask, uint8_t ref)
+{
+    struct r_i_state_t *state = r_i_GetCurrentState(sizeof(struct r_i_state_t));
+
+    if(state->stencil)
+    {
+        state->stencil = r_i_AllocImmediateData(sizeof(struct r_i_stencil_t));
+    }
+
+    state->stencil->enable = enable;
+    state->stencil->stencil_fail = sfail;
+    state->stencil->depth_fail = dfail;
+    state->stencil->depth_pass = dpass;
+    state->stencil->operation = op;
+    state->stencil->mask = mask;
+    state->stencil->ref = ref;
+}
+
+void r_i_SetScissor(uint16_t enable, uint16_t x, uint16_t y, uint16_t width, uint16_t height)
+{
+    struct r_i_state_t *state = r_i_GetCurrentState(sizeof(struct r_i_state_t));
+
+    if(!state->scissor)
+    {
+        state->scissor = r_i_AllocImmediateData(sizeof(struct r_i_scissor_t));
+    }
+
+    state->scissor->x = x;
+    state->scissor->y = y;
+    state->scissor->width = width;
+    state->scissor->height = height;
+    state->scissor->enable = enable;
+}
+
+void r_i_SetTextures(uint32_t texture_count, struct r_i_texture_t *textures)
+{
+    struct r_i_state_t *state = r_i_GetCurrentState(sizeof(struct r_i_state_t));
     state->textures = textures;
     state->texture_count = texture_count;
-    r_i_SetState(state);
 }
 
 void r_i_SetTexture(struct r_texture_t *texture, uint32_t tex_unit)
 {
-    struct r_immediate_texture_t *immediate_texture = r_i_AllocImmediateData(sizeof(struct r_immediate_texture_t));
+    struct r_i_texture_t *immediate_texture = r_i_AllocImmediateData(sizeof(struct r_i_texture_t));
     immediate_texture->texture = texture;
     immediate_texture->tex_unit = tex_unit;
     r_i_SetTextures(1, immediate_texture);
 }
 
+void r_i_SetBuffers(struct r_i_verts_t *verts, struct r_i_indices_t *indices)
+{
+    struct r_i_geometry_t *geometry = r_i_AllocImmediateData(sizeof(struct r_i_geometry_t));
+    geometry->indices = indices;
+    geometry->verts = verts;
+    r_i_ImmediateCmd(R_I_CMD_SET_BUFFERS, 0, geometry);
+}
+
 void r_i_SetMatrix(mat4_t *matrix, uint16_t sub_type)
 {
-    struct r_immediate_transform_t *transform = r_i_AllocImmediateData(sizeof(struct r_immediate_transform_t));
+    struct r_i_transform_t *transform = r_i_AllocImmediateData(sizeof(struct r_i_transform_t));
 
     transform->unset = matrix == NULL;
 
@@ -585,55 +716,58 @@ void r_i_SetViewProjectionMatrix(mat4_t *view_projection_matrix)
     r_i_SetMatrix(view_projection_matrix, R_I_SET_MATRIX_CMD_VIEW_PROJECTION_MATRIX);
 }
 
-void r_i_DrawImmediate(uint16_t sub_type, struct r_immediate_geometry_t *geometry)
+void r_i_DrawImmediate(uint16_t sub_type, struct r_i_draw_list_t *list)
 {
-    r_i_ImmediateCmd(R_I_CMD_DRAW, sub_type, geometry);
+    r_i_SetCurrentState();
+    r_i_ImmediateCmd(R_I_CMD_DRAW, sub_type, list);
 }
 
-void r_i_DrawVerts(uint16_t sub_type, struct r_immediate_verts_t *verts)
+void r_i_DrawVerts(uint16_t sub_type, struct r_i_verts_t *verts)
 {
-    struct r_immediate_geometry_t *geometry = r_i_AllocImmediateData(sizeof(struct r_immediate_geometry_t));
-    geometry->verts = verts;
-    geometry->indices = NULL;
-    r_i_DrawImmediate(sub_type, geometry);
+    struct r_i_draw_list_t *draw_list = r_i_AllocImmediateData(sizeof(struct r_i_draw_list_t));
+
+    draw_list->commands = r_i_AllocImmediateData(sizeof(struct r_i_draw_cmd_t));
+    draw_list->commands[0].start = 0;
+    draw_list->commands[0].count = verts->count;
+    draw_list->command_count = 1;
+    draw_list->indexed = 0;
+
+    r_i_SetBuffers(verts, NULL);
+    r_i_DrawImmediate(sub_type, draw_list);
 }
 
-void r_i_DrawVertsIndexed(uint16_t sub_type, struct r_immediate_verts_t *verts, struct r_immediate_indices_t *indices)
+void r_i_DrawVertsIndexed(uint16_t sub_type, struct r_i_verts_t *verts, struct r_i_indices_t *indices)
 {
-    struct r_immediate_geometry_t *geometry = r_i_AllocImmediateData(sizeof(struct r_immediate_geometry_t));
-    geometry->verts = verts;
-    geometry->indices = indices;
-    r_i_DrawImmediate(sub_type, geometry);
+    struct r_i_draw_list_t *draw_list = r_i_AllocImmediateData(sizeof(struct r_i_draw_list_t));
+    draw_list->commands = r_i_AllocImmediateData(sizeof(struct r_i_draw_cmd_t));
+    draw_list->commands[0].start = 0;
+    draw_list->commands[0].count = indices->count;
+    draw_list->command_count = 1;
+    draw_list->indexed = 1;
+    r_i_SetBuffers(verts, indices);
+    r_i_DrawImmediate(sub_type, draw_list);
 }
 
 void r_i_DrawPoint(vec3_t *position, vec4_t *color, float size)
 {
-    struct r_immediate_verts_t *verts = r_i_AllocImmediateData(sizeof(struct r_immediate_verts_t) + sizeof(struct r_vert_t));
+    struct r_i_verts_t *verts = r_i_AllocImmediateData(sizeof(struct r_i_verts_t) + sizeof(struct r_vert_t));
 
     verts->count = 1;
     verts->size = size;
 
-//    verts->verts[0].pos = *position;
-//    verts->verts[0].normal = *color;
-
-    memcpy(&verts->verts[0].pos, position, sizeof(vec4_t));
-    memcpy(&verts->verts[0].color, color, sizeof(vec4_t));
+    verts->verts[0].pos = *position;
+    verts->verts[0].normal = *color;
 
     r_i_DrawVerts(R_I_DRAW_CMD_POINT_LIST, verts);
 }
 
 void r_i_DrawLine(vec3_t *start, vec3_t *end, vec4_t *color, float width)
 {
-    struct r_immediate_verts_t *verts = r_i_AllocImmediateData(sizeof(struct r_immediate_verts_t) + sizeof(struct r_vert_t) * 20);
+    struct r_i_verts_t *verts = r_i_AllocImmediateData(sizeof(struct r_i_verts_t) + sizeof(struct r_vert_t) * 2);
 
     verts->count = 2;
     verts->size = width;
 
-
-//    memcpy(&verts->verts[0].pos, start, sizeof(vec4_t));
-//    memcpy(&verts->verts[0].color, color, sizeof(vec4_t));
-//    memcpy(&verts->verts[1].pos, end, sizeof(vec4_t));
-//    memcpy(&verts->verts[1].color, color, sizeof(vec4_t));
     verts->verts[0].pos = *start;
     verts->verts[0].color = *color;
     verts->verts[1].pos = *end;

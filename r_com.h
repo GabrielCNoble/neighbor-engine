@@ -47,6 +47,9 @@ enum R_UNIFORM
     R_UNIFORM_INVERSE_VIEW_MATRIX,
     R_UNIFORM_TEX0,
     R_UNIFORM_TEX1,
+    R_UNIFORM_TEX2,
+    R_UNIFORM_TEX3,
+    R_UNIFORM_TEX4,
     R_UNIFORM_TEX_ALBEDO,
     R_UNIFORM_TEX_NORMAL,
     R_UNIFORM_TEX_METALNESS,
@@ -199,30 +202,6 @@ struct r_draw_batch_t
     struct r_batch_t batch;
 };
 
-//struct r_imm_batch_t
-//{
-//    uint32_t start;
-//    uint32_t count;
-//    uint32_t mode;
-//    float size;
-//};
-
-//struct r_imm_range_t
-//{
-//    uint32_t start;
-//    uint32_t count;
-//};
-
-//struct r_imm_batch_t
-//{
-//    mat4_t transform;
-//    uint32_t start;
-//    uint32_t count;
-//    uint16_t primitive_type;
-//    uint16_t polygon_mode;
-//    float size;
-//};
-
 enum R_LIGHT_TYPES
 {
     R_LIGHT_TYPE_POINT = 0,
@@ -304,9 +283,8 @@ enum R_I_CMDS
 {
     R_I_CMD_DRAW = 0,
     R_I_CMD_SET_STATE,
-//    R_I_CMD_SET_TEXTURE,
-//    R_I_CMD_SET_SHADER,
     R_I_CMD_SET_MATRIX,
+    R_I_CMD_SET_BUFFERS,
 };
 
 enum R_I_DRAW_CMDS
@@ -335,69 +313,82 @@ enum R_I_SET_MATRIX_CMDS
 /* sizeof(struct r_immediate_data_t) has to be <= R_IMMEDIATE_DATA_SLOT_SIZE,
 and R_IMMEDIATE_DATA_SLOT_SIZE has to be what it is. This is to guarantee that
 the address right after this struct is suitably aligned for any kind of type*/
-struct r_immediate_data_t
+struct r_i_data_t
 {
     uint32_t flags;
     void *data;
 };
 
-struct r_immediate_cmd_t
+struct r_i_cmd_t
 {
     void *data;
     uint16_t type;
     uint16_t sub_type;
 };
 
-struct r_immediate_verts_t
+struct r_i_verts_t
 {
-    uint32_t count;
     float size;
+    uint32_t count;
     struct r_vert_t verts[];
 };
 
-struct r_immediate_indices_t
+struct r_i_indices_t
 {
     uint32_t count;
     uint32_t indices[];
 };
 
-struct r_immediate_geometry_t
+struct r_i_draw_cmd_t
 {
-    struct r_immediate_verts_t *verts;
-    struct r_immediate_indices_t *indices;
+    uint32_t start;
+    uint32_t count;
 };
 
-struct r_immediate_transform_t
+struct r_i_geometry_t
+{
+    struct r_i_verts_t *verts;
+    struct r_i_indices_t *indices;
+};
+
+struct r_i_draw_list_t
+{
+    uint32_t indexed;
+    struct r_i_draw_cmd_t *commands;
+    uint32_t command_count;
+};
+
+struct r_i_transform_t
 {
     mat4_t transform;
     uint32_t unset;
 };
 
-struct r_immediate_texture_t
+struct r_i_texture_t
 {
     struct r_texture_t *texture;
     uint32_t tex_unit;
 };
 
-struct r_immediate_shader_t
+struct r_i_shader_t
 {
     struct r_shader_t *shader;
 };
 
-struct r_immediate_blending_t
+struct r_i_blending_t
 {
     uint16_t enable;
     uint16_t src_factor;
     uint16_t dst_factor;
 };
 
-struct r_immediate_depth_t
+struct r_i_depth_t
 {
     uint16_t enable;
     uint16_t func;
 };
 
-struct r_immediate_stencil_t
+struct r_i_stencil_t
 {
     uint16_t enable;
 
@@ -410,13 +401,30 @@ struct r_immediate_stencil_t
     uint8_t ref;
 };
 
-struct r_immediate_state_t
+struct r_i_cull_face_t
 {
-    struct r_immediate_shader_t *shader;
-    struct r_immediate_blending_t *blending;
-    struct r_immediate_depth_t *depth;
-    struct r_immediate_stencil_t *stencil;
-    struct r_immediate_texture_t *textures;
+    uint16_t enable;
+    uint16_t cull_face;
+};
+
+struct r_i_scissor_t
+{
+    uint16_t enable;
+    uint16_t x;
+    uint16_t y;
+    uint16_t width;
+    uint16_t height;
+};
+
+struct r_i_state_t
+{
+    struct r_i_shader_t *shader;
+    struct r_i_blending_t *blending;
+    struct r_i_depth_t *depth;
+    struct r_i_stencil_t *stencil;
+    struct r_i_cull_face_t *cull_face;
+    struct r_i_scissor_t *scissor;
+    struct r_i_texture_t *textures;
     uint32_t texture_count;
 };
 
@@ -442,9 +450,10 @@ struct r_immediate_state_t
 #define R_TEX_COORDS_LOCATION 3
 #define R_COLOR_LOCATION R_NORMAL_LOCATION
 
-#define R_VERTEX_BUFFER_SIZE (sizeof(struct r_vert_t) * 1000000)
-#define R_INDEX_BUFFER_SIZE (sizeof(uint32_t) * 1000000)
-#define R_IMMEDIATE_BUFFER_SIZE (sizeof(struct r_vert_t) * 100000)
+#define R_VERTEX_BUFFER_SIZE (sizeof(struct r_vert_t) * 5000000)
+#define R_INDEX_BUFFER_SIZE (sizeof(uint32_t) * 5000000)
+#define R_IMMEDIATE_VERTEX_BUFFER_SIZE (sizeof(struct r_vert_t) * 100000)
+#define R_IMMEDIATE_INDEX_BUFFER_SIZE (sizeof(uint32_t) * 100000)
 #define R_MAX_VERTEX_WEIGHTS 16
 
 

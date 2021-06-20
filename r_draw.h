@@ -21,19 +21,17 @@ void r_DrawEntity(mat4_t *transform, struct r_model_t *model);
 
 void r_DrawWorld(struct r_material_t *material, uint32_t start, uint32_t count);
 
-//void r_DrawModel(mat4_t *transform, struct r_model_t *model);
-
-//void r_DrawRange(mat4_t *transform, struct r_material_t *material, uint32_t start, uint32_t count);
-
 void r_DrawCmds();
 
 void *r_i_AllocImmediateData(uint32_t size);
 
-struct r_immediate_lines_t *r_i_AllocImmediateLines(uint32_t line_count);
+void *r_i_AllocImmediateExternData(uint32_t size);
 
 void r_i_ImmediateCmd(uint16_t type, uint16_t sub_type, void *data);
 
-void r_i_SetState(struct r_immediate_state_t *state);
+struct r_i_state_t *r_i_GetCurrentState();
+
+void r_i_SetCurrentState();
 
 void r_i_SetShader(struct r_shader_t *shader);
 
@@ -41,19 +39,27 @@ void r_i_SetBlending(uint16_t enable, uint16_t src_factor, uint16_t dst_factor);
 
 void r_i_SetDepth(uint16_t enable, uint16_t func);
 
-void r_i_SetTextures(uint32_t texture_count, struct r_immediate_texture_t *textures);
+void r_i_SetCullFace(uint16_t enable, uint16_t cull_face);
+
+void r_i_SetStencil(uint16_t enable, uint16_t sfail, uint16_t dfail, uint16_t dpass, uint16_t op, uint8_t mask, uint8_t ref);
+
+void r_i_SetScissor(uint16_t enable, uint16_t x, uint16_t y, uint16_t width, uint16_t height);
+
+void r_i_SetTextures(uint32_t texture_count, struct r_i_texture_t *textures);
 
 void r_i_SetTexture(struct r_texture_t *texture, uint32_t tex_unit);
+
+void r_i_SetBuffers(struct r_i_verts_t *verts, struct r_i_indices_t *indices);
 
 void r_i_SetModelMatrix(mat4_t *model_matrix);
 
 void r_i_SetViewProjectionMatrix(mat4_t *view_projection_matrix);
 
-void r_i_DrawImmediate(uint16_t sub_type, struct r_immediate_geometry_t *geometry);
+void r_i_DrawImmediate(uint16_t sub_type, struct r_i_draw_list_t *list);
 
-void r_i_DrawVerts(uint16_t sub_type, struct r_immediate_verts_t *verts);
+void r_i_DrawVerts(uint16_t sub_type, struct r_i_verts_t *verts);
 
-void r_i_DrawVertsIndexed(uint16_t sub_type, struct r_immediate_verts_t *verts, struct r_immediate_indices_t *indices);
+void r_i_DrawVertsIndexed(uint16_t sub_type, struct r_i_verts_t *verts, struct r_i_indices_t *indices);
 
 void r_i_DrawPoint(vec3_t *position, vec4_t *color, float size);
 

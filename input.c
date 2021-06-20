@@ -1,8 +1,9 @@
 #include "input.h"
-
+#include <stdio.h>
 
 const Uint8 *in_keyboard;
 uint8_t in_keyboard_state[SDL_NUM_SCANCODES];
+char in_text_buffer[512];
 uint32_t in_mouse_state[4];
 
 int32_t in_mouse_x;
@@ -16,14 +17,15 @@ float in_normalized_dx;
 float in_normalized_dy;
 
 uint32_t in_relative_mouse = 0;
+uint32_t in_text_input = 0;
 
 extern uint32_t r_width;
 extern uint32_t r_height;
 
 void in_Input()
 {
-    SDL_PollEvent(NULL);
-    in_keyboard = SDL_GetKeyboardState(NULL);
+    SDL_Event event;
+    uint32_t has_event = SDL_PollEvent(&event);
 
     uint32_t mouse_state;
     int32_t dx;
@@ -79,6 +81,9 @@ void in_Input()
         }
     }
 
+    in_text_buffer[0] = '\0';
+    in_keyboard = SDL_GetKeyboardState(NULL);
+
     for(uint32_t scancode = 0; scancode < SDL_NUM_SCANCODES; scancode++)
     {
         in_keyboard_state[scancode] &= ~(IN_KEY_STATE_JUST_PRESSED | IN_KEY_STATE_JUST_RELEASED);
@@ -101,11 +106,29 @@ void in_Input()
             in_keyboard_state[scancode] &= ~IN_KEY_STATE_PRESSED;
         }
     }
+
+    if(in_text_input)
+    {
+        while(has_event)
+        {
+            if(event.type == SDL_TEXTINPUT)
+            {
+                strncpy(in_text_buffer, event.text.text, sizeof(in_text_buffer));
+            }
+
+            has_event = SDL_PollEvent(&event);
+        }
+    }
 }
 
 uint32_t in_GetKeyState(SDL_Scancode scancode)
 {
     return in_keyboard_state[scancode];
+}
+
+uint8_t *in_GetKeyStates()
+{
+    return in_keyboard_state;
 }
 
 uint32_t in_GetMouseButtonState(uint32_t button)
@@ -136,3 +159,59 @@ void in_GetMousePos(int32_t *x, int32_t *y)
     *x = in_mouse_x;
     *y = in_mouse_y;
 }
+
+char *in_GetTextBuffer()
+{
+    return in_text_buffer;
+}
+
+void in_DropKeyboardInput()
+{
+    for(uint32_t scancode = 0; scancode < SDL_NUM_SCANCODES; scancode++)
+    {
+        in_keyboard_state[scancode] = 0;
+    }
+
+    in_text_buffer[0] = '\0';
+}
+
+void in_DropMouseInput()
+{
+    for(uint32_t mouse_button = SDL_BUTTON_LEFT; mouse_button <= SDL_BUTTON_RIGHT; mouse_button++)
+    {
+        in_mouse_state[mouse_button - 1] = 0;
+    }
+
+    in_mouse_dx = 0;
+    in_mouse_dy = 0;
+}
+
+void in_DropInput()
+{
+    in_DropKeyboardInput();
+    in_DropMouseInput();
+}
+
+void in_StartTextInput()
+{
+    if(!in_text_input)
+    {
+        in_text_input = 1;
+        SDL_StartTextInput();
+    }
+}
+
+void in_StopTextInput()
+{
+    if(in_text_input)
+    {
+        SDL_StopTextInput();
+        in_text_input = 0;
+    }
+}
+
+
+
+
+
+

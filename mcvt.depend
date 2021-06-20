@@ -55,7 +55,7 @@
 	"ds_mem.h"
 	<stdarg.h>
 
-1613235956 c:\users\gabri\documents\compiler\metroid_thingy\lib\dstuff\ds_matrix.h
+1624049283 c:\users\gabri\documents\compiler\metroid_thingy\lib\dstuff\ds_matrix.h
 	"ds_vector.h"
 	<intrin.h>
 
@@ -101,7 +101,7 @@
 	<intrin.h>
 	<arm_neon.h>
 
-1622147744 source:c:\users\gabri\documents\compiler\metroid_thingy\mcvt.c
+1624081630 source:c:\users\gabri\documents\compiler\metroid_thingy\mcvt.c
 	"assimp/cimport.h"
 	"assimp/scene.h"
 	"assimp/postprocess.h"
@@ -277,14 +277,16 @@
 	"dstuff/ds_alloc.h"
 	<stdint.h>
 
-1622147195 c:\users\gabri\documents\compiler\metroid_thingy\r_com.h
+1624080903 c:\users\gabri\documents\compiler\metroid_thingy\r_com.h
 	"dstuff/ds_vector.h"
 	"dstuff/ds_matrix.h"
 	"dstuff/ds_alloc.h"
 	"dstuff/ds_buffer.h"
 	<stdint.h>
+	<stddef.h>
+	<stdalign.h>
 
-1613287314 c:\users\gabri\documents\compiler\metroid_thingy\anim.h
+1623931070 c:\users\gabri\documents\compiler\metroid_thingy\anim.h
 	"dstuff/ds_vector.h"
 	"dstuff/ds_matrix.h"
 	"dstuff/ds_list.h"

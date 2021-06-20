@@ -10,6 +10,7 @@
 #include "editor.h"
 #include "world.h"
 #include "sound.h"
+#include "gui.h"
 #include <string.h>
 #include <stdio.h>
 
@@ -42,6 +43,7 @@ struct r_model_t *g_cube_model;
 struct r_model_t *g_wiggle_model;
 struct r_model_t *g_gun_model;
 struct r_model_t *g_boy_model;
+struct r_model_t *g_sponza_model;
 
 struct g_entity_t *wiggle_entity;
 struct g_entity_t *g_player_entity;
@@ -152,6 +154,7 @@ void g_Init(uint32_t editor_active)
     in_Input();
     w_Init();
     s_Init();
+    gui_Init();
 
     if(editor_active)
     {
@@ -164,6 +167,7 @@ void g_Init(uint32_t editor_active)
     r_SetViewPos(&g_camera_pos);
 
     g_boy_model = r_LoadModel("models/Boy.mof");
+//    g_sponza_model = r_LoadModel("models/sponza2.mof");
     struct a_animation_t *dance_step_maybe = a_LoadAnimation("models/DanceStepMaybe.anf");
     struct a_animation_t *miracle_dance_blockout = a_LoadAnimation("models/MiracleDanceBlockout.anf");
     struct a_animation_t *miracle_dance_smooth = a_LoadAnimation("models/MiracleDanceSmooth.anf");
@@ -173,7 +177,7 @@ void g_Init(uint32_t editor_active)
 
 //    g_gun_model = r_LoadModel("models/shocksplinter.mof");
 //    g_wiggle_model = r_LoadModel("models/dude.mof");
-    g_cube_model = r_LoadModel("models/Cube.mof");
+//    g_cube_model = r_LoadModel("models/Cube.mof");
 
 //    g_run_animation = a_LoadAnimation("models/run.anf");
 //    g_idle_animation = a_LoadAnimation("models/idle.anf");
@@ -324,17 +328,41 @@ void g_Init(uint32_t editor_active)
     mat4_t transform;
     mat4_t_identity(&transform);
 
-    transform.rows[3].y = -2.0;
-    transform.rows[0].x = 10.0;
-    transform.rows[2].z = 10.0;
+    transform.rows[3].y = 0.0;
+    transform.rows[0].x = 0.08;
+    transform.rows[1].y = 0.08;
+    transform.rows[2].z = 0.08;
 
-    r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(4.0, 2.0, 6.0), &vec3_t_c(1.0, 1.0, 1.0), 8.0, 7.0);
-    r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(4.0, 2.0, -6.0), &vec3_t_c(1.0, 1.0, 1.0), 8.0, 7.0);
-    r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(-4.0, 2.0, 6.0), &vec3_t_c(1.0, 1.0, 1.0), 8.0, 7.0);
-    r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(-4.0, 2.0, -6.0), &vec3_t_c(1.0, 1.0, 1.0), 8.0, 7.0);
-    r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(0.0, 2.0, 0.0), &vec3_t_c(1.0, 1.0, 1.0), 8.0, 7.0);
-    g_CreateEntity(&transform, NULL, g_cube_model);
+//    r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(1.0, 1.5, 1.0), &vec3_t_c(1.0, 0.2, 0.0), 5.0, 2.0);
+//    r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(-1.0, 1.5, -1.0), &vec3_t_c(0.0, 1.0, 0.13), 5.0, 2.0);
+//    r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(-3.0, 1.5, 1.0), &vec3_t_c(0.4, 0.2, 1.0), 5.0, 2.0);
+//    r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(3.0, 1.5, -1.0), &vec3_t_c(1.0, 0.14, 0.0), 5.0, 2.0);
+//    r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(5.0, 1.5, 1.0), &vec3_t_c(0.33, 0.46, 0.0), 5.0, 2.0);
+//    r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(-4.7, 1.1, -1.8), &vec3_t_c(0.3, 0.0, 0.8), 5.0, 2.0);
+//    r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(-4.7, 1.25, -1.70), &vec3_t_c(1.0, 0.35, 0.0), 2.0, 4.0);
+//    r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(-4.7, 1.25, 1.15), &vec3_t_c(1.0, 0.35, 0.0), 2.0, 4.0);
+//    r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(3.7, 1.25, -1.70), &vec3_t_c(1.0, 0.35, 0.0), 2.0, 4.0);
+//    r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(3.7, 1.25, 1.15), &vec3_t_c(1.0, 0.35, 0.0), 2.0, 4.0);
+//
+//
+//    r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(-9.0, 1.4, -3.70), &vec3_t_c(1.0, 0.35, 0.0), 2.0, 4.0);
+//    r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(-9.0, 1.4, 3.15), &vec3_t_c(1.0, 0.35, 0.0), 2.0, 4.0);
+//    r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(-7.0, 1.5, 1.0), &vec3_t_c(0.1, 0.5, 0.7), 5.0, 2.0);
+//    r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(7.0, 1.5, -1.0), &vec3_t_c(1.0, 0.8, 0.0), 5.0, 2.0);
 
+//    r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(8.0, 2.0, 8.0), &vec3_t_c(1.0, 1.0, 1.0), 8.0, 12.0);
+//    r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(8.0, 2.0, -8.0), &vec3_t_c(1.0, 1.0, 1.0), 8.0, 12.0);
+//    r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(-8.0, 2.0, 8.0), &vec3_t_c(1.0, 1.0, 1.0), 8.0, 12.0);
+//    r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(-8.0, 2.0, -8.0), &vec3_t_c(1.0, 1.0, 1.0), 8.0, 12.0);
+//    r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(0.0, 2.0, 0.0), &vec3_t_c(1.0, 1.0, 1.0), 8.0, 12.0);
+//    r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(0.0, 2.0, 8.0), &vec3_t_c(1.0, 1.0, 1.0), 8.0, 12.0);
+//    r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(0.0, 2.0, -8.0), &vec3_t_c(1.0, 1.0, 1.0), 8.0, 12.0);
+//    g_CreateEntity(&transform, NULL, g_cube_model);
+//    g_CreateEntity(&transform, NULL, g_sponza_model);
+
+    transform.rows[0].x = 1.0;
+    transform.rows[1].y = 1.0;
+    transform.rows[2].z = 1.0;
 
     transform.rows[3].x = 0.0;
     transform.rows[3].y = 0.0;
@@ -349,51 +377,56 @@ void g_Init(uint32_t editor_active)
     transform.rows[3].z = 0.0;
     struct g_entity_t *boy_entity;
 
-    for(uint32_t index = 0; index < 8; index++)
-    {
-        transform.rows[3].x = 0.0;
-        transform.rows[3].z = -8.0 + index * 2;
-        boy_entity = g_CreateEntity(&transform, NULL, g_boy_model);
-        g_PlayAnimation(boy_entity, miracle_dance_smooth, "just_dance");
-        struct a_player_t *player = a_GetMixerPlayer(boy_entity->mixer, "just_dance");
-        a_SeekAnimationAbsolute(player, (rand() % dance_step_maybe->duration) * 0.1);
+//    boy_entity = g_CreateEntity(&transform, NULL, g_boy_model);
+//    g_PlayAnimation(boy_entity, miracle_dance_smooth, "just_dance");
+//    struct a_player_t *player = a_GetMixerPlayer(boy_entity->mixer, "just_dance");
+//    a_SeekAnimationAbsolute(player, (rand() % miracle_dance_blockout->duration) * 0.1);
 
-        transform.rows[3].x = 3.0;
-        boy_entity = g_CreateEntity(&transform, NULL, g_boy_model);
-        g_PlayAnimation(boy_entity, miracle_dance_smooth, "just_dance");
-        player = a_GetMixerPlayer(boy_entity->mixer, "just_dance");
-        a_SeekAnimationAbsolute(player, (rand() % dance_step_maybe->duration) * 0.1);
-
-        transform.rows[3].x = -3.0;
-        boy_entity = g_CreateEntity(&transform, NULL, g_boy_model);
-        g_PlayAnimation(boy_entity, miracle_dance_smooth, "just_dance");
-        player = a_GetMixerPlayer(boy_entity->mixer, "just_dance");
-        a_SeekAnimationAbsolute(player, (rand() % dance_step_maybe->duration) * 0.1);
-
-        transform.rows[3].x = 6.0;
-        boy_entity = g_CreateEntity(&transform, NULL, g_boy_model);
-        g_PlayAnimation(boy_entity, miracle_dance_smooth, "just_dance");
-        player = a_GetMixerPlayer(boy_entity->mixer, "just_dance");
-        a_SeekAnimationAbsolute(player, (rand() % dance_step_maybe->duration) * 0.1);
-
-        transform.rows[3].x = -6.0;
-        boy_entity = g_CreateEntity(&transform, NULL, g_boy_model);
-        g_PlayAnimation(boy_entity, miracle_dance_smooth, "just_dance");
-        player = a_GetMixerPlayer(boy_entity->mixer, "just_dance");
-        a_SeekAnimationAbsolute(player, (rand() % dance_step_maybe->duration) * 0.1);
-
-        transform.rows[3].x = 9.0;
-        boy_entity = g_CreateEntity(&transform, NULL, g_boy_model);
-        g_PlayAnimation(boy_entity, miracle_dance_smooth, "just_dance");
-        player = a_GetMixerPlayer(boy_entity->mixer, "just_dance");
-        a_SeekAnimationAbsolute(player, (rand() % dance_step_maybe->duration) * 0.1);
-
-        transform.rows[3].x = -9.0;
-        boy_entity = g_CreateEntity(&transform, NULL, g_boy_model);
-        g_PlayAnimation(boy_entity, miracle_dance_smooth, "just_dance");
-        player = a_GetMixerPlayer(boy_entity->mixer, "just_dance");
-        a_SeekAnimationAbsolute(player, (rand() % dance_step_maybe->duration) * 0.1);
-    }
+//    for(uint32_t index = 0; index < 0; index++)
+//    {
+//        transform.rows[3].x = 0.0;
+//        transform.rows[3].z = -5.0 + index * 2;
+//        boy_entity = g_CreateEntity(&transform, NULL, g_boy_model);
+//        g_PlayAnimation(boy_entity, miracle_dance_smooth, "just_dance");
+//        struct a_player_t *player = a_GetMixerPlayer(boy_entity->mixer, "just_dance");
+//        a_SeekAnimationAbsolute(player, (rand() % dance_step_maybe->duration) * 0.1);
+//
+//        transform.rows[3].x = 2.0;
+//        boy_entity = g_CreateEntity(&transform, NULL, g_boy_model);
+//        g_PlayAnimation(boy_entity, miracle_dance_smooth, "just_dance");
+//        player = a_GetMixerPlayer(boy_entity->mixer, "just_dance");
+//        a_SeekAnimationAbsolute(player, (rand() % dance_step_maybe->duration) * 0.1);
+//
+//        transform.rows[3].x = -2.0;
+//        boy_entity = g_CreateEntity(&transform, NULL, g_boy_model);
+//        g_PlayAnimation(boy_entity, miracle_dance_smooth, "just_dance");
+//        player = a_GetMixerPlayer(boy_entity->mixer, "just_dance");
+//        a_SeekAnimationAbsolute(player, (rand() % dance_step_maybe->duration) * 0.1);
+//
+//        transform.rows[3].x = 4.0;
+//        boy_entity = g_CreateEntity(&transform, NULL, g_boy_model);
+//        g_PlayAnimation(boy_entity, miracle_dance_smooth, "just_dance");
+//        player = a_GetMixerPlayer(boy_entity->mixer, "just_dance");
+//        a_SeekAnimationAbsolute(player, (rand() % dance_step_maybe->duration) * 0.1);
+//
+//        transform.rows[3].x = -4.0;
+//        boy_entity = g_CreateEntity(&transform, NULL, g_boy_model);
+//        g_PlayAnimation(boy_entity, miracle_dance_smooth, "just_dance");
+//        player = a_GetMixerPlayer(boy_entity->mixer, "just_dance");
+//        a_SeekAnimationAbsolute(player, (rand() % dance_step_maybe->duration) * 0.1);
+//
+//        transform.rows[3].x = 6.0;
+//        boy_entity = g_CreateEntity(&transform, NULL, g_boy_model);
+//        g_PlayAnimation(boy_entity, miracle_dance_smooth, "just_dance");
+//        player = a_GetMixerPlayer(boy_entity->mixer, "just_dance");
+//        a_SeekAnimationAbsolute(player, (rand() % dance_step_maybe->duration) * 0.1);
+//
+//        transform.rows[3].x = -6.0;
+//        boy_entity = g_CreateEntity(&transform, NULL, g_boy_model);
+//        g_PlayAnimation(boy_entity, miracle_dance_smooth, "just_dance");
+//        player = a_GetMixerPlayer(boy_entity->mixer, "just_dance");
+//        a_SeekAnimationAbsolute(player, (rand() % dance_step_maybe->duration) * 0.1);
+//    }
 
 //     = g_CreateEntity(&transform, NULL, g_boy_model);
 //    g_PlayAnimation(boy_entity, dance_step_maybe, "just_dance");
@@ -521,6 +554,7 @@ void g_MainLoop(uint32_t editor_active)
     while(g_game_state != G_GAME_STATE_QUIT)
     {
         in_Input();
+        gui_BeginFrame();
         p_UpdateColliders();
         switch(g_game_state)
         {
@@ -542,10 +576,8 @@ void g_MainLoop(uint32_t editor_active)
         r_VisibleLights();
         r_VisibleEntities();
         r_BeginFrame();
-//        r_VisibleVisItems();
+        gui_EndFrame();
         r_DrawCmds();
-//        r_DrawSortedBatches();
-//        r_DrawImmediateBatches();
         r_EndFrame();
     }
 }

@@ -4,8 +4,55 @@
 #include "dstuff/ds_vector.h"
 #include "dstuff/ds_matrix.h"
 #include "dstuff/ds_list.h"
+#include "dstuff/ds_dbvh.h"
 #include <stdint.h>
 
+struct p_box_shape_t
+{
+    vec3_t size;
+};
+
+struct p_capsule_shape_t
+{
+    float radius;
+    float height;
+};
+
+struct p_col_tri_t
+{
+    vec3_t verts[3];
+    vec3_t normal;
+};
+
+struct p_conv_hull_t
+{
+    vec3_t *verts;
+    uint32_t vert_count;
+};
+
+struct p_tmesh_shape_t
+{
+    struct dbvh_tree_t dbvh;
+    struct p_col_tri_t *tris;
+    uint32_t tri_count;
+};
+
+struct p_col_shape_t
+{
+    uint32_t index;
+    uint32_t type;
+    union
+    {
+        struct p_capsule_shape_t capsule_shape;
+        struct p_tmesh_shape_t tmesh_shape;
+    };
+};
+
+enum P_COL_SHAPE_TYPES
+{
+    P_COL_SHAPE_TYPE_CAPSULE = 0,
+    P_COL_SHAPE_TYPE_TMESH
+};
 
 
 struct p_col_plane_t
@@ -67,7 +114,7 @@ struct p_trigger_collider_t
 //    struct list_t collisions;
 };
 
-//struct p_collider_t 
+//struct p_collider_t
 //{
 //    uint16_t type;
 //    uint16_t flags;
@@ -90,7 +137,7 @@ struct p_trigger_collider_t
 //    vec3_t size;
 //};
 
-struct p_trace_t 
+struct p_trace_t
 {
     vec3_t start;
     vec3_t point;
@@ -99,7 +146,7 @@ struct p_trace_t
     uint32_t solid_start;
     float time;
     struct p_collider_t *collider;
-}; 
+};
 
 struct p_col_pair_t
 {
@@ -110,6 +157,12 @@ struct p_col_pair_t
 void p_Init();
 
 void p_Shutdown();
+
+struct p_col_shape_t *p_CreateCollisionShape(uint32_t type);
+
+struct p_col_shape_t *p_CreateCapsuleCollisionShape(float radius, float height);
+
+struct p_col_shape_t *p_CreateTriMeshCollisionShape(vec3_t *verts, uint32_t vert_count);
 
 struct p_collider_t *p_CreateCollider(uint32_t type, vec3_t *position, mat3_t *orientation, vec3_t *size);
 
@@ -127,9 +180,9 @@ void p_RotateColliderZ(struct p_collider_t *collider, float angle);
 
 void p_UpdateColliders();
 
-void p_GenColPlanes(struct p_collider_t *collider);
+//void p_GenColPlanes(struct p_collider_t *collider);
 
-void p_GenPairColPlanes(struct p_collider_t *collider_a, struct p_collider_t *collider_b, struct p_col_plane_t **planes, uint32_t *plane_count);
+//void p_GenPairColPlanes(struct p_collider_t *collider_a, struct p_collider_t *collider_b, struct p_col_plane_t **planes, uint32_t *plane_count);
 
 void p_UpdateColliderNode(struct p_collider_t *collider);
 
@@ -141,7 +194,7 @@ uint32_t p_SolidPoint(vec3_t *point, struct p_col_plane_t *planes, uint32_t plan
 
 void p_TracePlanes(vec3_t *start, vec3_t *dir, struct p_col_plane_t *planes, uint32_t plane_count, struct p_trace_t *trace);
 
-uint32_t p_Raycast(vec3_t *start, vec3_t *end, struct p_trace_t *trace); 
+uint32_t p_Raycast(vec3_t *start, vec3_t *end, struct p_trace_t *trace);
 
 #endif // PHYSICS_H
 

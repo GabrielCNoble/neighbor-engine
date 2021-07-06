@@ -97,6 +97,22 @@ void ed_Shutdown();
 
 void ed_UpdateEditor();
 
+void ed_UpdateExplorer();
+
+void ed_OpenExplorer(char *path, uint32_t mode);
+
+void ed_CloseExplorer();
+
+void ed_EnumerateExplorerDrives();
+
+void ed_ChangeExplorerPath(char *path);
+
+void ed_AddExplorerExtFilter(char *ext_filter);
+
+void ed_MatchExplorerEntries(char *match);
+
+void ed_ClearExplorerExtFilters();
+
 void ed_FlyCamera();
 
 void ed_DrawGrid();

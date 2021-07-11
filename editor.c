@@ -5,9 +5,14 @@
 #include "dstuff/ds_mem.h"
 #include "dstuff/ds_vector.h"
 #include "dstuff/ds_matrix.h"
+#include "dstuff/ds_path.h"
 #include "game.h"
 #include "input.h"
+#include "gui.h"
 #include "r_draw.h"
+#include <limits.h>
+#include <string.h>
+#include <float.h>
 
 struct stack_list_t ed_brushes;
 struct ed_context_t *ed_active_context;
@@ -104,6 +109,50 @@ struct ed_state_t ed_world_context_states[] =
 
 struct ed_world_context_data_t ed_world_context_data;
 
+struct ed_explorer_ext_filter_t
+{
+    char extension[8];
+};
+
+struct ed_explorer_drive_t
+{
+    char drive[4];
+};
+
+enum ED_EDITOR_EXPLORER_MODE
+{
+    ED_EDITOR_EXPLORER_MODE_OPEN = 0,
+    ED_EDITOR_EXPLORER_MODE_SAVE,
+};
+
+struct
+{
+    uint32_t open;
+    uint32_t mode;
+    char current_path[PATH_MAX];
+    char current_file[PATH_MAX];
+    char search_bar[PATH_MAX];
+    struct list_t dir_entries;
+    struct list_t matched_dir_entries;
+    struct list_t ext_filters;
+    struct list_t drives;
+
+    void (*load_callback)(char *path, char *file);
+    void (*save_callback)(char *path, char *file);
+}ed_explorer_state;
+
+//uint32_t ed_explorer_open = 0;
+
+void test_load_callback(char *path, char *file)
+{
+    printf("load file %s%s\n", path, file);
+}
+
+void test_save_callback(char *path, char *file)
+{
+    printf("save file %s%s\n", path, file);
+}
+
 void ed_Init()
 {
     ed_brushes = create_stack_list(sizeof(struct ed_brush_t), 512);
@@ -177,6 +226,18 @@ void ed_Init()
 
     ed_polygons = create_stack_list(sizeof(struct ed_polygon_t ), 1024);
     ed_bsp_nodes = create_stack_list(sizeof(struct ed_bspn_t), 1024);
+
+    ed_explorer_state.current_file[0] = '\0';
+    ed_explorer_state.current_path[0] = '\0';
+    ed_explorer_state.open = 0;
+    ed_explorer_state.dir_entries = create_list(sizeof(struct ds_dir_entry_t), 64);
+    ed_explorer_state.matched_dir_entries = create_list(sizeof(struct ds_dir_entry_t *), 64);
+    ed_explorer_state.ext_filters = create_list(sizeof(struct ed_explorer_ext_filter_t), 64);
+    ed_explorer_state.drives = create_list(sizeof(struct ed_explorer_drive_t), 8);
+
+    ed_EnumerateExplorerDrives();
+    ed_SetExplorerLoadCallback(test_load_callback);
+    ed_SetExplorerSaveCallback(test_save_callback);
 }
 
 void ed_Shutdown()
@@ -205,7 +266,361 @@ void ed_UpdateEditor()
             }
         }
     }
+
+    if(igBeginMainMenuBar())
+    {
+        if(igBeginMenu("File", 1))
+        {
+            if(igMenuItem_Bool("New", NULL, 0, 1))
+            {
+
+            }
+
+            if(igMenuItem_Bool("Save", NULL, 0, 1))
+            {
+
+            }
+
+            if(igMenuItem_Bool("Save as...", NULL, 0, 1))
+            {
+                ed_OpenExplorer("C:/Users/gabri/Documents/Compiler/metroid_thingy", ED_EDITOR_EXPLORER_MODE_SAVE);
+            }
+
+            if(igMenuItem_Bool("Load", NULL, 0, 1))
+            {
+                ed_OpenExplorer("C:/Users/gabri/Documents/Compiler/metroid_thingy", ED_EDITOR_EXPLORER_MODE_OPEN);
+            }
+
+            if(igBeginMenu("Recent", 1))
+            {
+                igEndMenu();
+            }
+
+            if(igMenuItem_Bool("Exit", NULL, 0, 1))
+            {
+                g_SetGameState(G_GAME_STATE_QUIT);
+            }
+
+            igEndMenu();
+        }
+        igEndMainMenuBar();
+    }
+
+    ed_UpdateExplorer();
 }
+
+/*
+=============================================================
+=============================================================
+=============================================================
+*/
+
+void ed_UpdateExplorer()
+{
+    if(ed_explorer_state.open)
+    {
+        float frame_height = igGetFrameHeight();
+        igSetNextWindowPos((ImVec2){0, frame_height}, ImGuiCond_Always, (ImVec2){0, 0});
+        igSetNextWindowSize((ImVec2){r_width, r_height - frame_height}, ImGuiCond_Always);
+
+        if(igBegin("Explorer", NULL, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse))
+        {
+            if(igBeginTable("explorer_table", 2, ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_Resizable | ImGuiTableFlags_SizingStretchSame, (ImVec2){0, 0}, 0.0))
+            {
+                igTableSetupColumn("dir_tree", 0, 0.25, 0);
+                igTableNextColumn();
+                if(igBeginChild_Str("left_side", (ImVec2){0, 0}, 1, 0))
+                {
+                    igText("Drives");
+                    igSameLine(0.0, -1.0);
+                    if(igButton("Refresh", (ImVec2){0, 0}))
+                    {
+                        ed_EnumerateExplorerDrives();
+                    }
+                    if(igBeginListBox("", (ImVec2){-FLT_MIN, 120.0}))
+                    {
+                        for(uint32_t drive_index = 0; drive_index < ed_explorer_state.drives.cursor; drive_index++)
+                        {
+                            struct ed_explorer_drive_t *drive = get_list_element(&ed_explorer_state.drives, drive_index);
+                            if(igMenuItem_Bool(drive->drive, NULL, 0, 1))
+                            {
+                                ed_ChangeExplorerPath(drive->drive);
+                            }
+                        }
+                        igEndListBox();
+                    }
+
+//                    igSeparator();
+//
+//                    igText("Recent");
+//                    if(igBeginListBox("", (ImVec2){-FLT_MIN, 250.0}))
+//                    {
+//                        igEndListBox();
+//                    }
+                }
+                igEndChild();
+
+
+                igTableNextColumn();
+                if(igBeginChild_Str("right_side_top", (ImVec2){0.0, 35.0}, 1, 0))
+                {
+                    igButton("Back", (ImVec2){0.0, 0.0});
+                    igSameLine(0.0, -1.0);
+                    igButton("Forward", (ImVec2){0.0, 0.0});
+                    igSameLine(0.0, -1.0);
+
+
+                    igSetNextItemWidth(600.0);
+                    igInputText("##path", ed_explorer_state.current_path, PATH_MAX, 0, NULL, NULL);
+                    if(igIsItemDeactivatedAfterEdit())
+                    {
+                        ed_ChangeExplorerPath(ed_explorer_state.current_path);
+                    }
+
+                    igSameLine(0.0, -1.0);
+                    igSetNextItemWidth(160.0);
+                    if(igInputText("##search_box", ed_explorer_state.search_bar, PATH_MAX, 0, NULL, NULL))
+                    {
+                        if(igIsItemDeactivated())
+                        {
+                            ed_explorer_state.search_bar[0] = '\0';
+                        }
+                        ed_MatchExplorerEntries(ed_explorer_state.search_bar);
+                    }
+                }
+                igEndChild();
+
+
+                if(igBeginChild_Str("right_side_middle", (ImVec2){0, -40}, 1, 0))
+                {
+                    if(igBeginTable("##entry_list", 1, ImGuiTableFlags_ScrollY, (ImVec2){0, 0.0}, 0.0))
+                    {
+                        igTableSetupScrollFreeze(0, 1);
+                        igTableSetupColumn("Name", 0, 0.0, 0);
+                        igTableHeadersRow();
+
+                        for(uint32_t entry_index = 0; entry_index < ed_explorer_state.matched_dir_entries.cursor; entry_index++)
+                        {
+                            struct ds_dir_entry_t *entry = *(struct ds_dir_entry_t **)get_list_element(&ed_explorer_state.matched_dir_entries, entry_index);
+
+                            igTableNextRow(0, 25.0);
+                            igTableSetColumnIndex(0);
+                            igMenuItem_Bool(entry->path, NULL, 0, 1);
+                            if(igIsItemClicked(ImGuiMouseButton_Left))
+                            {
+                                if(entry->type == DS_PATH_DIR_ENTRY_TYPE_DIR)
+                                {
+                                    strcpy(ed_explorer_state.current_path, ds_path_AppendPath(ed_explorer_state.current_path, entry->path));
+                                    ed_ChangeExplorerPath(ed_explorer_state.current_path);
+                                }
+                                else
+                                {
+                                    if(igIsMouseDoubleClicked(ImGuiMouseButton_Left))
+                                    {
+
+                                    }
+                                    else
+                                    {
+                                        strcpy(ed_explorer_state.current_file, entry->path);
+                                    }
+                                }
+                            }
+                        }
+                        igEndTable();
+                    }
+                }
+                igEndChild();
+
+                if(igBeginChild_Str("right_side_bottom", (ImVec2){0, 0}, 1, 0))
+                {
+                    igSetNextItemWidth(600.0);
+                    if(igInputText("##file", ed_explorer_state.current_file, PATH_MAX, 0, NULL, NULL))
+                    {
+
+                    }
+
+                    igSameLine(0.0, -1.0);
+
+                    switch(ed_explorer_state.mode)
+                    {
+                        case ED_EDITOR_EXPLORER_MODE_OPEN:
+                            if(igButton("Open", (ImVec2){100.0, 0.0}) && ed_explorer_state.load_callback)
+                            {
+                                ed_explorer_state.load_callback(ed_explorer_state.current_path, ed_explorer_state.current_file);
+                                ed_CloseExplorer();
+                            }
+                        break;
+
+                        case ED_EDITOR_EXPLORER_MODE_SAVE:
+                            if(igButton("Save", (ImVec2){100.0, 0.0}) && ed_explorer_state.save_callback)
+                            {
+                                ed_explorer_state.save_callback(ed_explorer_state.current_path, ed_explorer_state.current_file);
+                                ed_CloseExplorer();
+                            }
+                        break;
+                    }
+
+                    igSameLine(0.0, -1.0);
+                    if(igButton("Cancel", (ImVec2){100.0, 0.0}))
+                    {
+                        ed_CloseExplorer();
+                    }
+                }
+                igEndChild();
+
+
+                igEndTable();
+            }
+        }
+
+        igEnd();
+    }
+}
+
+void ed_OpenExplorer(char *path, uint32_t mode)
+{
+    ed_explorer_state.open = 1;
+    ed_explorer_state.mode = mode;
+    ed_explorer_state.search_bar[0] = '\0';
+
+    if(path)
+    {
+        ed_ChangeExplorerPath(path);
+    }
+}
+
+void ed_CloseExplorer()
+{
+    ed_explorer_state.open = 0;
+    ed_explorer_state.load_callback = NULL;
+    ed_explorer_state.save_callback = NULL;
+}
+
+void ed_EnumerateExplorerDrives()
+{
+    struct ds_dir_t dir = {};
+    ed_explorer_state.drives.cursor = 0;
+
+    for(uint32_t drive_letter = 'A'; drive_letter <= 'Z'; drive_letter++)
+    {
+        struct ed_explorer_drive_t drive = {};
+        strcpy(drive.drive, " :/");
+        drive.drive[0] = drive_letter;
+
+        if(ds_path_OpenDir(drive.drive, &dir))
+        {
+            add_list_element(&ed_explorer_state.drives, &drive);
+            ds_path_CloseDir(&dir);
+        }
+    }
+}
+
+void ed_ChangeExplorerPath(char *path)
+{
+    struct ds_dir_entry_t entry;
+    struct ds_dir_t dir;
+
+    if(ds_path_OpenDir(path, &dir))
+    {
+        ed_explorer_state.dir_entries.cursor = 0;
+
+        while(ds_path_NextDirEntry(&dir, &entry))
+        {
+            if(entry.type == DS_PATH_DIR_ENTRY_TYPE_FILE && ed_explorer_state.ext_filters.cursor)
+            {
+                char *ext = ds_path_GetExt(entry.path);
+
+                for(uint32_t ext_filter_index = 0; ext_filter_index < ed_explorer_state.ext_filters.cursor; ext_filter_index++)
+                {
+                    struct ed_explorer_ext_filter_t *ext_filter = get_list_element(&ed_explorer_state.ext_filters, ext_filter_index);
+
+                    if(!strcmp(ext_filter->extension, ext))
+                    {
+                        add_list_element(&ed_explorer_state.dir_entries, &entry);
+                        break;
+                    }
+                }
+            }
+            else
+            {
+                add_list_element(&ed_explorer_state.dir_entries, &entry);
+            }
+        }
+
+        strcpy(ed_explorer_state.current_path, dir.path);
+
+        ds_path_CloseDir(&dir);
+
+        ed_MatchExplorerEntries(ed_explorer_state.search_bar);
+
+        if(!ed_explorer_state.matched_dir_entries.cursor)
+        {
+            /* we just changed dirs, and there's no matching entry in the new dir, so we'll clear the
+            search bar to at least show something */
+            ed_MatchExplorerEntries("");
+        }
+    }
+}
+
+void ed_AddExplorerExtFilter(char *ext_filter)
+{
+    struct ed_explorer_ext_filter_t filter = {};
+    strcpy(filter.extension, ext_filter);
+    add_list_element(&ed_explorer_state.ext_filters, &filter);
+}
+
+void ed_MatchExplorerEntries(char *match)
+{
+    if(match != ed_explorer_state.search_bar)
+    {
+        /* the value of match might be the buffer used for the search bar,
+        and strcpy expects pointers that don't alias */
+        strcpy(ed_explorer_state.search_bar, match);
+    }
+
+    ed_explorer_state.matched_dir_entries.cursor = 0;
+
+    for(uint32_t entry_index = 0; entry_index < ed_explorer_state.dir_entries.cursor; entry_index++)
+    {
+        struct ds_dir_entry_t *entry = get_list_element(&ed_explorer_state.dir_entries, entry_index);
+
+        if(match[0] == '\0')
+        {
+            add_list_element(&ed_explorer_state.matched_dir_entries, &entry);
+        }
+        else
+        {
+            char *match_address = strstr(entry->path, match);
+
+            if(match_address == entry->path)
+            {
+                /* we'll be matching the beginning of the strings */
+                add_list_element(&ed_explorer_state.matched_dir_entries, &entry);
+            }
+        }
+    }
+}
+
+void ed_ClearExplorerExtFilters()
+{
+    ed_explorer_state.ext_filters.cursor = 0;
+}
+
+void ed_SetExplorerLoadCallback(void (*load_callback)(char *path, char *file))
+{
+    ed_explorer_state.load_callback = load_callback;
+}
+
+void ed_SetExplorerSaveCallback(void (*save_callback)(char *path, char *file))
+{
+    ed_explorer_state.save_callback = save_callback;
+}
+
+/*
+=============================================================
+=============================================================
+=============================================================
+*/
 
 void ed_FlyCamera()
 {

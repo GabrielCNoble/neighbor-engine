@@ -110,7 +110,7 @@ void gui_BeginFrame()
 //        igText("BLAH");
 //    }
 //    igEnd();
-    igShowDemoWindow(NULL);
+//    igShowDemoWindow(NULL);
 }
 
 void gui_EndFrame()

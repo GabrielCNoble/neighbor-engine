@@ -136,9 +136,22 @@ struct
     struct list_t matched_dir_entries;
     struct list_t ext_filters;
     struct list_t drives;
+
+    void (*load_callback)(char *path, char *file);
+    void (*save_callback)(char *path, char *file);
 }ed_explorer_state;
 
 //uint32_t ed_explorer_open = 0;
+
+void test_load_callback(char *path, char *file)
+{
+    printf("load file %s%s\n", path, file);
+}
+
+void test_save_callback(char *path, char *file)
+{
+    printf("save file %s%s\n", path, file);
+}
 
 void ed_Init()
 {
@@ -223,6 +236,8 @@ void ed_Init()
     ed_explorer_state.drives = create_list(sizeof(struct ed_explorer_drive_t), 8);
 
     ed_EnumerateExplorerDrives();
+    ed_SetExplorerLoadCallback(test_load_callback);
+    ed_SetExplorerSaveCallback(test_save_callback);
 }
 
 void ed_Shutdown()
@@ -266,14 +281,19 @@ void ed_UpdateEditor()
 
             }
 
+            if(igMenuItem_Bool("Save as...", NULL, 0, 1))
+            {
+                ed_OpenExplorer("C:/Users/gabri/Documents/Compiler/metroid_thingy", ED_EDITOR_EXPLORER_MODE_SAVE);
+            }
+
             if(igMenuItem_Bool("Load", NULL, 0, 1))
             {
                 ed_OpenExplorer("C:/Users/gabri/Documents/Compiler/metroid_thingy", ED_EDITOR_EXPLORER_MODE_OPEN);
             }
 
-            if(igMenuItem_Bool("Recent", NULL, 0, 1))
+            if(igBeginMenu("Recent", 1))
             {
-
+                igEndMenu();
             }
 
             if(igMenuItem_Bool("Exit", NULL, 0, 1))
@@ -289,6 +309,12 @@ void ed_UpdateEditor()
     ed_UpdateExplorer();
 }
 
+/*
+=============================================================
+=============================================================
+=============================================================
+*/
+
 void ed_UpdateExplorer()
 {
     if(ed_explorer_state.open)
@@ -297,7 +323,7 @@ void ed_UpdateExplorer()
         igSetNextWindowPos((ImVec2){0, frame_height}, ImGuiCond_Always, (ImVec2){0, 0});
         igSetNextWindowSize((ImVec2){r_width, r_height - frame_height}, ImGuiCond_Always);
 
-        if(igBegin("Explorer", NULL, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoResize))
+        if(igBegin("Explorer", NULL, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse))
         {
             if(igBeginTable("explorer_table", 2, ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_Resizable | ImGuiTableFlags_SizingStretchSame, (ImVec2){0, 0}, 0.0))
             {
@@ -324,13 +350,13 @@ void ed_UpdateExplorer()
                         igEndListBox();
                     }
 
-                    igSeparator();
-
-                    igText("Recent");
-                    if(igBeginListBox("", (ImVec2){-FLT_MIN, 250.0}))
-                    {
-                        igEndListBox();
-                    }
+//                    igSeparator();
+//
+//                    igText("Recent");
+//                    if(igBeginListBox("", (ImVec2){-FLT_MIN, 250.0}))
+//                    {
+//                        igEndListBox();
+//                    }
                 }
                 igEndChild();
 
@@ -369,11 +395,11 @@ void ed_UpdateExplorer()
                 {
                     if(igBeginTable("##entry_list", 1, ImGuiTableFlags_ScrollY, (ImVec2){0, 0.0}, 0.0))
                     {
-//                        igTableSetupScrollFreeze(0, 1);
+                        igTableSetupScrollFreeze(0, 1);
                         igTableSetupColumn("Name", 0, 0.0, 0);
                         igTableHeadersRow();
 
-                        for(uint32_t entry_index = 0; entry_index < 20; entry_index++)
+                        for(uint32_t entry_index = 0; entry_index < ed_explorer_state.matched_dir_entries.cursor; entry_index++)
                         {
                             struct ds_dir_entry_t *entry = *(struct ds_dir_entry_t **)get_list_element(&ed_explorer_state.matched_dir_entries, entry_index);
 
@@ -386,6 +412,17 @@ void ed_UpdateExplorer()
                                 {
                                     strcpy(ed_explorer_state.current_path, ds_path_AppendPath(ed_explorer_state.current_path, entry->path));
                                     ed_ChangeExplorerPath(ed_explorer_state.current_path);
+                                }
+                                else
+                                {
+                                    if(igIsMouseDoubleClicked(ImGuiMouseButton_Left))
+                                    {
+
+                                    }
+                                    else
+                                    {
+                                        strcpy(ed_explorer_state.current_file, entry->path);
+                                    }
                                 }
                             }
                         }
@@ -407,16 +444,27 @@ void ed_UpdateExplorer()
                     switch(ed_explorer_state.mode)
                     {
                         case ED_EDITOR_EXPLORER_MODE_OPEN:
-                            igButton("Open", (ImVec2){100.0, 0.0});
+                            if(igButton("Open", (ImVec2){100.0, 0.0}) && ed_explorer_state.load_callback)
+                            {
+                                ed_explorer_state.load_callback(ed_explorer_state.current_path, ed_explorer_state.current_file);
+                                ed_CloseExplorer();
+                            }
                         break;
 
                         case ED_EDITOR_EXPLORER_MODE_SAVE:
-                            igButton("Save", (ImVec2){100.0, 0.0});
+                            if(igButton("Save", (ImVec2){100.0, 0.0}) && ed_explorer_state.save_callback)
+                            {
+                                ed_explorer_state.save_callback(ed_explorer_state.current_path, ed_explorer_state.current_file);
+                                ed_CloseExplorer();
+                            }
                         break;
                     }
 
                     igSameLine(0.0, -1.0);
-                    igButton("Cancel", (ImVec2){100.0, 0.0});
+                    if(igButton("Cancel", (ImVec2){100.0, 0.0}))
+                    {
+                        ed_CloseExplorer();
+                    }
                 }
                 igEndChild();
 
@@ -444,6 +492,8 @@ void ed_OpenExplorer(char *path, uint32_t mode)
 void ed_CloseExplorer()
 {
     ed_explorer_state.open = 0;
+    ed_explorer_state.load_callback = NULL;
+    ed_explorer_state.save_callback = NULL;
 }
 
 void ed_EnumerateExplorerDrives()
@@ -555,6 +605,22 @@ void ed_ClearExplorerExtFilters()
 {
     ed_explorer_state.ext_filters.cursor = 0;
 }
+
+void ed_SetExplorerLoadCallback(void (*load_callback)(char *path, char *file))
+{
+    ed_explorer_state.load_callback = load_callback;
+}
+
+void ed_SetExplorerSaveCallback(void (*save_callback)(char *path, char *file))
+{
+    ed_explorer_state.save_callback = save_callback;
+}
+
+/*
+=============================================================
+=============================================================
+=============================================================
+*/
 
 void ed_FlyCamera()
 {

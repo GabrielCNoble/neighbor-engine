@@ -1,11 +1,12 @@
 #include "editor.h"
 #include "ed_bsp.h"
-#include "dstuff/ds_stack_list.h"
+#include "dstuff/ds_slist.h"
 #include "dstuff/ds_list.h"
 #include "dstuff/ds_mem.h"
 #include "dstuff/ds_vector.h"
 #include "dstuff/ds_matrix.h"
 #include "dstuff/ds_path.h"
+#include "dstuff/ds_dir.h"
 #include "game.h"
 #include "input.h"
 #include "gui.h"
@@ -14,14 +15,14 @@
 #include <string.h>
 #include <float.h>
 
-struct stack_list_t ed_brushes;
+struct ds_slist_t ed_brushes;
 struct ed_context_t *ed_active_context;
 struct ed_context_t ed_contexts[ED_CONTEXT_LAST];
 //uint32_t ed_grid_vert_count;
 //struct r_vert_t *ed_grid;
 struct r_i_verts_t *ed_grid;
-struct stack_list_t ed_polygons;
-struct stack_list_t ed_bsp_nodes;
+struct ds_slist_t ed_polygons;
+struct ds_slist_t ed_bsp_nodes;
 
 struct r_shader_t *ed_center_grid_shader;
 struct r_shader_t *ed_picking_shader;
@@ -85,7 +86,7 @@ uint32_t ed_picking_depth_texture;
 uint32_t ed_picking_object_texture;
 
 extern uint32_t g_game_state;
-extern mat4_t r_view_matrix;
+extern mat4_t r_camera_matrix;
 extern float r_z_near;
 extern float r_fov;
 extern uint32_t r_width;
@@ -93,7 +94,7 @@ extern uint32_t r_height;
 extern mat4_t r_view_projection_matrix;
 extern uint32_t r_vertex_buffer;
 extern uint32_t r_index_buffer;
-extern struct stack_list_t r_lights;
+extern struct ds_slist_t r_lights;
 
 
 #define ED_GRID_DIVS 301
@@ -132,10 +133,10 @@ struct
     char current_path[PATH_MAX];
     char current_file[PATH_MAX];
     char search_bar[PATH_MAX];
-    struct list_t dir_entries;
-    struct list_t matched_dir_entries;
-    struct list_t ext_filters;
-    struct list_t drives;
+    struct ds_list_t dir_entries;
+    struct ds_list_t matched_dir_entries;
+    struct ds_list_t ext_filters;
+    struct ds_list_t drives;
 
     void (*load_callback)(char *path, char *file);
     void (*save_callback)(char *path, char *file);
@@ -145,17 +146,17 @@ struct
 
 void test_load_callback(char *path, char *file)
 {
-    printf("load file %s%s\n", path, file);
+    printf("load file %s/%s\n", path, file);
 }
 
 void test_save_callback(char *path, char *file)
 {
-    printf("save file %s%s\n", path, file);
+    printf("save file %s/%s\n", path, file);
 }
 
 void ed_Init()
 {
-    ed_brushes = create_stack_list(sizeof(struct ed_brush_t), 512);
+    ed_brushes = ds_slist_create(sizeof(struct ed_brush_t), 512);
     ed_grid = r_i_AllocImmediateExternData(sizeof(struct r_i_verts_t) + sizeof(struct r_vert_t) * 6);
 
     ed_grid->count = 6;
@@ -221,19 +222,19 @@ void ed_Init()
     ed_contexts[ED_CONTEXT_WORLD].states = ed_world_context_states;
     ed_contexts[ED_CONTEXT_WORLD].current_state = ED_WORLD_CONTEXT_STATE_IDLE;
     ed_contexts[ED_CONTEXT_WORLD].context_data = &ed_world_context_data;
-    ed_world_context_data.selections = create_list(sizeof(struct ed_selection_t), 512);
+    ed_world_context_data.selections = ds_list_create(sizeof(struct ed_selection_t), 512);
     ed_active_context = ed_contexts + ED_CONTEXT_WORLD;
 
-    ed_polygons = create_stack_list(sizeof(struct ed_polygon_t ), 1024);
-    ed_bsp_nodes = create_stack_list(sizeof(struct ed_bspn_t), 1024);
+    ed_polygons = ds_slist_create(sizeof(struct ed_polygon_t ), 1024);
+    ed_bsp_nodes = ds_slist_create(sizeof(struct ed_bspn_t), 1024);
 
     ed_explorer_state.current_file[0] = '\0';
     ed_explorer_state.current_path[0] = '\0';
     ed_explorer_state.open = 0;
-    ed_explorer_state.dir_entries = create_list(sizeof(struct ds_dir_entry_t), 64);
-    ed_explorer_state.matched_dir_entries = create_list(sizeof(struct ds_dir_entry_t *), 64);
-    ed_explorer_state.ext_filters = create_list(sizeof(struct ed_explorer_ext_filter_t), 64);
-    ed_explorer_state.drives = create_list(sizeof(struct ed_explorer_drive_t), 8);
+    ed_explorer_state.dir_entries = ds_list_create(sizeof(struct ds_dir_entry_t), 64);
+    ed_explorer_state.matched_dir_entries = ds_list_create(sizeof(struct ds_dir_entry_t *), 64);
+    ed_explorer_state.ext_filters = ds_list_create(sizeof(struct ed_explorer_ext_filter_t), 64);
+    ed_explorer_state.drives = ds_list_create(sizeof(struct ed_explorer_drive_t), 8);
 
     ed_EnumerateExplorerDrives();
     ed_SetExplorerLoadCallback(test_load_callback);
@@ -317,6 +318,7 @@ void ed_UpdateEditor()
 
 void ed_UpdateExplorer()
 {
+    char temp_path[PATH_MAX];
     if(ed_explorer_state.open)
     {
         float frame_height = igGetFrameHeight();
@@ -341,7 +343,7 @@ void ed_UpdateExplorer()
                     {
                         for(uint32_t drive_index = 0; drive_index < ed_explorer_state.drives.cursor; drive_index++)
                         {
-                            struct ed_explorer_drive_t *drive = get_list_element(&ed_explorer_state.drives, drive_index);
+                            struct ed_explorer_drive_t *drive = ds_list_get_element(&ed_explorer_state.drives, drive_index);
                             if(igMenuItem_Bool(drive->drive, NULL, 0, 1))
                             {
                                 ed_ChangeExplorerPath(drive->drive);
@@ -401,16 +403,17 @@ void ed_UpdateExplorer()
 
                         for(uint32_t entry_index = 0; entry_index < ed_explorer_state.matched_dir_entries.cursor; entry_index++)
                         {
-                            struct ds_dir_entry_t *entry = *(struct ds_dir_entry_t **)get_list_element(&ed_explorer_state.matched_dir_entries, entry_index);
+                            struct ds_dir_entry_t *entry = *(struct ds_dir_entry_t **)ds_list_get_element(&ed_explorer_state.matched_dir_entries, entry_index);
 
                             igTableNextRow(0, 25.0);
                             igTableSetColumnIndex(0);
-                            igMenuItem_Bool(entry->path, NULL, 0, 1);
+                            igMenuItem_Bool(entry->name, NULL, 0, 1);
                             if(igIsItemClicked(ImGuiMouseButton_Left))
                             {
-                                if(entry->type == DS_PATH_DIR_ENTRY_TYPE_DIR)
+                                if(entry->type == DS_DIR_ENTRY_TYPE_DIR)
                                 {
-                                    strcpy(ed_explorer_state.current_path, ds_path_AppendPath(ed_explorer_state.current_path, entry->path));
+                                    ds_path_append_end(ed_explorer_state.current_path, entry->name, ed_explorer_state.current_path, PATH_MAX);
+//                                    strcpy(ed_explorer_state.current_path, ds_path_AppendPath(ed_explorer_state.current_path, entry->path));
                                     ed_ChangeExplorerPath(ed_explorer_state.current_path);
                                 }
                                 else
@@ -421,7 +424,7 @@ void ed_UpdateExplorer()
                                     }
                                     else
                                     {
-                                        strcpy(ed_explorer_state.current_file, entry->path);
+                                        strcpy(ed_explorer_state.current_file, entry->name);
                                     }
                                 }
                             }
@@ -507,10 +510,10 @@ void ed_EnumerateExplorerDrives()
         strcpy(drive.drive, " :/");
         drive.drive[0] = drive_letter;
 
-        if(ds_path_OpenDir(drive.drive, &dir))
+        if(ds_dir_open_dir(drive.drive, &dir))
         {
-            add_list_element(&ed_explorer_state.drives, &drive);
-            ds_path_CloseDir(&dir);
+            ds_list_add_element(&ed_explorer_state.drives, &drive);
+            ds_dir_close_dir(&dir);
         }
     }
 }
@@ -519,37 +522,39 @@ void ed_ChangeExplorerPath(char *path)
 {
     struct ds_dir_entry_t entry;
     struct ds_dir_t dir;
+    char ext[PATH_MAX];
 
-    if(ds_path_OpenDir(path, &dir))
+    if(ds_dir_open_dir(path, &dir))
     {
         ed_explorer_state.dir_entries.cursor = 0;
 
-        while(ds_path_NextDirEntry(&dir, &entry))
+        while(ds_dir_next_entry(&dir, &entry))
         {
-            if(entry.type == DS_PATH_DIR_ENTRY_TYPE_FILE && ed_explorer_state.ext_filters.cursor)
+            if(entry.type == DS_DIR_ENTRY_TYPE_FILE && ed_explorer_state.ext_filters.cursor)
             {
-                char *ext = ds_path_GetExt(entry.path);
+//                char *ext = ds_path_GetExt(entry.path);
+                ds_path_get_ext(entry.name, ext, PATH_MAX);
 
                 for(uint32_t ext_filter_index = 0; ext_filter_index < ed_explorer_state.ext_filters.cursor; ext_filter_index++)
                 {
-                    struct ed_explorer_ext_filter_t *ext_filter = get_list_element(&ed_explorer_state.ext_filters, ext_filter_index);
+                    struct ed_explorer_ext_filter_t *ext_filter = ds_list_get_element(&ed_explorer_state.ext_filters, ext_filter_index);
 
                     if(!strcmp(ext_filter->extension, ext))
                     {
-                        add_list_element(&ed_explorer_state.dir_entries, &entry);
+                        ds_list_add_element(&ed_explorer_state.dir_entries, &entry);
                         break;
                     }
                 }
             }
             else
             {
-                add_list_element(&ed_explorer_state.dir_entries, &entry);
+                ds_list_add_element(&ed_explorer_state.dir_entries, &entry);
             }
         }
 
-        strcpy(ed_explorer_state.current_path, dir.path);
+        strcpy(ed_explorer_state.current_path, dir.name);
 
-        ds_path_CloseDir(&dir);
+        ds_dir_close_dir(&dir);
 
         ed_MatchExplorerEntries(ed_explorer_state.search_bar);
 
@@ -566,7 +571,7 @@ void ed_AddExplorerExtFilter(char *ext_filter)
 {
     struct ed_explorer_ext_filter_t filter = {};
     strcpy(filter.extension, ext_filter);
-    add_list_element(&ed_explorer_state.ext_filters, &filter);
+    ds_list_add_element(&ed_explorer_state.ext_filters, &filter);
 }
 
 void ed_MatchExplorerEntries(char *match)
@@ -582,20 +587,20 @@ void ed_MatchExplorerEntries(char *match)
 
     for(uint32_t entry_index = 0; entry_index < ed_explorer_state.dir_entries.cursor; entry_index++)
     {
-        struct ds_dir_entry_t *entry = get_list_element(&ed_explorer_state.dir_entries, entry_index);
+        struct ds_dir_entry_t *entry = ds_list_get_element(&ed_explorer_state.dir_entries, entry_index);
 
         if(match[0] == '\0')
         {
-            add_list_element(&ed_explorer_state.matched_dir_entries, &entry);
+            ds_list_add_element(&ed_explorer_state.matched_dir_entries, &entry);
         }
         else
         {
-            char *match_address = strstr(entry->path, match);
+            char *match_address = strstr(entry->name, match);
 
-            if(match_address == entry->path)
+            if(match_address == entry->name)
             {
                 /* we'll be matching the beginning of the strings */
-                add_list_element(&ed_explorer_state.matched_dir_entries, &entry);
+                ds_list_add_element(&ed_explorer_state.matched_dir_entries, &entry);
             }
         }
     }
@@ -661,7 +666,7 @@ void ed_FlyCamera()
         translation.x += 0.05;
     }
 
-    mat4_t_vec4_t_mul_fast(&translation, &r_view_matrix, &translation);
+    mat4_t_vec4_t_mul_fast(&translation, &r_camera_matrix, &translation);
     vec3_t_add(&ed_camera_pos, &ed_camera_pos, &vec3_t_c(translation.x, translation.y, translation.z));
 }
 
@@ -785,11 +790,11 @@ void ed_WorldContextStateBrushBox(struct ed_context_t *context, uint32_t just_ch
             mouse_vec.y *= top;
             mouse_vec.z = -r_z_near;
             vec4_t_normalize(&mouse_vec, &mouse_vec);
-            mat4_t_vec4_t_mul_fast(&mouse_vec, &r_view_matrix, &mouse_vec);
+            mat4_t_vec4_t_mul_fast(&mouse_vec, &r_camera_matrix, &mouse_vec);
 
-            camera_pos.x = r_view_matrix.rows[3].x;
-            camera_pos.y = r_view_matrix.rows[3].y;
-            camera_pos.z = r_view_matrix.rows[3].z;
+            camera_pos.x = r_camera_matrix.rows[3].x;
+            camera_pos.y = r_camera_matrix.rows[3].y;
+            camera_pos.z = r_camera_matrix.rows[3].z;
 
             mouse_pos.x = camera_pos.x + mouse_vec.x;
             mouse_pos.y = camera_pos.y + mouse_vec.y;
@@ -932,21 +937,21 @@ void ed_DrawBrushes()
 
 void ed_DrawLights()
 {
-    r_i_SetModelMatrix(NULL);
-    r_i_SetViewProjectionMatrix(NULL);
-
-
-    for(uint32_t light_index = 0; light_index < r_lights.cursor; light_index++)
-    {
-        struct r_light_t *light = r_GetLight(light_index);
-
-        if(light)
-        {
-            vec3_t position = vec3_t_c(light->data.pos_rad.x, light->data.pos_rad.y, light->data.pos_rad.z);
-            vec4_t color = vec4_t_c(light->data.color_type.x, light->data.color_type.y, light->data.color_type.z, 1.0);
-            r_i_DrawPoint(&position, &color, 8.0);
-        }
-    }
+//    r_i_SetModelMatrix(NULL);
+//    r_i_SetViewProjectionMatrix(NULL);
+//
+//
+//    for(uint32_t light_index = 0; light_index < r_lights.cursor; light_index++)
+//    {
+//        struct r_light_t *light = r_GetLight(light_index);
+//
+//        if(light)
+//        {
+//            vec3_t position = vec3_t_c(light->data.pos_rad.x, light->data.pos_rad.y, light->data.pos_rad.z);
+//            vec4_t color = vec4_t_c(light->data.color_res.x, light->data.color_res.y, light->data.color_res.z, 1.0);
+//            r_i_DrawPoint(&position, &color, 8.0);
+//        }
+//    }
 }
 
 struct ed_brush_t *ed_CreateBrush(vec3_t *position, mat3_t *orientation, vec3_t *size)
@@ -956,8 +961,8 @@ struct ed_brush_t *ed_CreateBrush(vec3_t *position, mat3_t *orientation, vec3_t 
     vec3_t dims;
     vec3_t_fabs(&dims, size);
 
-    index = add_stack_list_element(&ed_brushes, NULL);
-    brush = get_stack_list_element(&ed_brushes, index);
+    index = ds_slist_add_element(&ed_brushes, NULL);
+    brush = ds_slist_get_element(&ed_brushes, index);
     brush->index = index;
 
     brush->vertices = ds_create_buffer(sizeof(vec3_t), 8);
@@ -970,15 +975,15 @@ struct ed_brush_t *ed_CreateBrush(vec3_t *position, mat3_t *orientation, vec3_t 
         vertices[vert_index].z = dims.z * ed_cube_brush_vertices[vert_index].z;
     }
 
-    brush->faces = create_list(sizeof(struct ed_face_t), 6);
+    brush->faces = ds_list_create(sizeof(struct ed_face_t), 6);
 
     brush->orientation = *orientation;
     brush->position = *position;
 
     for(uint32_t face_index = 0; face_index < brush->faces.size; face_index++)
     {
-        add_list_element(&brush->faces, NULL);
-        struct ed_face_t *face = get_list_element(&brush->faces, face_index);
+        ds_list_add_element(&brush->faces, NULL);
+        struct ed_face_t *face = ds_list_get_element(&brush->faces, face_index);
 
         face->material = r_GetDefaultMaterial();
         face->normal = ed_cube_brush_normals[face_index];
@@ -1000,7 +1005,7 @@ struct ed_brush_t *ed_GetBrush(uint32_t index)
 
     if(index != 0xffffffff)
     {
-        brush = get_stack_list_element(&ed_brushes, index);
+        brush = ds_slist_get_element(&ed_brushes, index);
 
         if(brush && brush->index == 0xffffffff)
         {
@@ -1022,7 +1027,7 @@ void ed_UpdateBrush(struct ed_brush_t *brush)
 
     if(!brush->model)
     {
-        brush->model = r_CreateModel2(&geometry, NULL);
+        brush->model = r_CreateModel(&geometry, NULL);
     }
     else
     {

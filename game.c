@@ -1,4 +1,4 @@
-#include "dstuff/ds_stack_list.h"
+#include "dstuff/ds_slist.h"
 #include "dstuff/ds_mem.h"
 #include "dstuff/ds_file.h"
 #include "dstuff/ds_vector.h"
@@ -19,9 +19,9 @@ extern mat4_t r_view_matrix;
 extern mat4_t r_inv_view_matrix;
 extern mat4_t r_view_projection_matrix;
 
-struct stack_list_t g_entities;
-struct list_t g_projectiles;
-struct stack_list_t g_triggers;
+struct ds_slist_t g_entities;
+struct ds_list_t g_projectiles;
+struct ds_slist_t g_triggers;
 
 //float g_camera_z = G_PLAYER_AREA_Z;
 
@@ -60,6 +60,7 @@ struct s_sound_t *g_footstep_sounds[5];
 struct s_sound_t *g_ric_sounds[10];
 struct s_sound_t *g_shot_sound;
 struct r_light_t *g_player_light;
+struct r_light_t *g_lights[3];
 uint32_t g_hook_index;
 mat4_t *g_hook_transform;
 
@@ -161,8 +162,8 @@ void g_Init(uint32_t editor_active)
         ed_Init();
     }
 
-    g_entities = create_stack_list(sizeof(struct g_entity_t), 512);
-    g_projectiles = create_list(sizeof(struct g_projectile_t), 512);
+    g_entities = ds_slist_create(sizeof(struct g_entity_t), 512);
+    g_projectiles = ds_list_create(sizeof(struct g_projectile_t), 512);
     r_SetViewPitchYaw(g_camera_pitch, g_camera_yaw);
     r_SetViewPos(&g_camera_pos);
 
@@ -176,8 +177,8 @@ void g_Init(uint32_t editor_active)
 
 
 //    g_gun_model = r_LoadModel("models/shocksplinter.mof");
-//    g_wiggle_model = r_LoadModel("models/dude.mof");
-//    g_cube_model = r_LoadModel("models/Cube.mof");
+    g_wiggle_model = r_LoadModel("models/dude.mof");
+    g_cube_model = r_LoadModel("models/Cube.mof");
 
 //    g_run_animation = a_LoadAnimation("models/run.anf");
 //    g_idle_animation = a_LoadAnimation("models/idle.anf");
@@ -328,16 +329,21 @@ void g_Init(uint32_t editor_active)
     mat4_t transform;
     mat4_t_identity(&transform);
 
-    transform.rows[3].y = 0.0;
-    transform.rows[0].x = 0.08;
-    transform.rows[1].y = 0.08;
-    transform.rows[2].z = 0.08;
 
-//    r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(1.0, 1.5, 1.0), &vec3_t_c(1.0, 0.2, 0.0), 5.0, 2.0);
-//    r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(-1.0, 1.5, -1.0), &vec3_t_c(0.0, 1.0, 0.13), 5.0, 2.0);
-//    r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(-3.0, 1.5, 1.0), &vec3_t_c(0.4, 0.2, 1.0), 5.0, 2.0);
-//    r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(3.0, 1.5, -1.0), &vec3_t_c(1.0, 0.14, 0.0), 5.0, 2.0);
-//    r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(5.0, 1.5, 1.0), &vec3_t_c(0.33, 0.46, 0.0), 5.0, 2.0);
+    transform.rows[0].x = 5.0;
+    transform.rows[1].y = 0.1;
+    transform.rows[2].z = 5.0;
+
+//    g_lights[0] = r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(0.0, 1.3, 0.4), &vec3_t_c(1.0, 0.0, 0.0), 5.0, 3.0);
+//    g_lights[1] = r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(-0.6, 1.3, -0.6), &vec3_t_c(0.0, 1.0, 0.0), 5.0, 3.0);
+//    g_lights[2] = r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(0.6, 1.3, -0.6), &vec3_t_c(0.0, 0.0, 1.0), 5.0, 3.0);
+
+    g_player_light = r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(0.8, 0.0, -0.8), &vec3_t_c(1.0, 1.0, 1.0), 10.0, 2.0);
+//
+//    r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(-0.6, -1.3, 0.0), &vec3_t_c(0.0, 1.0, 0.13), 1.7, 2.0);
+//    r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(-0.6, -1.3, 0.6), &vec3_t_c(0.4, 0.2, 1.0), 1.7, 2.0);
+//    r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(0.6, -1.3, -0.6), &vec3_t_c(1.0, 0.14, 0.0), 1.7, 2.0);
+//    r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(0.6, -1.3, 0.6), &vec3_t_c(0.33, 0.46, 0.0), 1.7, 2.0);
 //    r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(-4.7, 1.1, -1.8), &vec3_t_c(0.3, 0.0, 0.8), 5.0, 2.0);
 //    r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(-4.7, 1.25, -1.70), &vec3_t_c(1.0, 0.35, 0.0), 2.0, 4.0);
 //    r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(-4.7, 1.25, 1.15), &vec3_t_c(1.0, 0.35, 0.0), 2.0, 4.0);
@@ -357,27 +363,74 @@ void g_Init(uint32_t editor_active)
 //    r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(0.0, 2.0, 0.0), &vec3_t_c(1.0, 1.0, 1.0), 8.0, 12.0);
 //    r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(0.0, 2.0, 8.0), &vec3_t_c(1.0, 1.0, 1.0), 8.0, 12.0);
 //    r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(0.0, 2.0, -8.0), &vec3_t_c(1.0, 1.0, 1.0), 8.0, 12.0);
-//    g_CreateEntity(&transform, NULL, g_cube_model);
-//    g_CreateEntity(&transform, NULL, g_sponza_model);
-
-    transform.rows[0].x = 1.0;
-    transform.rows[1].y = 1.0;
-    transform.rows[2].z = 1.0;
-
+//    mat4_t_rotate_y(&transform, 0.1);
     transform.rows[3].x = 0.0;
-    transform.rows[3].y = 0.0;
-    transform.rows[3].z = 0.0;
+    transform.rows[3].y = -2.0;
+    transform.rows[3].z = -0.0;
 
-    transform.rows[0].x = 1.0;
-    transform.rows[2].z = 1.0;
+    g_CreateEntity(&transform, NULL, g_cube_model);
+//    transform.rows[3].y = 2.0;
+//    g_CreateEntity(&transform, NULL, g_cube_model);
+
+//    transform.rows[0].x = 5.0;
+//    transform.rows[1].y = 5.0;
+//    transform.rows[2].z = 0.1;
+//
+//    transform.rows[3].y = 0.0;
+//    transform.rows[3].z = -2.0;
+//    g_CreateEntity(&transform, NULL, g_cube_model);
+//    transform.rows[3].z = 2.0;
+//    g_CreateEntity(&transform, NULL, g_cube_model);
+//
+//
+//    transform.rows[0].x = 0.1;
+//    transform.rows[1].y = 5.0;
+//    transform.rows[2].z = 5.0;
+//
+//    transform.rows[3].x = -2.0;
+//    g_CreateEntity(&transform, NULL, g_cube_model);
+//    transform.rows[3].x = 2.0;
+//    g_CreateEntity(&transform, NULL, g_cube_model);
+
+
+    transform.rows[0].x = 0.2;
+    transform.rows[1].y = 1.2;
+    transform.rows[2].z = 0.2;
+
+    transform.rows[3].x = 0;
+    transform.rows[3].y = -1.7;
+    transform.rows[3].z = 0;
+//    g_CreateEntity(&transform, NULL, g_cube_model);
+
+//    float a = 0.0;
+//    float inc = (3.14159265 * 2) / 8;
+//    for(uint32_t index = 0; index < 8; index++)
+//    {
+//        transform.rows[3].x = cos(a);
+//        transform.rows[3].y = -1.7;
+//        transform.rows[3].z = sin(a);
+//        a += inc;
+//        g_CreateEntity(&transform, NULL, g_cube_model);
+//    }
+
+    transform.rows[0].x = 0.3;
+    transform.rows[1].y = 0.3;
+    transform.rows[2].z = 0.3;
+
+//    transform.rows[3].x = 0.0;
+//    transform.rows[3].y = 0.0;
+//    transform.rows[3].z = 0.0;
+
+//    transform.rows[0].x = 1.0;
+//    transform.rows[2].z = 1.0;
     mat4_t_rotate_x(&transform, -0.5);
 
     transform.rows[3].x = 0.0;
-    transform.rows[3].y = 0.0;
+    transform.rows[3].y = -1.94;
     transform.rows[3].z = 0.0;
     struct g_entity_t *boy_entity;
 
-//    boy_entity = g_CreateEntity(&transform, NULL, g_boy_model);
+    boy_entity = g_CreateEntity(&transform, NULL, g_wiggle_model);
 //    g_PlayAnimation(boy_entity, miracle_dance_smooth, "just_dance");
 //    struct a_player_t *player = a_GetMixerPlayer(boy_entity->mixer, "just_dance");
 //    a_SeekAnimationAbsolute(player, (rand() % miracle_dance_blockout->duration) * 0.1);
@@ -551,8 +604,24 @@ void g_SetGameState(uint32_t game_state)
 
 void g_MainLoop(uint32_t editor_active)
 {
+    float f = 0;
+    float t = 0;
+
     while(g_game_state != G_GAME_STATE_QUIT)
     {
+        g_player_light->data.pos_rad.x = cos(f);
+        g_player_light->data.pos_rad.y = sin(t);
+        g_player_light->data.pos_rad.z = sin(f);
+//        g_player_light->data.pos_rad.y = sin(f) ;
+//        g_player_light->data.pos_rad.z = 2.0 + cos(f) * 0.7;
+//        g_player_light->data.pos_rad.x = cos(t) * 3.0;
+//        for(uint32_t light_index = 0; light_index < 3; light_index++)
+//        {
+//            g_lights[light_index]->data.pos_rad.y = sin(f + (float)light_index * 0.5);
+//        }
+
+        f += 0.07;
+        t += 0.03;
         in_Input();
         gui_BeginFrame();
         p_UpdateColliders();
@@ -574,6 +643,7 @@ void g_MainLoop(uint32_t editor_active)
         }
 
         r_VisibleLights();
+        r_VisibleEntitiesOnLights();
         r_VisibleEntities();
         r_BeginFrame();
         gui_EndFrame();
@@ -685,7 +755,7 @@ void g_UpdateEntities()
 
     for(uint32_t entity_index = 0; entity_index < g_entities.cursor; entity_index++)
     {
-        struct g_entity_t *entity = get_stack_list_element(&g_entities, entity_index);
+        struct g_entity_t *entity = ds_slist_get_element(&g_entities, entity_index);
 
         if(entity->index != 0xffffffff)
         {
@@ -784,8 +854,8 @@ struct g_entity_t *g_CreateEntity(mat4_t *transform, thinker_t *thinker, struct 
     uint32_t entity_index;
     struct g_entity_t *entity;
 
-    entity_index = add_stack_list_element(&g_entities, NULL);
-    entity = get_stack_list_element(&g_entities, entity_index);
+    entity_index = ds_slist_add_element(&g_entities, NULL);
+    entity = ds_slist_get_element(&g_entities, entity_index);
 
     entity->index = entity_index;
     entity->local_transform = *transform;
@@ -800,7 +870,7 @@ struct g_entity_t *g_CreateEntity(mat4_t *transform, thinker_t *thinker, struct 
 struct g_entity_t *g_GetEntity(uint32_t index)
 {
     struct g_entity_t *entity;
-    entity = get_stack_list_element(&g_entities, index);
+    entity = ds_slist_get_element(&g_entities, index);
     if(entity && entity->index == 0xffffffff)
     {
         entity = NULL;
@@ -834,8 +904,8 @@ struct g_projectile_t *g_SpawnProjectile(vec3_t *position, vec3_t *velocity, vec
     uint32_t index;
     struct g_projectile_t *projectile;
 
-    index = add_list_element(&g_projectiles, NULL);
-    projectile = get_list_element(&g_projectiles, index);
+    index = ds_list_add_element(&g_projectiles, NULL);
+    projectile = ds_list_get_element(&g_projectiles, index);
 
     projectile->position = *position;
     projectile->velocity = *velocity;
@@ -879,7 +949,7 @@ void *g_GetProp(struct g_entity_t *entity, char *prop_name)
 {
     for(uint32_t prop_index = 0; prop_index < entity->props.cursor; prop_index++)
     {
-        struct g_prop_t *prop = get_list_element(&entity->props, prop_index);
+        struct g_prop_t *prop = ds_list_get_element(&entity->props, prop_index);
         if(!strcmp(prop->name, prop_name))
         {
             return prop->data;
@@ -895,12 +965,12 @@ void *g_SetProp(struct g_entity_t *entity, char *prop_name, uint32_t size, void 
 
     if(!entity->props.buffers)
     {
-        entity->props = create_list(sizeof(struct g_prop_t), 8);
+        entity->props = ds_list_create(sizeof(struct g_prop_t), 8);
     }
 
     if(!prop)
     {
-        prop = get_list_element(&entity->props, add_list_element(&entity->props, NULL));
+        prop = ds_list_get_element(&entity->props, ds_list_add_element(&entity->props, NULL));
         prop->name = strdup(prop_name);
     }
 
@@ -919,12 +989,12 @@ void g_RemoveProp(struct g_entity_t *entity, char *prop_name)
 {
     for(uint32_t prop_index = 0; prop_index < entity->props.cursor; prop_index++)
     {
-        struct g_prop_t *prop = get_list_element(&entity->props, prop_index);
+        struct g_prop_t *prop = ds_list_get_element(&entity->props, prop_index);
         if(!strcmp(prop->name, prop_name))
         {
             mem_Free(prop->name);
             mem_Free(prop->data);
-            remove_list_element(&entity->props, prop_index);
+            ds_list_remove_element(&entity->props, prop_index);
             return;
         }
     }

@@ -27,7 +27,7 @@ struct g_entity_t
     mat4_t transform;
     mat4_t local_transform;
     mat4_t *parent_transform; /* can be either other entity or skeleton attachment point */
-    struct list_t props;
+    struct ds_list_t props;
     thinker_t *thinker;
     struct p_collider_t *collider;
     struct r_model_t *model;

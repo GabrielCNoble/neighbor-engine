@@ -2,22 +2,22 @@
 #include "anim.h"
 #include "r_draw.h"
 #include "dstuff/ds_file.h"
-#include "dstuff/ds_stack_list.h"
+#include "dstuff/ds_slist.h"
 #include "dstuff/ds_mem.h"
 
-struct stack_list_t a_skeletons;
-struct stack_list_t a_animations;
-struct stack_list_t a_players;
-struct stack_list_t a_mixers;
-struct stack_list_t a_masks;
+struct ds_slist_t a_skeletons;
+struct ds_slist_t a_animations;
+struct ds_slist_t a_players;
+struct ds_slist_t a_mixers;
+struct ds_slist_t a_masks;
 
 void a_Init()
 {
-    a_skeletons = create_stack_list(sizeof(struct a_skeleton_t), 512);
-    a_animations = create_stack_list(sizeof(struct a_animation_t), 128);
-    a_players = create_stack_list(sizeof(struct a_player_t), 64);
-    a_mixers = create_stack_list(sizeof(struct a_mixer_t), 16);
-    a_masks = create_stack_list(sizeof(struct a_mask_t), 128);
+    a_skeletons = ds_slist_create(sizeof(struct a_skeleton_t), 512);
+    a_animations = ds_slist_create(sizeof(struct a_animation_t), 128);
+    a_players = ds_slist_create(sizeof(struct a_player_t), 64);
+    a_mixers = ds_slist_create(sizeof(struct a_mixer_t), 16);
+    a_masks = ds_slist_create(sizeof(struct a_mask_t), 128);
 }
 
 void a_Shutdown()
@@ -41,8 +41,8 @@ struct a_animation_t *a_LoadAnimation(char *file_name)
         ds_get_section_data(buffer, "[animation]", (void **)&header, NULL);
         struct a_anim_sec_data_t(header->transform_count, (header->bone_count * header->duration)) *data = (void *)(header + 1);
 
-        uint32_t index = add_stack_list_element(&a_animations, NULL);
-        animation = get_stack_list_element(&a_animations, index);
+        uint32_t index = ds_slist_add_element(&a_animations, NULL);
+        animation = ds_slist_get_element(&a_animations, index);
         animation->index = index;
         animation->bone_count = header->bone_count;
         animation->duration = header->duration;
@@ -71,8 +71,8 @@ struct a_animation_t *a_LoadAnimation(char *file_name)
 struct a_skeleton_t *a_CreateSkeleton(uint32_t bone_count, struct a_bone_t *bones, uint32_t bone_names_length, char *bone_names)
 {
     struct a_skeleton_t *skeleton;
-    uint32_t index = add_stack_list_element(&a_skeletons, NULL);
-    skeleton = get_stack_list_element(&a_skeletons, index);
+    uint32_t index = ds_slist_add_element(&a_skeletons, NULL);
+    skeleton = ds_slist_get_element(&a_skeletons, index);
 
     skeleton->index = index;
     skeleton->bone_count = bone_count;
@@ -97,12 +97,12 @@ struct a_player_t *a_CreatePlayer(char *player_name)
     struct a_player_t *player;
     uint32_t index;
 
-    index = add_stack_list_element(&a_players, NULL);
-    player = get_stack_list_element(&a_players, index);
+    index = ds_slist_add_element(&a_players, NULL);
+    player = ds_slist_get_element(&a_players, index);
 
     if(!player->callbacks.buffers)
     {
-        player->callbacks = create_list(sizeof(struct a_callback_t), 4);
+        player->callbacks = ds_list_create(sizeof(struct a_callback_t), 4);
     }
 
     player->weight = 1.0;
@@ -141,7 +141,7 @@ void a_SeekAnimationAbsolute(struct a_player_t *player, float time)
 
         for(uint32_t callback_index = 0; callback_index < player->callbacks.cursor; callback_index++)
         {
-            struct a_callback_t *callback = get_list_element(&player->callbacks, callback_index);
+            struct a_callback_t *callback = ds_list_get_element(&player->callbacks, callback_index);
             if(callback->frame >= player->current_frame && callback->frame < cur_frame)
             {
                 /* call back the callback */
@@ -231,8 +231,8 @@ void a_SetCallbackFrame(struct a_player_t *player, a_callback_function *function
     struct a_callback_t *callback;
     uint32_t index;
 
-    index = add_list_element(&player->callbacks, NULL);
-    callback = get_list_element(&player->callbacks, index);
+    index = ds_list_add_element(&player->callbacks, NULL);
+    callback = ds_list_get_element(&player->callbacks, index);
 
     callback->callback = function;
     callback->data = data;
@@ -243,8 +243,8 @@ struct a_mixer_t *a_CreateMixer(struct r_model_t *model)
 {
     struct a_mixer_t *mixer;
 
-    uint32_t index = add_stack_list_element(&a_mixers, NULL);
-    mixer = get_stack_list_element(&a_mixers, index);
+    uint32_t index = ds_slist_add_element(&a_mixers, NULL);
+    mixer = ds_slist_get_element(&a_mixers, index);
     mixer->index = index;
     mixer->skeleton = model->skeleton;
     mixer->weight_count = model->weights.buffer_size;
@@ -264,9 +264,9 @@ struct a_mixer_t *a_CreateMixer(struct r_model_t *model)
 
     if(!mixer->players.buffers)
     {
-        mixer->players = create_list(sizeof(struct a_player_t *), 8);
-        mixer->mix_players = create_list(sizeof(struct a_player_t *), 8);
-        mixer->masks = create_list(sizeof(struct a_mask_t *), 8);
+        mixer->players = ds_list_create(sizeof(struct a_player_t *), 8);
+        mixer->mix_players = ds_list_create(sizeof(struct a_player_t *), 8);
+        mixer->masks = ds_list_create(sizeof(struct a_mask_t *), 8);
 
         for(uint32_t transform_index = 0; transform_index < mixer->skeleton->bone_count; transform_index++)
         {
@@ -285,7 +285,7 @@ void a_MixAnimation(struct a_mixer_t *mixer, struct a_animation_t *animation, ch
     {
         struct a_player_t *player = a_PlayAnimation(animation, player_name);
         player->mixer = mixer;
-        add_list_element(&mixer->players, &player);
+        ds_list_add_element(&mixer->players, &player);
     }
 }
 
@@ -321,8 +321,8 @@ struct a_mask_t *a_CreateAnimationMask(struct a_mixer_t *mixer, char *name, uint
 
     if(!a_GetAnimationMask(mixer, name))
     {
-        index = add_stack_list_element(&a_masks, NULL);
-        mask = get_stack_list_element(&a_masks, index);
+        index = ds_slist_add_element(&a_masks, NULL);
+        mask = ds_slist_get_element(&a_masks, index);
         mask->index = index;
         mask->name = strdup(name);
 
@@ -341,7 +341,7 @@ struct a_mask_t *a_CreateAnimationMask(struct a_mixer_t *mixer, char *name, uint
             mask->players[player_index].player = a_GetMixerPlayer(mixer, player_names[player_index]);
         }
 
-        add_list_element(&mixer->masks, &mask);
+        ds_list_add_element(&mixer->masks, &mask);
     }
 
     return mask;
@@ -354,7 +354,7 @@ struct a_mask_t *a_GetAnimationMask(struct a_mixer_t *mixer, char *name)
 
     for(uint32_t mask_index = 0; mask_index < mixer->masks.cursor; mask_index++)
     {
-        mask = *(struct a_mask_t **)get_list_element(&mixer->masks, mask_index);
+        mask = *(struct a_mask_t **)ds_list_get_element(&mixer->masks, mask_index);
 
         if(!strcmp(name, mask->name))
         {
@@ -371,13 +371,13 @@ void a_DestroyAnimationMask(struct a_mixer_t *mixer, char *name)
 
     for(uint32_t mask_index = 0; mask_index < mixer->masks.cursor; mask_index++)
     {
-        struct a_mask_t *mask = *(struct a_mask_t **)get_list_element(&mixer->masks, mask_index);
+        struct a_mask_t *mask = *(struct a_mask_t **)ds_list_get_element(&mixer->masks, mask_index);
         if(!strcmp(mask->name, name))
         {
             mem_Free(mask->bones);
             mem_Free(mask->players);
-            remove_stack_list_element(&a_masks, mask->index);
-            remove_list_element(&mixer->masks, mask_index);
+            ds_slist_remove_element(&a_masks, mask->index);
+            ds_list_remove_element(&mixer->masks, mask_index);
             break;
         }
     }
@@ -389,7 +389,7 @@ struct a_player_t *a_GetMixerPlayer(struct a_mixer_t *mixer, char *name)
 
     for(uint32_t player_index = 0; player_index < mixer->players.cursor; player_index++)
     {
-        player = *(struct a_player_t **)get_list_element(&mixer->players, player_index);
+        player = *(struct a_player_t **)ds_list_get_element(&mixer->players, player_index);
 
         if(!strcmp(player->name, name))
         {
@@ -421,7 +421,7 @@ void a_UpdateAnimations(float delta_time)
 {
     for(uint32_t mixer_index = 0; mixer_index < a_mixers.cursor; mixer_index++)
     {
-        struct a_mixer_t *mixer = get_stack_list_element(&a_mixers, mixer_index);
+        struct a_mixer_t *mixer = ds_slist_get_element(&a_mixers, mixer_index);
 
         if(mixer->index != 0xffffffff)
         {
@@ -457,11 +457,11 @@ void a_UpdateMixer(struct a_mixer_t *mixer, float delta_time)
     float total_weight = 0.0;
     for(uint32_t player_index = 0; player_index < mixer->players.cursor; player_index++)
     {
-        struct a_player_t *player = *(struct a_player_t **)get_list_element(&mixer->players, player_index);
+        struct a_player_t *player = *(struct a_player_t **)ds_list_get_element(&mixer->players, player_index);
         a_SeekAnimationAbsolute(player, player->time + delta_time * player->scale);
         if(player->weight)
         {
-            add_list_element(&mixer->mix_players, &player);
+            ds_list_add_element(&mixer->mix_players, &player);
             total_weight += player->weight;
         }
     }
@@ -478,7 +478,7 @@ void a_UpdateMixer(struct a_mixer_t *mixer, float delta_time)
     {
         for(uint32_t mask_index = 0; mask_index < mixer->masks.cursor; mask_index++)
         {
-            struct a_mask_t *mask = *(struct a_mask_t **)get_list_element(&mixer->masks, mask_index);
+            struct a_mask_t *mask = *(struct a_mask_t **)ds_list_get_element(&mixer->masks, mask_index);
 
             for(uint32_t bone_index = 0; bone_index < mask->bone_count; bone_index++)
             {
@@ -509,7 +509,7 @@ void a_UpdateMixer(struct a_mixer_t *mixer, float delta_time)
     {
         if(mixer->mix_players.cursor)
         {
-            struct a_player_t *player = *(struct a_player_t **)get_list_element(&mixer->mix_players, 0);
+            struct a_player_t *player = *(struct a_player_t **)ds_list_get_element(&mixer->mix_players, 0);
 
             /* first player has to have weight == 1.0, so whatever transform data present from a previous
             update gets completely stomped */
@@ -517,7 +517,7 @@ void a_UpdateMixer(struct a_mixer_t *mixer, float delta_time)
 
             for(uint32_t player_index = 0; player_index < mixer->mix_players.cursor; player_index++)
             {
-                player = *(struct a_player_t **)get_list_element(&mixer->mix_players, player_index);
+                player = *(struct a_player_t **)ds_list_get_element(&mixer->mix_players, player_index);
                 struct a_animation_t *animation = player->animation;
                 float weight = player->weight / denom;
                 denom = total_weight;

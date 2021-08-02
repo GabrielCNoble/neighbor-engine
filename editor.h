@@ -49,7 +49,7 @@ struct ed_world_context_data_t
 {
     vec3_t box_start;
     vec3_t box_end;
-    struct list_t selections;
+    struct ds_list_t selections;
 };
 
 enum ED_SELECTION_TYPE

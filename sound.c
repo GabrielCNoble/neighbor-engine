@@ -3,7 +3,7 @@
 #include "al.h"
 #include "alc.h"
 #include "SDL2/SDL_thread.h"
-#include "dstuff/ds_stack_list.h"
+#include "dstuff/ds_slist.h"
 #include "dstuff/ds_list.h"
 #include "dstuff/ds_file.h"
 #include "dstuff/ds_mem.h"
@@ -17,10 +17,10 @@ ALCcontext *s_context;
 SDL_Thread *s_sound_thread;
 spnl_t s_source_spinlock;
 spnl_t s_command_spinlock;
-struct stack_list_t s_sources;
-struct stack_list_t s_sounds;
-struct list_t s_command_queue;
-struct list_t s_active_sources;
+struct ds_slist_t s_sources;
+struct ds_slist_t s_sounds;
+struct ds_list_t s_command_queue;
+struct ds_list_t s_active_sources;
 
 
 void s_Init()
@@ -30,10 +30,10 @@ void s_Init()
     alcMakeContextCurrent(s_context);
     s_sound_thread = SDL_CreateThread(s_SoundThread, "sound thread", NULL);
 
-    s_sources = create_stack_list(sizeof(struct s_source_t), 350);
-    s_active_sources = create_list(sizeof(struct s_source_t *), 350);
-    s_command_queue = create_list(sizeof(struct s_command_t), 350);
-    s_sounds = create_stack_list(sizeof(struct s_sound_t), 350);
+    s_sources = ds_slist_create(sizeof(struct s_source_t), 350);
+    s_active_sources = ds_list_create(sizeof(struct s_source_t *), 350);
+    s_command_queue = ds_list_create(sizeof(struct s_command_t), 350);
+    s_sounds = ds_slist_create(sizeof(struct s_sound_t), 350);
 
     float listener_orientation[] =
     {
@@ -72,8 +72,8 @@ struct s_sound_t *s_LoadSound(char *file_name)
             buffer_size += read_bytes;
         }
 
-        index = add_stack_list_element(&s_sounds, NULL);
-        sound = get_stack_list_element(&s_sounds, index);
+        index = ds_slist_add_element(&s_sounds, NULL);
+        sound = ds_slist_get_element(&s_sounds, index);
         sound->index = index;
 
         uint32_t format;
@@ -102,10 +102,10 @@ struct s_source_t *s_AllocateSource()
     uint32_t index;
 
     spnl_lock(&s_source_spinlock);
-    index = add_stack_list_element(&s_sources, NULL);
+    index = ds_slist_add_element(&s_sources, NULL);
     spnl_unlock(&s_source_spinlock);
 
-    source = get_stack_list_element(&s_sources, index);
+    source = ds_slist_get_element(&s_sources, index);
 
     source->index = index;
     source->sound = NULL;
@@ -124,7 +124,7 @@ void s_FreeSource(struct s_source_t *source)
     if(source && source->index != 0xffffffff)
     {
         spnl_lock(&s_source_spinlock);
-        remove_stack_list_element(&s_sources, source->index);
+        ds_slist_remove_element(&s_sources, source->index);
         spnl_unlock(&s_source_spinlock);
         source->index = 0xffffffff;
     }
@@ -177,7 +177,7 @@ void s_StopSource(struct s_source_t *source)
 void s_QueueCommand(struct s_command_t *command)
 {
     spnl_lock(&s_command_spinlock);
-    add_list_element(&s_command_queue, command);
+    ds_list_add_element(&s_command_queue, command);
     spnl_unlock(&s_command_spinlock);
 }
 
@@ -188,7 +188,7 @@ int s_SoundThread(void *arg)
         spnl_lock(&s_command_spinlock);
         for(uint32_t command_index = 0; command_index < s_command_queue.cursor; command_index++)
         {
-            struct s_command_t *command = get_list_element(&s_command_queue, command_index);
+            struct s_command_t *command = ds_list_get_element(&s_command_queue, command_index);
             uint32_t source_state;
             switch(command->type)
             {
@@ -207,7 +207,7 @@ int s_SoundThread(void *arg)
                     alSourcefv(command->source->source, AL_POSITION, command->position.comps);
                     alSourcei(command->source->source, AL_SOURCE_RELATIVE, AL_TRUE);
 
-                    add_list_element(&s_active_sources, &command->source);
+                    ds_list_add_element(&s_active_sources, &command->source);
 
                     /* fallthrough */
 
@@ -229,14 +229,14 @@ int s_SoundThread(void *arg)
 
         for(uint32_t source_index = 0; source_index < s_active_sources.cursor; source_index++)
         {
-            struct s_source_t *source = *(struct s_source_t **)get_list_element(&s_active_sources, source_index);
+            struct s_source_t *source = *(struct s_source_t **)ds_list_get_element(&s_active_sources, source_index);
             int32_t state;
             alGetSourcei(source->source, AL_SOURCE_STATE, &state);
             if(state == AL_STOPPED)
             {
                 if(!(source->flags & S_SOURCE_FLAG_PERSISTENT))
                 {
-                    remove_list_element(&s_active_sources, source_index);
+                    ds_list_remove_element(&s_active_sources, source_index);
                     source_index--;
                     s_FreeSource(source);
                 }

@@ -1,7 +1,7 @@
 #include "r_draw.h"
 #include "SDL2/SDL.h"
 #include "GL/glew.h"
-#include "dstuff/ds_stack_list.h"
+#include "dstuff/ds_slist.h"
 #include "dstuff/ds_file.h"
 #include "dstuff/ds_mem.h"
 #include "dstuff/ds_obj.h"
@@ -15,16 +15,17 @@
 //struct r_imm_batch_t *r_cur_imm_batch;
 //extern struct list_t r_immediate_batches;
 
-extern struct list_t r_world_cmds;
-extern struct list_t r_entity_cmds;
-extern struct list_t r_immediate_cmds;
-extern struct list_t r_immediate_data;
+extern struct ds_list_t r_world_cmds;
+extern struct ds_list_t r_entity_cmds;
+extern struct ds_list_t r_shadow_cmds;
+extern struct ds_list_t r_immediate_cmds;
+extern struct ds_list_t r_immediate_data;
 struct r_i_state_t *r_i_current_state = NULL;
 
-extern struct stack_list_t r_shaders;
-extern struct stack_list_t r_textures;
-extern struct stack_list_t r_materials;
-extern struct stack_list_t r_models;
+extern struct ds_slist_t r_shaders;
+extern struct ds_slist_t r_textures;
+extern struct ds_slist_t r_materials;
+extern struct ds_slist_t r_models;
 
 extern uint32_t r_vertex_buffer;
 extern struct ds_heap_t r_vertex_heap;
@@ -39,23 +40,37 @@ extern struct r_shader_t *r_z_prepass_shader;
 extern struct r_shader_t *r_lit_shader;
 extern struct r_shader_t *r_immediate_shader;
 extern struct r_shader_t *r_current_shader;
+extern struct r_shader_t *r_shadow_shader;
 
 extern struct r_model_t *test_model;
 extern struct r_texture_t *r_default_texture;
 extern struct r_material_t *r_default_material;
 
-extern uint32_t r_light_buffer_cursor;
-extern uint32_t r_light_index_buffer_cursor;
 extern struct r_l_data_t *r_light_buffer;
-extern uint32_t r_light_uniform_buffer;
+extern struct ds_list_t r_visible_lights;
+extern uint32_t r_light_buffer_cursor;
+extern uint32_t r_light_data_uniform_buffer;
+
 extern uint16_t *r_light_index_buffer;
+extern uint32_t r_light_index_buffer_cursor;
 extern uint32_t r_light_index_uniform_buffer;
+
+
+extern uint32_t *r_shadow_index_buffer;
+extern uint32_t r_shadow_index_buffer_cursor;
+extern uint32_t r_shadow_index_uniform_buffer;
+extern uint32_t r_shadow_atlas_texture;
+extern uint32_t r_indirect_texture;
+extern uint32_t r_shadow_map_framebuffer;
+extern mat4_t r_point_shadow_projection_matrices[6];
+extern mat4_t r_point_shadow_view_matrices[6];
+
 extern struct r_cluster_t *r_clusters;
 extern uint32_t r_cluster_texture;
 
 mat4_t r_projection_matrix;
+mat4_t r_camera_matrix;
 mat4_t r_view_matrix;
-mat4_t r_inv_view_matrix;
 mat4_t r_view_projection_matrix;
 
 extern SDL_Window *r_window;
@@ -81,16 +96,26 @@ void r_BeginFrame()
 
     if(r_light_buffer_cursor)
     {
-        glBindBuffer(GL_UNIFORM_BUFFER, r_light_uniform_buffer);
+        glBindBuffer(GL_UNIFORM_BUFFER, r_light_data_uniform_buffer);
         glBufferSubData(GL_UNIFORM_BUFFER, 0, r_light_buffer_cursor * sizeof(struct r_l_data_t), r_light_buffer);
         glBindBuffer(GL_UNIFORM_BUFFER, r_light_index_uniform_buffer);
         glBufferSubData(GL_UNIFORM_BUFFER, 0, R_MAX_CLUSTER_LIGHTS * R_CLUSTER_COUNT * sizeof(uint32_t), r_light_index_buffer);
+        glBindBuffer(GL_UNIFORM_BUFFER, r_shadow_index_uniform_buffer);
+        glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(uint32_t) * r_visible_lights.cursor * 6, r_shadow_index_buffer);
     }
+
     glActiveTexture(GL_TEXTURE0 + R_CLUSTERS_TEX_UNIT);
     glBindTexture(GL_TEXTURE_3D, r_cluster_texture);
     glTexSubImage3D(GL_TEXTURE_3D, 0, 0, 0, 0, R_CLUSTER_ROW_WIDTH, R_CLUSTER_ROWS, R_CLUSTER_SLICES, GL_RG_INTEGER, GL_UNSIGNED_INT, r_clusters);
-    glBindBufferBase(GL_UNIFORM_BUFFER, R_LIGHTS_UNIFORM_BUFFER_BINDING, r_light_uniform_buffer);
+    glBindBufferBase(GL_UNIFORM_BUFFER, R_LIGHTS_UNIFORM_BUFFER_BINDING, r_light_data_uniform_buffer);
     glBindBufferBase(GL_UNIFORM_BUFFER, R_LIGHT_INDICES_UNIFORM_BUFFER_BINDING, r_light_index_uniform_buffer);
+    glBindBufferBase(GL_UNIFORM_BUFFER, R_SHADOW_INDICES_BUFFER_BINDING, r_shadow_index_uniform_buffer);
+
+    glActiveTexture(GL_TEXTURE0 + R_SHADOW_ATLAS_TEX_UNIT);
+    glBindTexture(GL_TEXTURE_2D, r_shadow_atlas_texture);
+
+    glActiveTexture(GL_TEXTURE0 + R_INDIRECT_TEX_UNIT);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, r_indirect_texture);
 
     r_denom = log(r_z_far / r_z_near);
 
@@ -104,6 +129,7 @@ void r_EndFrame()
 
     r_world_cmds.cursor = 0;
     r_entity_cmds.cursor = 0;
+    r_shadow_cmds.cursor = 0;
     r_immediate_cmds.cursor = 0;
     r_immediate_data.cursor = 0;
     r_i_current_state = NULL;
@@ -113,17 +139,17 @@ void r_EndFrame()
 
 void r_SetViewPos(vec3_t *pos)
 {
-    r_view_matrix.rows[3].x = pos->x;
-    r_view_matrix.rows[3].y = pos->y;
-    r_view_matrix.rows[3].z = pos->z;
+    r_camera_matrix.rows[3].x = pos->x;
+    r_camera_matrix.rows[3].y = pos->y;
+    r_camera_matrix.rows[3].z = pos->z;
     r_UpdateViewProjectionMatrix();
 }
 
 void r_TranslateView(vec3_t *disp)
 {
-    r_view_matrix.rows[3].x += disp->x;
-    r_view_matrix.rows[3].y += disp->y;
-    r_view_matrix.rows[3].z += disp->z;
+    r_camera_matrix.rows[3].x += disp->x;
+    r_camera_matrix.rows[3].y += disp->y;
+    r_camera_matrix.rows[3].z += disp->z;
     r_UpdateViewProjectionMatrix();
 }
 
@@ -136,39 +162,30 @@ void r_SetViewPitchYaw(float pitch, float yaw)
     mat4_t_pitch(&pitch_matrix, pitch);
     mat4_t_yaw(&yaw_matrix, yaw);
     mat4_t_mul(&pitch_matrix, &pitch_matrix, &yaw_matrix);
-    r_view_matrix.rows[0] = pitch_matrix.rows[0];
-    r_view_matrix.rows[1] = pitch_matrix.rows[1];
-    r_view_matrix.rows[2] = pitch_matrix.rows[2];
+    r_camera_matrix.rows[0] = pitch_matrix.rows[0];
+    r_camera_matrix.rows[1] = pitch_matrix.rows[1];
+    r_camera_matrix.rows[2] = pitch_matrix.rows[2];
     r_UpdateViewProjectionMatrix();
 }
 
-//void r_SetViewYaw(float yaw)
-//{
-//    mat4_t yaw_matrix;
-//    mat4_t_identity(&yaw_matrix);
-//    mat4_t_yaw(&yaw_matrix, yaw);
-//    mat4_t_mul(&r_view_matrix, &r_view_matrix, &yaw_matrix);
-//    r_UpdateViewProjectionMatrix();
-//}
-
 void r_UpdateViewProjectionMatrix()
 {
-    mat4_t_invvm(&r_inv_view_matrix, &r_view_matrix);
-    mat4_t_mul(&r_view_projection_matrix, &r_inv_view_matrix, &r_projection_matrix);
+    mat4_t_invvm(&r_view_matrix, &r_camera_matrix);
+    mat4_t_mul(&r_view_projection_matrix, &r_view_matrix, &r_projection_matrix);
 }
 
-void r_DrawEntity(mat4_t *transform, struct r_model_t *model)
+void r_DrawEntity(mat4_t *model_matrix, struct r_model_t *model)
 {
     if(model)
     {
         struct r_batch_t *batches = (struct r_batch_t *)model->batches.buffer;
         mat4_t model_view_matrix;
-        mat4_t_mul(&model_view_matrix, transform, &r_inv_view_matrix);
+        mat4_t_mul(&model_view_matrix, model_matrix, &r_view_matrix);
         for(uint32_t batch_index = 0; batch_index < model->batches.buffer_size; batch_index++)
         {
             struct r_batch_t *batch = batches + batch_index;
-            uint32_t index = add_list_element(&r_entity_cmds, NULL);
-            struct r_entity_cmd_t *cmd = get_list_element(&r_entity_cmds, index);
+            uint32_t index = ds_list_add_element(&r_entity_cmds, NULL);
+            struct r_entity_cmd_t *cmd = ds_list_get_element(&r_entity_cmds, index);
             cmd->model_view_matrix = model_view_matrix;
             cmd->start = batch->start;
             cmd->count = batch->count;
@@ -177,19 +194,30 @@ void r_DrawEntity(mat4_t *transform, struct r_model_t *model)
     }
 }
 
+void r_DrawShadow(mat4_t *model_view_projection_matrix, uint32_t shadow_map, uint32_t start, uint32_t count)
+{
+    uint32_t index = ds_list_add_element(&r_shadow_cmds, NULL);
+    struct r_shadow_cmd_t *shadow_cmd = ds_list_get_element(&r_shadow_cmds, index);
+    shadow_cmd->start = start;
+    shadow_cmd->count = count;
+    shadow_cmd->shadow_map = shadow_map;
+//    shadow_cmd->shadow_res = shadow_res;
+    shadow_cmd->model_view_projection_matrix = *model_view_projection_matrix;
+}
+
 void r_DrawWorld(struct r_material_t *material, uint32_t start, uint32_t count)
 {
     if(material)
     {
-        uint32_t index = add_list_element(&r_world_cmds, NULL);
-        struct r_world_cmd_t *cmd = get_list_element(&r_world_cmds, index);
+        uint32_t index = ds_list_add_element(&r_world_cmds, NULL);
+        struct r_world_cmd_t *cmd = ds_list_get_element(&r_world_cmds, index);
         cmd->material = material;
         cmd->start = start;
         cmd->count = count;
     }
 }
 
-int32_t r_CompareCmds(void *a, void *b)
+int32_t r_CompareEntityCmds(void *a, void *b)
 {
     struct r_entity_cmd_t *cmd_a = (struct r_entity_cmd_t *)a;
     struct r_entity_cmd_t *cmd_b = (struct r_entity_cmd_t *)b;
@@ -205,13 +233,30 @@ int32_t r_CompareCmds(void *a, void *b)
     return 0;
 }
 
+int32_t r_CompareShadowCmds(void *a, void *b)
+{
+    struct r_shadow_cmd_t *cmd_a = (struct r_shadow_cmd_t *)a;
+    struct r_shadow_cmd_t *cmd_b = (struct r_shadow_cmd_t *)b;
+    if(cmd_a->shadow_map < cmd_b->shadow_map)
+    {
+        return -1;
+    }
+    else if(cmd_a->shadow_map > cmd_b->shadow_map)
+    {
+        return 1;
+    }
+
+    return 0;
+}
+
 void r_DrawCmds()
 {
     struct r_material_t *current_material = NULL;
     mat4_t model_view_projection_matrix;
     mat4_t model_view_matrix;
 
-    qsort_list(&r_entity_cmds, r_CompareCmds);
+    ds_list_qsort(&r_entity_cmds, r_CompareEntityCmds);
+    ds_list_qsort(&r_shadow_cmds, r_CompareShadowCmds);
 
     glBindBuffer(GL_ARRAY_BUFFER, r_vertex_buffer);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, r_index_buffer);
@@ -219,8 +264,6 @@ void r_DrawCmds()
     glEnable(GL_CULL_FACE);
     glCullFace(GL_BACK);
     glDisable(GL_BLEND);
-    glDisable(GL_SCISSOR_TEST);
-    glScissor(0, 0, r_width, r_height);
     glDepthFunc(GL_LESS);
 
 //    if(r_use_z_prepass)
@@ -238,13 +281,60 @@ void r_DrawCmds()
 //
 //    glDepthFunc(GL_EQUAL);
 //    }
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, r_shadow_map_framebuffer);
+    glEnable(GL_SCISSOR_TEST);
+    glEnable(GL_POLYGON_OFFSET_FILL);
+    glPolygonOffset(1.0, -1.0);
+    r_BindShader(r_shadow_shader);
+//    glClipControl(GL_LOWER_LEFT, GL_ZERO_TO_ONE);
+//    glClearDepth(0.0);
+
+    uint32_t cur_shadow_map = 0xffffffff;
+    for(uint32_t cmd_index = 0; cmd_index < r_shadow_cmds.cursor; cmd_index++)
+    {
+        struct r_shadow_cmd_t *cmd = ds_list_get_element(&r_shadow_cmds, cmd_index);
+
+        if(cmd->shadow_map != cur_shadow_map)
+        {
+            uint32_t shadow_x = ((cmd->shadow_map >> R_SHADOW_MAP_X_COORD_SHIFT) & 0xff) * R_SHADOW_MAP_MIN_RESOLUTION;
+            uint32_t shadow_y = ((cmd->shadow_map >> R_SHADOW_MAP_Y_COORD_SHIFT) & 0xff) * R_SHADOW_MAP_MIN_RESOLUTION;
+            uint32_t shadow_res = ((cmd->shadow_map >> R_SHADOW_MAP_RES_SHIFT) & 0xff) * R_SHADOW_MAP_MIN_RESOLUTION;
+
+            glScissor(shadow_x, shadow_y, shadow_res, shadow_res);
+            glViewport(shadow_x, shadow_y, shadow_res, shadow_res);
+            glClear(GL_DEPTH_BUFFER_BIT);
+
+            cur_shadow_map = cmd->shadow_map;
+        }
+
+        r_SetUniformMatrix4(R_UNIFORM_MODEL_VIEW_PROJECTION_MATRIX, &cmd->model_view_projection_matrix);
+        glDrawElements(GL_TRIANGLES, cmd->count, GL_UNSIGNED_INT, (void *)(cmd->start * sizeof(uint32_t)));
+    }
+
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+    glDisable(GL_SCISSOR_TEST);
+    glDisable(GL_POLYGON_OFFSET_FILL);
+    glPolygonOffset(0, 0);
+    glScissor(0, 0, r_width, r_height);
+    glViewport(0, 0, r_width, r_height);
+//    glClipControl(GL_LOWER_LEFT, GL_NEGATIVE_ONE_TO_ONE);
+//    glClearDepth(1.0);
+
+    vec4_t row2 = r_point_shadow_projection_matrices[0].rows[2];
+    vec4_t row3 = r_point_shadow_projection_matrices[0].rows[3];
 
     r_BindShader(r_lit_shader);
-    r_SetUniform1i(R_UNIFORM_CLUSTERS, R_CLUSTERS_TEX_UNIT);
+    r_SetUniform1i(R_UNIFORM_TEX_CLUSTERS, R_CLUSTERS_TEX_UNIT);
+    r_SetUniform1i(R_UNIFORM_TEX_SHADOW_ATLAS, R_SHADOW_ATLAS_TEX_UNIT);
+    r_SetUniform1i(R_UNIFORM_TEX_INDIRECT, R_INDIRECT_TEX_UNIT);
+    r_SetUniformMatrix4(R_UNIFORM_CAMERA_MATRIX, &r_camera_matrix);
+    r_SetUniform2f(R_UNIFORM_POINT_PROJ_PARAMS, row2.comps[2], row3.comps[2]);
+//    r_SetUniformMatrix4(R_UNIFORM_POINT_PROJ_MATRIX, &r_point_shadow_projection_matrices[5]);
+//    r_SetUniformMatrix4(R_UNIFORM_POINT_VIEW_MATRIX, &r_point_shadow_view_matrices[5]);
 
     for(uint32_t cmd_index = 0; cmd_index < r_entity_cmds.cursor; cmd_index++)
     {
-        struct r_entity_cmd_t *cmd = get_list_element(&r_entity_cmds, cmd_index);
+        struct r_entity_cmd_t *cmd = ds_list_get_element(&r_entity_cmds, cmd_index);
 
         if(cmd->material != current_material)
         {
@@ -276,7 +366,7 @@ void r_DrawCmds()
 
     for(uint32_t cmd_index = 0; cmd_index < r_immediate_cmds.cursor; cmd_index++)
     {
-        struct r_i_cmd_t *cmd = get_list_element(&r_immediate_cmds, cmd_index);
+        struct r_i_cmd_t *cmd = ds_list_get_element(&r_immediate_cmds, cmd_index);
 
         switch(cmd->type)
         {
@@ -514,8 +604,8 @@ void *r_i_AllocImmediateData(uint32_t size)
              r_immediate_data.cursor += available_slots;
         }
 
-        uint32_t data_index = add_list_element(&r_immediate_data, NULL);
-        data = get_list_element(&r_immediate_data, data_index);
+        uint32_t data_index = ds_list_add_element(&r_immediate_data, NULL);
+        data = ds_list_get_element(&r_immediate_data, data_index);
         required_slots--;
         r_immediate_data.cursor += required_slots;
         data->flags = 0;
@@ -549,8 +639,8 @@ void r_i_FreeImmediateExternData(void *data)
 
 void r_i_ImmediateCmd(uint16_t type, uint16_t sub_type, void *data)
 {
-    uint32_t cmd_index = add_list_element(&r_immediate_cmds, NULL);
-    struct r_i_cmd_t *cmd = get_list_element(&r_immediate_cmds, cmd_index);
+    uint32_t cmd_index = ds_list_add_element(&r_immediate_cmds, NULL);
+    struct r_i_cmd_t *cmd = ds_list_get_element(&r_immediate_cmds, cmd_index);
 
     cmd->data = data;
     cmd->type = type;

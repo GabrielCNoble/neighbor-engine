@@ -4,14 +4,14 @@
 #define DS_MEMORY_IMPLEMENTATION
 #include "dstuff/ds_mem.h"
 
-#define DS_STACK_LIST_IMPLEMENTATION
-#include "dstuff/ds_stack_list.h"
+#define DS_SLIST_IMPLEMENTATION
+#include "dstuff/ds_slist.h"
 
 #define DS_LIST_IMPLEMENTATION
 #include "dstuff/ds_list.h"
 
-#define DS_RINGBUFFER_IMPLEMENTATION
-#include "dstuff/ds_ringbuffer.h"
+#define DS_RBUFFER_IMPLEMENTATION
+#include "dstuff/ds_rbuffer.h"
 
 #define DS_BUFFER_IMPLEMENTATION
 #include "dstuff/ds_buffer.h"
@@ -30,6 +30,9 @@
 
 #define DS_PATH_IMPLEMENTATION
 #include "dstuff/ds_path.h"
+
+#define DS_DIR_IMPLEMENTATION
+#include "dstuff/ds_dir.h"
 
 #define DS_WAVEFRONT_IMPLEMENTATION
 #include "dstuff/ds_obj.h"

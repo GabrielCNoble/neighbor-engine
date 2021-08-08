@@ -13,6 +13,7 @@
 #include "gui.h"
 #include <string.h>
 #include <stdio.h>
+#include <float.h>
 
 
 extern mat4_t r_view_matrix;
@@ -134,7 +135,7 @@ char *lower_body_bones[] =
 uint32_t lower_body_bone_count = sizeof(lower_body_bones) / sizeof(lower_body_bones[0]);
 char *lower_body_players[] = {"run_player", "jump_player", "idle_player", "fall_player"};
 
-extern uint32_t r_use_z_prepass;
+extern struct r_renderer_state_t r_renderer_state;
 
 void g_TestCallback(void *data, float delta_time)
 {
@@ -330,15 +331,15 @@ void g_Init(uint32_t editor_active)
     mat4_t_identity(&transform);
 
 
-    transform.rows[0].x = 5.0;
+    transform.rows[0].x = 10.0;
     transform.rows[1].y = 0.1;
-    transform.rows[2].z = 5.0;
+    transform.rows[2].z = 10.0;
 
-//    g_lights[0] = r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(0.0, 1.3, 0.4), &vec3_t_c(1.0, 0.0, 0.0), 5.0, 3.0);
-//    g_lights[1] = r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(-0.6, 1.3, -0.6), &vec3_t_c(0.0, 1.0, 0.0), 5.0, 3.0);
-//    g_lights[2] = r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(0.6, 1.3, -0.6), &vec3_t_c(0.0, 0.0, 1.0), 5.0, 3.0);
+//    g_lights[0] = r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(0.0, 0.3, 0.4), &vec3_t_c(1.0, 0.0, 0.0), 5.0, 3.0);
+//    g_lights[1] = r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(-0.6, 0.3, -0.6), &vec3_t_c(0.0, 1.0, 0.0), 5.0, 3.0);
+//    g_lights[2] = r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(0.6, 0.3, -0.6), &vec3_t_c(0.0, 0.0, 1.0), 5.0, 3.0);
 
-    g_player_light = r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(0.8, 0.0, -0.8), &vec3_t_c(1.0, 1.0, 1.0), 10.0, 2.0);
+    g_player_light = r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(0.0, 0.0, 0.0), &vec3_t_c(1.0, 1.0, 1.0), 10.5, 5.0);
 //
 //    r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(-0.6, -1.3, 0.0), &vec3_t_c(0.0, 1.0, 0.13), 1.7, 2.0);
 //    r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(-0.6, -1.3, 0.6), &vec3_t_c(0.4, 0.2, 1.0), 1.7, 2.0);
@@ -365,42 +366,60 @@ void g_Init(uint32_t editor_active)
 //    r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(0.0, 2.0, -8.0), &vec3_t_c(1.0, 1.0, 1.0), 8.0, 12.0);
 //    mat4_t_rotate_y(&transform, 0.1);
     transform.rows[3].x = 0.0;
-    transform.rows[3].y = -2.0;
+    transform.rows[3].y = -6.0;
     transform.rows[3].z = -0.0;
 
     g_CreateEntity(&transform, NULL, g_cube_model);
-//    transform.rows[3].y = 2.0;
-//    g_CreateEntity(&transform, NULL, g_cube_model);
+    transform.rows[3].y = 6.0;
+    g_CreateEntity(&transform, NULL, g_cube_model);
 
-//    transform.rows[0].x = 5.0;
-//    transform.rows[1].y = 5.0;
-//    transform.rows[2].z = 0.1;
+    transform.rows[0].x = 500.0;
+    transform.rows[1].y = 500.0;
+    transform.rows[2].z = 0.1;
+
+    transform.rows[3].y = 0.0;
+    transform.rows[3].z = -6.0;
+    g_CreateEntity(&transform, NULL, g_cube_model);
+    transform.rows[3].z = 6.0;
+    g_CreateEntity(&transform, NULL, g_cube_model);
 //
-//    transform.rows[3].y = 0.0;
-//    transform.rows[3].z = -2.0;
-//    g_CreateEntity(&transform, NULL, g_cube_model);
-//    transform.rows[3].z = 2.0;
-//    g_CreateEntity(&transform, NULL, g_cube_model);
-//
-//
-//    transform.rows[0].x = 0.1;
-//    transform.rows[1].y = 5.0;
-//    transform.rows[2].z = 5.0;
-//
-//    transform.rows[3].x = -2.0;
-//    g_CreateEntity(&transform, NULL, g_cube_model);
-//    transform.rows[3].x = 2.0;
-//    g_CreateEntity(&transform, NULL, g_cube_model);
+
+    transform.rows[0].x = 0.1;
+    transform.rows[1].y = 500.0;
+    transform.rows[2].z = 500.0;
+
+    transform.rows[3].x = -6.0;
+    g_CreateEntity(&transform, NULL, g_cube_model);
+    transform.rows[3].x = 6.0;
+    g_CreateEntity(&transform, NULL, g_cube_model);
 
 
-    transform.rows[0].x = 0.2;
-    transform.rows[1].y = 1.2;
-    transform.rows[2].z = 0.2;
+    transform.rows[0].x = 0.3;
+    transform.rows[1].y = 100.0;
+    transform.rows[2].z = 0.3;
 
-    transform.rows[3].x = 0;
-    transform.rows[3].y = -1.7;
-    transform.rows[3].z = 0;
+    transform.rows[3].x = 0.0;
+    transform.rows[3].y = 0.0;
+    transform.rows[3].z = 0.0;
+
+    for(int32_t x = 0; x < 4; x++)
+    {
+//        for(int32_t y = 0; y < 10; y++)
+//        {
+            for(int32_t z = 0; z < 4; z++)
+            {
+                transform.rows[3].x = x * 5 - 10;
+                transform.rows[3].z = z * 5 - 10;
+                g_CreateEntity(&transform, NULL, g_cube_model);
+            }
+//        }
+    }
+
+//    for(uint32_t index = 2; index < 3; index++)
+//    {
+//        transform.rows[3].z = index * 2;
 //    g_CreateEntity(&transform, NULL, g_cube_model);
+//    }
 
 //    float a = 0.0;
 //    float inc = (3.14159265 * 2) / 8;
@@ -430,7 +449,7 @@ void g_Init(uint32_t editor_active)
     transform.rows[3].z = 0.0;
     struct g_entity_t *boy_entity;
 
-    boy_entity = g_CreateEntity(&transform, NULL, g_wiggle_model);
+//    boy_entity = g_CreateEntity(&transform, NULL, g_wiggle_model);
 //    g_PlayAnimation(boy_entity, miracle_dance_smooth, "just_dance");
 //    struct a_player_t *player = a_GetMixerPlayer(boy_entity->mixer, "just_dance");
 //    a_SeekAnimationAbsolute(player, (rand() % miracle_dance_blockout->duration) * 0.1);
@@ -606,12 +625,19 @@ void g_MainLoop(uint32_t editor_active)
 {
     float f = 0;
     float t = 0;
+    uint32_t row = 0;
 
     while(g_game_state != G_GAME_STATE_QUIT)
     {
-        g_player_light->data.pos_rad.x = cos(f);
-        g_player_light->data.pos_rad.y = sin(t);
-        g_player_light->data.pos_rad.z = sin(f);
+//        g_player_entity->transform.rows[3].x = cos(f) * 2.0;
+//        g_player_entity->transform.rows[3].y = sin(t) * 2.0;
+//        g_player_entity->transform.rows[3].z = sin(f) * 2.0;
+
+        g_player_light->data.pos_rad.x = cos(f) * 1.2;
+//        g_player_light->data.pos_rad.y = sin(t * 5) * 0.4;
+        g_player_light->data.pos_rad.z = sin(f) * 1.2;
+
+
 //        g_player_light->data.pos_rad.y = sin(f) ;
 //        g_player_light->data.pos_rad.z = 2.0 + cos(f) * 0.7;
 //        g_player_light->data.pos_rad.x = cos(t) * 3.0;
@@ -620,11 +646,34 @@ void g_MainLoop(uint32_t editor_active)
 //            g_lights[light_index]->data.pos_rad.y = sin(f + (float)light_index * 0.5);
 //        }
 
-        f += 0.07;
+        f += 0.007;
         t += 0.03;
         in_Input();
         gui_BeginFrame();
         p_UpdateColliders();
+
+        if(in_GetKeyState(SDL_SCANCODE_C) & IN_KEY_STATE_JUST_PRESSED)
+        {
+            mat4_t transform;
+            mat4_t_identity(&transform);
+            transform.rows[0].x = 0.2;
+            transform.rows[1].y = 0.2;
+            transform.rows[2].z = 0.2;
+
+            for(uint32_t index = 0; index < 1000; index++)
+            {
+                transform.rows[3].x = -2000 + index * 4;
+                transform.rows[3].z = row * 4;
+                g_CreateEntity(&transform, NULL, g_wiggle_model);
+            }
+            row++;
+        }
+
+        if(in_GetKeyState(SDL_SCANCODE_Z) & IN_KEY_STATE_JUST_PRESSED)
+        {
+            r_renderer_state.use_z_prepass^= 1;
+        }
+
         switch(g_game_state)
         {
             case G_GAME_STATE_PLAYING:
@@ -753,6 +802,8 @@ void g_UpdateEntities()
 //    r_i_SetPolygonMode(GL_FILL);
 //    r_i_SetSize(4.0);
 
+
+
     for(uint32_t entity_index = 0; entity_index < g_entities.cursor; entity_index++)
     {
         struct g_entity_t *entity = ds_slist_get_element(&g_entities, entity_index);
@@ -779,6 +830,8 @@ void g_UpdateEntities()
             {
                 entity->transform = entity->local_transform;
             }
+
+            g_UpdateEntityExtents(entity);
         }
     }
 
@@ -882,6 +935,74 @@ struct g_entity_t *g_GetEntity(uint32_t index)
 void g_DestroyEntity(struct g_entity_t *entity)
 {
 
+}
+
+void g_UpdateEntityExtents(struct g_entity_t *entity)
+{
+    vec3_t corners[8];
+    vec3_t min;
+    vec3_t max;
+
+    if(entity && entity->model)
+    {
+        max = entity->model->max;
+        min = entity->model->min;
+
+        corners[0] = max;
+
+        corners[1].x = max.x;
+        corners[1].y = min.y;
+        corners[1].z = max.z;
+
+        corners[2].x = min.x;
+        corners[2].y = min.y;
+        corners[2].z = max.z;
+
+        corners[3].x = min.x;
+        corners[3].y = max.y;
+        corners[3].z = max.z;
+
+        corners[4].x = max.x;
+        corners[4].y = max.y;
+        corners[4].z = min.x;
+
+        corners[5].x = max.x;
+        corners[5].y = min.y;
+        corners[5].z = min.z;
+
+        corners[6].x = min.x;
+        corners[6].y = min.y;
+        corners[6].z = min.z;
+
+        corners[7] = min;
+
+        mat3_t rot_scale;
+
+        rot_scale.rows[0] = entity->transform.rows[0].xyz;
+        rot_scale.rows[1] = entity->transform.rows[1].xyz;
+        rot_scale.rows[2] = entity->transform.rows[2].xyz;
+
+        max = vec3_t_c(-FLT_MAX, -FLT_MAX, -FLT_MAX);
+        min = vec3_t_c(FLT_MAX, FLT_MAX, FLT_MAX);
+
+        for(uint32_t corner_index = 0; corner_index < 8; corner_index++)
+        {
+            vec3_t *corner = corners + corner_index;
+            mat3_t_vec3_t_mul(corner, corner, &rot_scale);
+
+            if(max.x < corner->x) max.x = corner->x;
+            if(max.y < corner->y) max.y = corner->y;
+            if(max.z < corner->z) max.z = corner->z;
+
+            if(min.x > corner->x) min.x = corner->x;
+            if(min.y > corner->y) min.y = corner->y;
+            if(min.z > corner->z) min.z = corner->z;
+        }
+
+        entity->extents.x = max.x - min.x;
+        entity->extents.y = max.y - min.y;
+        entity->extents.z = max.z - min.z;
+    }
 }
 
 void g_ParentEntity(struct g_entity_t *parent, struct g_entity_t *entity)

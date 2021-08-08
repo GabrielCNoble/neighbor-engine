@@ -253,6 +253,14 @@ struct r_cluster_t
 #define R_SHADOW_MAP_FACE_INDEX_SHIFT 0
 #define R_SHADOW_MAP_FACE_INDEX_MASK 0x07
 #define R_SHADOW_MAP_OFFSET_PACK_SHIFT 3
+#define R_SHADOW_MAP_PLANE_FRONT 0x1
+#define R_SHADOW_MAP_PLANE_BACK 0x2
+#define R_SHADOW_MAP_PLANE0_SHIFT 10
+#define R_SHADOW_MAP_PLANE1_SHIFT 8
+#define R_SHADOW_MAP_PLANE2_SHIFT 6
+#define R_SHADOW_MAP_PLANE3_SHIFT 4
+#define R_SHADOW_MAP_PLANE4_SHIFT 2
+#define R_SHADOW_MAP_PLANE5_SHIFT 0
 //#define R_SHADOW_MAP_COORD_OFFSET_MASK 0x03
 //#define R_SHADOW_MAP_X_COORD_OFFSET_SHIFT 4
 //#define R_SHADOW_MAP_Y_COORD_OFFSET_SHIFT 6
@@ -451,6 +459,21 @@ struct r_i_state_t
     struct r_i_scissor_t *scissor;
     struct r_i_texture_t *textures;
     uint32_t texture_count;
+};
+
+struct r_renderer_state_t
+{
+    uint32_t use_z_prepass;
+};
+
+struct r_renderer_stats_t
+{
+    uint32_t vert_count;
+    uint32_t indice_count;
+    uint32_t draw_call_count;
+    uint32_t shader_swaps;
+    uint32_t material_swaps;
+    uint32_t texture_swaps;
 };
 
 #define R_CLUSTER_ROW_WIDTH 32

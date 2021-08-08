@@ -62,8 +62,10 @@ extern uint32_t r_shadow_index_uniform_buffer;
 extern uint32_t r_shadow_atlas_texture;
 extern uint32_t r_indirect_texture;
 extern uint32_t r_shadow_map_framebuffer;
-extern mat4_t r_point_shadow_projection_matrices[6];
-extern mat4_t r_point_shadow_view_matrices[6];
+extern vec2_t r_point_shadow_projection_params;
+extern mat4_t r_point_shadow_view_projection_matrices[6];
+//extern mat4_t r_point_shadow_projection_matrices[6];
+//extern mat4_t r_point_shadow_view_matrices[6];
 
 extern struct r_cluster_t *r_clusters;
 extern uint32_t r_cluster_texture;
@@ -83,13 +85,22 @@ extern int32_t r_height;
 extern uint32_t r_cluster_row_width;
 extern uint32_t r_cluster_rows;
 
-uint32_t r_use_z_prepass = 1;
+extern uint32_t r_main_framebuffer;
+extern uint32_t r_z_prepass_framebuffer;
+
+//uint32_t r_use_z_prepass = 1;
+uint32_t r_draw_call_count = 0;
+uint32_t r_prev_draw_call_count = 0;
+
+struct r_renderer_state_t r_renderer_state;
+struct r_renderer_stats_t r_renderer_stats;
 
 void r_BeginFrame()
 {
-    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, r_main_framebuffer);
     glViewport(0, 0, r_width, r_height);
     glDisable(GL_SCISSOR_TEST);
+    glDepthMask(GL_TRUE);
 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glBindVertexArray(r_vao);
@@ -120,6 +131,11 @@ void r_BeginFrame()
     r_denom = log(r_z_far / r_z_near);
 
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+
+    glBindBuffer(GL_ARRAY_BUFFER, r_vertex_buffer);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, r_index_buffer);
+
+    r_renderer_stats = (struct r_renderer_stats_t){};
 }
 
 void r_EndFrame()
@@ -132,7 +148,19 @@ void r_EndFrame()
     r_shadow_cmds.cursor = 0;
     r_immediate_cmds.cursor = 0;
     r_immediate_data.cursor = 0;
+//    r_prev_draw_call_count = r_draw_call_count;
+//    r_draw_call_count = 0;
     r_i_current_state = NULL;
+
+    glDisable(GL_BLEND);
+    glDisable(GL_STENCIL_TEST);
+    glDisable(GL_DEPTH_TEST);
+    glDisable(GL_SCISSOR_TEST);
+    glViewport(0, 0, r_width, r_height);
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, r_main_framebuffer);
+
+    glBlitFramebuffer(0, 0, r_width, r_height, 0, 0, r_width, r_height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
     SDL_GL_SwapWindow(r_window);
 }
 
@@ -172,6 +200,14 @@ void r_UpdateViewProjectionMatrix()
 {
     mat4_t_invvm(&r_view_matrix, &r_camera_matrix);
     mat4_t_mul(&r_view_projection_matrix, &r_view_matrix, &r_projection_matrix);
+}
+
+void r_DrawElements(uint32_t mode, uint32_t count, uint32_t type, const void *indices)
+{
+    glDrawElements(mode, count, type, indices);
+    r_renderer_stats.draw_call_count++;
+    r_renderer_stats.indice_count += count;
+//    r_renderer_stats.vert_count +=
 }
 
 void r_DrawEntity(mat4_t *model_matrix, struct r_model_t *model)
@@ -258,36 +294,25 @@ void r_DrawCmds()
     ds_list_qsort(&r_entity_cmds, r_CompareEntityCmds);
     ds_list_qsort(&r_shadow_cmds, r_CompareShadowCmds);
 
-    glBindBuffer(GL_ARRAY_BUFFER, r_vertex_buffer);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, r_index_buffer);
+//    glBindBuffer(GL_ARRAY_BUFFER, r_vertex_buffer);
+//    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, r_index_buffer);
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
     glCullFace(GL_BACK);
     glDisable(GL_BLEND);
     glDepthFunc(GL_LESS);
 
-//    if(r_use_z_prepass)
-//    {
-//    r_BindShader(r_z_prepass_shader);
-//    glDepthFunc(GL_LESS);
-//
-//    for(uint32_t cmd_index = 0; cmd_index < r_entity_cmds.cursor; cmd_index++)
-//    {
-//        struct r_entity_cmd_t *cmd = get_list_element(&r_entity_cmds, cmd_index);
-//        mat4_t_mul(&model_view_projection_matrix, &cmd->model_view_matrix, &r_projection_matrix);
-//        r_SetUniformMatrix4(R_UNIFORM_MVP, &model_view_projection_matrix);
-//        glDrawElements(GL_TRIANGLES, cmd->count, GL_UNSIGNED_INT, (void *)(cmd->start * sizeof(uint32_t)));
-//    }
-//
-//    glDepthFunc(GL_EQUAL);
-//    }
+
     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, r_shadow_map_framebuffer);
     glEnable(GL_SCISSOR_TEST);
     glEnable(GL_POLYGON_OFFSET_FILL);
-    glPolygonOffset(1.0, -1.0);
+    glPolygonOffset(1.0, 1.0);
     r_BindShader(r_shadow_shader);
+
 //    glClipControl(GL_LOWER_LEFT, GL_ZERO_TO_ONE);
 //    glClearDepth(0.0);
+
+    glCullFace(GL_FRONT);
 
     uint32_t cur_shadow_map = 0xffffffff;
     for(uint32_t cmd_index = 0; cmd_index < r_shadow_cmds.cursor; cmd_index++)
@@ -309,28 +334,52 @@ void r_DrawCmds()
 
         r_SetUniformMatrix4(R_UNIFORM_MODEL_VIEW_PROJECTION_MATRIX, &cmd->model_view_projection_matrix);
         glDrawElements(GL_TRIANGLES, cmd->count, GL_UNSIGNED_INT, (void *)(cmd->start * sizeof(uint32_t)));
+        r_renderer_stats.draw_call_count++;
     }
 
-    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-    glDisable(GL_SCISSOR_TEST);
+    glCullFace(GL_BACK);
+
     glDisable(GL_POLYGON_OFFSET_FILL);
     glPolygonOffset(0, 0);
+
+//    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, r_z_prepass_framebuffer);
+    glDisable(GL_SCISSOR_TEST);
     glScissor(0, 0, r_width, r_height);
     glViewport(0, 0, r_width, r_height);
+
+    if(r_renderer_state.use_z_prepass)
+    {
+        r_BindShader(r_z_prepass_shader);
+        glDepthFunc(GL_LESS);
+
+        for(uint32_t cmd_index = 0; cmd_index < r_entity_cmds.cursor; cmd_index++)
+        {
+            struct r_entity_cmd_t *cmd = ds_list_get_element(&r_entity_cmds, cmd_index);
+            mat4_t_mul(&model_view_projection_matrix, &cmd->model_view_matrix, &r_projection_matrix);
+            r_SetUniformMatrix4(R_UNIFORM_MODEL_VIEW_PROJECTION_MATRIX, &model_view_projection_matrix);
+            glDrawElements(GL_TRIANGLES, cmd->count, GL_UNSIGNED_INT, (void *)(cmd->start * sizeof(uint32_t)));
+            r_renderer_stats.draw_call_count++;
+        }
+
+        glDepthFunc(GL_EQUAL);
+        glDepthMask(GL_FALSE);
+    }
+
 //    glClipControl(GL_LOWER_LEFT, GL_NEGATIVE_ONE_TO_ONE);
 //    glClearDepth(1.0);
 
-    vec4_t row2 = r_point_shadow_projection_matrices[0].rows[2];
-    vec4_t row3 = r_point_shadow_projection_matrices[0].rows[3];
+//    vec4_t row2 = r_point_shadow_view_projection_matrices[0].rows[2];
+//    vec4_t row3 = r_point_shadow_view_projection_matrices[0].rows[3];
 
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, r_main_framebuffer);
     r_BindShader(r_lit_shader);
     r_SetUniform1i(R_UNIFORM_TEX_CLUSTERS, R_CLUSTERS_TEX_UNIT);
     r_SetUniform1i(R_UNIFORM_TEX_SHADOW_ATLAS, R_SHADOW_ATLAS_TEX_UNIT);
     r_SetUniform1i(R_UNIFORM_TEX_INDIRECT, R_INDIRECT_TEX_UNIT);
     r_SetUniformMatrix4(R_UNIFORM_CAMERA_MATRIX, &r_camera_matrix);
-    r_SetUniform2f(R_UNIFORM_POINT_PROJ_PARAMS, row2.comps[2], row3.comps[2]);
-//    r_SetUniformMatrix4(R_UNIFORM_POINT_PROJ_MATRIX, &r_point_shadow_projection_matrices[5]);
-//    r_SetUniformMatrix4(R_UNIFORM_POINT_VIEW_MATRIX, &r_point_shadow_view_matrices[5]);
+    r_SetUniform2f(R_UNIFORM_POINT_PROJ_PARAMS, r_point_shadow_projection_params.x, r_point_shadow_projection_params.y);
 
     for(uint32_t cmd_index = 0; cmd_index < r_entity_cmds.cursor; cmd_index++)
     {
@@ -346,6 +395,7 @@ void r_DrawCmds()
         r_SetUniformMatrix4(R_UNIFORM_MODEL_VIEW_PROJECTION_MATRIX, &model_view_projection_matrix);
         r_SetUniformMatrix4(R_UNIFORM_MODEL_VIEW_MATRIX, &cmd->model_view_matrix);
         glDrawElements(GL_TRIANGLES, cmd->count, GL_UNSIGNED_INT, (void *)(cmd->start * sizeof(uint32_t)));
+        r_renderer_stats.draw_call_count++;
     }
 
     mat4_t view_projection_matrix;
@@ -353,9 +403,10 @@ void r_DrawCmds()
 
     mat4_t_identity(&view_projection_matrix);
     mat4_t_identity(&model_matrix);
-
+    glDepthMask(GL_TRUE);
     glBindBuffer(GL_ARRAY_BUFFER, r_immediate_vertex_buffer);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, r_immediate_index_buffer);
+    glDepthFunc(GL_LESS);
     r_BindShader(r_immediate_shader);
 
     struct r_i_state_t *immediate_state = NULL;
@@ -517,11 +568,7 @@ void r_DrawCmds()
 
                 uint32_t mode = 0;
                 struct r_i_draw_list_t *draw_list = cmd->data;
-//                struct r_i_verts_t *verts = draw_list->verts;
-//                struct r_i_indices_t *indices = draw_list->indices;
 
-//                if(verts)
-//                {
                 switch(cmd->sub_type)
                 {
                     case R_I_DRAW_CMD_LINE_LIST:
@@ -557,6 +604,7 @@ void r_DrawCmds()
                     {
                         struct r_i_draw_cmd_t *draw_cmd = draw_list->commands + cmd_index;
                         glDrawElements(mode, draw_cmd->count, GL_UNSIGNED_INT, (void *)(draw_cmd->start * sizeof(uint32_t)));
+                        r_renderer_stats.draw_call_count++;
                     }
                 }
                 else
@@ -565,6 +613,7 @@ void r_DrawCmds()
                     {
                         struct r_i_draw_cmd_t *draw_cmd = draw_list->commands + cmd_index;
                         glDrawArrays(mode, draw_cmd->start, draw_cmd->count);
+                        r_renderer_stats.draw_call_count++;
                     }
                 }
 //                }
@@ -581,6 +630,9 @@ void r_DrawCmds()
             }
         }
     }
+
+//    glDisable(GL_BLEND);
+//    glFlush();
 }
 
 void *r_i_AllocImmediateData(uint32_t size)

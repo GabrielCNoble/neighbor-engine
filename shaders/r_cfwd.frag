@@ -200,7 +200,7 @@ float shadowing(uint light_index, vec3 frag_pos, vec3 frag_normal)
     float linear_depths[4];
     uvec4 face_indexes = texture(r_indirect_texture, frag_vec);
 
-    for(int sample_index = 3; sample_index >= 0; sample_index--)
+    for(int sample_index = 0; sample_index >= 0; sample_index--)
     {
         uint face_index = face_indexes[sample_index];
 
@@ -224,16 +224,18 @@ float shadowing(uint light_index, vec3 frag_pos, vec3 frag_normal)
 
     vec2 uv_frac = fract(uv);
 
-    float lerp0 = mix(linear_depths[0], linear_depths[1], uv_frac.x);
-    float lerp1 = mix(linear_depths[2], linear_depths[3], uv_frac.x);
-    float linear_depth = mix(lerp0, lerp1, uv_frac.y);
+//    float lerp0 = mix(linear_depths[0], linear_depths[1], uv_frac.x);
+//    float lerp1 = mix(linear_depths[2], linear_depths[3], uv_frac.x);
+//    float linear_depth = mix(lerp0, lerp1, uv_frac.y);
 
-//    linear_depth = linear_depths[0];
+    float linear_depth = linear_depths[0];
 
-    if(abs(z_coord) - 0.0005 > abs(linear_depth))
+    if(abs(z_coord) - 0.001 > abs(linear_depth))
     {
         shadow_term = 0.0;
     }
+
+//    shadow_term = 1.0;
 
     return shadow_term;
 }

@@ -33,6 +33,7 @@ struct g_entity_t
     struct r_model_t *model;
     struct a_mixer_t *mixer;
     struct r_vis_item_t *item;
+    vec3_t extents;
 };
 
 enum G_PLAYER_FLAGS
@@ -90,6 +91,8 @@ void g_UpdateEntities();
 struct g_entity_t *g_CreateEntity(mat4_t *transform, thinker_t *thinker, struct r_model_t *model);
 
 struct g_entity_t *g_GetEntity(uint32_t index);
+
+void g_UpdateEntityExtents(struct g_entity_t *entity);
 
 void g_DestroyEntity(struct g_entity_t *entity);
 

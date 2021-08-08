@@ -84,6 +84,7 @@ vec3_t ed_camera_pos;
 uint32_t ed_picking_framebuffer;
 uint32_t ed_picking_depth_texture;
 uint32_t ed_picking_object_texture;
+uint32_t ed_show_renderer_info_window ;
 
 extern uint32_t g_game_state;
 extern mat4_t r_camera_matrix;
@@ -95,6 +96,10 @@ extern mat4_t r_view_projection_matrix;
 extern uint32_t r_vertex_buffer;
 extern uint32_t r_index_buffer;
 extern struct ds_slist_t r_lights;
+extern uint32_t r_prev_draw_call_count;
+
+extern struct r_renderer_stats_t r_renderer_stats;
+extern struct r_renderer_state_t r_renderer_state;
 
 
 #define ED_GRID_DIVS 301
@@ -304,7 +309,33 @@ void ed_UpdateEditor()
 
             igEndMenu();
         }
+
+        if(igBeginMenu("Misc", 1))
+        {
+            if(igMenuItem_Bool("Renderer info", NULL, 0, 1))
+            {
+                ed_show_renderer_info_window ^= 1;
+            }
+            igEndMenu();
+        }
         igEndMainMenuBar();
+
+        if(ed_show_renderer_info_window)
+        {
+            if(igBegin("Renderer info", NULL, 0))
+            {
+                igText("Draw calls: %d", r_renderer_stats.draw_call_count);
+                igText("Shader swaps: %d", r_renderer_stats.shader_swaps);
+                igText("Material swaps: %d", r_renderer_stats.material_swaps);
+                igText("Z prepass: %s", r_renderer_state.use_z_prepass ? "Enabled" : "Disabled");
+            }
+            igEnd();
+        }
+
+//        igSameLine(0, -1);
+//        igText("Draw calls: %d", r_renderer_stats.draw_call_count);
+//        igText("Shader swaps: %d", r_renderer_stats.shader_swaps);
+//        igText("Material swaps: %d", r_renderer_stats.material_swaps);
     }
 
     ed_UpdateExplorer();
@@ -861,46 +892,46 @@ void ed_WorldContextCreateBrush(struct ed_context_t *context, uint32_t just_chan
 
 uint32_t ed_PickObject(int32_t mouse_x, int32_t mouse_y, struct ed_selection_t *selection)
 {
-    mouse_y = r_height - (mouse_y + 1);
-    mat4_t model_view_projection_matrix;
-    glBindBuffer(GL_ARRAY_BUFFER, r_vertex_buffer);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, r_index_buffer);
-
-    r_BindShader(ed_picking_shader);
-    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, ed_picking_framebuffer);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    glUniform1i(ed_picking_shader_type_uniform, ED_SELECTION_TYPE_BRUSH + 1);
-
-    for(uint32_t brush_index = 0; brush_index < ed_brushes.cursor; brush_index++)
-    {
-        struct ed_brush_t *brush = ed_GetBrush(brush_index);
-
-        if(brush)
-        {
-            mat4_t model_matrix;
-            mat4_t_comp(&model_matrix, &brush->orientation, &brush->position);
-            mat4_t_mul(&model_view_projection_matrix, &model_matrix, &r_view_projection_matrix);
-            r_SetUniformMatrix4(R_UNIFORM_MODEL_VIEW_PROJECTION_MATRIX, &model_view_projection_matrix);
-            glUniform1i(ed_picking_shader_index_uniform, brush_index);
-            struct r_model_t *model = brush->model;
-            for(uint32_t batch_index = 0; batch_index < model->batches.buffer_size; batch_index++)
-            {
-                struct r_batch_t *batch = (struct r_batch_t *)model->batches.buffer + batch_index;
-                glDrawElements(GL_TRIANGLES, batch->count, GL_UNSIGNED_INT, (void *)(batch->start * sizeof(uint32_t)));
-            }
-        }
-    }
-
-    glBindFramebuffer(GL_READ_FRAMEBUFFER, ed_picking_framebuffer);
-    int32_t pick_values[2];
-    glReadPixels(mouse_x, mouse_y, 1, 1, GL_RG, GL_FLOAT, pick_values);
-
-    if(pick_values[0])
-    {
-        selection->type = pick_values[0] - 1;
-        selection->selection.index = pick_values[1];
-        return 1;
-    }
+//    mouse_y = r_height - (mouse_y + 1);
+//    mat4_t model_view_projection_matrix;
+//    glBindBuffer(GL_ARRAY_BUFFER, r_vertex_buffer);
+//    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, r_index_buffer);
+//
+//    r_BindShader(ed_picking_shader);
+//    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, ed_picking_framebuffer);
+//    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+//    glUniform1i(ed_picking_shader_type_uniform, ED_SELECTION_TYPE_BRUSH + 1);
+//
+//    for(uint32_t brush_index = 0; brush_index < ed_brushes.cursor; brush_index++)
+//    {
+//        struct ed_brush_t *brush = ed_GetBrush(brush_index);
+//
+//        if(brush)
+//        {
+//            mat4_t model_matrix;
+//            mat4_t_comp(&model_matrix, &brush->orientation, &brush->position);
+//            mat4_t_mul(&model_view_projection_matrix, &model_matrix, &r_view_projection_matrix);
+//            r_SetUniformMatrix4(R_UNIFORM_MODEL_VIEW_PROJECTION_MATRIX, &model_view_projection_matrix);
+//            glUniform1i(ed_picking_shader_index_uniform, brush_index);
+//            struct r_model_t *model = brush->model;
+//            for(uint32_t batch_index = 0; batch_index < model->batches.buffer_size; batch_index++)
+//            {
+//                struct r_batch_t *batch = (struct r_batch_t *)model->batches.buffer + batch_index;
+//                glDrawElements(GL_TRIANGLES, batch->count, GL_UNSIGNED_INT, (void *)(batch->start * sizeof(uint32_t)));
+//            }
+//        }
+//    }
+//
+//    glBindFramebuffer(GL_READ_FRAMEBUFFER, ed_picking_framebuffer);
+//    int32_t pick_values[2];
+//    glReadPixels(mouse_x, mouse_y, 1, 1, GL_RG, GL_FLOAT, pick_values);
+//
+//    if(pick_values[0])
+//    {
+//        selection->type = pick_values[0] - 1;
+//        selection->selection.index = pick_values[1];
+//        return 1;
+//    }
 
     return 0;
 }

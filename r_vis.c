@@ -23,6 +23,7 @@ extern uint32_t  r_shadow_index_buffer_cursor;
 extern mat4_t r_point_shadow_view_projection_matrices[6];
 extern vec3_t r_point_shadow_frustum_planes[6];
 extern uint16_t r_point_shadow_frustum_masks[6];
+extern struct r_renderer_state_t r_renderer_state;
 
 extern float r_z_near;
 extern float r_z_far;
@@ -118,7 +119,7 @@ void r_VisibleLights()
                         /* let 'light_vec' be the vector from the camera to the center of the
                         sphere. The paper says that the tangent points are this vector, normalized,
                         rotated by an angle theta and -theta, then multiplied by the tangent distance.
-                        To normalized 'light_vec' it's required to multiply it by 1.0 / length, and to
+                        To normalize 'light_vec' it's required to multiply it by 1.0 / length, and to
                         have the tangent point, it's required to multiply the rotated, normalized vector
                         by 'tangent_dist'. So, both things get done with the same multiplication by
                         multiplying the rotated unnormalized vector by 'tangent_dist' / 'center_dist',
@@ -180,7 +181,7 @@ void r_VisibleLights()
             light->gpu_index = r_light_buffer_cursor;
             ds_list_add_element(&r_visible_lights, &light);
             r_light_buffer_cursor++;
-            light->data.color_res.w = 16;
+            light->data.color_res.w = r_renderer_state.max_shadow_res;
 
             data->color_res.x = light->data.color_res.x * light->energy;
             data->color_res.y = light->data.color_res.y * light->energy;
@@ -307,10 +308,7 @@ void r_VisibleEntitiesOnLights()
                 vec3_t model_extents;
                 uint16_t dists = 0;
 
-                model_extents.x = entity->extents.x * 0.5;
-                model_extents.y = entity->extents.y * 0.5;
-                model_extents.z = entity->extents.z * 0.5;
-
+                vec3_t_mul(&model_extents, &entity->extents, 0.5);
                 vec3_t_sub(&light_entity_vec, &entity->transform.rows[3].xyz, &light->data.pos_rad.xyz);
                 float light_entity_dist = vec3_t_length(&light_entity_vec);
                 vec3_t_normalize(&normalized_light_entity_vec, &light_entity_vec);
@@ -347,9 +345,8 @@ void r_VisibleEntitiesOnLights()
                     {
                         uint16_t mask = r_point_shadow_frustum_masks[face_index];
 
-                        if(mask && (mask & dists) == mask)
+                        if((mask & dists) == mask)
                         {
-//                            printf("face %d\n", face_index);
                             struct r_batch_t *batch = (struct r_batch_t *)entity->model->batches.buffer;
                             uint32_t count = entity->model->indices.buffer_size;
                             mat4_t model_view_projection_matrix;
@@ -357,7 +354,6 @@ void r_VisibleEntitiesOnLights()
                             r_DrawShadow(&model_view_projection_matrix, shadow_map[face_index], batch->start, count);
                         }
                     }
-//                    printf("\n\n");
                 }
             }
 

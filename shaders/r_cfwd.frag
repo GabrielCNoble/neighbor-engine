@@ -13,6 +13,10 @@
 #define R_SHADOW_MAP_FACE_INDEX_SHIFT 0x00
 #define R_SHADOW_MAP_FACE_INDEX_MASK 0x07
 #define R_SHADOW_MAP_OFFSET_PACK_SHIFT 0x03
+#define R_SHADOW_MAP_FACE_UV_COORD_MASK 0x03
+#define R_SHADOW_MAP_FACE_U_COORD_SHIFT 0x03
+#define R_SHADOW_MAP_FACE_V_COORD_SHIFT 0x05
+
 #define R_SHADOW_MAP_OFFSET_UNPACK_MASK 0x01
 #define R_SHADOW_MAP_OFFSET_X_COORD_UNPACK_SHIFT 0x03
 #define R_SHADOW_MAP_OFFSET_Y_COORD_UNPACK_SHIFT 0x04
@@ -199,22 +203,25 @@ float shadowing(uint light_index, vec3 frag_pos, vec3 frag_normal)
     float z_coord;
     float linear_depths[4];
     uvec4 face_indexes = texture(r_indirect_texture, frag_vec);
-
+    uint tile_size = uint(lights[light_index].col_res.w) * R_SHADOW_MAP_MIN_RESOLUTION;
     for(int sample_index = 0; sample_index >= 0; sample_index--)
     {
-        uint face_index = face_indexes[sample_index];
-
-        coord_offset.x = int((face_index >> R_SHADOW_MAP_OFFSET_X_COORD_UNPACK_SHIFT) & R_SHADOW_MAP_OFFSET_UNPACK_MASK);
-        coord_offset.y = int((face_index >> R_SHADOW_MAP_OFFSET_Y_COORD_UNPACK_SHIFT) & R_SHADOW_MAP_OFFSET_UNPACK_MASK);
-        face_index &= R_SHADOW_MAP_FACE_INDEX_MASK;
+        uint face_data = face_indexes[sample_index];
+        uint face_index = face_data & R_SHADOW_MAP_FACE_INDEX_MASK;
         uint z_coord_index = face_index >> 1;
+        uint u_coord_index = (face_data >> R_SHADOW_MAP_FACE_U_COORD_SHIFT) & R_SHADOW_MAP_FACE_UV_COORD_MASK;
+        uint v_coord_index = (face_data >> R_SHADOW_MAP_FACE_V_COORD_SHIFT) & R_SHADOW_MAP_FACE_UV_COORD_MASK;
+
+//        coord_offset.x = int((face_index >> R_SHADOW_MAP_OFFSET_X_COORD_UNPACK_SHIFT) & R_SHADOW_MAP_OFFSET_UNPACK_MASK);
+//        coord_offset.y = int((face_index >> R_SHADOW_MAP_OFFSET_Y_COORD_UNPACK_SHIFT) & R_SHADOW_MAP_OFFSET_UNPACK_MASK);
+
+//        uint z_coord_index = face_index >> 1;
         uint shadow_map = shadow_indices[first_tile + face_index].index;
         tile_coord.x = int(((shadow_map >> R_SHADOW_MAP_X_COORD_SHIFT) & 0xff) * R_SHADOW_MAP_MIN_RESOLUTION);
         tile_coord.y = int(((shadow_map >> R_SHADOW_MAP_Y_COORD_SHIFT) & 0xff) * R_SHADOW_MAP_MIN_RESOLUTION);
-        uint tile_size = ((shadow_map >> R_SHADOW_MAP_RES_SHIFT) & 0xff) * R_SHADOW_MAP_MIN_RESOLUTION;
 
-        vec3 cube_vec = vec3(frag_vec[(z_coord_index + 1) % 3], frag_vec[(z_coord_index + 2) % 3], -abs(frag_vec[z_coord_index]));
-        z_coord = -abs(cube_vec.z);
+        vec3 cube_vec = vec3(frag_vec[u_coord_index], frag_vec[v_coord_index], -frag_vec[z_coord_index]);
+        z_coord = cube_vec.z;
         uv = (cube_vec.xy / z_coord) * 0.5 + vec2(0.5);
         uv = uv * tile_size;
 
@@ -230,12 +237,10 @@ float shadowing(uint light_index, vec3 frag_pos, vec3 frag_normal)
 
     float linear_depth = linear_depths[0];
 
-    if(abs(z_coord) - 0.001 > abs(linear_depth))
+    if(abs(z_coord) - 0.0001 > abs(linear_depth))
     {
         shadow_term = 0.0;
     }
-
-//    shadow_term = 1.0;
 
     return shadow_term;
 }

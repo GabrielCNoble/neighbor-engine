@@ -250,8 +250,13 @@ struct r_cluster_t
 #define R_SHADOW_MAP_X_COORD_SHIFT 0
 #define R_SHADOW_MAP_Y_COORD_SHIFT 8
 #define R_SHADOW_MAP_RES_SHIFT 16
+
 #define R_SHADOW_MAP_FACE_INDEX_SHIFT 0
 #define R_SHADOW_MAP_FACE_INDEX_MASK 0x07
+#define R_SHADOW_MAP_FACE_UV_COORD_MASK 0x03
+#define R_SHADOW_MAP_FACE_U_COORD_SHIFT 0x03
+#define R_SHADOW_MAP_FACE_V_COORD_SHIFT 0x05
+
 #define R_SHADOW_MAP_OFFSET_PACK_SHIFT 3
 #define R_SHADOW_MAP_PLANE_FRONT 0x1
 #define R_SHADOW_MAP_PLANE_BACK 0x2
@@ -464,6 +469,7 @@ struct r_i_state_t
 struct r_renderer_state_t
 {
     uint32_t use_z_prepass;
+    uint32_t max_shadow_res;
 };
 
 struct r_renderer_stats_t

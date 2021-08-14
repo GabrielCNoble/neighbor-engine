@@ -292,6 +292,22 @@ void r_Init()
 
     */
 
+    uint8_t face_data[] =
+    {
+        /* +X */
+        (0 << R_SHADOW_MAP_FACE_INDEX_SHIFT) | (2 << R_SHADOW_MAP_FACE_U_COORD_SHIFT) | (1 << R_SHADOW_MAP_FACE_V_COORD_SHIFT),
+        /* -X */
+        (1 << R_SHADOW_MAP_FACE_INDEX_SHIFT) | (1 << R_SHADOW_MAP_FACE_U_COORD_SHIFT) | (2 << R_SHADOW_MAP_FACE_V_COORD_SHIFT),
+        /* +Y */
+        (2 << R_SHADOW_MAP_FACE_INDEX_SHIFT) | (0 << R_SHADOW_MAP_FACE_U_COORD_SHIFT) | (2 << R_SHADOW_MAP_FACE_V_COORD_SHIFT),
+        /* -Y */
+        (3 << R_SHADOW_MAP_FACE_INDEX_SHIFT) | (2 << R_SHADOW_MAP_FACE_U_COORD_SHIFT) | (0 << R_SHADOW_MAP_FACE_V_COORD_SHIFT),
+        /* +Z */
+        (4 << R_SHADOW_MAP_FACE_INDEX_SHIFT) | (1 << R_SHADOW_MAP_FACE_U_COORD_SHIFT) | (0 << R_SHADOW_MAP_FACE_V_COORD_SHIFT),
+        /* -Z */
+        (5 << R_SHADOW_MAP_FACE_INDEX_SHIFT) | (0 << R_SHADOW_MAP_FACE_U_COORD_SHIFT) | (1 << R_SHADOW_MAP_FACE_V_COORD_SHIFT),
+    };
+
     for(uint32_t face_index = 0; face_index < 6; face_index++)
     {
         for(uint32_t row = 0; row < 1024; row++)
@@ -300,11 +316,16 @@ void r_Init()
             {
                 uint32_t pixel_value = 0;
 
-                for(int32_t comp = 3; comp >= 0; comp--)
-                {
-                    pixel_value <<= 8;
-                    pixel_value |= face_index | (comp << R_SHADOW_MAP_OFFSET_PACK_SHIFT);
-                }
+                pixel_value |= face_data[face_index];
+                pixel_value |= face_data[face_index] << 8;
+                pixel_value |= face_data[face_index] << 16;
+                pixel_value |= face_data[face_index] << 24;
+
+//                for(int32_t comp = 3; comp >= 0; comp--)
+//                {
+//                    pixel_value <<= 8;
+//                    pixel_value |= face_index | (comp << R_SHADOW_MAP_OFFSET_PACK_SHIFT);
+//                }
 
                 indirect_pixels[row * 1024 + col] = pixel_value;
             }
@@ -360,11 +381,11 @@ void r_Init()
     glClear(GL_DEPTH_BUFFER_BIT);
     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 
-    mat4_t reverse_z_proj;
-    mat4_t_identity(&reverse_z_proj);
-
-    reverse_z_proj.comps[2][2] = -1.0;
-    reverse_z_proj.comps[3][2] = 1.0;
+//    mat4_t reverse_z_proj;
+//    mat4_t_identity(&reverse_z_proj);
+//
+//    reverse_z_proj.comps[2][2] = -1.0;
+//    reverse_z_proj.comps[3][2] = 1.0;
 
     mat4_t point_shadow_projection_matrices[6];
     mat4_t point_shadow_view_matrices[6];
@@ -378,26 +399,27 @@ void r_Init()
     r_point_shadow_projection_params.x = point_shadow_projection_matrices[0].rows[2].comps[2];
     r_point_shadow_projection_params.y = point_shadow_projection_matrices[0].rows[3].comps[2];
 
+
     mat4_t_rotate_y(&point_shadow_view_matrices[R_SHADOW_MAP_FACE_POS_X], 0.5);
-    mat4_t_rotate_z(&point_shadow_view_matrices[R_SHADOW_MAP_FACE_POS_X],-0.5);
+    mat4_t_rotate_z(&point_shadow_view_matrices[R_SHADOW_MAP_FACE_POS_X], 1.0);
 
     mat4_t_rotate_y(&point_shadow_view_matrices[R_SHADOW_MAP_FACE_NEG_X],-0.5);
-    mat4_t_rotate_z(&point_shadow_view_matrices[R_SHADOW_MAP_FACE_NEG_X], 0.5);
+    mat4_t_rotate_z(&point_shadow_view_matrices[R_SHADOW_MAP_FACE_NEG_X], -0.5);
 
     mat4_t_rotate_x(&point_shadow_view_matrices[R_SHADOW_MAP_FACE_POS_Y], -0.5);
-    mat4_t_rotate_z(&point_shadow_view_matrices[R_SHADOW_MAP_FACE_POS_Y], -0.5);
+    mat4_t_rotate_z(&point_shadow_view_matrices[R_SHADOW_MAP_FACE_POS_Y], 1.0);
 
     mat4_t_rotate_x(&point_shadow_view_matrices[R_SHADOW_MAP_FACE_NEG_Y], 0.5);
-    mat4_t_rotate_z(&point_shadow_view_matrices[R_SHADOW_MAP_FACE_NEG_Y], -0.5);
+    mat4_t_rotate_z(&point_shadow_view_matrices[R_SHADOW_MAP_FACE_NEG_Y], 0.5);
 
     mat4_t_rotate_y(&point_shadow_view_matrices[R_SHADOW_MAP_FACE_POS_Z], 1.0);
-    mat4_t_rotate_z(&point_shadow_view_matrices[R_SHADOW_MAP_FACE_POS_Z], 1.0);
+    mat4_t_rotate_z(&point_shadow_view_matrices[R_SHADOW_MAP_FACE_POS_Z], 0.5);
 
-    mat4_t_rotate_z(&point_shadow_view_matrices[R_SHADOW_MAP_FACE_NEG_Z], 1.0);
+//    mat4_t_rotate_z(&point_shadow_view_matrices[R_SHADOW_MAP_FACE_NEG_Z], 1.0);
 
-    point_shadow_projection_matrices[R_SHADOW_MAP_FACE_POS_Z].comps[0][0] *= -1.0;
-    point_shadow_projection_matrices[R_SHADOW_MAP_FACE_POS_X].comps[0][0] *= -1.0;
-    point_shadow_projection_matrices[R_SHADOW_MAP_FACE_POS_Y].comps[0][0] *= -1.0;
+//    point_shadow_projection_matrices[R_SHADOW_MAP_FACE_POS_Z].comps[0][0] *= -1.0;
+//    point_shadow_projection_matrices[R_SHADOW_MAP_FACE_POS_X].comps[0][0] *= -1.0;
+//    point_shadow_projection_matrices[R_SHADOW_MAP_FACE_POS_Y].comps[0][0] *= -1.0;
 
     for(uint32_t face_index = 0; face_index < 6; face_index++)
     {
@@ -495,6 +517,7 @@ void r_Init()
     glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, r_main_depth_attachment, 0);
 
     r_renderer_state.use_z_prepass = 1;
+    r_renderer_state.max_shadow_res = 8;
 }
 
 void r_Shutdown()

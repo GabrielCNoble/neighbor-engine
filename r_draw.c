@@ -294,8 +294,6 @@ void r_DrawCmds()
     ds_list_qsort(&r_entity_cmds, r_CompareEntityCmds);
     ds_list_qsort(&r_shadow_cmds, r_CompareShadowCmds);
 
-//    glBindBuffer(GL_ARRAY_BUFFER, r_vertex_buffer);
-//    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, r_index_buffer);
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
     glCullFace(GL_BACK);
@@ -308,11 +306,6 @@ void r_DrawCmds()
     glEnable(GL_POLYGON_OFFSET_FILL);
     glPolygonOffset(1.0, 1.0);
     r_BindShader(r_shadow_shader);
-
-//    glClipControl(GL_LOWER_LEFT, GL_ZERO_TO_ONE);
-//    glClearDepth(0.0);
-
-    glCullFace(GL_FRONT);
 
     uint32_t cur_shadow_map = 0xffffffff;
     for(uint32_t cmd_index = 0; cmd_index < r_shadow_cmds.cursor; cmd_index++)
@@ -336,13 +329,8 @@ void r_DrawCmds()
         glDrawElements(GL_TRIANGLES, cmd->count, GL_UNSIGNED_INT, (void *)(cmd->start * sizeof(uint32_t)));
         r_renderer_stats.draw_call_count++;
     }
-
-    glCullFace(GL_BACK);
-
     glDisable(GL_POLYGON_OFFSET_FILL);
     glPolygonOffset(0, 0);
-
-//    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 
     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, r_z_prepass_framebuffer);
     glDisable(GL_SCISSOR_TEST);
@@ -366,12 +354,6 @@ void r_DrawCmds()
         glDepthFunc(GL_EQUAL);
         glDepthMask(GL_FALSE);
     }
-
-//    glClipControl(GL_LOWER_LEFT, GL_NEGATIVE_ONE_TO_ONE);
-//    glClearDepth(1.0);
-
-//    vec4_t row2 = r_point_shadow_view_projection_matrices[0].rows[2];
-//    vec4_t row3 = r_point_shadow_view_projection_matrices[0].rows[3];
 
     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, r_main_framebuffer);
     r_BindShader(r_lit_shader);

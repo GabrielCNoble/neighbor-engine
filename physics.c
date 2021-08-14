@@ -12,6 +12,7 @@ struct stack_list_t p_col_planes;
 struct list_t p_collisions;
 struct list_t p_collision_pairs;
 struct p_col_plane_t *p_pair_col_planes;
+struct stack_list_t p_col_shapes;
 struct dbvh_tree_t p_main_dbvh;
 struct dbvh_tree_t p_trigger_dbvh;
 uint32_t p_frame = 0;
@@ -31,9 +32,11 @@ void p_Init()
     p_colliders[P_COLLIDER_TYPE_MOVABLE] = create_stack_list(sizeof(struct p_movable_collider_t), 512);
     p_colliders[P_COLLIDER_TYPE_STATIC] = create_stack_list(sizeof(struct p_static_collider_t), 512);
     p_colliders[P_COLLIDER_TYPE_TRIGGER] = create_stack_list(sizeof(struct p_trigger_collider_t), 128);
+
+    p_col_shapes = create_stack_list(sizeof(struct p_col_shape_t), 512);
     p_collisions = create_list(sizeof(struct p_collider_t *), 4096);
-    p_col_planes = create_stack_list(sizeof(struct p_col_plane_t) * 6, 512);
-    p_pair_col_planes = mem_Calloc(32, sizeof(struct p_col_plane_t));
+//    p_col_planes = create_stack_list(sizeof(struct p_col_plane_t) * 6, 512);
+//    p_pair_col_planes = mem_Calloc(32, sizeof(struct p_col_plane_t));
     p_main_dbvh = create_dbvh_tree(0);
     p_trigger_dbvh = create_dbvh_tree(0);
 }
@@ -41,6 +44,61 @@ void p_Init()
 void p_Shutdown()
 {
 
+}
+
+struct p_col_shape_t *p_CreateCollisionShape(uint32_t type)
+{
+    struct p_col_shape_t *shape;
+    uint32_t index = add_stack_list_element(&p_col_shapes, NULL);
+
+    shape = get_stack_list_element(&p_col_shapes, index);
+    memset(shape, 0, sizeof(struct p_col_shape_t));
+
+    shape->index = index;
+    shape->type = type;
+
+    return shape;
+}
+
+struct p_col_shape_t *p_CreateCapsuleCollisionShape(float radius, float height)
+{
+    struct p_col_shape_t *shape = p_CreateCollisionShape(P_COL_SHAPE_TYPE_CAPSULE);
+    shape->capsule_shape.radius = radius;
+    shape->capsule_shape.height = height;
+    return shape;
+}
+
+struct p_col_shape_t *p_CreateTriMeshCollisionShape(vec3_t *verts, uint32_t vert_count)
+{
+    struct p_col_shape_t *shape = NULL;
+    vert_count -= vert_count % 3;
+
+    if(vert_count)
+    {
+        shape = p_CreateCollisionShape(P_COL_SHAPE_TYPE_TMESH);
+        shape->tmesh_shape.tris = mem_Calloc(vert_count, sizeof(struct p_col_tri_t));
+
+        for(uint32_t vert_index = 0; vert_index < vert_count;)
+        {
+            struct p_col_tri_t *col_tri = shape->tmesh_shape.tris + shape->tmesh_shape.tri_count;
+            vec3_t e0;
+            vec3_t e1;
+
+            col_tri->verts[0] = verts[vert_index++];
+            col_tri->verts[1] = verts[vert_index++];
+            col_tri->verts[2] = verts[vert_index++];
+
+            vec3_t_sub(&e0, &col_tri->verts[1], &col_tri->verts[0]);
+            vec3_t_sub(&e1, &col_tri->verts[2], &col_tri->verts[1]);
+            vec3_t_cross(&col_tri->normal, &e0, &e1);
+
+            shape->tmesh_shape.tri_count++;
+        }
+
+        shape->tmesh_shape.dbvh = create_dbvh_tree(0);
+    }
+
+    return shape;
 }
 
 struct p_collider_t *p_CreateCollider(uint32_t type, vec3_t *position, mat3_t *orientation, vec3_t *size)

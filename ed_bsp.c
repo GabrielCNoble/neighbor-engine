@@ -1,15 +1,15 @@
 #include "ed_bsp.h"
 #include <stdlib.h>
 
-extern struct stack_list_t ed_polygons;
-extern struct stack_list_t ed_bsp_nodes;
+extern struct ds_slist_t ed_polygons;
+extern struct ds_slist_t ed_bsp_nodes;
 
 #define ED_BSP_DELTA 0.0001
 
 struct ed_polygon_t *ed_AllocPolygon()
 {
-    uint32_t index = add_stack_list_element(&ed_polygons, NULL);
-    struct ed_polygon_t *polygon = get_stack_list_element(&ed_polygons, index);
+    uint32_t index = ds_slist_add_element(&ed_polygons, NULL);
+    struct ed_polygon_t *polygon = ds_slist_get_element(&ed_polygons, index);
 
     polygon->index = index;
     polygon->next = NULL;
@@ -27,15 +27,15 @@ void ed_FreePolygon(struct ed_polygon_t *polygon)
 {
     if(polygon->index != 0xffffffff)
     {
-        remove_stack_list_element(&ed_polygons, polygon->index);
+        ds_slist_remove_element(&ed_polygons, polygon->index);
         polygon->index = 0xffffffff;
     }
 }
 
 struct ed_bspn_t *ed_AllocNode()
 {
-    uint32_t index = add_stack_list_element(&ed_bsp_nodes, NULL);
-    struct ed_bspn_t *node = get_stack_list_element(&ed_bsp_nodes, index);
+    uint32_t index = ds_slist_add_element(&ed_bsp_nodes, NULL);
+    struct ed_bspn_t *node = ds_slist_get_element(&ed_bsp_nodes, index);
 
     node->index = index;
     node->front = NULL;
@@ -49,7 +49,7 @@ void ed_FreeNode(struct ed_bspn_t *node)
 {
     if(node->index != 0xffffffff)
     {
-        remove_stack_list_element(&ed_bsp_nodes, node->index);
+        ds_slist_remove_element(&ed_bsp_nodes, node->index);
         node->index = 0xffffffff;
     }
 }
@@ -62,7 +62,7 @@ struct ed_polygon_t *ed_PolygonsFromBrush(struct ed_brush_t *brush)
 
     for(uint32_t face_index = 0; face_index < brush->faces.cursor; face_index++)
     {
-        struct ed_face_t *face = get_list_element(&brush->faces, face_index);
+        struct ed_face_t *face = ds_list_get_element(&brush->faces, face_index);
         struct ed_polygon_t *polygon = ed_AllocPolygon();
 
         if(polygon->vertices.buffer_size < face->indices.buffer_size)

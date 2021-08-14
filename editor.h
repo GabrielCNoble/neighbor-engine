@@ -49,7 +49,7 @@ struct ed_world_context_data_t
 {
     vec3_t box_start;
     vec3_t box_end;
-    struct list_t selections;
+    struct ds_list_t selections;
 };
 
 enum ED_SELECTION_TYPE
@@ -96,6 +96,38 @@ void ed_Init();
 void ed_Shutdown();
 
 void ed_UpdateEditor();
+
+/*
+=============================================================
+=============================================================
+=============================================================
+*/
+
+void ed_UpdateExplorer();
+
+void ed_OpenExplorer(char *path, uint32_t mode);
+
+void ed_CloseExplorer();
+
+void ed_EnumerateExplorerDrives();
+
+void ed_ChangeExplorerPath(char *path);
+
+void ed_AddExplorerExtFilter(char *ext_filter);
+
+void ed_MatchExplorerEntries(char *match);
+
+void ed_ClearExplorerExtFilters();
+
+void ed_SetExplorerLoadCallback(void (*load_callback)(char *path, char *file));
+
+void ed_SetExplorerSaveCallback(void (*save_callback)(char *path, char *file));
+
+/*
+=============================================================
+=============================================================
+=============================================================
+*/
 
 void ed_FlyCamera();
 

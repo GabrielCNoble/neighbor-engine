@@ -15,6 +15,8 @@ enum ARG
 {
     ARG_INPUT_NAME = 1,
     ARG_PREPEND,
+    ARG_PREPEND_ANIM,
+    ARG_PREPEND_MODEL,
     ARG_ANIM_ONLY,
     ARG_NO_ARG
 };
@@ -50,11 +52,11 @@ struct aiNode* find_node(struct aiNode *cur_node, char *name)
     return NULL;
 }
 
-void get_them_bones(struct aiNode *cur_node, struct list_t *bones)
+void get_them_bones(struct aiNode *cur_node, struct ds_list_t *bones)
 {
     for(uint32_t child_index = 0; child_index < cur_node->mNumChildren; child_index++)
     {
-        add_list_element(bones, &cur_node->mChildren[child_index]);
+        ds_list_add_element(bones, &cur_node->mChildren[child_index]);
         get_them_bones(cur_node->mChildren[child_index], bones);
     }
 }
@@ -91,7 +93,8 @@ int main(int argc, char *argv[])
     struct aiPropertyStore *properties;
     int32_t cur_arg = ARG_NO_ARG;
     char *input_name = NULL;
-    char prepend[PATH_MAX] = "";
+    char prepend_anim[PATH_MAX] = "./";
+    char prepend_model[PATH_MAX] = "./";
     char output_name[PATH_MAX] = "";
     uint32_t no_anim = 0;
     uint32_t no_model = 0;
@@ -111,6 +114,14 @@ int main(int argc, char *argv[])
                 {
                     cur_arg = ARG_PREPEND;
                 }
+                else if(!strcmp(argv[arg_index], "-pmodel"))
+                {
+                    cur_arg = ARG_PREPEND_MODEL;
+                }
+                else if(!strcmp(argv[arg_index], "-panim"))
+                {
+                    cur_arg = ARG_PREPEND_ANIM;
+                }
                 else if(!strcmp(argv[arg_index], "-noanim"))
                 {
                     no_anim = 1;
@@ -123,6 +134,28 @@ int main(int argc, char *argv[])
                 {
                     overwrite = 1;
                 }
+                else if(!strcmp(argv[arg_index], "-help"))
+                {
+                    printf("mcvt - mesh coverter\n");
+                    printf("arguments:\n\n");
+                    printf("-i : input file name. Since input files may contain several\n");
+                    printf("models, each with potentially several animations, output names\n");
+                    printf("will be those present in the files, but with .anf extension for\n");
+                    printf("animations, and .mof for models\n\n");
+                    printf("-p : prepend path to output file name. If not provided, output\n");
+                    printf("files will be written to the current directory.\n\n");
+                    printf("-pmodel : prepend path just to .mof files. Other than that, same\n");
+                    printf("deal as with -p.\n\n");
+                    printf("-panim : prepend path just to .anf files. Other than that, same\n");
+                    printf("deal as with -p.\n\n");
+                    printf("-f : force overwrite of existing files. If this is not\n");
+                    printf("provided the tool will ask whether to overwrite or not the\n");
+                    printf("existing file.\n\n");
+                    printf("-noanim : don't output animation data.\n\n");
+                    printf("-nomodel : don't output model data.\n\n");
+                    printf("-help : prints this help, then exits.\n\n");
+                    return 0;
+                }
             }
             else
             {
@@ -133,7 +166,16 @@ int main(int argc, char *argv[])
                     break;
 
                     case ARG_PREPEND:
-                        strcpy(prepend, ds_path_FormatPath(argv[arg_index]));
+                        ds_path_format_path(argv[arg_index], prepend_anim, PATH_MAX);
+                        ds_path_format_path(argv[arg_index], prepend_model, PATH_MAX);
+                    break;
+
+                    case ARG_PREPEND_ANIM:
+                        ds_path_format_path(argv[arg_index], prepend_anim, PATH_MAX);
+                    break;
+
+                    case ARG_PREPEND_MODEL:
+                        ds_path_format_path(argv[arg_index], prepend_model, PATH_MAX);
                     break;
                 }
 
@@ -155,6 +197,14 @@ int main(int argc, char *argv[])
                 case ARG_PREPEND:
                     printf("missing prepend!\n");
                 break;
+
+                case ARG_PREPEND_MODEL:
+                    printf("missing model prepend!\n");
+                break;
+
+                case ARG_PREPEND_ANIM:
+                    printf("missing anim prepend!\n");
+                break;
             }
         }
 
@@ -175,9 +225,9 @@ int main(int argc, char *argv[])
             {
                 struct aiAnimation *animation = scene->mAnimations[animation_index];
                 struct aiNode *skeleton_node = find_node(scene->mRootNode, animation->mChannels[0]->mNodeName.data);
-                struct list_t node_list = create_list(sizeof(struct aiNode *), 512);
-                struct list_t bone_transform_list = create_list(sizeof(struct bone_transform_t), 512);
-                struct list_t pair_list = create_list(sizeof(struct a_transform_pair_t), 512);
+                struct ds_list_t node_list = ds_list_create(sizeof(struct aiNode *), 512);
+                struct ds_list_t bone_transform_list = ds_list_create(sizeof(struct bone_transform_t), 512);
+                struct ds_list_t pair_list = ds_list_create(sizeof(struct a_transform_pair_t), 512);
 
                 char *animation_name = animation->mName.data;
 
@@ -191,7 +241,7 @@ int main(int argc, char *argv[])
                     animation_name++;
                 }
 
-                strcpy(output_name, prepend);
+                strcpy(output_name, prepend_anim);
                 strcat(output_name, "/");
                 strcat(output_name, animation_name);
                 strcat(output_name, ".anf");
@@ -232,7 +282,7 @@ int main(int argc, char *argv[])
 
                     for(uint32_t node_index = 0; node_index < node_list.cursor; node_index++)
                     {
-                        struct aiNode *node = *(struct aiNode **)get_list_element(&node_list, node_index);
+                        struct aiNode *node = *(struct aiNode **)ds_list_get_element(&node_list, node_index);
 
                         if(!strcmp(node->mName.data, channel->mNodeName.data))
                         {
@@ -253,9 +303,9 @@ int main(int argc, char *argv[])
                                 bone_transform.transform.pos.z = channel->mPositionKeys->mValue.z;
 
                                 bone_transform.time = 0;
-                                add_list_element(&bone_transform_list, &bone_transform);
+                                ds_list_add_element(&bone_transform_list, &bone_transform);
                                 bone_transform.time = duration;
-                                add_list_element(&bone_transform_list, &bone_transform);
+                                ds_list_add_element(&bone_transform_list, &bone_transform);
                             }
                             else
                             {
@@ -315,7 +365,7 @@ int main(int argc, char *argv[])
                                     struct bone_transform_t *last_bone_transform = NULL;
                                     if(bone_transform_list.cursor)
                                     {
-                                        last_bone_transform = get_list_element(&bone_transform_list, bone_transform_list.cursor - 1);
+                                        last_bone_transform = ds_list_get_element(&bone_transform_list, bone_transform_list.cursor - 1);
                                         if(bone_transform.time != last_bone_transform->time)
                                         {
                                             last_bone_transform = NULL;
@@ -324,7 +374,7 @@ int main(int argc, char *argv[])
 
                                     if(!last_bone_transform)
                                     {
-                                        add_list_element(&bone_transform_list, &bone_transform);
+                                        ds_list_add_element(&bone_transform_list, &bone_transform);
                                     }
                                 }
                             }
@@ -335,7 +385,7 @@ int main(int argc, char *argv[])
                 }
 
                 /* sort keyframes by time */
-                qsort_list(&bone_transform_list, compare_bone_transforms);
+                ds_list_qsort(&bone_transform_list, compare_bone_transforms);
 
 
                 /* for each frame in the animation, we need a list of pairs, sorted by bone.
@@ -356,7 +406,7 @@ int main(int argc, char *argv[])
 
                         for(uint32_t start_index = 0; start_index < bone_transform_list.cursor; start_index++)
                         {
-                            start_transform = get_list_element(&bone_transform_list, start_index);
+                            start_transform = ds_list_get_element(&bone_transform_list, start_index);
                             if(start_transform->bone_index == node_index && start_transform->time <= frame)
                             {
                                 /* we find the first transform that starts at the current frame, or before
@@ -373,7 +423,7 @@ int main(int argc, char *argv[])
                                     transforms are sorted by time, and there's only one transform per frame for each bone,
                                     this transform has to have a frame time higher than the first */
 
-                                    end_transform = get_list_element(&bone_transform_list, end_index);
+                                    end_transform = ds_list_get_element(&bone_transform_list, end_index);
                                     if(end_transform->bone_index == node_index)
                                     {
                                         break;
@@ -397,7 +447,7 @@ int main(int argc, char *argv[])
                             }
                         }
 
-                        add_list_element(&pair_list, &pair);
+                        ds_list_add_element(&pair_list, &pair);
                     }
                 }
 
@@ -424,13 +474,13 @@ int main(int argc, char *argv[])
 
                 for(uint32_t transform_index = 0; transform_index < bone_transform_list.cursor; transform_index++)
                 {
-                    struct bone_transform_t *transform = get_list_element(&bone_transform_list, transform_index);
+                    struct bone_transform_t *transform = ds_list_get_element(&bone_transform_list, transform_index);
                     data->transforms[transform_index] = transform->transform;
                 }
 
                 for(uint32_t pair_index = 0; pair_index < pair_list.cursor; pair_index++)
                 {
-                    data->pairs[pair_index] = *(struct a_transform_pair_t *)get_list_element(&pair_list, pair_index);
+                    data->pairs[pair_index] = *(struct a_transform_pair_t *)ds_list_get_element(&pair_list, pair_index);
                 }
 
                 void *buffer;
@@ -440,9 +490,9 @@ int main(int argc, char *argv[])
 
                 ds_serialize_sections(&buffer, &buffer_size, 1, sections);
                 ds_free_section(&animation_section);
-                destroy_list(&node_list);
-                destroy_list(&bone_transform_list);
-                destroy_list(&pair_list);
+                ds_list_destroy(&node_list);
+                ds_list_destroy(&bone_transform_list);
+                ds_list_destroy(&pair_list);
 
                 FILE *file = fopen(output_name, "wb");
                 fwrite(buffer, buffer_size, 1, file);
@@ -464,7 +514,7 @@ int main(int argc, char *argv[])
                     continue;
                 }
 
-                strcpy(output_name, prepend);
+                strcpy(output_name, prepend_model);
                 strcat(output_name, "/");
                 strcat(output_name, object->mName.data);
                 strcat(output_name, ".mof");
@@ -507,10 +557,10 @@ int main(int argc, char *argv[])
 
                 if(mesh->mBones)
                 {
-                    struct list_t bone_list = create_list(sizeof(struct aiBone *), 512);
-                    struct list_t node_list = create_list(sizeof(struct aiNode *), 512);
-                    struct list_t weight_list = create_list(sizeof(struct vert_weight_t), 512);
-                    struct list_t range_list = create_list(sizeof(struct a_weight_range_t), 512);
+                    struct ds_list_t bone_list = ds_list_create(sizeof(struct aiBone *), 512);
+                    struct ds_list_t node_list = ds_list_create(sizeof(struct aiNode *), 512);
+                    struct ds_list_t weight_list = ds_list_create(sizeof(struct vert_weight_t), 512);
+                    struct ds_list_t range_list = ds_list_create(sizeof(struct a_weight_range_t), 512);
 
                     struct aiNode *skeleton_node = find_node(scene->mRootNode, mesh->mBones[0]->mName.data);
 
@@ -528,7 +578,7 @@ int main(int argc, char *argv[])
                         for(uint32_t bone_index = 0; bone_index < mesh->mNumBones; bone_index++)
                         {
                             /* store all bones all meshes of this object use */
-                            add_list_element(&bone_list, mesh->mBones + bone_index);
+                            ds_list_add_element(&bone_list, mesh->mBones + bone_index);
                         }
                     }
 
@@ -536,7 +586,7 @@ int main(int argc, char *argv[])
 
                     for(uint32_t bone_index = 0; bone_index < bone_list.cursor; bone_index++)
                     {
-                        struct aiBone *bone = *(struct aiBone **)get_list_element(&bone_list, bone_index);
+                        struct aiBone *bone = *(struct aiBone **)ds_list_get_element(&bone_list, bone_index);
                         bone_name_len += bone->mName.length + 1;
                         for(uint32_t weight_index = 0; weight_index < bone->mNumWeights; weight_index++)
                         {
@@ -550,7 +600,7 @@ int main(int argc, char *argv[])
 
                             for(uint32_t node_index = 0; node_index < node_list.cursor; node_index++)
                             {
-                                struct aiNode *node = *(struct aiNode **)get_list_element(&node_list, node_index);
+                                struct aiNode *node = *(struct aiNode **)ds_list_get_element(&node_list, node_index);
                                 if(!strcmp(bone->mName.data, node->mName.data))
                                 {
                                     /* and which node in depth-first order it belongs to */
@@ -560,7 +610,7 @@ int main(int argc, char *argv[])
                             }
 
                             /* we store in a temporary list because we'll need to sort them by vertex index */
-                            add_list_element(&weight_list, &vert_weight);
+                            ds_list_add_element(&weight_list, &vert_weight);
                         }
                     }
 
@@ -568,7 +618,7 @@ int main(int argc, char *argv[])
                     of vertex 1, and so on. Here we'll export everything that assimp has got to give us,
                     even though we'll likely limit the number of weights per vertex during import (likely
                     4 weights per vertex) */
-                    qsort_list(&weight_list, compare_weights_vert);
+                    ds_list_qsort(&weight_list, compare_weights_vert);
                     uint32_t cur_vert = 0xffffffff;
                     uint32_t left = 0;
                     uint32_t right = 0;
@@ -585,20 +635,20 @@ int main(int argc, char *argv[])
                         that point to the same vertex. So, all weights of vertex 0 will be sorted
                         by weight, then all weights of vertex 1, and so on.*/
 
-                        vert_weight = get_list_element(&weight_list, right);
+                        vert_weight = ds_list_get_element(&weight_list, right);
                         cur_vert = vert_weight->vert_index;
                         range.start = right;
                         while(vert_weight && vert_weight->vert_index == cur_vert)
                         {
                             /* count how many weights there are for the current vertex */
                             right++;
-                            vert_weight = get_list_element(&weight_list, right);
+                            vert_weight = ds_list_get_element(&weight_list, right);
                         }
                         range.count = right - range.start;
-                        add_list_element(&range_list, &range);
+                        ds_list_add_element(&range_list, &range);
                         if(left + 1 < right)
                         {
-                            qsort_list_rec(&weight_list, left, right - 1, compare_weights_value);
+                            ds_list_qsort_rec(&weight_list, left, right - 1, compare_weights_value);
                         }
                         left = right;
                     }
@@ -613,7 +663,7 @@ int main(int argc, char *argv[])
                     uint32_t first_weight = 0;
                     for(uint32_t weight_index = 0; weight_index < weight_list.cursor; weight_index++)
                     {
-                        struct vert_weight_t *vert_weight = get_list_element(&weight_list, weight_index);
+                        struct vert_weight_t *vert_weight = ds_list_get_element(&weight_list, weight_index);
                         if(vert_weight->vert_index != cur_vert)
                         {
                             if(cur_vert != 0xffffffff)
@@ -624,7 +674,7 @@ int main(int argc, char *argv[])
                                     /* very likely to happen... */
                                     for(uint32_t fix_index = first_weight; fix_index < weight_index; fix_index++)
                                     {
-                                        struct vert_weight_t *fix_weight = get_list_element(&weight_list, fix_index);
+                                        struct vert_weight_t *fix_weight = ds_list_get_element(&weight_list, fix_index);
                                         float proportion = fix_weight->weight.weight / total_weight;
                                         fix_weight->weight.weight += missing * proportion;
                                     }
@@ -646,13 +696,13 @@ int main(int argc, char *argv[])
 
                     for(uint32_t weight_index = 0; weight_index < weights->weight_count; weight_index++)
                     {
-                        struct vert_weight_t *weight = get_list_element(&weight_list, weight_index);
+                        struct vert_weight_t *weight = ds_list_get_element(&weight_list, weight_index);
                         weights->weights[weight_index] = weight->weight;
                     }
 
                     for(uint32_t range_index = 0; range_index < weights->range_count; range_index++)
                     {
-                        struct a_weight_range_t *range = get_list_element(&range_list, range_index);
+                        struct a_weight_range_t *range = ds_list_get_element(&range_list, range_index);
                         weights->ranges[range_index] = *range;
                     }
 
@@ -664,12 +714,12 @@ int main(int argc, char *argv[])
                     skeleton->bone_count = node_list.cursor;
                     for(uint32_t node_index = 0; node_index < node_list.cursor; node_index++)
                     {
-                        struct aiNode *node = *(struct aiNode **)get_list_element(&node_list, node_index);
+                        struct aiNode *node = *(struct aiNode **)ds_list_get_element(&node_list, node_index);
                         struct a_bone_t *bone = skeleton->bones + node_index;
                         char *bone_name = skeleton->bone_names + skeleton->bone_names_length;
                         for(uint32_t bone_index = 0; bone_index < bone_list.cursor; bone_index++)
                         {
-                            struct aiBone *ai_bone = *(struct aiBone **)get_list_element(&bone_list, bone_index);
+                            struct aiBone *ai_bone = *(struct aiBone **)ds_list_get_element(&bone_list, bone_index);
                             if(!strcmp(ai_bone->mName.data, node->mName.data))
                             {
                                 strcpy(bone_name, ai_bone->mName.data);
@@ -718,10 +768,10 @@ int main(int argc, char *argv[])
                     weight_count = weight_list.cursor;
                     range_count = range_list.cursor;
 
-                    destroy_list(&weight_list);
-                    destroy_list(&range_list);
-                    destroy_list(&node_list);
-                    destroy_list(&bone_list);
+                    ds_list_destroy(&weight_list);
+                    ds_list_destroy(&range_list);
+                    ds_list_destroy(&node_list);
+                    ds_list_destroy(&bone_list);
                 }
 
                 struct r_material_section_t *materials = ds_append_data(&material_section, sizeof(struct r_material_section_t), NULL);
@@ -760,8 +810,8 @@ int main(int argc, char *argv[])
                     strcpy(batch_record.material, material_record.name);
                     batch_record.start = indices->index_count;
 
-                    vertices->min = vec3_t_c(0.0, 0.0, 0.0);
-                    vertices->max = vec3_t_c(0.0, 0.0, 0.0);
+                    vertices->min = vec3_t_c(FLT_MAX, FLT_MAX, FLT_MAX);
+                    vertices->max = vec3_t_c(-FLT_MAX, -FLT_MAX, -FLT_MAX);
 
                     for(uint32_t vert_index = 0; vert_index < mesh->mNumVertices; vert_index++)
                     {
@@ -783,13 +833,13 @@ int main(int argc, char *argv[])
                         vert.tex_coords.x = mesh->mTextureCoords[0][vert_index].x;
                         vert.tex_coords.y = mesh->mTextureCoords[0][vert_index].y;
 
-                        if(vertices->min.x < vert.pos.x) vertices->min.x = vert.pos.x;
-                        if(vertices->min.y < vert.pos.y) vertices->min.y = vert.pos.y;
-                        if(vertices->min.z < vert.pos.z) vertices->min.z = vert.pos.z;
+                        if(vertices->min.x > vert.pos.x) vertices->min.x = vert.pos.x;
+                        if(vertices->min.y > vert.pos.y) vertices->min.y = vert.pos.y;
+                        if(vertices->min.z > vert.pos.z) vertices->min.z = vert.pos.z;
 
-                        if(vertices->max.x > vert.pos.x) vertices->max.x = vert.pos.x;
-                        if(vertices->max.y > vert.pos.y) vertices->max.y = vert.pos.y;
-                        if(vertices->max.z > vert.pos.z) vertices->max.z = vert.pos.z;
+                        if(vertices->max.x < vert.pos.x) vertices->max.x = vert.pos.x;
+                        if(vertices->max.y < vert.pos.y) vertices->max.y = vert.pos.y;
+                        if(vertices->max.z < vert.pos.z) vertices->max.z = vert.pos.z;
 
                         ds_append_data(&vert_section, sizeof(struct r_vert_t), &vert);
                     }

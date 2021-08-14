@@ -71,9 +71,7 @@ struct ds_chunk_t *r_GetIndicesChunk(struct ds_chunk_h chunk);
 
 struct r_model_t *r_LoadModel(char *file_name);
 
-struct r_model_t *r_CreateModel(struct r_model_create_info_t *create_info);
-
-struct r_model_t *r_CreateModel2(struct r_model_geometry_t *geometry, struct r_model_skeleton_t *skeleton);
+struct r_model_t *r_CreateModel(struct r_model_geometry_t *geometry, struct r_model_skeleton_t *skeleton);
 
 void r_UpdateModelGeometry(struct r_model_t *model, struct r_model_geometry_t *geometry);
 
@@ -88,6 +86,8 @@ struct r_model_t *r_ShallowCopyModel(struct r_model_t *model);
 struct r_light_t *r_CreateLight(uint32_t type, vec3_t *position, vec3_t *color, float radius, float energy);
 
 struct r_light_t *r_GetLight(uint32_t light_index);
+
+void r_AllocShadowMaps(struct r_light_t *light, uint32_t resolution);
 
 void r_DestroyLight(struct r_light_t *light);
 
@@ -108,6 +108,8 @@ uint32_t r_GetUniformIndex(struct r_shader_t *shader, char *name);
 void r_SetUniformMatrix4(uint32_t uniform, mat4_t *matrix);
 
 void r_SetUniform1f(uint32_t uniform, float value);
+
+void r_SetUniform2f(uint32_t uniform, float value0, float value1);
 
 void r_SetUniform1i(uint32_t uniform, uint32_t value);
 

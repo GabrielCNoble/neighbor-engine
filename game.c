@@ -1,4 +1,4 @@
-#include "dstuff/ds_stack_list.h"
+#include "dstuff/ds_slist.h"
 #include "dstuff/ds_mem.h"
 #include "dstuff/ds_file.h"
 #include "dstuff/ds_vector.h"
@@ -13,15 +13,16 @@
 #include "gui.h"
 #include <string.h>
 #include <stdio.h>
+#include <float.h>
 
 
 extern mat4_t r_view_matrix;
 extern mat4_t r_inv_view_matrix;
 extern mat4_t r_view_projection_matrix;
 
-struct stack_list_t g_entities;
-struct list_t g_projectiles;
-struct stack_list_t g_triggers;
+struct ds_slist_t g_entities;
+struct ds_list_t g_projectiles;
+struct ds_slist_t g_triggers;
 
 //float g_camera_z = G_PLAYER_AREA_Z;
 
@@ -60,6 +61,8 @@ struct s_sound_t *g_footstep_sounds[5];
 struct s_sound_t *g_ric_sounds[10];
 struct s_sound_t *g_shot_sound;
 struct r_light_t *g_player_light;
+//struct r_light_t *g_lights[3];
+struct r_light_t *g_lights[8];
 uint32_t g_hook_index;
 mat4_t *g_hook_transform;
 
@@ -133,7 +136,7 @@ char *lower_body_bones[] =
 uint32_t lower_body_bone_count = sizeof(lower_body_bones) / sizeof(lower_body_bones[0]);
 char *lower_body_players[] = {"run_player", "jump_player", "idle_player", "fall_player"};
 
-extern uint32_t r_use_z_prepass;
+extern struct r_renderer_state_t r_renderer_state;
 
 void g_TestCallback(void *data, float delta_time)
 {
@@ -161,8 +164,8 @@ void g_Init(uint32_t editor_active)
         ed_Init();
     }
 
-    g_entities = create_stack_list(sizeof(struct g_entity_t), 512);
-    g_projectiles = create_list(sizeof(struct g_projectile_t), 512);
+    g_entities = ds_slist_create(sizeof(struct g_entity_t), 512);
+    g_projectiles = ds_list_create(sizeof(struct g_projectile_t), 512);
     r_SetViewPitchYaw(g_camera_pitch, g_camera_yaw);
     r_SetViewPos(&g_camera_pos);
 
@@ -176,8 +179,8 @@ void g_Init(uint32_t editor_active)
 
 
 //    g_gun_model = r_LoadModel("models/shocksplinter.mof");
-//    g_wiggle_model = r_LoadModel("models/dude.mof");
-//    g_cube_model = r_LoadModel("models/Cube.mof");
+    g_wiggle_model = r_LoadModel("models/dude.mof");
+    g_cube_model = r_LoadModel("models/Cube.mof");
 
 //    g_run_animation = a_LoadAnimation("models/run.anf");
 //    g_idle_animation = a_LoadAnimation("models/idle.anf");
@@ -328,16 +331,29 @@ void g_Init(uint32_t editor_active)
     mat4_t transform;
     mat4_t_identity(&transform);
 
-    transform.rows[3].y = 0.0;
-    transform.rows[0].x = 0.08;
-    transform.rows[1].y = 0.08;
-    transform.rows[2].z = 0.08;
 
-//    r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(1.0, 1.5, 1.0), &vec3_t_c(1.0, 0.2, 0.0), 5.0, 2.0);
-//    r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(-1.0, 1.5, -1.0), &vec3_t_c(0.0, 1.0, 0.13), 5.0, 2.0);
-//    r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(-3.0, 1.5, 1.0), &vec3_t_c(0.4, 0.2, 1.0), 5.0, 2.0);
-//    r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(3.0, 1.5, -1.0), &vec3_t_c(1.0, 0.14, 0.0), 5.0, 2.0);
-//    r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(5.0, 1.5, 1.0), &vec3_t_c(0.33, 0.46, 0.0), 5.0, 2.0);
+//    g_lights[0] = r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(0.0, 0.3, 0.4), &vec3_t_c(1.0, 0.0, 0.0), 5.0, 3.0);
+//    g_lights[1] = r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(-0.6, 0.3, -0.6), &vec3_t_c(0.0, 1.0, 0.0), 5.0, 3.0);
+//    g_lights[2] = r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(0.6, 0.3, -0.6), &vec3_t_c(0.0, 0.0, 1.0), 5.0, 3.0);
+
+    float increment = 3.14159265 / 4.0;
+    float angle = 0.0;
+    for(uint32_t index = 0; index < 8; index++)
+    {
+        vec3_t position = vec3_t_c(cos(angle) * 5.0, (((float)(rand() % 250) / 250.0) * 2.0 - 1.0) * 6.0, sin(angle) * 5.0);
+        vec3_t color;
+        vec3_t_normalize(&color, &position);
+        vec3_t_fabs(&color, &color);
+        g_lights[index] = r_CreateLight(R_LIGHT_TYPE_POINT, &position, &color, 7.5, 5.0);
+        angle += increment;
+    }
+
+//    g_player_light = r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(0.0, 0.0, 2.0), &vec3_t_c(1.0, 1.0, 1.0), 10.5, 5.0);
+//
+//    r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(-0.6, -1.3, 0.0), &vec3_t_c(0.0, 1.0, 0.13), 1.7, 2.0);
+//    r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(-0.6, -1.3, 0.6), &vec3_t_c(0.4, 0.2, 1.0), 1.7, 2.0);
+//    r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(0.6, -1.3, -0.6), &vec3_t_c(1.0, 0.14, 0.0), 1.7, 2.0);
+//    r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(0.6, -1.3, 0.6), &vec3_t_c(0.33, 0.46, 0.0), 1.7, 2.0);
 //    r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(-4.7, 1.1, -1.8), &vec3_t_c(0.3, 0.0, 0.8), 5.0, 2.0);
 //    r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(-4.7, 1.25, -1.70), &vec3_t_c(1.0, 0.35, 0.0), 2.0, 4.0);
 //    r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(-4.7, 1.25, 1.15), &vec3_t_c(1.0, 0.35, 0.0), 2.0, 4.0);
@@ -357,27 +373,91 @@ void g_Init(uint32_t editor_active)
 //    r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(0.0, 2.0, 0.0), &vec3_t_c(1.0, 1.0, 1.0), 8.0, 12.0);
 //    r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(0.0, 2.0, 8.0), &vec3_t_c(1.0, 1.0, 1.0), 8.0, 12.0);
 //    r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(0.0, 2.0, -8.0), &vec3_t_c(1.0, 1.0, 1.0), 8.0, 12.0);
-//    g_CreateEntity(&transform, NULL, g_cube_model);
-//    g_CreateEntity(&transform, NULL, g_sponza_model);
 
-    transform.rows[0].x = 1.0;
-    transform.rows[1].y = 1.0;
-    transform.rows[2].z = 1.0;
+    transform.rows[0].x = 0.3;
+    transform.rows[1].y = 7.0;
+    transform.rows[2].z = 0.3;
 
     transform.rows[3].x = 0.0;
     transform.rows[3].y = 0.0;
     transform.rows[3].z = 0.0;
 
-    transform.rows[0].x = 1.0;
-    transform.rows[2].z = 1.0;
+    g_CreateEntity(&transform, NULL, g_cube_model);
+
+    transform.rows[0].x = 10.0;
+    transform.rows[1].y = 0.1;
+    transform.rows[2].z = 10.0;
+    transform.rows[3].x = 0.0;
+    transform.rows[3].y = -6.0;
+    transform.rows[3].z = -0.0;
+
+    g_CreateEntity(&transform, NULL, g_cube_model);
+    transform.rows[3].y = 6.0;
+    g_CreateEntity(&transform, NULL, g_cube_model);
+
+    transform.rows[0].x = 500.0;
+    transform.rows[1].y = 500.0;
+    transform.rows[2].z = 0.1;
+
+    transform.rows[3].y = 0.0;
+    transform.rows[3].z = -6.0;
+    g_CreateEntity(&transform, NULL, g_cube_model);
+    transform.rows[3].z = 6.0;
+    g_CreateEntity(&transform, NULL, g_cube_model);
+//
+
+    transform.rows[0].x = 0.1;
+    transform.rows[1].y = 500.0;
+    transform.rows[2].z = 500.0;
+
+    transform.rows[3].x = -6.0;
+    g_CreateEntity(&transform, NULL, g_cube_model);
+    transform.rows[3].x = 6.0;
+    g_CreateEntity(&transform, NULL, g_cube_model);
+
+
+    transform.rows[0].x = 0.3;
+    transform.rows[1].y = 0.3;
+    transform.rows[2].z = 0.3;
+
+    transform.rows[3].x = 0.0;
+    transform.rows[3].y = 0.0;
+    transform.rows[3].z = 0.0;
+
+//    g_CreateEntity(&transform, NULL, g_cube_model);
+
+//    for(int32_t x = 0; x < 10; x++)
+//    {
+//        for(int32_t y = 0; y < 10; y++)
+//        {
+//            for(int32_t z = 0; z < 10; z++)
+//            {
+//                transform.rows[3].x = x * 2 - 10;
+//                transform.rows[3].y = y * 2 - 10;
+//                transform.rows[3].z = z * 2 - 10;
+//                g_CreateEntity(&transform, NULL, g_cube_model);
+//            }
+//        }
+//    }
+
+    transform.rows[0].x = 0.3;
+    transform.rows[1].y = 0.3;
+    transform.rows[2].z = 0.3;
+
+//    transform.rows[3].x = 0.0;
+//    transform.rows[3].y = 0.0;
+//    transform.rows[3].z = 0.0;
+
+//    transform.rows[0].x = 1.0;
+//    transform.rows[2].z = 1.0;
     mat4_t_rotate_x(&transform, -0.5);
 
     transform.rows[3].x = 0.0;
-    transform.rows[3].y = 0.0;
+    transform.rows[3].y = -1.94;
     transform.rows[3].z = 0.0;
     struct g_entity_t *boy_entity;
 
-//    boy_entity = g_CreateEntity(&transform, NULL, g_boy_model);
+//    boy_entity = g_CreateEntity(&transform, NULL, g_wiggle_model);
 //    g_PlayAnimation(boy_entity, miracle_dance_smooth, "just_dance");
 //    struct a_player_t *player = a_GetMixerPlayer(boy_entity->mixer, "just_dance");
 //    a_SeekAnimationAbsolute(player, (rand() % miracle_dance_blockout->duration) * 0.1);
@@ -551,11 +631,57 @@ void g_SetGameState(uint32_t game_state)
 
 void g_MainLoop(uint32_t editor_active)
 {
+    float f = 0;
+    float t = 0;
+    uint32_t row = 0;
+
     while(g_game_state != G_GAME_STATE_QUIT)
     {
+//        g_player_entity->transform.rows[3].x = cos(f) * 2.0;
+////        g_player_entity->transform.rows[3].y = sin(t) * 2.0;
+//        g_player_entity->transform.rows[3].z = sin(f) * 2.0;
+
+//        g_player_light->data.pos_rad.x = cos(f) * 2.4;
+//        g_player_light->data.pos_rad.y = sin(t * 5) * 0.4;
+//        g_player_light->data.pos_rad.z = sin(f) * 2.4;
+
+
+//        g_player_light->data.pos_rad.y = sin(f) ;
+//        g_player_light->data.pos_rad.z = 2.0 + cos(f) * 0.7;
+//        g_player_light->data.pos_rad.x = cos(t) * 3.0;
+//        for(uint32_t light_index = 0; light_index < 3; light_index++)
+//        {
+//            g_lights[light_index]->data.pos_rad.y = sin(f + (float)light_index * 0.5);
+//        }
+
+        f += 0.007;
+        t += 0.03;
         in_Input();
         gui_BeginFrame();
         p_UpdateColliders();
+
+        if(in_GetKeyState(SDL_SCANCODE_C) & IN_KEY_STATE_JUST_PRESSED)
+        {
+            mat4_t transform;
+            mat4_t_identity(&transform);
+            transform.rows[0].x = 0.2;
+            transform.rows[1].y = 0.2;
+            transform.rows[2].z = 0.2;
+
+            for(uint32_t index = 0; index < 1000; index++)
+            {
+                transform.rows[3].x = -2000 + index * 4;
+                transform.rows[3].z = row * 4;
+                g_CreateEntity(&transform, NULL, g_wiggle_model);
+            }
+            row++;
+        }
+
+        if(in_GetKeyState(SDL_SCANCODE_Z) & IN_KEY_STATE_JUST_PRESSED)
+        {
+            r_renderer_state.use_z_prepass^= 1;
+        }
+
         switch(g_game_state)
         {
             case G_GAME_STATE_PLAYING:
@@ -574,6 +700,7 @@ void g_MainLoop(uint32_t editor_active)
         }
 
         r_VisibleLights();
+        r_VisibleEntitiesOnLights();
         r_VisibleEntities();
         r_BeginFrame();
         gui_EndFrame();
@@ -683,9 +810,11 @@ void g_UpdateEntities()
 //    r_i_SetPolygonMode(GL_FILL);
 //    r_i_SetSize(4.0);
 
+
+
     for(uint32_t entity_index = 0; entity_index < g_entities.cursor; entity_index++)
     {
-        struct g_entity_t *entity = get_stack_list_element(&g_entities, entity_index);
+        struct g_entity_t *entity = ds_slist_get_element(&g_entities, entity_index);
 
         if(entity->index != 0xffffffff)
         {
@@ -709,6 +838,8 @@ void g_UpdateEntities()
             {
                 entity->transform = entity->local_transform;
             }
+
+            g_UpdateEntityExtents(entity);
         }
     }
 
@@ -784,8 +915,8 @@ struct g_entity_t *g_CreateEntity(mat4_t *transform, thinker_t *thinker, struct 
     uint32_t entity_index;
     struct g_entity_t *entity;
 
-    entity_index = add_stack_list_element(&g_entities, NULL);
-    entity = get_stack_list_element(&g_entities, entity_index);
+    entity_index = ds_slist_add_element(&g_entities, NULL);
+    entity = ds_slist_get_element(&g_entities, entity_index);
 
     entity->index = entity_index;
     entity->local_transform = *transform;
@@ -794,13 +925,15 @@ struct g_entity_t *g_CreateEntity(mat4_t *transform, thinker_t *thinker, struct 
     entity->thinker = thinker;
 //    entity->item = r_AllocateVisItem(&entity->transform, entity->model);
 
+    g_UpdateEntityExtents(entity);
+
     return entity;
 }
 
 struct g_entity_t *g_GetEntity(uint32_t index)
 {
     struct g_entity_t *entity;
-    entity = get_stack_list_element(&g_entities, index);
+    entity = ds_slist_get_element(&g_entities, index);
     if(entity && entity->index == 0xffffffff)
     {
         entity = NULL;
@@ -812,6 +945,74 @@ struct g_entity_t *g_GetEntity(uint32_t index)
 void g_DestroyEntity(struct g_entity_t *entity)
 {
 
+}
+
+void g_UpdateEntityExtents(struct g_entity_t *entity)
+{
+    vec3_t corners[8];
+    vec3_t min;
+    vec3_t max;
+
+    if(entity && entity->model)
+    {
+        max = entity->model->max;
+        min = entity->model->min;
+
+        corners[0] = max;
+
+        corners[1].x = max.x;
+        corners[1].y = min.y;
+        corners[1].z = max.z;
+
+        corners[2].x = min.x;
+        corners[2].y = min.y;
+        corners[2].z = max.z;
+
+        corners[3].x = min.x;
+        corners[3].y = max.y;
+        corners[3].z = max.z;
+
+        corners[4].x = max.x;
+        corners[4].y = max.y;
+        corners[4].z = min.x;
+
+        corners[5].x = max.x;
+        corners[5].y = min.y;
+        corners[5].z = min.z;
+
+        corners[6].x = min.x;
+        corners[6].y = min.y;
+        corners[6].z = min.z;
+
+        corners[7] = min;
+
+        mat3_t rot_scale;
+
+        rot_scale.rows[0] = entity->transform.rows[0].xyz;
+        rot_scale.rows[1] = entity->transform.rows[1].xyz;
+        rot_scale.rows[2] = entity->transform.rows[2].xyz;
+
+        max = vec3_t_c(-FLT_MAX, -FLT_MAX, -FLT_MAX);
+        min = vec3_t_c(FLT_MAX, FLT_MAX, FLT_MAX);
+
+        for(uint32_t corner_index = 0; corner_index < 8; corner_index++)
+        {
+            vec3_t *corner = corners + corner_index;
+            mat3_t_vec3_t_mul(corner, corner, &rot_scale);
+
+            if(max.x < corner->x) max.x = corner->x;
+            if(max.y < corner->y) max.y = corner->y;
+            if(max.z < corner->z) max.z = corner->z;
+
+            if(min.x > corner->x) min.x = corner->x;
+            if(min.y > corner->y) min.y = corner->y;
+            if(min.z > corner->z) min.z = corner->z;
+        }
+
+        entity->extents.x = max.x - min.x;
+        entity->extents.y = max.y - min.y;
+        entity->extents.z = max.z - min.z;
+    }
 }
 
 void g_ParentEntity(struct g_entity_t *parent, struct g_entity_t *entity)
@@ -834,8 +1035,8 @@ struct g_projectile_t *g_SpawnProjectile(vec3_t *position, vec3_t *velocity, vec
     uint32_t index;
     struct g_projectile_t *projectile;
 
-    index = add_list_element(&g_projectiles, NULL);
-    projectile = get_list_element(&g_projectiles, index);
+    index = ds_list_add_element(&g_projectiles, NULL);
+    projectile = ds_list_get_element(&g_projectiles, index);
 
     projectile->position = *position;
     projectile->velocity = *velocity;
@@ -879,7 +1080,7 @@ void *g_GetProp(struct g_entity_t *entity, char *prop_name)
 {
     for(uint32_t prop_index = 0; prop_index < entity->props.cursor; prop_index++)
     {
-        struct g_prop_t *prop = get_list_element(&entity->props, prop_index);
+        struct g_prop_t *prop = ds_list_get_element(&entity->props, prop_index);
         if(!strcmp(prop->name, prop_name))
         {
             return prop->data;
@@ -895,12 +1096,12 @@ void *g_SetProp(struct g_entity_t *entity, char *prop_name, uint32_t size, void 
 
     if(!entity->props.buffers)
     {
-        entity->props = create_list(sizeof(struct g_prop_t), 8);
+        entity->props = ds_list_create(sizeof(struct g_prop_t), 8);
     }
 
     if(!prop)
     {
-        prop = get_list_element(&entity->props, add_list_element(&entity->props, NULL));
+        prop = ds_list_get_element(&entity->props, ds_list_add_element(&entity->props, NULL));
         prop->name = strdup(prop_name);
     }
 
@@ -919,12 +1120,12 @@ void g_RemoveProp(struct g_entity_t *entity, char *prop_name)
 {
     for(uint32_t prop_index = 0; prop_index < entity->props.cursor; prop_index++)
     {
-        struct g_prop_t *prop = get_list_element(&entity->props, prop_index);
+        struct g_prop_t *prop = ds_list_get_element(&entity->props, prop_index);
         if(!strcmp(prop->name, prop_name))
         {
             mem_Free(prop->name);
             mem_Free(prop->data);
-            remove_list_element(&entity->props, prop_index);
+            ds_list_remove_element(&entity->props, prop_index);
             return;
         }
     }

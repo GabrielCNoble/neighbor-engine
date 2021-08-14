@@ -2,7 +2,7 @@
 #include "SDL2/SDL.h"
 #include "GL/glew.h"
 #include "stb/stb_image.h"
-#include "dstuff/ds_stack_list.h"
+#include "dstuff/ds_slist.h"
 #include "dstuff/ds_file.h"
 #include "dstuff/ds_mem.h"
 #include "dstuff/ds_obj.h"
@@ -21,21 +21,22 @@
 
 
 
-struct list_t r_world_cmds;
-struct list_t r_entity_cmds;
-struct list_t r_immediate_cmds;
-struct list_t r_immediate_data;
+struct ds_list_t r_world_cmds;
+struct ds_list_t r_entity_cmds;
+struct ds_list_t r_shadow_cmds;
+struct ds_list_t r_immediate_cmds;
+struct ds_list_t r_immediate_data;
 
 
 //struct list_t r_sorted_batches;
 //struct list_t r_immediate_batches;
-struct stack_list_t r_shaders;
-struct stack_list_t r_textures;
-struct stack_list_t r_materials;
-struct stack_list_t r_models;
-struct stack_list_t r_lights;
-struct stack_list_t r_vis_items;
-struct list_t r_visible_lights;
+struct ds_slist_t r_shaders;
+struct ds_slist_t r_textures;
+struct ds_slist_t r_materials;
+struct ds_slist_t r_models;
+struct ds_slist_t r_lights;
+struct ds_slist_t r_vis_items;
+struct ds_list_t r_visible_lights;
 
 uint32_t r_vertex_buffer;
 struct ds_heap_t r_vertex_heap;
@@ -51,6 +52,7 @@ struct r_shader_t *r_z_prepass_shader;
 struct r_shader_t *r_lit_shader;
 struct r_shader_t *r_immediate_shader;
 struct r_shader_t *r_current_shader;
+struct r_shader_t *r_shadow_shader;
 
 struct r_model_t *test_model;
 struct r_texture_t *r_default_texture;
@@ -61,18 +63,47 @@ struct r_texture_t *r_default_roughness_texture;
 struct r_material_t *r_default_material;
 
 extern mat4_t r_projection_matrix;
+extern mat4_t r_camera_matrix;
 extern mat4_t r_view_matrix;
-extern mat4_t r_inv_view_matrix;
 extern mat4_t r_view_projection_matrix;
 
 uint32_t r_cluster_texture;
 struct r_cluster_t *r_clusters;
-uint32_t r_light_uniform_buffer;
+
+uint32_t r_light_data_uniform_buffer;
 uint32_t r_light_buffer_cursor;
 struct r_l_data_t *r_light_buffer;
+
 uint32_t r_light_index_buffer_cursor;
 uint32_t r_light_index_uniform_buffer;
 uint32_t *r_light_index_buffer;
+
+//uint32_t r_shadow_map_uniform_buffer;
+
+uint32_t *r_free_shadow_index_buffer;
+uint32_t r_free_shadow_index_buffer_cursor;
+
+uint32_t *r_shadow_index_buffer;
+uint32_t r_shadow_index_buffer_cursor;
+uint32_t r_shadow_index_uniform_buffer;
+uint32_t r_shadow_atlas_texture;
+uint32_t r_indirect_texture;
+uint32_t r_shadow_map_framebuffer;
+//mat4_t r_point_shadow_projection_matrices[6];
+//mat4_t r_point_shadow_view_matrices[6];
+
+vec2_t r_point_shadow_projection_params;
+mat4_t r_point_shadow_view_projection_matrices[6];
+vec3_t r_point_shadow_frustum_planes[6];
+uint16_t r_point_shadow_frustum_masks[6];
+
+uint32_t r_main_framebuffer;
+uint32_t r_main_color_attachment;
+uint32_t r_main_depth_attachment;
+uint32_t r_z_prepass_framebuffer;
+
+extern struct r_renderer_state_t r_renderer_state;
+extern struct r_renderer_stats_t r_renderer_stats;
 
 SDL_Window *r_window;
 SDL_GLContext *r_context;
@@ -90,7 +121,9 @@ char *d_uniform_names[] =
 {
     [R_UNIFORM_MODEL_VIEW_PROJECTION_MATRIX] = "r_model_view_projection_matrix",
     [R_UNIFORM_MODEL_VIEW_MATRIX] = "r_model_view_matrix",
-    [R_UNIFORM_INVERSE_VIEW_MATRIX] = "r_inverse_view_matrix",
+    [R_UNIFORM_VIEW_MATRIX] = "r_view_matrix",
+    [R_UNIFORM_CAMERA_MATRIX] = "r_camera_matrix",
+    [R_UNIFORM_POINT_PROJ_PARAMS] = "r_point_proj_params",
     [R_UNIFORM_TEX0] = "r_tex0",
     [R_UNIFORM_TEX1] = "r_tex1",
     [R_UNIFORM_TEX2] = "r_tex2",
@@ -101,7 +134,9 @@ char *d_uniform_names[] =
     [R_UNIFORM_TEX_METALNESS] = "r_tex_metalness",
     [R_UNIFORM_TEX_ROUGHNESS] = "r_tex_roughness",
     [R_UNIFORM_TEX_HEIGHT] = "r_tex_height",
-    [R_UNIFORM_CLUSTERS] = "r_clusters",
+    [R_UNIFORM_TEX_CLUSTERS] = "r_tex_clusters",
+    [R_UNIFORM_TEX_SHADOW_ATLAS] = "r_tex_shadow_atlas",
+    [R_UNIFORM_TEX_INDIRECT] = "r_tex_indirect",
     [R_UNIFORM_CLUSTER_DENOM] = "r_cluster_denom",
     [R_UNIFORM_Z_NEAR] = "r_z_near",
     [R_UNIFORM_Z_FAR] = "r_z_far",
@@ -111,37 +146,29 @@ char *d_uniform_names[] =
 
 void r_Init()
 {
-//    r_vis_items = create_stack_list(sizeof(struct r_vis_item_t), 4096);
-//    r_sorted_batches = create_list(sizeof(struct r_draw_batch_t), 4096);
-//    r_immediate_batches = create_list(sizeof(struct r_imm_batch_t), 4096);
+    r_world_cmds = ds_list_create(sizeof(struct r_world_cmd_t), 8192);
+    r_entity_cmds = ds_list_create(sizeof(struct r_entity_cmd_t), 8192);
+    r_shadow_cmds = ds_list_create(sizeof(struct r_shadow_cmd_t), 8192);
+    r_immediate_cmds = ds_list_create(sizeof(struct r_i_cmd_t), 4096);
+    r_immediate_data = ds_list_create(R_IMMEDIATE_DATA_SLOT_SIZE, 32768);
 
-    r_world_cmds = create_list(sizeof(struct r_world_cmd_t), 4096);
-    r_entity_cmds = create_list(sizeof(struct r_entity_cmd_t), 4096);
-    r_immediate_cmds = create_list(sizeof(struct r_i_cmd_t), 4096);
-    r_immediate_data = create_list(R_IMMEDIATE_DATA_SLOT_SIZE, 32768);
-
-
-    r_shaders = create_stack_list(sizeof(struct r_shader_t), 16);
-    r_materials = create_stack_list(sizeof(struct r_material_t), 32);
-    r_textures = create_stack_list(sizeof(struct r_texture_t), 128);
-    r_models = create_stack_list(sizeof(struct r_model_t), 512);
-    r_lights = create_stack_list(sizeof(struct r_light_t), 512);
-    r_visible_lights = create_list(sizeof(uint32_t), 512);
+    r_shaders = ds_slist_create(sizeof(struct r_shader_t), 16);
+    r_materials = ds_slist_create(sizeof(struct r_material_t), 32);
+    r_textures = ds_slist_create(sizeof(struct r_texture_t), 128);
+    r_models = ds_slist_create(sizeof(struct r_model_t), 512);
+    r_lights = ds_slist_create(sizeof(struct r_light_t), 512);
+    r_visible_lights = ds_list_create(sizeof(struct r_light_t *), 512);
     r_vertex_heap = ds_create_heap(R_VERTEX_BUFFER_SIZE);
     r_index_heap = ds_create_heap(R_INDEX_BUFFER_SIZE);
 
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
-//    SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
 
     r_window = SDL_CreateWindow("doh", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, r_width, r_height, SDL_WINDOW_OPENGL);
     r_context = SDL_GL_CreateContext(r_window);
     SDL_GL_MakeCurrent(r_window, r_context);
     SDL_GL_SetSwapInterval(1);
-
-
-
 
     GLenum status = glewInit();
     if(status != GLEW_OK)
@@ -155,6 +182,7 @@ void r_Init()
 
     glClearColor(0.0, 0.0, 0.0, 1.0);
     glClearDepth(1.0);
+//    glClipControl(GL_LOWER_LEFT, GL_ZERO_TO_ONE);
 
     glGenBuffers(1, &r_vertex_buffer);
     glBindBuffer(GL_ARRAY_BUFFER, r_vertex_buffer);
@@ -181,6 +209,7 @@ void r_Init()
 
     r_z_prepass_shader = r_LoadShader("shaders/r_prez.vert", "shaders/r_prez.frag");
     r_lit_shader = r_LoadShader("shaders/r_cfwd.vert", "shaders/r_cfwd.frag");
+    r_shadow_shader = r_LoadShader("shaders/r_shdw.vert", "shaders/r_shdw.frag");
     r_immediate_shader = r_LoadShader("shaders/r_imm.vert", "shaders/r_imm.frag");
     mat4_t_persp(&r_projection_matrix, r_fov, (float)r_width / (float)r_height, r_z_near, r_z_far);
     mat4_t_identity(&r_view_matrix);
@@ -198,17 +227,17 @@ void r_Init()
     pixels[0] = 0x0000003f;
     r_default_roughness_texture = r_CreateTexture("default_roughness", 1, 1, GL_RGBA8, pixels);
 
-
-//    r_default_albedo_texture = r_LoadTexture("textures/PavingStones092_1K_Color.jpg", "albedo");
-//    r_default_normal_texture = r_LoadTexture("textures/PavingStones092_1K_Normal.jpg", "normal");
-
-
-    r_default_material = r_CreateMaterial("deafult", NULL, NULL, NULL);
-
+    r_default_material = r_CreateMaterial("default", NULL, NULL, NULL);
 
     r_clusters = mem_Calloc(R_CLUSTER_COUNT, sizeof(struct r_cluster_t));
     r_light_buffer = mem_Calloc(R_MAX_LIGHTS, sizeof(struct r_l_data_t));
     r_light_index_buffer = mem_Calloc(R_CLUSTER_COUNT * R_MAX_CLUSTER_LIGHTS, sizeof(uint32_t));
+    r_shadow_index_buffer = mem_Calloc(R_MAX_LIGHTS * 6, sizeof(uint32_t));
+    r_free_shadow_index_buffer = mem_Calloc(R_MAX_SHADOW_MAPS, sizeof(uint32_t));
+
+//    r_free_shadow_index_buffer[0] = ((R_SHADOW_MAP_ATLAS_WIDTH / R_SHADOW_MAP_MIN_RESOLUTION) << R_SHADOW_MAP_WIDTH_SHIFT);
+//    r_free_shadow_index_buffer[0] |= ((R_SHADOW_MAP_ATLAS_HEIGHT / R_SHADOW_MAP_MIN_RESOLUTION) << R_SHADOW_MAP_HEIGHT_SHIFT);
+//    r_free_shadow_index_buffer_cursor = 1;
 
     glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
     glGenTextures(1, &r_cluster_texture);
@@ -222,18 +251,273 @@ void r_Init()
     glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAX_LEVEL, 0);
     glTexImage3D(GL_TEXTURE_3D, 0, GL_RG32UI, R_CLUSTER_ROW_WIDTH, R_CLUSTER_ROWS, R_CLUSTER_SLICES, 0, GL_RG_INTEGER, GL_UNSIGNED_INT, NULL);
 
-    glGenBuffers(1, &r_light_uniform_buffer);
-    glBindBuffer(GL_UNIFORM_BUFFER, r_light_uniform_buffer);
+    glGenBuffers(1, &r_light_data_uniform_buffer);
+    glBindBuffer(GL_UNIFORM_BUFFER, r_light_data_uniform_buffer);
     glBufferData(GL_UNIFORM_BUFFER, R_MAX_LIGHTS * sizeof(struct r_l_data_t), NULL, GL_DYNAMIC_DRAW);
     glGenBuffers(1, &r_light_index_uniform_buffer);
     glBindBuffer(GL_UNIFORM_BUFFER, r_light_index_uniform_buffer);
     glBufferData(GL_UNIFORM_BUFFER, R_CLUSTER_COUNT * R_MAX_CLUSTER_LIGHTS * sizeof(uint32_t), NULL, GL_DYNAMIC_DRAW);
+    glGenBuffers(1, &r_shadow_index_uniform_buffer);
+    glBindBuffer(GL_UNIFORM_BUFFER, r_shadow_index_uniform_buffer);
+    glBufferData(GL_UNIFORM_BUFFER, R_MAX_LIGHTS * sizeof(uint32_t) * 6, NULL, GL_DYNAMIC_DRAW);
 
-//    int32_t group_size = 0;
+    glGenTextures(1, &r_indirect_texture);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, r_indirect_texture);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_BASE_LEVEL, 0);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAX_LEVEL, 0);
+
+    uint32_t *indirect_pixels = mem_Calloc(1024 * 1024, sizeof(uint32_t));
+
+    /* cubemap lookup used to simplify selecting which shadow map face to sample
+    from the atlas, and which faces to sample from when filtering across shadow map faces.
+    The texture format is GL_RGBA8, where each component packs the index of the face to
+    sample from and an offset to apply to the computed uv coord in that face. The format is:
+
+        bits 0-2: face index
+        bit  3  : uv.x offset (either 0 or 1)
+        bit  4  : uv.y offset (either 0 or 1)
+
+    The four components are used to obtain four values, that form a 2x2 quad. The uv coord computed in
+    during shading is for the bottom-left sample. The order of samples in the components is:
+
+        R: bottom-left
+        G: bottom-right
+        B: top-left
+        A: top-right.
+
+    */
+
+    uint8_t face_data[] =
+    {
+        /* +X */
+        (0 << R_SHADOW_MAP_FACE_INDEX_SHIFT) | (2 << R_SHADOW_MAP_FACE_U_COORD_SHIFT) | (1 << R_SHADOW_MAP_FACE_V_COORD_SHIFT),
+        /* -X */
+        (1 << R_SHADOW_MAP_FACE_INDEX_SHIFT) | (1 << R_SHADOW_MAP_FACE_U_COORD_SHIFT) | (2 << R_SHADOW_MAP_FACE_V_COORD_SHIFT),
+        /* +Y */
+        (2 << R_SHADOW_MAP_FACE_INDEX_SHIFT) | (0 << R_SHADOW_MAP_FACE_U_COORD_SHIFT) | (2 << R_SHADOW_MAP_FACE_V_COORD_SHIFT),
+        /* -Y */
+        (3 << R_SHADOW_MAP_FACE_INDEX_SHIFT) | (2 << R_SHADOW_MAP_FACE_U_COORD_SHIFT) | (0 << R_SHADOW_MAP_FACE_V_COORD_SHIFT),
+        /* +Z */
+        (4 << R_SHADOW_MAP_FACE_INDEX_SHIFT) | (1 << R_SHADOW_MAP_FACE_U_COORD_SHIFT) | (0 << R_SHADOW_MAP_FACE_V_COORD_SHIFT),
+        /* -Z */
+        (5 << R_SHADOW_MAP_FACE_INDEX_SHIFT) | (0 << R_SHADOW_MAP_FACE_U_COORD_SHIFT) | (1 << R_SHADOW_MAP_FACE_V_COORD_SHIFT),
+    };
+
+    for(uint32_t face_index = 0; face_index < 6; face_index++)
+    {
+        for(uint32_t row = 0; row < 1024; row++)
+        {
+            for(uint32_t col = 0; col < 1024; col++)
+            {
+                uint32_t pixel_value = 0;
+
+                pixel_value |= face_data[face_index];
+                pixel_value |= face_data[face_index] << 8;
+                pixel_value |= face_data[face_index] << 16;
+                pixel_value |= face_data[face_index] << 24;
+
+//                for(int32_t comp = 3; comp >= 0; comp--)
+//                {
+//                    pixel_value <<= 8;
+//                    pixel_value |= face_index | (comp << R_SHADOW_MAP_OFFSET_PACK_SHIFT);
+//                }
+
+                indirect_pixels[row * 1024 + col] = pixel_value;
+            }
+        }
+
+//        switch(GL_TEXTURE_CUBE_MAP_POSITIVE_X + face_index)
+//        {
+//            case GL_TEXTURE_CUBE_MAP_NEGATIVE_Z:
+//            {
+//                /* rightmost column, excluding top pixel, requires sampling between -Z and +X faces.
+//                Bottom-left and top-left samples fall onto the -Z face, while the other two fall onto
+//                the +X face. */
+//                for(uint32_t row_index = 0; row_index < 1024; row_index++)
+//                {
+//                    /* remove bottom-right and top-right values */
+//                    uint32_t pixel_value = indirect_pixels[row_index * 1024 + 1023] & 0x00ff00ff;
 //
-//    glGetIntegerv(GL_COMPUTE_WORK_GROUP_SIZE, &group_size);
-//    printf("%d\n", group_size);
+//                    uint32_t pixel_value = 0;
+//                    pixel_value |= 0x5 | (0x5 << 8) | (0x5 << 16) | (0x5 << 24);
+//
+//                    /* bottom-right sample will sample from the +X face, and will have no
+//                    offset. That ends up being a 0, so nothing to do here */
+//
+//                    /* top-right sample will also sample from the +X face. and will have a uv.y
+//                    offset of 1 and a uv.x offset of 0. */
+//                    pixel_value |= (0x2 << R_SHADOW_MAP_OFFSET_PACK_SHIFT) << 8;
+//                    pixel_value |= (0x2 << R_SHADOW_MAP_OFFSET_PACK_SHIFT) << 24;
+//                    indirect_pixels[row_index * 1024 + 1023] = pixel_value;
+//                }
+//            }
+//            break;
+//        }
 
+        glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + face_index, 0, GL_RGBA8UI, 1024, 1024, 0, GL_RGBA_INTEGER, GL_UNSIGNED_BYTE, indirect_pixels);
+    }
+
+    mem_Free(indirect_pixels);
+
+    glGenTextures(1, &r_shadow_atlas_texture);
+    glBindTexture(GL_TEXTURE_2D, r_shadow_atlas_texture);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32F, R_SHADOW_MAP_ATLAS_WIDTH, R_SHADOW_MAP_ATLAS_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+    glBindTexture(GL_TEXTURE_2D, 0);
+
+    glGenFramebuffers(1, &r_shadow_map_framebuffer);
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, r_shadow_map_framebuffer);
+    glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, r_shadow_atlas_texture, 0);
+    glClear(GL_DEPTH_BUFFER_BIT);
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+
+//    mat4_t reverse_z_proj;
+//    mat4_t_identity(&reverse_z_proj);
+//
+//    reverse_z_proj.comps[2][2] = -1.0;
+//    reverse_z_proj.comps[3][2] = 1.0;
+
+    mat4_t point_shadow_projection_matrices[6];
+    mat4_t point_shadow_view_matrices[6];
+
+    for(uint32_t face_index = 0; face_index < 6; face_index++)
+    {
+        mat4_t_identity(&point_shadow_view_matrices[face_index]);
+        mat4_t_persp(&point_shadow_projection_matrices[face_index], 3.14159265 * 0.25, 1.0, 0.01, 10000.0);
+    }
+
+    r_point_shadow_projection_params.x = point_shadow_projection_matrices[0].rows[2].comps[2];
+    r_point_shadow_projection_params.y = point_shadow_projection_matrices[0].rows[3].comps[2];
+
+
+    mat4_t_rotate_y(&point_shadow_view_matrices[R_SHADOW_MAP_FACE_POS_X], 0.5);
+    mat4_t_rotate_z(&point_shadow_view_matrices[R_SHADOW_MAP_FACE_POS_X], 1.0);
+
+    mat4_t_rotate_y(&point_shadow_view_matrices[R_SHADOW_MAP_FACE_NEG_X],-0.5);
+    mat4_t_rotate_z(&point_shadow_view_matrices[R_SHADOW_MAP_FACE_NEG_X], -0.5);
+
+    mat4_t_rotate_x(&point_shadow_view_matrices[R_SHADOW_MAP_FACE_POS_Y], -0.5);
+    mat4_t_rotate_z(&point_shadow_view_matrices[R_SHADOW_MAP_FACE_POS_Y], 1.0);
+
+    mat4_t_rotate_x(&point_shadow_view_matrices[R_SHADOW_MAP_FACE_NEG_Y], 0.5);
+    mat4_t_rotate_z(&point_shadow_view_matrices[R_SHADOW_MAP_FACE_NEG_Y], 0.5);
+
+    mat4_t_rotate_y(&point_shadow_view_matrices[R_SHADOW_MAP_FACE_POS_Z], 1.0);
+    mat4_t_rotate_z(&point_shadow_view_matrices[R_SHADOW_MAP_FACE_POS_Z], 0.5);
+
+//    mat4_t_rotate_z(&point_shadow_view_matrices[R_SHADOW_MAP_FACE_NEG_Z], 1.0);
+
+//    point_shadow_projection_matrices[R_SHADOW_MAP_FACE_POS_Z].comps[0][0] *= -1.0;
+//    point_shadow_projection_matrices[R_SHADOW_MAP_FACE_POS_X].comps[0][0] *= -1.0;
+//    point_shadow_projection_matrices[R_SHADOW_MAP_FACE_POS_Y].comps[0][0] *= -1.0;
+
+    for(uint32_t face_index = 0; face_index < 6; face_index++)
+    {
+        mat4_t_mul(&r_point_shadow_view_projection_matrices[face_index],
+                   &point_shadow_view_matrices[face_index],
+                   &point_shadow_projection_matrices[face_index]);
+
+        r_point_shadow_frustum_planes[face_index] = vec3_t_c(0.0, 0.0, 1.0);
+    }
+
+    /* <0.707106769, 0.0, 0.707106769> */
+    vec3_t_rotate_y(&r_point_shadow_frustum_planes[0], &r_point_shadow_frustum_planes[0], 0.25);
+
+    /* <-0.707106769, 0.0, 0.707106769> */
+    vec3_t_rotate_y(&r_point_shadow_frustum_planes[1], &r_point_shadow_frustum_planes[1], -0.25);
+
+    /* <0.0, -0.707106769, 0.707106769> */
+    vec3_t_rotate_x(&r_point_shadow_frustum_planes[2], &r_point_shadow_frustum_planes[2], 0.25);
+
+    /* <0.0, 0.707106769, 0.707106769> */
+    vec3_t_rotate_x(&r_point_shadow_frustum_planes[3], &r_point_shadow_frustum_planes[3], -0.25);
+
+    /* <0.707106769, -0.707106769, 0.0> */
+    vec3_t_rotate_x(&r_point_shadow_frustum_planes[4], &r_point_shadow_frustum_planes[4], 0.25);
+    vec3_t_rotate_y(&r_point_shadow_frustum_planes[4], &r_point_shadow_frustum_planes[4], 0.5);
+
+    /* <0.707106769, 0.707106769, 0.0> */
+    vec3_t_rotate_x(&r_point_shadow_frustum_planes[5], &r_point_shadow_frustum_planes[5], -0.25);
+    vec3_t_rotate_y(&r_point_shadow_frustum_planes[5], &r_point_shadow_frustum_planes[5], 0.5);
+
+    /* +X */
+    r_point_shadow_frustum_masks[0] = (R_SHADOW_MAP_PLANE_FRONT << R_SHADOW_MAP_PLANE0_SHIFT) |
+                                      (R_SHADOW_MAP_PLANE_BACK << R_SHADOW_MAP_PLANE1_SHIFT) |
+                                      (R_SHADOW_MAP_PLANE_FRONT << R_SHADOW_MAP_PLANE4_SHIFT) |
+                                      (R_SHADOW_MAP_PLANE_FRONT << R_SHADOW_MAP_PLANE5_SHIFT);
+
+    /* -X */
+    r_point_shadow_frustum_masks[1] = (R_SHADOW_MAP_PLANE_BACK << R_SHADOW_MAP_PLANE0_SHIFT) |
+                                      (R_SHADOW_MAP_PLANE_FRONT << R_SHADOW_MAP_PLANE1_SHIFT) |
+                                      (R_SHADOW_MAP_PLANE_BACK << R_SHADOW_MAP_PLANE4_SHIFT) |
+                                      (R_SHADOW_MAP_PLANE_BACK << R_SHADOW_MAP_PLANE5_SHIFT);
+
+    /* +Y */
+    r_point_shadow_frustum_masks[2] = (R_SHADOW_MAP_PLANE_BACK << R_SHADOW_MAP_PLANE2_SHIFT) |
+                                      (R_SHADOW_MAP_PLANE_FRONT << R_SHADOW_MAP_PLANE3_SHIFT) |
+                                      (R_SHADOW_MAP_PLANE_BACK << R_SHADOW_MAP_PLANE4_SHIFT) |
+                                      (R_SHADOW_MAP_PLANE_FRONT << R_SHADOW_MAP_PLANE5_SHIFT);
+
+    /* -Y */
+    r_point_shadow_frustum_masks[3] = (R_SHADOW_MAP_PLANE_FRONT << R_SHADOW_MAP_PLANE2_SHIFT) |
+                                      (R_SHADOW_MAP_PLANE_BACK << R_SHADOW_MAP_PLANE3_SHIFT) |
+                                      (R_SHADOW_MAP_PLANE_FRONT << R_SHADOW_MAP_PLANE4_SHIFT) |
+                                      (R_SHADOW_MAP_PLANE_BACK << R_SHADOW_MAP_PLANE5_SHIFT);
+
+    /* +Z */
+    r_point_shadow_frustum_masks[4] = (R_SHADOW_MAP_PLANE_FRONT << R_SHADOW_MAP_PLANE0_SHIFT) |
+                                      (R_SHADOW_MAP_PLANE_FRONT << R_SHADOW_MAP_PLANE1_SHIFT) |
+                                      (R_SHADOW_MAP_PLANE_FRONT << R_SHADOW_MAP_PLANE2_SHIFT) |
+                                      (R_SHADOW_MAP_PLANE_FRONT << R_SHADOW_MAP_PLANE3_SHIFT);
+
+    /* -Z */
+    r_point_shadow_frustum_masks[5] = (R_SHADOW_MAP_PLANE_BACK << R_SHADOW_MAP_PLANE0_SHIFT) |
+                                      (R_SHADOW_MAP_PLANE_BACK << R_SHADOW_MAP_PLANE1_SHIFT) |
+                                      (R_SHADOW_MAP_PLANE_BACK << R_SHADOW_MAP_PLANE2_SHIFT) |
+                                      (R_SHADOW_MAP_PLANE_BACK << R_SHADOW_MAP_PLANE3_SHIFT);
+
+    glGenTextures(1, &r_main_color_attachment);
+    glBindTexture(GL_TEXTURE_2D, r_main_color_attachment);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, r_width, r_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+
+    glGenTextures(1, &r_main_depth_attachment);
+    glBindTexture(GL_TEXTURE_2D, r_main_depth_attachment);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32F, r_width, r_height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+    glBindTexture(GL_TEXTURE_2D, 0);
+
+    glGenFramebuffers(1, &r_main_framebuffer);
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, r_main_framebuffer);
+    glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, r_main_color_attachment, 0);
+    glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, r_main_depth_attachment, 0);
+
+    glGenFramebuffers(1, &r_z_prepass_framebuffer);
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, r_z_prepass_framebuffer);
+    glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, r_main_depth_attachment, 0);
+
+    r_renderer_state.use_z_prepass = 1;
+    r_renderer_state.max_shadow_res = 8;
 }
 
 void r_Shutdown()
@@ -252,8 +536,8 @@ struct r_vis_item_t *r_AllocateVisItem(mat4_t *transform, struct r_model_t *mode
     uint32_t index;
     struct r_vis_item_t *item;
 
-    index = add_stack_list_element(&r_vis_items, NULL);
-    item = get_stack_list_element(&r_vis_items, index);
+    index = ds_slist_add_element(&r_vis_items, NULL);
+    item = ds_slist_get_element(&r_vis_items, index);
 
     item->index = index;
     item->model = model;
@@ -335,8 +619,8 @@ struct r_texture_t *r_CreateTexture(char *name, uint32_t width, uint32_t height,
         break;
     }
 
-    texture_index = add_stack_list_element(&r_textures, NULL);
-    texture = get_stack_list_element(&r_textures, texture_index);
+    texture_index = ds_slist_add_element(&r_textures, NULL);
+    texture = ds_slist_get_element(&r_textures, texture_index);
     texture->index = texture_index;
     texture->name = strdup(name);
 
@@ -360,7 +644,7 @@ struct r_texture_t *r_GetTexture(char *name)
 {
     for(uint32_t texture_index = 0; texture_index < r_textures.cursor; texture_index++)
     {
-        struct r_texture_t *texture = get_stack_list_element(&r_textures, texture_index);
+        struct r_texture_t *texture = ds_slist_get_element(&r_textures, texture_index);
         if(texture->index != 0xffffffff)
         {
             if(!strcmp(texture->name, name))
@@ -384,8 +668,8 @@ struct r_material_t *r_CreateMaterial(char *name, struct r_texture_t *diffuse_te
     uint32_t material_index;
     struct r_material_t *material;
 
-    material_index = add_stack_list_element(&r_materials, NULL);
-    material = get_stack_list_element(&r_materials, material_index);
+    material_index = ds_slist_add_element(&r_materials, NULL);
+    material = ds_slist_get_element(&r_materials, material_index);
 
     if(!diffuse_texture)
     {
@@ -415,7 +699,7 @@ struct r_material_t *r_GetMaterial(char *name)
 {
     for(uint32_t material_index = 0; material_index < r_materials.cursor; material_index++)
     {
-        struct r_material_t *material = get_stack_list_element(&r_materials, material_index);
+        struct r_material_t *material = ds_slist_get_element(&r_materials, material_index);
         if(material->index != 0xffffffff)
         {
             if(!strcmp(material->name, name))
@@ -437,6 +721,8 @@ void r_BindMaterial(struct r_material_t *material)
 {
     if(material)
     {
+        r_renderer_stats.material_swaps++;
+
         glActiveTexture(GL_TEXTURE0 + R_ALBEDO_TEX_UNIT);
         glBindTexture(GL_TEXTURE_2D, material->diffuse_texture->handle);
         r_SetUniform1i(R_UNIFORM_TEX_ALBEDO, R_ALBEDO_TEX_UNIT);
@@ -600,23 +886,34 @@ struct r_model_t *r_LoadModel(char *file_name)
             weights = weight_data->weights;
             weight_ranges = weight_data->ranges;
         }
-        struct r_model_create_info_t create_info = {};
-        create_info.vert_count = verts->vert_count;
-        create_info.verts = verts->verts;
-        create_info.index_count = indexes->index_count;
-        create_info.indices = indexes->indexes;
-        create_info.batch_count = batch_section->batch_count;
-        create_info.batches = batches;
-        create_info.skeleton = skeleton;
-        create_info.weight_count = weight_count;
-        create_info.weights = weights;
-        create_info.weight_range_count = weight_range_count;
-        create_info.weight_ranges = weight_ranges;
-        create_info.min = verts->min;
-        create_info.max = verts->max;
 
+        struct r_model_geometry_t geometry_data = {};
+        struct r_model_skeleton_t skeleton_data = {};
 
-        model = r_CreateModel(&create_info);
+        geometry_data.indices = indexes->indexes;
+        geometry_data.index_count = indexes->index_count;
+        geometry_data.verts = verts->verts;
+        geometry_data.vert_count = verts->vert_count;
+        geometry_data.batches = batches;
+        geometry_data.batch_count = batch_section->batch_count;
+        geometry_data.min = verts->min;
+        geometry_data.max = verts->max;
+
+        if(skeleton)
+        {
+            skeleton_data.skeleton = skeleton;
+            skeleton_data.weight_count = weight_count;
+            skeleton_data.weights = weights;
+            skeleton_data.weight_range_count = weight_range_count;
+            skeleton_data.weight_ranges = weight_ranges;
+
+            model = r_CreateModel(&geometry_data, &skeleton_data);
+        }
+        else
+        {
+            model = r_CreateModel(&geometry_data, NULL);
+        }
+
         mem_Free(batches);
         mem_Free(file_buffer);
     }
@@ -624,41 +921,13 @@ struct r_model_t *r_LoadModel(char *file_name)
     return model;
 }
 
-struct r_model_t *r_CreateModel(struct r_model_create_info_t *create_info)
-{
-    struct r_model_geometry_t geometry = {};
-    struct r_model_skeleton_t skeleton = {};
-
-    geometry.batches = create_info->batches;
-    geometry.batch_count = create_info->batch_count;
-    geometry.indices = create_info->indices;
-    geometry.index_count = create_info->index_count;
-    geometry.verts = create_info->verts;
-    geometry.vert_count = create_info->vert_count;
-    geometry.min = create_info->min;
-    geometry.max = create_info->max;
-
-    if(create_info->weight_count && create_info->weight_range_count)
-    {
-        skeleton.skeleton = create_info->skeleton;
-        skeleton.weights = create_info->weights;
-        skeleton.weight_count = create_info->weight_count;
-        skeleton.weight_ranges = create_info->weight_ranges;
-        skeleton.weight_range_count = create_info->weight_range_count;
-
-        return r_CreateModel2(&geometry, &skeleton);
-    }
-
-    return r_CreateModel2(&geometry, NULL);
-}
-
-struct r_model_t *r_CreateModel2(struct r_model_geometry_t *geometry, struct r_model_skeleton_t *skeleton)
+struct r_model_t *r_CreateModel(struct r_model_geometry_t *geometry, struct r_model_skeleton_t *skeleton)
 {
     struct r_model_t *model;
     uint32_t index;
 
-    index = add_stack_list_element(&r_models, NULL);
-    model = get_stack_list_element(&r_models, index);
+    index = ds_slist_add_element(&r_models, NULL);
+    model = ds_slist_get_element(&r_models, index);
     model->index = index;
     model->base = NULL;
     model->verts = ds_create_buffer(sizeof(struct r_vert_t), 0);
@@ -734,9 +1003,9 @@ void r_UpdateModelGeometry(struct r_model_t *model, struct r_model_geometry_t *g
 struct r_model_t *r_ShallowCopyModel(struct r_model_t *base)
 {
     struct r_model_t *copy;
-    uint32_t index = add_stack_list_element(&r_models, NULL);
+    uint32_t index = ds_slist_add_element(&r_models, NULL);
     struct ds_chunk_t *chunk;
-    copy = get_stack_list_element(&r_models, index);
+    copy = ds_slist_get_element(&r_models, index);
     memcpy(copy, base, sizeof(struct r_model_t));
     copy->index = index;
 
@@ -779,22 +1048,31 @@ struct r_light_t *r_CreateLight(uint32_t type, vec3_t *position, vec3_t *color, 
     struct r_light_t *light;
     uint32_t index;
 
-    index = add_stack_list_element(&r_lights, NULL);
-    light = get_stack_list_element(&r_lights, index);
+    index = ds_slist_add_element(&r_lights, NULL);
+    light = ds_slist_get_element(&r_lights, index);
 
     light->index = index;
     light->data.pos_rad = vec4_t_c(position->x, position->y, position->z, radius);
-    light->data.color = *color;
-    light->data.type = type;
+    light->data.color_res = vec4_t_c(color->x, color->y, color->z, (float)type);
+//    light->data.color = *color;
+//    light->data.type = type;
     light->energy = energy;
 
     return light;
 }
 
+void r_AllocShadowMaps(struct r_light_t *light, uint32_t resolution)
+{
+    for(uint32_t face_index = 0; face_index < 6; face_index++)
+    {
+
+    }
+}
+
 struct r_light_t *r_GetLight(uint32_t light_index)
 {
     struct r_light_t *light;
-    light = get_stack_list_element(&r_lights, light_index);
+    light = ds_slist_get_element(&r_lights, light_index);
     if(light && light->index == 0xffffffff)
     {
         light = NULL;
@@ -807,7 +1085,7 @@ void r_DestroyLight(struct r_light_t *light)
 {
     if(light && light->index != 0xffffffff)
     {
-        remove_stack_list_element(&r_lights, light->index);
+        ds_slist_remove_element(&r_lights, light->index);
         light->index = 0xffffffff;
     }
 }
@@ -904,8 +1182,8 @@ struct r_shader_t *r_LoadShader(char *vertex_file_name, char *fragment_file_name
         return NULL;
     }
 
-    uint32_t shader_index = add_stack_list_element(&r_shaders, NULL);
-    shader = get_stack_list_element(&r_shaders, shader_index);
+    uint32_t shader_index = ds_slist_add_element(&r_shaders, NULL);
+    shader = ds_slist_get_element(&r_shaders, shader_index);
     shader->index = shader_index;
     shader->handle = shader_program;
 
@@ -916,11 +1194,21 @@ struct r_shader_t *r_LoadShader(char *vertex_file_name, char *fragment_file_name
 
     uint32_t lights_uniform_block = glGetUniformBlockIndex(shader_program, "r_lights");
     uint32_t light_indices_uniform_block = glGetUniformBlockIndex(shader_program, "r_light_indices");
+    uint32_t shadow_indices_uniform_block = glGetUniformBlockIndex(shader_program, "r_shadow_indices");
 
-    if(lights_uniform_block != 0xffffffff && light_indices_uniform_block != 0xffffffff)
+    if(lights_uniform_block != 0xffffffff)
     {
         glUniformBlockBinding(shader_program, lights_uniform_block, R_LIGHTS_UNIFORM_BUFFER_BINDING);
+    }
+
+    if(light_indices_uniform_block != 0xffffffff)
+    {
         glUniformBlockBinding(shader_program, light_indices_uniform_block, R_LIGHT_INDICES_UNIFORM_BUFFER_BINDING);
+    }
+
+    if(shadow_indices_uniform_block != 0xffffffff)
+    {
+        glUniformBlockBinding(shader_program, shadow_indices_uniform_block, R_SHADOW_INDICES_BUFFER_BINDING);
     }
 
     shader->attribs = 0;
@@ -964,7 +1252,7 @@ void r_FreeShader(struct r_shader_t *shader)
     {
         glDeleteProgram(shader->handle);
         shader->handle = 0xffffffff;
-        remove_stack_list_element(&r_shaders, shader->index);
+        ds_slist_remove_element(&r_shaders, shader->index);
     }
 }
 
@@ -972,6 +1260,8 @@ void r_BindShader(struct r_shader_t *shader)
 {
     if(shader)
     {
+        r_renderer_stats.shader_swaps++;
+
         r_current_shader = shader;
         glUseProgram(shader->handle);
 
@@ -1040,6 +1330,14 @@ void r_SetUniform1f(uint32_t uniform, float value)
     if(r_current_shader->uniforms[uniform] != GL_INVALID_INDEX)
     {
         glUniform1f(r_current_shader->uniforms[uniform], value);
+    }
+}
+
+void r_SetUniform2f(uint32_t uniform, float value0, float value1)
+{
+    if(r_current_shader->uniforms[uniform] != GL_INVALID_INDEX)
+    {
+        glUniform2f(r_current_shader->uniforms[uniform], value0, value1);
     }
 }
 

@@ -77,6 +77,8 @@ void r_UpdateModelGeometry(struct r_model_t *model, struct r_model_geometry_t *g
 
 struct r_model_t *r_ShallowCopyModel(struct r_model_t *model);
 
+void r_DestroyModel(struct r_model_t *model);
+
 /*
 ============================================================================
 ============================================================================

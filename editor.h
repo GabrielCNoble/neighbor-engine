@@ -6,6 +6,7 @@
 #include "dstuff/ds_alloc.h"
 #include "dstuff/ds_buffer.h"
 #include "ed_com.h"
+#include "ed_brush.h"
 
 //struct ed_polygon_t
 //{
@@ -151,10 +152,9 @@ void ed_WorldContextCreateBrush(struct ed_context_t *context, uint32_t just_chan
 
 uint32_t ed_PickObject(int32_t mouse_x, int32_t mouse_y, struct ed_selection_t *selection);
 
-struct ed_brush_t *ed_CreateBrush(vec3_t *position, mat3_t *orientation, vec3_t *size);
-
-struct ed_brush_t *ed_GetBrush(uint32_t index);
-
-void ed_UpdateBrush(struct ed_brush_t *brush);
-
 #endif // ED_H
+
+
+
+
+

@@ -4,7 +4,7 @@
 #include "dstuff/ds_vector.h"
 #include "dstuff/ds_matrix.h"
 #include "dstuff/ds_list.h"
-#include "dstuff/ds_dbvh.h"
+#include "dstuff/ds_dbvt.h"
 #include <stdint.h>
 
 struct p_box_shape_t
@@ -32,7 +32,7 @@ struct p_conv_hull_t
 
 struct p_tmesh_shape_t
 {
-    struct dbvh_tree_t dbvh;
+    struct ds_dbvt_t dbvh;
     struct p_col_tri_t *tris;
     uint32_t tri_count;
 };

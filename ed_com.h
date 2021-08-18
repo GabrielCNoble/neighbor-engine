@@ -33,6 +33,12 @@ struct ed_face_t
     vec3_t tangent;
 };
 
+struct ed_brush_batch_t
+{
+    struct r_batch_t batch;
+    uint32_t index;
+};
+
 struct ed_brush_t
 {
     mat3_t orientation;

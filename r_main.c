@@ -930,9 +930,9 @@ struct r_model_t *r_CreateModel(struct r_model_geometry_t *geometry, struct r_mo
     model = ds_slist_get_element(&r_models, index);
     model->index = index;
     model->base = NULL;
-    model->verts = ds_create_buffer(sizeof(struct r_vert_t), 0);
-    model->indices = ds_create_buffer(sizeof(uint32_t), 0);
-    model->batches = ds_create_buffer(sizeof(struct r_batch_t), 0);
+    model->verts = ds_buffer_create(sizeof(struct r_vert_t), 0);
+    model->indices = ds_buffer_create(sizeof(uint32_t), 0);
+    model->batches = ds_buffer_create(sizeof(struct r_batch_t), 0);
     model->index_chunk = DS_INVALID_CHUNK_HANDLE;
     model->vert_chunk = DS_INVALID_CHUNK_HANDLE;
 
@@ -944,10 +944,10 @@ struct r_model_t *r_CreateModel(struct r_model_geometry_t *geometry, struct r_mo
 
         if(skeleton->weight_count && skeleton->weight_range_count)
         {
-            model->weights = ds_create_buffer(sizeof(struct a_weight_t), skeleton->weight_count);
+            model->weights = ds_buffer_create(sizeof(struct a_weight_t), skeleton->weight_count);
             memcpy(model->weights.buffer, skeleton->weights, sizeof(struct a_weight_t) * skeleton->weight_count);
 
-            model->weight_ranges = ds_create_buffer(sizeof(struct a_weight_range_t), skeleton->weight_range_count);
+            model->weight_ranges = ds_buffer_create(sizeof(struct a_weight_range_t), skeleton->weight_range_count);
             memcpy(model->weight_ranges.buffer, skeleton->weight_ranges, sizeof(struct a_weight_range_t) * skeleton->weight_range_count);
         }
     }
@@ -990,9 +990,9 @@ void r_UpdateModelGeometry(struct r_model_t *model, struct r_model_geometry_t *g
     chunk = ds_get_chunk_pointer(&r_index_heap, model->index_chunk);
     start = chunk->start / sizeof(uint32_t);
 
-    ds_fill_buffer(&model->verts, 0, geometry->verts, geometry->vert_count);
-    ds_fill_buffer(&model->indices, 0, geometry->indices, geometry->index_count);
-    ds_fill_buffer(&model->batches, 0, geometry->batches, geometry->batch_count);
+    ds_buffer_fill(&model->verts, 0, geometry->verts, geometry->vert_count);
+    ds_buffer_fill(&model->indices, 0, geometry->indices, geometry->index_count);
+    ds_buffer_fill(&model->batches, 0, geometry->batches, geometry->batch_count);
 
     for(uint32_t batch_index = 0; batch_index < geometry->batch_count; batch_index++)
     {
@@ -1009,7 +1009,7 @@ struct r_model_t *r_ShallowCopyModel(struct r_model_t *base)
     memcpy(copy, base, sizeof(struct r_model_t));
     copy->index = index;
 
-    copy->verts = ds_create_buffer(sizeof(struct r_vert_t), base->verts.buffer_size);
+    copy->verts = ds_buffer_create(sizeof(struct r_vert_t), base->verts.buffer_size);
     memcpy(copy->verts.buffer, base->verts.buffer, sizeof(struct r_vert_t) * copy->verts.buffer_size);
 
     copy->vert_chunk = r_AllocateVertices(copy->verts.buffer_size);
@@ -1022,19 +1022,41 @@ struct r_model_t *r_ShallowCopyModel(struct r_model_t *base)
     chunk = ds_get_chunk_pointer(&r_index_heap, copy->index_chunk);
     new_start = chunk->start / sizeof(uint32_t);
     chunk = ds_get_chunk_pointer(&r_index_heap, base->index_chunk);
-//    uint32_t old_start = chunk->start / sizeof(uint32_t);
 
-    copy->batches = ds_create_buffer(sizeof(struct r_batch_t), base->batches.buffer_size);
+    copy->batches = ds_buffer_create(sizeof(struct r_batch_t), base->batches.buffer_size);
     for(uint32_t batch_index = 0; batch_index < copy->batches.buffer_size; batch_index++)
     {
         ((struct r_batch_t *)copy->batches.buffer)[batch_index] = ((struct r_batch_t *)base->batches.buffer)[batch_index];
-//        ((struct r_batch_t *)copy->batches.buffer)[batch_index].start -= old_start;
         ((struct r_batch_t *)copy->batches.buffer)[batch_index].start += new_start;
     }
 
     copy->base = base;
 
     return copy;
+}
+
+void r_DestroyModel(struct r_model_t *model)
+{
+    if(model)
+    {
+        r_FreeIndices(model->index_chunk);
+        r_FreeVertices(model->vert_chunk);
+
+        ds_buffer_destroy(&model->verts);
+        ds_buffer_destroy(&model->indices);
+        ds_buffer_destroy(&model->batches);
+
+        if(model->base)
+        {
+            r_DestroyModel(model->base);
+        }
+        else if(model->skeleton)
+        {
+            ds_buffer_destroy(&model->weights);
+            ds_buffer_destroy(&model->weight_ranges);
+            a_DestroySkeleton(model->skeleton);
+        }
+    }
 }
 
 /*

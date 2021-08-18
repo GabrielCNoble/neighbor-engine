@@ -150,16 +150,8 @@ struct r_model_t
     struct ds_buffer_t verts;
     struct ds_buffer_t indices;
     struct ds_buffer_t batches;
-//    uint32_t vert_count;
-//    struct r_vert_t *verts;
-//    uint32_t indice_count;
-//    uint32_t *indices;
-//    uint32_t batch_count;
-//    struct r_batch_t *batches;
     struct a_skeleton_t *skeleton;
-//    uint32_t weight_range_count;
     struct ds_buffer_t weight_ranges;
-//    uint32_t weight_count;
     struct ds_buffer_t weights;
     struct r_model_t *base;
     vec3_t min;

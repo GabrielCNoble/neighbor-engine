@@ -92,6 +92,19 @@ struct a_skeleton_t *a_CreateSkeleton(uint32_t bone_count, struct a_bone_t *bone
     return skeleton;
 }
 
+void a_DestroySkeleton(struct a_skeleton_t *skeleton)
+{
+    if(skeleton)
+    {
+        mem_Free(skeleton->bones);
+        mem_Free(skeleton->names->name);
+        mem_Free(skeleton->names);
+
+        ds_slist_remove_element(&a_skeletons, skeleton->index);
+        skeleton->index = 0xffffffff;
+    }
+}
+
 struct a_player_t *a_CreatePlayer(char *player_name)
 {
     struct a_player_t *player;

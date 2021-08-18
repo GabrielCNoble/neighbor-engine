@@ -7,6 +7,7 @@
 #include "dstuff/ds_matrix.h"
 #include "dstuff/ds_path.h"
 #include "dstuff/ds_dir.h"
+#include "dstuff/ds_buffer.h"
 #include "game.h"
 #include "input.h"
 #include "gui.h"
@@ -16,6 +17,10 @@
 #include <float.h>
 
 struct ds_slist_t ed_brushes;
+uint32_t ed_global_brush_vert_count;
+uint32_t ed_global_brush_index_count;
+struct ds_list_t ed_global_brush_batches;
+
 struct ed_context_t *ed_active_context;
 struct ed_context_t ed_contexts[ED_CONTEXT_LAST];
 //uint32_t ed_grid_vert_count;
@@ -29,54 +34,7 @@ struct r_shader_t *ed_picking_shader;
 uint32_t ed_picking_shader_type_uniform;
 uint32_t ed_picking_shader_index_uniform;
 
-uint32_t ed_cube_brush_indices[][4] =
-{
-    /* -Z */
-    {0, 1, 2, 3},
-    /* +Z */
-    {4, 5, 6, 7},
-    /* -X */
-    {0, 3, 5, 4},
-    /* +X */
-    {7, 6, 2, 1},
-    /* -Y */
-    {5, 3, 2, 6},
-    /* +Y */
-    {0, 4, 7, 1}
-};
 
-vec3_t ed_cube_brush_vertices[] =
-{
-    vec3_t_c(-0.5, 0.5, -0.5),
-    vec3_t_c(0.5, 0.5, -0.5),
-    vec3_t_c(0.5, -0.5, -0.5),
-    vec3_t_c(-0.5, -0.5, -0.5),
-
-    vec3_t_c(-0.5, 0.5, 0.5),
-    vec3_t_c(-0.5, -0.5, 0.5),
-    vec3_t_c(0.5, -0.5, 0.5),
-    vec3_t_c(0.5, 0.5, 0.5),
-};
-
-vec3_t ed_cube_brush_normals[] =
-{
-    vec3_t_c(0.0, 0.0, -1.0),
-    vec3_t_c(0.0, 0.0, 1.0),
-    vec3_t_c(-1.0, 0.0, 0.0),
-    vec3_t_c(1.0, 0.0, 0.0),
-    vec3_t_c(0.0, -1.0, 0.0),
-    vec3_t_c(0.0, 1.0, 0.0)
-};
-
-vec3_t ed_cube_brush_tangents[] =
-{
-    vec3_t_c(1.0, 0.0, 0.0),
-    vec3_t_c(-1.0, 0.0, 0.0),
-    vec3_t_c(0.0, 0.0, 1.0),
-    vec3_t_c(0.0, 0.0, -1.0),
-    vec3_t_c(1.0, 0.0, 0.0),
-    vec3_t_c(-1.0, 0.0, 0.0),
-};
 
 float ed_camera_pitch;
 float ed_camera_yaw;
@@ -162,6 +120,7 @@ void test_save_callback(char *path, char *file)
 void ed_Init()
 {
     ed_brushes = ds_slist_create(sizeof(struct ed_brush_t), 512);
+    ed_global_brush_batches = ds_list_create(sizeof(struct ed_brush_batch_t), 512);
     ed_grid = r_i_AllocImmediateExternData(sizeof(struct r_i_verts_t) + sizeof(struct r_vert_t) * 6);
 
     ed_grid->count = 6;
@@ -968,107 +927,22 @@ void ed_DrawBrushes()
 
 void ed_DrawLights()
 {
-//    r_i_SetModelMatrix(NULL);
-//    r_i_SetViewProjectionMatrix(NULL);
-//
-//
-//    for(uint32_t light_index = 0; light_index < r_lights.cursor; light_index++)
-//    {
-//        struct r_light_t *light = r_GetLight(light_index);
-//
-//        if(light)
-//        {
-//            vec3_t position = vec3_t_c(light->data.pos_rad.x, light->data.pos_rad.y, light->data.pos_rad.z);
-//            vec4_t color = vec4_t_c(light->data.color_res.x, light->data.color_res.y, light->data.color_res.z, 1.0);
-//            r_i_DrawPoint(&position, &color, 8.0);
-//        }
-//    }
-}
+    r_i_SetModelMatrix(NULL);
+    r_i_SetViewProjectionMatrix(NULL);
 
-struct ed_brush_t *ed_CreateBrush(vec3_t *position, mat3_t *orientation, vec3_t *size)
-{
-    uint32_t index;
-    struct ed_brush_t *brush;
-    vec3_t dims;
-    vec3_t_fabs(&dims, size);
 
-    index = ds_slist_add_element(&ed_brushes, NULL);
-    brush = ds_slist_get_element(&ed_brushes, index);
-    brush->index = index;
-
-    brush->vertices = ds_create_buffer(sizeof(vec3_t), 8);
-    vec3_t *vertices = (vec3_t *)brush->vertices.buffer;
-
-    for(uint32_t vert_index = 0; vert_index < brush->vertices.buffer_size; vert_index++)
+    for(uint32_t light_index = 0; light_index < r_lights.cursor; light_index++)
     {
-        vertices[vert_index].x = dims.x * ed_cube_brush_vertices[vert_index].x;
-        vertices[vert_index].y = dims.y * ed_cube_brush_vertices[vert_index].y;
-        vertices[vert_index].z = dims.z * ed_cube_brush_vertices[vert_index].z;
-    }
+        struct r_light_t *light = r_GetLight(light_index);
 
-    brush->faces = ds_list_create(sizeof(struct ed_face_t), 6);
-
-    brush->orientation = *orientation;
-    brush->position = *position;
-
-    for(uint32_t face_index = 0; face_index < brush->faces.size; face_index++)
-    {
-        ds_list_add_element(&brush->faces, NULL);
-        struct ed_face_t *face = ds_list_get_element(&brush->faces, face_index);
-
-        face->material = r_GetDefaultMaterial();
-        face->normal = ed_cube_brush_normals[face_index];
-        face->tangent = ed_cube_brush_tangents[face_index];
-        face->indices = ds_create_buffer(sizeof(uint32_t), 4);
-        ds_fill_buffer(&face->indices, 0, ed_cube_brush_indices[face_index], 4);
-    }
-
-    brush->model = NULL;
-
-    ed_UpdateBrush(brush);
-
-    return brush;
-}
-
-struct ed_brush_t *ed_GetBrush(uint32_t index)
-{
-    struct ed_brush_t *brush = NULL;
-
-    if(index != 0xffffffff)
-    {
-        brush = ds_slist_get_element(&ed_brushes, index);
-
-        if(brush && brush->index == 0xffffffff)
+        if(light)
         {
-            brush = NULL;
+            vec3_t position = vec3_t_c(light->data.pos_rad.x, light->data.pos_rad.y, light->data.pos_rad.z);
+            vec4_t color = vec4_t_c(light->data.color_res.x, light->data.color_res.y, light->data.color_res.z, 1.0);
+            r_i_DrawPoint(&position, &color, 8.0);
         }
     }
-
-    return brush;
 }
-
-void ed_UpdateBrush(struct ed_brush_t *brush)
-{
-    struct ed_polygon_t *polygons;
-    struct r_model_geometry_t geometry = {};
-
-    polygons = ed_PolygonsFromBrush(brush);
-    brush->bsp = ed_BspFromPolygons(polygons);
-    ed_GeometryFromBsp(&geometry, brush->bsp);
-
-    if(!brush->model)
-    {
-        brush->model = r_CreateModel(&geometry, NULL);
-    }
-    else
-    {
-        r_UpdateModelGeometry(brush->model, &geometry);
-    }
-}
-
-
-
-
 
 
 

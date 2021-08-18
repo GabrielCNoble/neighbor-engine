@@ -16,8 +16,8 @@
 #define DS_BUFFER_IMPLEMENTATION
 #include "dstuff/ds_buffer.h"
 
-#define DS_DBVH_IMPLEMENTATION
-#include "dstuff/ds_dbvh.h"
+#define DS_DBVT_IMPLEMENTATION
+#include "dstuff/ds_dbvt.h"
 
 #define DS_FILE_IMPLEMENTATION
 #include "dstuff/ds_file.h"

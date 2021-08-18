@@ -14,12 +14,10 @@ void w_Init();
 
 void w_Shutdown();
 
-void w_FillGeometry(struct r_vert_t *verts, uint32_t vert_count, uint32_t *indices, uint32_t indice_count);
+void w_InitGeometry(struct r_model_geometry_t *geometry);
 
-//void w_VisibleLights();
+void w_ClearGeometry();
 
-//void w_VisibleEntities();
-
-void w_DrawWorld();
+//void w_DrawWorld();
 
 #endif // WORLD_H

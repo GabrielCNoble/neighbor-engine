@@ -204,6 +204,8 @@ struct a_animation_t *a_LoadAnimation(char *file_name);
 
 struct a_skeleton_t *a_CreateSkeleton(uint32_t bone_count, struct a_bone_t *bones, uint32_t bone_names_length, char *bone_names);
 
+void a_DestroySkeleton(struct a_skeleton_t *skeleton);
+
 struct a_player_t *a_CreatePlayer(char *player_name);
 
 struct a_player_t *a_PlayAnimation(struct a_animation_t *animation, char *player_name);

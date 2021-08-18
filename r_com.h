@@ -44,7 +44,11 @@ enum R_UNIFORM
 {
     R_UNIFORM_MODEL_VIEW_PROJECTION_MATRIX,
     R_UNIFORM_MODEL_VIEW_MATRIX,
-    R_UNIFORM_INVERSE_VIEW_MATRIX,
+    R_UNIFORM_VIEW_MATRIX,
+    R_UNIFORM_CAMERA_MATRIX,
+    R_UNIFORM_POINT_PROJ_PARAMS,
+//    R_UNIFORM_POINT_PROJ_MATRIX,
+//    R_UNIFORM_POINT_VIEW_MATRIX,
     R_UNIFORM_TEX0,
     R_UNIFORM_TEX1,
     R_UNIFORM_TEX2,
@@ -55,7 +59,9 @@ enum R_UNIFORM
     R_UNIFORM_TEX_METALNESS,
     R_UNIFORM_TEX_ROUGHNESS,
     R_UNIFORM_TEX_HEIGHT,
-    R_UNIFORM_CLUSTERS,
+    R_UNIFORM_TEX_CLUSTERS,
+    R_UNIFORM_TEX_SHADOW_ATLAS,
+    R_UNIFORM_TEX_INDIRECT,
     R_UNIFORM_CLUSTER_DENOM,
     R_UNIFORM_Z_NEAR,
     R_UNIFORM_Z_FAR,
@@ -70,6 +76,8 @@ enum R_UNIFORM
 #define R_METALNESS_TEX_UNIT 3
 #define R_ROUGHNESS_TEX_UNIT 4
 #define R_HEIGHT_TEX_UNIT 5
+#define R_SHADOW_ATLAS_TEX_UNIT 6
+#define R_INDIRECT_TEX_UNIT 7
 
 enum R_ATTRIBS
 {
@@ -142,16 +150,8 @@ struct r_model_t
     struct ds_buffer_t verts;
     struct ds_buffer_t indices;
     struct ds_buffer_t batches;
-//    uint32_t vert_count;
-//    struct r_vert_t *verts;
-//    uint32_t indice_count;
-//    uint32_t *indices;
-//    uint32_t batch_count;
-//    struct r_batch_t *batches;
     struct a_skeleton_t *skeleton;
-//    uint32_t weight_range_count;
     struct ds_buffer_t weight_ranges;
-//    uint32_t weight_count;
     struct ds_buffer_t weights;
     struct r_model_t *base;
     vec3_t min;
@@ -212,15 +212,7 @@ enum R_LIGHT_TYPES
 struct r_l_data_t
 {
     vec4_t pos_rad;
-    union
-    {
-        vec4_t color_type;
-        struct
-        {
-            vec3_t color;
-            uint32_t type;
-        };
-    };
+    vec4_t color_res;
 };
 
 struct r_light_t
@@ -237,6 +229,7 @@ struct r_light_t
     uint32_t max_z : 5;
 
     uint32_t gpu_index;
+    uint32_t first_shadow_map;
     uint32_t index;
 };
 
@@ -244,6 +237,34 @@ struct r_cluster_t
 {
     uint32_t start;
     uint32_t count;
+};
+
+#define R_SHADOW_MAP_X_COORD_SHIFT 0
+#define R_SHADOW_MAP_Y_COORD_SHIFT 8
+#define R_SHADOW_MAP_RES_SHIFT 16
+
+#define R_SHADOW_MAP_FACE_INDEX_SHIFT 0
+#define R_SHADOW_MAP_FACE_INDEX_MASK 0x07
+#define R_SHADOW_MAP_FACE_UV_COORD_MASK 0x03
+#define R_SHADOW_MAP_FACE_U_COORD_SHIFT 0x03
+#define R_SHADOW_MAP_FACE_V_COORD_SHIFT 0x05
+
+#define R_SHADOW_MAP_OFFSET_PACK_SHIFT 3
+#define R_SHADOW_MAP_PLANE_FRONT 0x1
+#define R_SHADOW_MAP_PLANE_BACK 0x2
+#define R_SHADOW_MAP_PLANE0_SHIFT 10
+#define R_SHADOW_MAP_PLANE1_SHIFT 8
+#define R_SHADOW_MAP_PLANE2_SHIFT 6
+#define R_SHADOW_MAP_PLANE3_SHIFT 4
+#define R_SHADOW_MAP_PLANE4_SHIFT 2
+#define R_SHADOW_MAP_PLANE5_SHIFT 0
+//#define R_SHADOW_MAP_COORD_OFFSET_MASK 0x03
+//#define R_SHADOW_MAP_X_COORD_OFFSET_SHIFT 4
+//#define R_SHADOW_MAP_Y_COORD_OFFSET_SHIFT 6
+
+struct r_shadow_map_t
+{
+    uint32_t shadow_map;
 };
 
 struct r_vis_item_t
@@ -266,6 +287,15 @@ struct r_entity_cmd_t
     struct r_material_t *material;
     uint32_t start;
     uint32_t count;
+};
+
+struct r_shadow_cmd_t
+{
+    mat4_t model_view_projection_matrix;
+    uint32_t start;
+    uint32_t count;
+    uint32_t shadow_map;
+//    uint32_t shadow_res;
 };
 
 enum R_IMMEDIATE_DATA_FLAGS
@@ -428,6 +458,22 @@ struct r_i_state_t
     uint32_t texture_count;
 };
 
+struct r_renderer_state_t
+{
+    uint32_t use_z_prepass;
+    uint32_t max_shadow_res;
+};
+
+struct r_renderer_stats_t
+{
+    uint32_t vert_count;
+    uint32_t indice_count;
+    uint32_t draw_call_count;
+    uint32_t shader_swaps;
+    uint32_t material_swaps;
+    uint32_t texture_swaps;
+};
+
 #define R_CLUSTER_ROW_WIDTH 32
 #define R_CLUSTER_ROWS 16
 #define R_CLUSTER_SLICES 16
@@ -443,12 +489,26 @@ struct r_i_state_t
 
 #define R_LIGHTS_UNIFORM_BUFFER_BINDING 0
 #define R_LIGHT_INDICES_UNIFORM_BUFFER_BINDING 1
+#define R_SHADOW_INDICES_BUFFER_BINDING 2
 
 #define R_POSITION_LOCATION 0
 #define R_NORMAL_LOCATION 1
 #define R_TANGENT_LOCATION 2
 #define R_TEX_COORDS_LOCATION 3
 #define R_COLOR_LOCATION R_NORMAL_LOCATION
+
+#define R_SHADOW_MAP_ATLAS_WIDTH 8192
+#define R_SHADOW_MAP_ATLAS_HEIGHT 8192
+#define R_SHADOW_MAP_MAX_RESOLUTION 1024
+#define R_SHADOW_MAP_MIN_RESOLUTION 64
+#define R_MAX_SHADOW_MAPS ((R_SHADOW_MAP_ATLAS_WIDTH * R_SHADOW_MAP_ATLAS_HEIGHT)/(R_SHADOW_MAP_MIN_RESOLUTION * R_SHADOW_MAP_MIN_RESOLUTION))
+
+#define R_SHADOW_MAP_FACE_POS_X 0
+#define R_SHADOW_MAP_FACE_NEG_X 1
+#define R_SHADOW_MAP_FACE_POS_Y 2
+#define R_SHADOW_MAP_FACE_NEG_Y 3
+#define R_SHADOW_MAP_FACE_POS_Z 4
+#define R_SHADOW_MAP_FACE_NEG_Z 5
 
 #define R_VERTEX_BUFFER_SIZE (sizeof(struct r_vert_t) * 5000000)
 #define R_INDEX_BUFFER_SIZE (sizeof(uint32_t) * 5000000)

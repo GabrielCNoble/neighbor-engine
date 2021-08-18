@@ -17,7 +17,11 @@ void r_SetViewPitchYaw(float pitch, float yaw);
 
 void r_UpdateViewProjectionMatrix();
 
-void r_DrawEntity(mat4_t *transform, struct r_model_t *model);
+void r_DrawElements(uint32_t mode, uint32_t count, uint32_t type, const void *indices);
+
+void r_DrawEntity(mat4_t *model_matrix, struct r_model_t *model);
+
+void r_DrawShadow(mat4_t *model_view_projection_matrix, uint32_t shadow_map, uint32_t start, uint32_t count);
 
 void r_DrawWorld(struct r_material_t *material, uint32_t start, uint32_t count);
 

@@ -33,12 +33,18 @@ struct ed_face_t
     vec3_t tangent;
 };
 
+struct ed_brush_batch_t
+{
+    struct r_batch_t batch;
+    uint32_t index;
+};
+
 struct ed_brush_t
 {
     mat3_t orientation;
     vec3_t position;
     uint32_t index;
-    struct list_t faces;
+    struct ds_list_t faces;
     struct ds_buffer_t vertices;
     struct r_model_t *model;
     struct ed_bspn_t *bsp;

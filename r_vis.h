@@ -8,6 +8,8 @@ void r_VisibleLights();
 
 void r_VisibleEntities();
 
+void r_VisibleEntitiesOnLights();
+
 void r_VisibleWorld();
 
 void r_VisibleVisItems();

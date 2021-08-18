@@ -4,7 +4,7 @@
 #include "dstuff/ds_vector.h"
 #include "dstuff/ds_matrix.h"
 #include "dstuff/ds_list.h"
-#include "dstuff/ds_stack_list.h"
+#include "dstuff/ds_slist.h"
 #include <stdint.h>
 
 /* influence of a single bone. No vertex id is necessary here, because
@@ -110,9 +110,9 @@ struct a_mixer_t
     struct a_weight_t *weights;
     struct a_skeleton_t *skeleton;
     struct r_model_t *model;
-    struct list_t players;
-    struct list_t mix_players;
-    struct list_t masks;
+    struct ds_list_t players;
+    struct ds_list_t mix_players;
+    struct ds_list_t masks;
     uint8_t *touched_bones;
     /* result of all mixed players */
     struct a_transform_t *mixed_transforms;
@@ -148,7 +148,7 @@ struct a_player_t
     struct a_animation_t *animation;
     struct a_transform_pair_t *pairs;
     struct a_transform_t *transforms;
-    struct list_t callbacks;
+    struct ds_list_t callbacks;
 };
 
 
@@ -203,6 +203,8 @@ void a_Shutdown();
 struct a_animation_t *a_LoadAnimation(char *file_name);
 
 struct a_skeleton_t *a_CreateSkeleton(uint32_t bone_count, struct a_bone_t *bones, uint32_t bone_names_length, char *bone_names);
+
+void a_DestroySkeleton(struct a_skeleton_t *skeleton);
 
 struct a_player_t *a_CreatePlayer(char *player_name);
 

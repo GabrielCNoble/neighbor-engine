@@ -1,20 +1,19 @@
 #include <float.h>
 #include "physics.h"
-#include "dstuff/ds_stack_list.h"
+#include "dstuff/ds_slist.h"
 #include "dstuff/ds_list.h"
 #include "dstuff/ds_mem.h"
-#include "dstuff/ds_dbvh.h"
+#include "dstuff/ds_dbvt.h"
 #include "r_draw.h"
 
 
-struct stack_list_t p_colliders[P_COLLIDER_TYPE_LAST];
-struct stack_list_t p_col_planes;
-struct list_t p_collisions;
-struct list_t p_collision_pairs;
+struct ds_slist_t p_colliders[P_COLLIDER_TYPE_LAST];
+struct ds_slist_t p_col_planes;
+struct ds_list_t p_collisions;
+struct ds_list_t p_collision_pairs;
 struct p_col_plane_t *p_pair_col_planes;
-struct stack_list_t p_col_shapes;
-struct dbvh_tree_t p_main_dbvh;
-struct dbvh_tree_t p_trigger_dbvh;
+struct ds_dbvt_t p_main_dbvt;
+struct ds_dbvt_t p_trigger_dbvt;
 uint32_t p_frame = 0;
 
 vec3_t p_col_normals[] =
@@ -29,16 +28,14 @@ vec3_t p_col_normals[] =
 
 void p_Init()
 {
-    p_colliders[P_COLLIDER_TYPE_MOVABLE] = create_stack_list(sizeof(struct p_movable_collider_t), 512);
-    p_colliders[P_COLLIDER_TYPE_STATIC] = create_stack_list(sizeof(struct p_static_collider_t), 512);
-    p_colliders[P_COLLIDER_TYPE_TRIGGER] = create_stack_list(sizeof(struct p_trigger_collider_t), 128);
-
-    p_col_shapes = create_stack_list(sizeof(struct p_col_shape_t), 512);
-    p_collisions = create_list(sizeof(struct p_collider_t *), 4096);
-//    p_col_planes = create_stack_list(sizeof(struct p_col_plane_t) * 6, 512);
-//    p_pair_col_planes = mem_Calloc(32, sizeof(struct p_col_plane_t));
-    p_main_dbvh = create_dbvh_tree(0);
-    p_trigger_dbvh = create_dbvh_tree(0);
+    p_colliders[P_COLLIDER_TYPE_MOVABLE] = ds_slist_create(sizeof(struct p_movable_collider_t), 512);
+    p_colliders[P_COLLIDER_TYPE_STATIC] = ds_slist_create(sizeof(struct p_static_collider_t), 512);
+    p_colliders[P_COLLIDER_TYPE_TRIGGER] = ds_slist_create(sizeof(struct p_trigger_collider_t), 128);
+    p_collisions = ds_list_create(sizeof(struct p_collider_t *), 4096);
+    p_col_planes = ds_slist_create(sizeof(struct p_col_plane_t) * 6, 512);
+    p_pair_col_planes = mem_Calloc(32, sizeof(struct p_col_plane_t));
+    p_main_dbvt = ds_dbvt_create(0);
+    p_trigger_dbvt = ds_dbvt_create(0);
 }
 
 void p_Shutdown()
@@ -46,71 +43,16 @@ void p_Shutdown()
 
 }
 
-struct p_col_shape_t *p_CreateCollisionShape(uint32_t type)
-{
-    struct p_col_shape_t *shape;
-    uint32_t index = add_stack_list_element(&p_col_shapes, NULL);
-
-    shape = get_stack_list_element(&p_col_shapes, index);
-    memset(shape, 0, sizeof(struct p_col_shape_t));
-
-    shape->index = index;
-    shape->type = type;
-
-    return shape;
-}
-
-struct p_col_shape_t *p_CreateCapsuleCollisionShape(float radius, float height)
-{
-    struct p_col_shape_t *shape = p_CreateCollisionShape(P_COL_SHAPE_TYPE_CAPSULE);
-    shape->capsule_shape.radius = radius;
-    shape->capsule_shape.height = height;
-    return shape;
-}
-
-struct p_col_shape_t *p_CreateTriMeshCollisionShape(vec3_t *verts, uint32_t vert_count)
-{
-    struct p_col_shape_t *shape = NULL;
-    vert_count -= vert_count % 3;
-
-    if(vert_count)
-    {
-        shape = p_CreateCollisionShape(P_COL_SHAPE_TYPE_TMESH);
-        shape->tmesh_shape.tris = mem_Calloc(vert_count, sizeof(struct p_col_tri_t));
-
-        for(uint32_t vert_index = 0; vert_index < vert_count;)
-        {
-            struct p_col_tri_t *col_tri = shape->tmesh_shape.tris + shape->tmesh_shape.tri_count;
-            vec3_t e0;
-            vec3_t e1;
-
-            col_tri->verts[0] = verts[vert_index++];
-            col_tri->verts[1] = verts[vert_index++];
-            col_tri->verts[2] = verts[vert_index++];
-
-            vec3_t_sub(&e0, &col_tri->verts[1], &col_tri->verts[0]);
-            vec3_t_sub(&e1, &col_tri->verts[2], &col_tri->verts[1]);
-            vec3_t_cross(&col_tri->normal, &e0, &e1);
-
-            shape->tmesh_shape.tri_count++;
-        }
-
-        shape->tmesh_shape.dbvh = create_dbvh_tree(0);
-    }
-
-    return shape;
-}
-
 struct p_collider_t *p_CreateCollider(uint32_t type, vec3_t *position, mat3_t *orientation, vec3_t *size)
 {
     uint32_t collider_index;
     struct p_collider_t *collider;
 
-    collider_index = add_stack_list_element(&p_colliders[type], NULL);
-    collider = get_stack_list_element(&p_colliders[type], collider_index);
+    collider_index = ds_slist_add_element(&p_colliders[type], NULL);
+    collider = ds_slist_get_element(&p_colliders[type], collider_index);
 
     collider->index = collider_index;
-    collider->planes_index = add_stack_list_element(&p_col_planes, NULL);
+    collider->planes_index = ds_slist_add_element(&p_col_planes, NULL);
 
     if(!orientation)
     {
@@ -126,24 +68,24 @@ struct p_collider_t *p_CreateCollider(uint32_t type, vec3_t *position, mat3_t *o
     collider->type = type;
     collider->user_data = NULL;
 
-    struct dbvh_tree_t *dbvh;
+    struct ds_dbvt_t *dbvh;
     if(type == P_COLLIDER_TYPE_TRIGGER)
     {
-        dbvh = &p_trigger_dbvh;
+        dbvh = &p_trigger_dbvt;
     }
     else
     {
-        dbvh = &p_main_dbvh;
+        dbvh = &p_main_dbvt;
     }
 
-    collider->node_index = alloc_dbvh_node(dbvh);
-    struct dbvh_node_t *node = get_dbvh_node_pointer(dbvh, collider->node_index);
+    collider->node_index = ds_dbvt_alloc_node(dbvh);
+    struct ds_dbvn_t *node = ds_dbvt_get_node_pointer(dbvh, collider->node_index);
     vec3_t_fmadd(&node->min, &collider->position, &collider->size, -0.5);
     vec3_t_fmadd(&node->max, &collider->position, &collider->size, 0.5);
 
 
     node->contents = collider;
-    insert_node_into_dbvh(dbvh, collider->node_index);
+    ds_dbvt_insert_node(dbvh, collider->node_index);
 
     p_GenColPlanes(collider);
 
@@ -154,7 +96,7 @@ struct p_collider_t *p_GetCollider(uint32_t type, uint32_t index)
 {
     struct p_collider_t *collider;
 
-    collider = get_stack_list_element(&p_colliders[type], index);
+    collider = ds_slist_get_element(&p_colliders[type], index);
 
     if(collider && collider->index == 0xffffffff)
     {
@@ -184,7 +126,7 @@ struct p_collider_t *p_GetCollision(struct p_collider_t *collider, uint32_t coll
         return NULL;
     }
 
-    return *(struct p_collider_t **)get_list_element(&p_collisions, index);
+    return *(struct p_collider_t **)ds_list_get_element(&p_collisions, index);
 }
 
 void p_DisplaceCollider(struct p_collider_t *collider, vec3_t *disp)
@@ -196,13 +138,13 @@ void p_DisplaceCollider(struct p_collider_t *collider, vec3_t *disp)
         case P_COLLIDER_TYPE_STATIC:
         {
             vec3_t_add(&collider->position, &collider->position, disp);
-            struct dbvh_node_t *node = get_dbvh_node_pointer(&p_main_dbvh, collider->node_index);
+            struct ds_dbvn_t *node = ds_dbvt_get_node_pointer(&p_main_dbvt, collider->node_index);
             vec3_t_add(&node->max, &node->max, disp);
             vec3_t_add(&node->min, &node->min, disp);
-            uint32_t node_index = nodes_smallest_volume(&p_main_dbvh, collider->node_index);
-            pair_dbvh_nodes(&p_main_dbvh, collider->node_index, node_index);
+            uint32_t node_index = ds_dbvt_nodes_smallest_volume(&p_main_dbvt, collider->node_index);
+            ds_dbvt_pair_nodes(&p_main_dbvt, collider->node_index, node_index);
 
-            planes = get_stack_list_element(&p_col_planes, collider->planes_index);
+            planes = ds_slist_get_element(&p_col_planes, collider->planes_index);
 
             for(uint32_t plane_index = 0; plane_index < 6; plane_index++)
             {
@@ -266,7 +208,7 @@ void p_UpdateColliders()
         struct p_collider_t *collider = p_GetCollider(P_COLLIDER_TYPE_STATIC, collider_index);
         if(collider)
         {
-            struct dbvh_node_t *node = get_dbvh_node_pointer(&p_main_dbvh, collider->node_index);
+            struct ds_dbvn_t *node = ds_dbvt_get_node_pointer(&p_main_dbvt, collider->node_index);
 
             corners[0] = vec3_t_c(node->min.x, node->max.y, node->min.z);
             corners[1] = vec3_t_c(node->min.x, node->min.y, node->min.z);
@@ -322,11 +264,11 @@ void p_UpdateColliders()
             vec3_t box_a[2];
             p_ComputeMoveBox((struct p_collider_t *)collider_a, &box_a[0], &box_a[1]);
 
-            struct list_t *contents = box_on_dbvh_contents(&p_main_dbvh, &box_a[1], &box_a[0]);
+            struct ds_list_t *contents = ds_dbvt_box_contents(&p_main_dbvt, &box_a[1], &box_a[0]);
 
             for(uint32_t collider_index = 0; collider_index < contents->cursor; collider_index++)
             {
-                struct p_collider_t *collider_b = *(struct p_collider_t **)get_list_element(contents, collider_index);
+                struct p_collider_t *collider_b = *(struct p_collider_t **)ds_list_get_element(contents, collider_index);
                 if((struct p_collider_t *)collider_b != (struct p_collider_t *)collider_a)
                 {
                     struct p_trace_t cur_trace = closest_trace;
@@ -432,16 +374,16 @@ void p_UpdateColliders()
                     collider_a->flags |= P_COLLIDER_FLAG_TOP_COLLIDED;
                 }
 
-                add_list_element(&p_collisions, &closest_trace.collider);
+                ds_list_add_element(&p_collisions, &closest_trace.collider);
             }
             else
             {
                 vec3_t_add(&collider_a->position, &collider_a->position, &collider_a->disp);
 
-                struct dbvh_node_t *node = get_dbvh_node_pointer(&p_main_dbvh, collider_a->node_index);
+                struct ds_dbvn_t *node = ds_dbvt_get_node_pointer(&p_main_dbvt, collider_a->node_index);
                 p_ComputeMoveBox((struct p_collider_t *)collider_a, &node->min, &node->max);
-                uint32_t node_index = nodes_smallest_volume(&p_main_dbvh, collider_a->node_index);
-                pair_dbvh_nodes(&p_main_dbvh, collider_a->node_index, node_index);
+                uint32_t node_index = ds_dbvt_nodes_smallest_volume(&p_main_dbvt, collider_a->node_index);
+                ds_dbvt_pair_nodes(&p_main_dbvt, collider_a->node_index, node_index);
                 break;
             }
 
@@ -459,16 +401,16 @@ void p_UpdateColliders()
         {
             trigger_collider->first_collision = p_collisions.cursor;
 
-            struct dbvh_node_t *node = get_dbvh_node_pointer(&p_trigger_dbvh, trigger_collider->node_index);
-            struct list_t *contents = box_on_dbvh_contents(&p_main_dbvh, &node->max, &node->min);
+            struct ds_dbvn_t *node = ds_dbvt_get_node_pointer(&p_trigger_dbvt, trigger_collider->node_index);
+            struct ds_list_t *contents = ds_dbvt_box_contents(&p_main_dbvt, &node->max, &node->min);
 
             for(uint32_t collider_index = 0; collider_index < contents->cursor; collider_index++)
             {
-                struct p_collider_t *collider = *(struct p_collider_t **)get_list_element(contents, collider_index);
+                struct p_collider_t *collider = *(struct p_collider_t **)ds_list_get_element(contents, collider_index);
                 struct p_trace_t trace = {};
                 if(p_ComputeCollision((struct p_collider_t *)trigger_collider, collider, &trace))
                 {
-                    add_list_element(&p_collisions, &collider);
+                    ds_list_add_element(&p_collisions, &collider);
                 }
             }
 
@@ -481,7 +423,7 @@ void p_GenColPlanes(struct p_collider_t *collider)
 {
     vec3_t size;
     vec3_t_mul(&size, &collider->size, 0.5);
-    struct p_col_plane_t *planes = get_stack_list_element(&p_col_planes, collider->planes_index);
+    struct p_col_plane_t *planes = ds_slist_get_element(&p_col_planes, collider->planes_index);
 
     for(uint32_t plane_index = 0; plane_index < 6; plane_index++)
     {
@@ -509,8 +451,8 @@ void p_GenPairColPlanes(struct p_collider_t *collider_a, struct p_collider_t *co
 //    mat3_t extents;
     uint32_t plane_index = 0;
     struct p_col_plane_t *pair_planes = p_pair_col_planes;
-    struct p_col_plane_t *a_planes = get_stack_list_element(&p_col_planes, collider_a->planes_index);
-    struct p_col_plane_t *b_planes = get_stack_list_element(&p_col_planes, collider_b->planes_index);
+    struct p_col_plane_t *a_planes = ds_slist_get_element(&p_col_planes, collider_a->planes_index);
+    struct p_col_plane_t *b_planes = ds_slist_get_element(&p_col_planes, collider_b->planes_index);
 
     vec3_t size_a;
     vec3_t size_b;
@@ -679,12 +621,12 @@ void p_UpdateColliderNode(struct p_collider_t *collider)
 //        vec3_t_min(&min, &min, corner);
 //    }
 
-    struct dbvh_node_t *node = get_dbvh_node_pointer(&p_main_dbvh, collider->node_index);
+    struct ds_dbvn_t *node = ds_dbvt_get_node_pointer(&p_main_dbvt, collider->node_index);
     vec3_t_add(&node->min, &min, &collider->position);
     vec3_t_add(&node->max, &max, &collider->position);
 
-    uint32_t sibling_index = nodes_smallest_volume(&p_main_dbvh, collider->node_index);
-    pair_dbvh_nodes(&p_main_dbvh, collider->node_index, sibling_index);
+    uint32_t sibling_index = ds_dbvt_nodes_smallest_volume(&p_main_dbvt, collider->node_index);
+    ds_dbvt_pair_nodes(&p_main_dbvt, collider->node_index, sibling_index);
 }
 
 void p_ComputeMoveBox(struct p_collider_t *collider, vec3_t *min, vec3_t *max)
@@ -1203,7 +1145,7 @@ void p_TracePlanes(vec3_t *start, vec3_t *dir, struct p_col_plane_t *planes, uin
 
 uint32_t p_RaycastRecursive(uint32_t node_index, vec3_t *start, vec3_t *end, struct p_col_plane_t *planes, struct p_trace_t *trace)
 {
-    struct dbvh_node_t *node = get_dbvh_node_pointer(&p_main_dbvh, node_index);
+    struct ds_dbvn_t *node = ds_dbvt_get_node_pointer(&p_main_dbvt, node_index);
     vec3_t extents[] = {node->max, node->min};
 
     for(uint32_t plane_index = 0; plane_index < 6; plane_index++)
@@ -1247,7 +1189,7 @@ uint32_t p_Raycast(vec3_t *start, vec3_t *end, struct p_trace_t *trace)
         p_pair_col_planes[plane_index].normal = p_col_normals[plane_index];
     }
 
-    if(p_RaycastRecursive(p_main_dbvh.root, start, end, p_pair_col_planes, &temp_trace))
+    if(p_RaycastRecursive(p_main_dbvt.root, start, end, p_pair_col_planes, &temp_trace))
     {
         *trace = temp_trace;
         return 1;

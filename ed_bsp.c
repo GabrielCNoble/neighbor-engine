@@ -1,15 +1,15 @@
 #include "ed_bsp.h"
 #include <stdlib.h>
 
-extern struct stack_list_t ed_polygons;
-extern struct stack_list_t ed_bsp_nodes;
+extern struct ds_slist_t ed_polygons;
+extern struct ds_slist_t ed_bsp_nodes;
 
 #define ED_BSP_DELTA 0.0001
 
 struct ed_polygon_t *ed_AllocPolygon()
 {
-    uint32_t index = add_stack_list_element(&ed_polygons, NULL);
-    struct ed_polygon_t *polygon = get_stack_list_element(&ed_polygons, index);
+    uint32_t index = ds_slist_add_element(&ed_polygons, NULL);
+    struct ed_polygon_t *polygon = ds_slist_get_element(&ed_polygons, index);
 
     polygon->index = index;
     polygon->next = NULL;
@@ -17,7 +17,7 @@ struct ed_polygon_t *ed_AllocPolygon()
 
     if(!polygon->vertices.elem_size)
     {
-        polygon->vertices = ds_create_buffer(sizeof(struct r_vert_t), 0);
+        polygon->vertices = ds_buffer_create(sizeof(struct r_vert_t), 0);
     }
 
     return polygon;
@@ -27,15 +27,15 @@ void ed_FreePolygon(struct ed_polygon_t *polygon)
 {
     if(polygon->index != 0xffffffff)
     {
-        remove_stack_list_element(&ed_polygons, polygon->index);
+        ds_slist_remove_element(&ed_polygons, polygon->index);
         polygon->index = 0xffffffff;
     }
 }
 
 struct ed_bspn_t *ed_AllocNode()
 {
-    uint32_t index = add_stack_list_element(&ed_bsp_nodes, NULL);
-    struct ed_bspn_t *node = get_stack_list_element(&ed_bsp_nodes, index);
+    uint32_t index = ds_slist_add_element(&ed_bsp_nodes, NULL);
+    struct ed_bspn_t *node = ds_slist_get_element(&ed_bsp_nodes, index);
 
     node->index = index;
     node->front = NULL;
@@ -49,7 +49,7 @@ void ed_FreeNode(struct ed_bspn_t *node)
 {
     if(node->index != 0xffffffff)
     {
-        remove_stack_list_element(&ed_bsp_nodes, node->index);
+        ds_slist_remove_element(&ed_bsp_nodes, node->index);
         node->index = 0xffffffff;
     }
 }
@@ -62,12 +62,12 @@ struct ed_polygon_t *ed_PolygonsFromBrush(struct ed_brush_t *brush)
 
     for(uint32_t face_index = 0; face_index < brush->faces.cursor; face_index++)
     {
-        struct ed_face_t *face = get_list_element(&brush->faces, face_index);
+        struct ed_face_t *face = ds_list_get_element(&brush->faces, face_index);
         struct ed_polygon_t *polygon = ed_AllocPolygon();
 
         if(polygon->vertices.buffer_size < face->indices.buffer_size)
         {
-            ds_resize_buffer(&polygon->vertices, face->indices.buffer_size);
+            ds_buffer_resize(&polygon->vertices, face->indices.buffer_size);
         }
 
         uint32_t *indices = (uint32_t *)face->indices.buffer;
@@ -275,8 +275,8 @@ uint32_t ed_PolygonsFromBsp(struct ds_buffer_t *polygons, struct ed_bspn_t *bsp)
 
     while(polygon)
     {
-        ds_resize_buffer(polygons, polygons->buffer_size + 1);
-        ds_fill_buffer(polygons, polygons->buffer_size - 1, polygon, 1);
+        ds_buffer_resize(polygons, polygons->buffer_size + 1);
+        ds_buffer_fill(polygons, polygons->buffer_size - 1, polygon, 1);
         vert_count += polygon->vertices.buffer_size;
         polygon = polygon->next;
     }
@@ -320,13 +320,13 @@ void ed_GeometryFromBsp(struct r_model_geometry_t *geometry, struct ed_bspn_t *b
     uint32_t vert_count;
     uint32_t first_vertex = 0;
 
-    polygon_buffer = ds_create_buffer(sizeof(struct ed_polygon_t), 0);
+    polygon_buffer = ds_buffer_create(sizeof(struct ed_polygon_t), 0);
     vert_count = ed_PolygonsFromBsp(&polygon_buffer, bsp);
     qsort(polygon_buffer.buffer, polygon_buffer.buffer_size, polygon_buffer.elem_size, compare_polygons);
 
-    vertex_buffer = ds_create_buffer(sizeof(struct r_vert_t), vert_count);
-    index_buffer = ds_create_buffer(sizeof(uint32_t), (vert_count - 2) * 3);
-    batch_buffer = ds_create_buffer(sizeof(struct r_batch_t), 0);
+    vertex_buffer = ds_buffer_create(sizeof(struct r_vert_t), vert_count);
+    index_buffer = ds_buffer_create(sizeof(uint32_t), (vert_count - 2) * 3);
+    batch_buffer = ds_buffer_create(sizeof(struct r_batch_t), 0);
 
     uint32_t *indices = (uint32_t *)index_buffer.buffer;
     struct r_vert_t *vertices = (struct r_vert_t *)vertex_buffer.buffer;
@@ -352,7 +352,7 @@ void ed_GeometryFromBsp(struct r_model_geometry_t *geometry, struct ed_bspn_t *b
 
         if(!polygon_batch)
         {
-            ds_resize_buffer(&batch_buffer, batch_buffer.buffer_size + 1);
+            ds_buffer_resize(&batch_buffer, batch_buffer.buffer_size + 1);
             batches = (struct r_batch_t *)batch_buffer.buffer;
             polygon_batch = batches + polygon_batch_index;
             polygon_batch->count = 0;
@@ -392,7 +392,7 @@ void ed_GeometryFromBsp(struct r_model_geometry_t *geometry, struct ed_bspn_t *b
     geometry->indices = index_buffer.buffer;
     geometry->index_count = index_buffer.buffer_size;
 
-    ds_destroy_buffer(&polygon_buffer);
+    ds_buffer_destroy(&polygon_buffer);
 }
 
 

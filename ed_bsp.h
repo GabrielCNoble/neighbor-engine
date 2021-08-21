@@ -35,7 +35,7 @@ struct ed_polygon_t *ed_BestSplitter(struct ed_polygon_t *polygons);
 
 struct ed_bspn_t *ed_BspFromPolygons(struct ed_polygon_t *polygons);
 
-uint32_t ed_PolygonsFromBsp(struct ds_buffer_t *polygons, struct ed_bspn_t *bsp);
+void ed_PolygonsFromBsp(struct ds_buffer_t *polygons, struct ed_bspn_t *bsp, uint32_t *vert_count, uint32_t *index_count);
 
 void ed_GeometryFromBsp(struct r_model_geometry_t *geometry, struct ed_bspn_t *bsp);
 

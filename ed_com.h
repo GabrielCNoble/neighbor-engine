@@ -50,4 +50,73 @@ struct ed_brush_t
     struct ed_bspn_t *bsp;
 };
 
+enum ED_PICKABLE_TYPE
+{
+    ED_PICKABLE_TYPE_BRUSH = 1,
+    ED_PICKABLE_TYPE_ENTITY,
+    ED_PICKABLE_TYPE_LIGHT,
+    ED_PICKABLE_TYPE_FACE,
+    ED_PICKABLE_TYPE_MANIPULATOR,
+};
+
+struct ed_pickable_t
+{
+    uint32_t type;
+    uint32_t index;
+
+    mat4_t transform;
+    uint32_t mode;
+    uint32_t start;
+    uint32_t count;
+    uint32_t pick_index;
+};
+
+
+struct ed_context_t;
+
+struct ed_state_t
+{
+    void (*update)(struct ed_context_t *context, uint32_t just_changed);
+};
+
+struct ed_context_t
+{
+    void (*update)();
+    uint32_t current_state;
+    uint32_t next_state;
+    struct ed_state_t *states;
+    void *context_data;
+};
+
+struct ed_world_context_data_t
+{
+    vec3_t box_start;
+    vec3_t box_end;
+    struct ed_pickable_t *last_selected;
+    struct ds_slist_t pickables;
+    struct ds_slist_t brushes;
+    uint32_t global_brush_vert_count;
+    uint32_t global_brush_index_count;
+    struct ds_list_t global_brush_batches;
+    struct ds_list_t selections;
+};
+
+enum ED_CONTEXTS
+{
+    ED_CONTEXT_WORLD = 0,
+    ED_CONTEXT_LAST,
+};
+
+
+enum ED_WORLD_CONTEXT_STATES
+{
+    ED_WORLD_CONTEXT_STATE_IDLE = 0,
+    ED_WORLD_CONTEXT_STATE_LEFT_CLICK,
+    ED_WORLD_CONTEXT_STATE_RIGHT_CLICK,
+    ED_WORLD_CONTEXT_STATE_BRUSH_BOX,
+    ED_WORLD_CONTEXT_STATE_CREATE_BRUSH,
+    ED_WORLD_CONTEXT_STATE_PROCESS_SELECTION,
+    ED_WORLD_CONTEXT_STATE_LAST
+};
+
 #endif // ED_COM_H

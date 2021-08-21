@@ -107,13 +107,23 @@ void r_BindShader(struct r_shader_t *shader);
 
 uint32_t r_GetUniformIndex(struct r_shader_t *shader, char *name);
 
-void r_SetUniformMatrix4(uint32_t uniform, mat4_t *matrix);
 
-void r_SetUniform1f(uint32_t uniform, float value);
+void r_SetDefaultUniformI(uint32_t uniform, int32_t value);
 
-void r_SetUniform2f(uint32_t uniform, float value0, float value1);
+void r_SetDefaultUniformF(uint32_t uniform, float value);
 
-void r_SetUniform1i(uint32_t uniform, uint32_t value);
+void r_SetDefaultUniformVec2(uint32_t uniform, vec2_t *value);
+
+void r_SetDefaultUniformMat4(uint32_t uniform, mat4_t *matrix);
+
+void r_SetNamedUniformByName(char *uniform, void *value);
+
+void r_SetNamedUniform(struct r_named_uniform_t *uniform, void *value);
+
+void r_SetNamedUniformVec4(struct r_named_uniform_t *uniform, vec4_t *value);
+
+
+
 
 /*
 ============================================================================

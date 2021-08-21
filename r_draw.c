@@ -89,11 +89,13 @@ extern uint32_t r_main_framebuffer;
 extern uint32_t r_z_prepass_framebuffer;
 
 //uint32_t r_use_z_prepass = 1;
-uint32_t r_draw_call_count = 0;
-uint32_t r_prev_draw_call_count = 0;
+//uint32_t r_draw_call_count = 0;
+//uint32_t r_prev_draw_call_count = 0;
 
 struct r_renderer_state_t r_renderer_state;
 struct r_renderer_stats_t r_renderer_stats;
+
+extern uint32_t r_uniform_type_sizes[];
 
 void r_BeginFrame()
 {
@@ -102,7 +104,7 @@ void r_BeginFrame()
     glDisable(GL_SCISSOR_TEST);
     glDepthMask(GL_TRUE);
 
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
     glBindVertexArray(r_vao);
 
     if(r_light_buffer_cursor)
@@ -325,7 +327,7 @@ void r_DrawCmds()
             cur_shadow_map = cmd->shadow_map;
         }
 
-        r_SetUniformMatrix4(R_UNIFORM_MODEL_VIEW_PROJECTION_MATRIX, &cmd->model_view_projection_matrix);
+        r_SetDefaultUniformMat4(R_UNIFORM_MODEL_VIEW_PROJECTION_MATRIX, &cmd->model_view_projection_matrix);
         glDrawElements(GL_TRIANGLES, cmd->count, GL_UNSIGNED_INT, (void *)(cmd->start * sizeof(uint32_t)));
         r_renderer_stats.draw_call_count++;
     }
@@ -346,7 +348,7 @@ void r_DrawCmds()
         {
             struct r_entity_cmd_t *cmd = ds_list_get_element(&r_entity_cmds, cmd_index);
             mat4_t_mul(&model_view_projection_matrix, &cmd->model_view_matrix, &r_projection_matrix);
-            r_SetUniformMatrix4(R_UNIFORM_MODEL_VIEW_PROJECTION_MATRIX, &model_view_projection_matrix);
+            r_SetDefaultUniformMat4(R_UNIFORM_MODEL_VIEW_PROJECTION_MATRIX, &model_view_projection_matrix);
             glDrawElements(GL_TRIANGLES, cmd->count, GL_UNSIGNED_INT, (void *)(cmd->start * sizeof(uint32_t)));
             r_renderer_stats.draw_call_count++;
         }
@@ -357,11 +359,11 @@ void r_DrawCmds()
 
     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, r_main_framebuffer);
     r_BindShader(r_lit_shader);
-    r_SetUniform1i(R_UNIFORM_TEX_CLUSTERS, R_CLUSTERS_TEX_UNIT);
-    r_SetUniform1i(R_UNIFORM_TEX_SHADOW_ATLAS, R_SHADOW_ATLAS_TEX_UNIT);
-    r_SetUniform1i(R_UNIFORM_TEX_INDIRECT, R_INDIRECT_TEX_UNIT);
-    r_SetUniformMatrix4(R_UNIFORM_CAMERA_MATRIX, &r_camera_matrix);
-    r_SetUniform2f(R_UNIFORM_POINT_PROJ_PARAMS, r_point_shadow_projection_params.x, r_point_shadow_projection_params.y);
+    r_SetDefaultUniformI(R_UNIFORM_TEX_CLUSTERS, R_CLUSTERS_TEX_UNIT);
+    r_SetDefaultUniformI(R_UNIFORM_TEX_SHADOW_ATLAS, R_SHADOW_ATLAS_TEX_UNIT);
+    r_SetDefaultUniformI(R_UNIFORM_TEX_INDIRECT, R_INDIRECT_TEX_UNIT);
+    r_SetDefaultUniformMat4(R_UNIFORM_CAMERA_MATRIX, &r_camera_matrix);
+    r_SetDefaultUniformVec2(R_UNIFORM_POINT_PROJ_PARAMS, &r_point_shadow_projection_params);
 
     for(uint32_t cmd_index = 0; cmd_index < r_entity_cmds.cursor; cmd_index++)
     {
@@ -374,8 +376,8 @@ void r_DrawCmds()
         }
 
         mat4_t_mul(&model_view_projection_matrix, &cmd->model_view_matrix, &r_projection_matrix);
-        r_SetUniformMatrix4(R_UNIFORM_MODEL_VIEW_PROJECTION_MATRIX, &model_view_projection_matrix);
-        r_SetUniformMatrix4(R_UNIFORM_MODEL_VIEW_MATRIX, &cmd->model_view_matrix);
+        r_SetDefaultUniformMat4(R_UNIFORM_MODEL_VIEW_PROJECTION_MATRIX, &model_view_projection_matrix);
+        r_SetDefaultUniformMat4(R_UNIFORM_MODEL_VIEW_MATRIX, &cmd->model_view_matrix);
         glDrawElements(GL_TRIANGLES, cmd->count, GL_UNSIGNED_INT, (void *)(cmd->start * sizeof(uint32_t)));
         r_renderer_stats.draw_call_count++;
     }
@@ -386,8 +388,8 @@ void r_DrawCmds()
     mat4_t_identity(&view_projection_matrix);
     mat4_t_identity(&model_matrix);
     glDepthMask(GL_TRUE);
-    glBindBuffer(GL_ARRAY_BUFFER, r_immediate_vertex_buffer);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, r_immediate_index_buffer);
+//    glBindBuffer(GL_ARRAY_BUFFER, r_immediate_vertex_buffer);
+//    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, r_immediate_index_buffer);
     glDepthFunc(GL_LESS);
     r_BindShader(r_immediate_shader);
 
@@ -396,6 +398,8 @@ void r_DrawCmds()
     struct r_i_transform_t *immediate_model_matrix = NULL;
     struct r_i_verts_t *immediate_verts = NULL;
     struct r_i_indices_t *immediate_indices = NULL;
+    uint32_t cmd_vert_start_offset = 0;
+    uint32_t cmd_index_start_offset = 0;
 
     for(uint32_t cmd_index = 0; cmd_index < r_immediate_cmds.cursor; cmd_index++)
     {
@@ -432,6 +436,19 @@ void r_DrawCmds()
 
             case R_I_CMD_SET_STATE:
                 immediate_state = cmd->data;
+                if(immediate_state->shader)
+                {
+                    r_BindShader(immediate_state->shader->shader);
+                }
+
+                immediate_state->shader = NULL;
+            break;
+
+            case R_I_CMD_SET_UNIFORM:
+            {
+                struct r_i_uniform_t *uniform = cmd->data;
+                r_SetNamedUniform(uniform->uniform, uniform->value);
+            }
             break;
 
             case R_I_CMD_SET_BUFFERS:
@@ -439,6 +456,24 @@ void r_DrawCmds()
                 struct r_i_geometry_t *geometry = cmd->data;
                 immediate_verts = geometry->verts;
                 immediate_indices = geometry->indices;
+
+                if(immediate_verts)
+                {
+                    cmd_vert_start_offset = R_IMMEDIATE_VERTEX_BUFFER_OFFSET / sizeof(struct r_vert_t);
+                }
+                else
+                {
+                    cmd_vert_start_offset = 0;
+                }
+
+                if(immediate_indices)
+                {
+                    cmd_index_start_offset = R_IMMEDIATE_INDEX_BUFFER_OFFSET / sizeof(uint32_t);
+                }
+                else
+                {
+                    cmd_index_start_offset = 0;
+                }
             }
             break;
 
@@ -446,10 +481,10 @@ void r_DrawCmds()
             {
                 if(immediate_state)
                 {
-                    if(immediate_state->shader)
-                    {
-                        r_BindShader(immediate_state->shader->shader);
-                    }
+//                    if(immediate_state->shader)
+//                    {
+//                        r_BindShader(immediate_state->shader->shader);
+//                    }
 
                     if(immediate_state->textures)
                     {
@@ -467,7 +502,7 @@ void r_DrawCmds()
                                 glBindTexture(GL_TEXTURE_2D, 0);
                             }
 
-                            r_SetUniform1i(R_UNIFORM_TEX0 + texture_index, texture->tex_unit - GL_TEXTURE0);
+                            r_SetDefaultUniformI(R_UNIFORM_TEX0 + texture_index, texture->tex_unit - GL_TEXTURE0);
                         }
                     }
 
@@ -490,7 +525,7 @@ void r_DrawCmds()
                         {
                             glEnable(GL_STENCIL_TEST);
                             glStencilOp(immediate_state->stencil->stencil_fail, immediate_state->stencil->depth_fail, immediate_state->stencil->depth_pass);
-                            glStencilFunc(immediate_state->stencil->operation, immediate_state->stencil->ref, immediate_state->stencil->mask);
+                            glStencilFunc(immediate_state->stencil->func, immediate_state->stencil->ref, immediate_state->stencil->mask);
                         }
                         else
                         {
@@ -503,7 +538,11 @@ void r_DrawCmds()
                         if(immediate_state->depth->enable)
                         {
                             glEnable(GL_DEPTH_TEST);
-                            glDepthFunc(immediate_state->depth->func);
+
+                            if(immediate_state->depth->func != GL_DONT_CARE)
+                            {
+                                glDepthFunc(immediate_state->depth->func);
+                            }
                         }
                         else
                         {
@@ -511,17 +550,32 @@ void r_DrawCmds()
                         }
                     }
 
-                    if(immediate_state->cull_face)
+                    if(immediate_state->rasterizer)
                     {
-                        if(immediate_state->cull_face->enable)
+                        if(immediate_state->rasterizer->cull_enable != GL_DONT_CARE)
                         {
-                            glEnable(GL_CULL_FACE);
-                            glCullFace(immediate_state->cull_face->cull_face);
+                            if(immediate_state->rasterizer->cull_enable)
+                            {
+                                glEnable(GL_CULL_FACE);
+                                glCullFace(immediate_state->rasterizer->cull_face);
+                            }
+                            else
+                            {
+                                glDisable(GL_CULL_FACE);
+                            }
                         }
-                        else
+
+                        if(immediate_state->rasterizer->polygon_mode != GL_DONT_CARE)
                         {
-                            glDisable(GL_CULL_FACE);
+                            glPolygonMode(GL_FRONT_AND_BACK, immediate_state->rasterizer->polygon_mode);
                         }
+                    }
+
+                    if(immediate_state->draw_mask)
+                    {
+                        glColorMask(immediate_state->draw_mask->red, immediate_state->draw_mask->green, immediate_state->draw_mask->blue, immediate_state->draw_mask->alpha);
+                        glDepthMask(immediate_state->draw_mask->depth);
+                        glStencilMask(immediate_state->draw_mask->stencil);
                     }
 
                     if(immediate_state->scissor)
@@ -541,7 +595,7 @@ void r_DrawCmds()
                 if(immediate_model_matrix || immediate_view_projection_matrix || (immediate_state && immediate_state->shader))
                 {
                     mat4_t_mul(&model_view_projection_matrix, &model_matrix, &view_projection_matrix);
-                    r_SetUniformMatrix4(R_UNIFORM_MODEL_VIEW_PROJECTION_MATRIX, &model_view_projection_matrix);
+                    r_SetDefaultUniformMat4(R_UNIFORM_MODEL_VIEW_PROJECTION_MATRIX, &model_view_projection_matrix);
                 }
 
                 immediate_model_matrix = NULL;
@@ -554,29 +608,44 @@ void r_DrawCmds()
                 switch(cmd->sub_type)
                 {
                     case R_I_DRAW_CMD_LINE_LIST:
-//                        glLineWidth(verts->size);
+                        if(draw_list->size)
+                        {
+                            glLineWidth(draw_list->size);
+                        }
                         mode = GL_LINES;
                     break;
 
                     case R_I_DRAW_CMD_POINT_LIST:
-//                        glPointSize(verts->size);
+                        if(draw_list->size)
+                        {
+                            glPointSize(draw_list->size);
+                        }
                         mode = GL_POINTS;
                     break;
 
                     case R_I_DRAW_CMD_TRIANGLE_LIST:
+                        if(draw_list->size)
+                        {
+                            glLineWidth(draw_list->size);
+                        }
                         mode = GL_TRIANGLES;
                     break;
                 }
 
                 if(immediate_verts)
                 {
-                    glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(struct r_vert_t) * immediate_verts->count, immediate_verts->verts);
+                    glBufferSubData(GL_ARRAY_BUFFER, R_IMMEDIATE_VERTEX_BUFFER_OFFSET, sizeof(struct r_vert_t) * immediate_verts->count, immediate_verts->verts);
                     immediate_verts = NULL;
                 }
 
                 if(immediate_indices)
                 {
-                    glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, sizeof(uint32_t) * immediate_indices->count, immediate_indices->indices);
+                    for(uint32_t index = 0; index < immediate_indices->count; index++)
+                    {
+                        immediate_indices->indices[index] += R_IMMEDIATE_VERTEX_BUFFER_OFFSET / sizeof(struct r_vert_t);
+                    }
+
+                    glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, R_IMMEDIATE_INDEX_BUFFER_OFFSET, sizeof(uint32_t) * immediate_indices->count, immediate_indices->indices);
                     immediate_indices = NULL;
                 }
 
@@ -585,7 +654,7 @@ void r_DrawCmds()
                     for(uint32_t cmd_index = 0; cmd_index < draw_list->command_count; cmd_index++)
                     {
                         struct r_i_draw_cmd_t *draw_cmd = draw_list->commands + cmd_index;
-                        glDrawElements(mode, draw_cmd->count, GL_UNSIGNED_INT, (void *)(draw_cmd->start * sizeof(uint32_t)));
+                        glDrawElements(mode, draw_cmd->count, GL_UNSIGNED_INT, (void *)((draw_cmd->start + cmd_index_start_offset) * sizeof(uint32_t)));
                         r_renderer_stats.draw_call_count++;
                     }
                 }
@@ -594,7 +663,7 @@ void r_DrawCmds()
                     for(uint32_t cmd_index = 0; cmd_index < draw_list->command_count; cmd_index++)
                     {
                         struct r_i_draw_cmd_t *draw_cmd = draw_list->commands + cmd_index;
-                        glDrawArrays(mode, draw_cmd->start, draw_cmd->count);
+                        glDrawArrays(mode, draw_cmd->start + cmd_vert_start_offset, draw_cmd->count);
                         r_renderer_stats.draw_call_count++;
                     }
                 }
@@ -681,6 +750,15 @@ void r_i_ImmediateCmd(uint16_t type, uint16_t sub_type, void *data)
     cmd->sub_type = sub_type;
 }
 
+struct r_i_draw_list_t *r_i_AllocDrawList(uint32_t cmd_count)
+{
+    struct r_i_draw_list_t *list = r_i_AllocImmediateData(sizeof(struct r_i_draw_list_t));
+    list->commands = r_i_AllocImmediateData(sizeof(struct r_i_draw_cmd_t) * cmd_count);
+    list->command_count = cmd_count;
+
+    return list;
+}
+
 struct r_i_state_t *r_i_GetCurrentState()
 {
     if(!r_i_current_state)
@@ -719,6 +797,21 @@ void r_i_SetShader(struct r_shader_t *shader)
     }
 }
 
+void r_i_SetUniform(struct r_named_uniform_t *uniform, uint32_t count, void *value)
+{
+    if(uniform)
+    {
+        r_i_SetCurrentState();
+        struct r_i_uniform_t *uniform_data = r_i_AllocImmediateData(sizeof(struct r_i_uniform_t));
+        uint32_t size = r_uniform_type_sizes[uniform->type] * count;
+        uniform_data->value = r_i_AllocImmediateData(size);
+        uniform_data->count = count;
+        uniform_data->uniform = uniform;
+        memcpy(uniform_data->value, value, size);
+        r_i_ImmediateCmd(R_I_CMD_SET_UNIFORM, 0, uniform_data);
+    }
+}
+
 void r_i_SetBlending(uint16_t enable, uint16_t src_factor, uint16_t dst_factor)
 {
     struct r_i_state_t *state = r_i_GetCurrentState();
@@ -735,7 +828,7 @@ void r_i_SetBlending(uint16_t enable, uint16_t src_factor, uint16_t dst_factor)
 
 void r_i_SetDepth(uint16_t enable, uint16_t func)
 {
-    struct r_i_state_t *state = r_i_GetCurrentState(sizeof(struct r_i_state_t));
+    struct r_i_state_t *state = r_i_GetCurrentState();
 
     if(!state->depth)
     {
@@ -748,22 +841,37 @@ void r_i_SetDepth(uint16_t enable, uint16_t func)
 
 void r_i_SetCullFace(uint16_t enable, uint16_t cull_face)
 {
-    struct r_i_state_t *state = r_i_GetCurrentState(sizeof(struct r_i_state_t));
-
-    if(!state->cull_face)
-    {
-        state->cull_face = r_i_AllocImmediateData(sizeof(struct r_i_cull_face_t));
-    }
-
-    state->cull_face->enable = enable;
-    state->cull_face->cull_face = cull_face;
+    r_i_SetRasterizer(enable, cull_face, GL_DONT_CARE);
+//    struct r_i_state_t *state = r_i_GetCurrentState();
+//
+//    if(!state->cull_face)
+//    {
+//        state->cull_face = r_i_AllocImmediateData(sizeof(struct r_i_cull_face_t));
+//    }
+//
+//    state->cull_face->enable = enable;
+//    state->cull_face->cull_face = cull_face;
 }
 
-void r_i_SetStencil(uint16_t enable, uint16_t sfail, uint16_t dfail, uint16_t dpass, uint16_t op, uint8_t mask, uint8_t ref)
+void r_i_SetRasterizer(uint16_t cull_face_enable, uint16_t cull_face, uint16_t polygon_mode)
 {
-    struct r_i_state_t *state = r_i_GetCurrentState(sizeof(struct r_i_state_t));
+    struct r_i_state_t *state = r_i_GetCurrentState();
 
-    if(state->stencil)
+    if(!state->rasterizer)
+    {
+        state->rasterizer = r_i_AllocImmediateData(sizeof(struct r_i_raster_t));
+    }
+
+    state->rasterizer->cull_enable = cull_face_enable;
+    state->rasterizer->cull_face = cull_face;
+    state->rasterizer->polygon_mode = polygon_mode;
+}
+
+void r_i_SetStencil(uint16_t enable, uint16_t sfail, uint16_t dfail, uint16_t dpass, uint16_t func, uint8_t mask, uint8_t ref)
+{
+    struct r_i_state_t *state = r_i_GetCurrentState();
+
+    if(!state->stencil)
     {
         state->stencil = r_i_AllocImmediateData(sizeof(struct r_i_stencil_t));
     }
@@ -772,14 +880,14 @@ void r_i_SetStencil(uint16_t enable, uint16_t sfail, uint16_t dfail, uint16_t dp
     state->stencil->stencil_fail = sfail;
     state->stencil->depth_fail = dfail;
     state->stencil->depth_pass = dpass;
-    state->stencil->operation = op;
+    state->stencil->func = func;
     state->stencil->mask = mask;
     state->stencil->ref = ref;
 }
 
 void r_i_SetScissor(uint16_t enable, uint16_t x, uint16_t y, uint16_t width, uint16_t height)
 {
-    struct r_i_state_t *state = r_i_GetCurrentState(sizeof(struct r_i_state_t));
+    struct r_i_state_t *state = r_i_GetCurrentState();
 
     if(!state->scissor)
     {
@@ -793,9 +901,26 @@ void r_i_SetScissor(uint16_t enable, uint16_t x, uint16_t y, uint16_t width, uin
     state->scissor->enable = enable;
 }
 
+void r_i_SetDrawMask(uint16_t red, uint16_t green, uint16_t blue, uint16_t alpha, uint16_t depth, uint16_t stencil)
+{
+    struct r_i_state_t *state = r_i_GetCurrentState();
+
+    if(!state->draw_mask)
+    {
+        state->draw_mask = r_i_AllocImmediateData(sizeof(struct r_i_draw_mask_t));
+    }
+
+    state->draw_mask->red = red;
+    state->draw_mask->green = green;
+    state->draw_mask->blue = blue;
+    state->draw_mask->alpha = alpha;
+    state->draw_mask->depth = depth;
+    state->draw_mask->stencil = stencil;
+}
+
 void r_i_SetTextures(uint32_t texture_count, struct r_i_texture_t *textures)
 {
-    struct r_i_state_t *state = r_i_GetCurrentState(sizeof(struct r_i_state_t));
+    struct r_i_state_t *state = r_i_GetCurrentState();
     state->textures = textures;
     state->texture_count = texture_count;
 }
@@ -846,7 +971,7 @@ void r_i_DrawImmediate(uint16_t sub_type, struct r_i_draw_list_t *list)
     r_i_ImmediateCmd(R_I_CMD_DRAW, sub_type, list);
 }
 
-void r_i_DrawVerts(uint16_t sub_type, struct r_i_verts_t *verts)
+void r_i_DrawVerts(uint16_t sub_type, struct r_i_verts_t *verts, float size)
 {
     struct r_i_draw_list_t *draw_list = r_i_AllocImmediateData(sizeof(struct r_i_draw_list_t));
 
@@ -855,12 +980,13 @@ void r_i_DrawVerts(uint16_t sub_type, struct r_i_verts_t *verts)
     draw_list->commands[0].count = verts->count;
     draw_list->command_count = 1;
     draw_list->indexed = 0;
+    draw_list->size = size;
 
     r_i_SetBuffers(verts, NULL);
     r_i_DrawImmediate(sub_type, draw_list);
 }
 
-void r_i_DrawVertsIndexed(uint16_t sub_type, struct r_i_verts_t *verts, struct r_i_indices_t *indices)
+void r_i_DrawVertsIndexed(uint16_t sub_type, struct r_i_verts_t *verts, struct r_i_indices_t *indices, float size)
 {
     struct r_i_draw_list_t *draw_list = r_i_AllocImmediateData(sizeof(struct r_i_draw_list_t));
     draw_list->commands = r_i_AllocImmediateData(sizeof(struct r_i_draw_cmd_t));
@@ -868,6 +994,7 @@ void r_i_DrawVertsIndexed(uint16_t sub_type, struct r_i_verts_t *verts, struct r
     draw_list->commands[0].count = indices->count;
     draw_list->command_count = 1;
     draw_list->indexed = 1;
+    draw_list->size = size;
     r_i_SetBuffers(verts, indices);
     r_i_DrawImmediate(sub_type, draw_list);
 }
@@ -882,7 +1009,7 @@ void r_i_DrawPoint(vec3_t *position, vec4_t *color, float size)
     verts->verts[0].pos = *position;
     verts->verts[0].normal = *color;
 
-    r_i_DrawVerts(R_I_DRAW_CMD_POINT_LIST, verts);
+    r_i_DrawVerts(R_I_DRAW_CMD_POINT_LIST, verts, size);
 }
 
 void r_i_DrawLine(vec3_t *start, vec3_t *end, vec4_t *color, float width)
@@ -890,14 +1017,13 @@ void r_i_DrawLine(vec3_t *start, vec3_t *end, vec4_t *color, float width)
     struct r_i_verts_t *verts = r_i_AllocImmediateData(sizeof(struct r_i_verts_t) + sizeof(struct r_vert_t) * 2);
 
     verts->count = 2;
-    verts->size = width;
 
     verts->verts[0].pos = *start;
     verts->verts[0].color = *color;
     verts->verts[1].pos = *end;
     verts->verts[1].color = *color;
 
-    r_i_DrawVerts(R_I_DRAW_CMD_LINE_LIST, verts);
+    r_i_DrawVerts(R_I_DRAW_CMD_LINE_LIST, verts, width);
 }
 
 

@@ -122,7 +122,7 @@ void gui_EndFrame()
     r_i_SetDepth(GL_FALSE, GL_LESS);
     r_i_SetBlending(GL_TRUE, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     r_i_SetModelMatrix(NULL);
-    r_i_SetCullFace(GL_FALSE, 0);
+    r_i_SetRasterizer(GL_FALSE, GL_BACK, GL_FILL);
     r_i_SetShader(gui_shader);
 
     r_i_SetTexture(gui_font_atlas, GL_TEXTURE0);

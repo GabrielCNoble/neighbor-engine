@@ -56,16 +56,24 @@
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="anim.h" />
+		<Unit filename="ed_brush.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ed_brush.h" />
 		<Unit filename="ed_bsp.c">
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="ed_bsp.h" />
 		<Unit filename="ed_com.h" />
-		<Unit filename="ed_phys.h" />
-		<Unit filename="editor.c">
+		<Unit filename="ed_main.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="editor.h" />
+		<Unit filename="ed_main.h" />
+		<Unit filename="ed_phys.h" />
+		<Unit filename="ed_pick.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="ed_pick.h" />
 		<Unit filename="game.c">
 			<Option compilerVar="CC" />
 		</Unit>

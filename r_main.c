@@ -116,32 +116,98 @@ float r_z_far = 1000.0;
 float r_denom = 0.0;
 float r_fov = 0.68;
 
-
-char *d_uniform_names[] =
+struct r_named_uniform_t r_default_uniforms[] =
 {
-    [R_UNIFORM_MODEL_VIEW_PROJECTION_MATRIX] = "r_model_view_projection_matrix",
-    [R_UNIFORM_MODEL_VIEW_MATRIX] = "r_model_view_matrix",
-    [R_UNIFORM_VIEW_MATRIX] = "r_view_matrix",
-    [R_UNIFORM_CAMERA_MATRIX] = "r_camera_matrix",
-    [R_UNIFORM_POINT_PROJ_PARAMS] = "r_point_proj_params",
-    [R_UNIFORM_TEX0] = "r_tex0",
-    [R_UNIFORM_TEX1] = "r_tex1",
-    [R_UNIFORM_TEX2] = "r_tex2",
-    [R_UNIFORM_TEX3] = "r_tex3",
-    [R_UNIFORM_TEX4] = "r_tex4",
-    [R_UNIFORM_TEX_ALBEDO] = "r_tex_albedo",
-    [R_UNIFORM_TEX_NORMAL] = "r_tex_normal",
-    [R_UNIFORM_TEX_METALNESS] = "r_tex_metalness",
-    [R_UNIFORM_TEX_ROUGHNESS] = "r_tex_roughness",
-    [R_UNIFORM_TEX_HEIGHT] = "r_tex_height",
-    [R_UNIFORM_TEX_CLUSTERS] = "r_tex_clusters",
-    [R_UNIFORM_TEX_SHADOW_ATLAS] = "r_tex_shadow_atlas",
-    [R_UNIFORM_TEX_INDIRECT] = "r_tex_indirect",
-    [R_UNIFORM_CLUSTER_DENOM] = "r_cluster_denom",
-    [R_UNIFORM_Z_NEAR] = "r_z_near",
-    [R_UNIFORM_Z_FAR] = "r_z_far",
-    [R_UNIFORM_WIDTH] = "r_width",
-    [R_UNIFORM_HEIGHT] = "r_height"
+    [R_UNIFORM_MODEL_VIEW_PROJECTION_MATRIX] =  (struct r_named_uniform_t){.type = R_UNIFORM_TYPE_MAT4,  .name = "r_model_view_projection_matrix" },
+    [R_UNIFORM_MODEL_VIEW_MATRIX] =             (struct r_named_uniform_t){.type = R_UNIFORM_TYPE_MAT4,  .name = "r_model_view_matrix" },
+    [R_UNIFORM_VIEW_MATRIX] =                   (struct r_named_uniform_t){.type = R_UNIFORM_TYPE_MAT4,  .name = "r_view_matrix" },
+    [R_UNIFORM_CAMERA_MATRIX] =                 (struct r_named_uniform_t){.type = R_UNIFORM_TYPE_MAT4,  .name = "r_camera_matrix" },
+    [R_UNIFORM_POINT_PROJ_PARAMS] =             (struct r_named_uniform_t){.type = R_UNIFORM_TYPE_VEC2,  .name = "r_point_proj_params" },
+    [R_UNIFORM_TEX0] =                          (struct r_named_uniform_t){.type = R_UNIFORM_TYPE_INT,   .name = "r_tex0" },
+    [R_UNIFORM_TEX1] =                          (struct r_named_uniform_t){.type = R_UNIFORM_TYPE_INT,   .name = "r_tex1" },
+    [R_UNIFORM_TEX3] =                          (struct r_named_uniform_t){.type = R_UNIFORM_TYPE_INT,   .name = "r_tex3" },
+    [R_UNIFORM_TEX2] =                          (struct r_named_uniform_t){.type = R_UNIFORM_TYPE_INT,   .name = "r_tex2" },
+    [R_UNIFORM_TEX4] =                          (struct r_named_uniform_t){.type = R_UNIFORM_TYPE_INT,   .name = "r_tex4" },
+    [R_UNIFORM_TEX_ALBEDO] =                    (struct r_named_uniform_t){.type = R_UNIFORM_TYPE_INT,   .name = "r_tex_albedo" },
+    [R_UNIFORM_TEX_NORMAL] =                    (struct r_named_uniform_t){.type = R_UNIFORM_TYPE_INT,   .name = "r_tex_normal" },
+    [R_UNIFORM_TEX_METALNESS] =                 (struct r_named_uniform_t){.type = R_UNIFORM_TYPE_INT,   .name = "r_tex_metalness" },
+    [R_UNIFORM_TEX_ROUGHNESS] =                 (struct r_named_uniform_t){.type = R_UNIFORM_TYPE_INT,   .name = "r_tex_roughness" },
+    [R_UNIFORM_TEX_HEIGHT] =                    (struct r_named_uniform_t){.type = R_UNIFORM_TYPE_INT,   .name = "r_tex_height" },
+    [R_UNIFORM_TEX_CLUSTERS] =                  (struct r_named_uniform_t){.type = R_UNIFORM_TYPE_INT,   .name = "r_tex_clusters" },
+    [R_UNIFORM_TEX_SHADOW_ATLAS] =              (struct r_named_uniform_t){.type = R_UNIFORM_TYPE_INT,   .name = "r_tex_shadow_atlas" },
+    [R_UNIFORM_TEX_INDIRECT] =                  (struct r_named_uniform_t){.type = R_UNIFORM_TYPE_INT,   .name = "r_tex_indirect" },
+    [R_UNIFORM_CLUSTER_DENOM] =                 (struct r_named_uniform_t){.type = R_UNIFORM_TYPE_FLOAT, .name = "r_cluster_denom" },
+    [R_UNIFORM_Z_NEAR] =                        (struct r_named_uniform_t){.type = R_UNIFORM_TYPE_FLOAT, .name = "r_z_near" },
+    [R_UNIFORM_Z_FAR] =                         (struct r_named_uniform_t){.type = R_UNIFORM_TYPE_FLOAT, .name = "r_z_far" },
+    [R_UNIFORM_WIDTH] =                         (struct r_named_uniform_t){.type = R_UNIFORM_TYPE_INT,   .name = "r_width" },
+    [R_UNIFORM_HEIGHT] =                        (struct r_named_uniform_t){.type = R_UNIFORM_TYPE_INT,   .name = "r_height" },
+};
+
+//char *r_default_uniform_names[] =
+//{
+//    [R_UNIFORM_MODEL_VIEW_PROJECTION_MATRIX] = "r_model_view_projection_matrix",
+//    [R_UNIFORM_MODEL_VIEW_MATRIX] = "r_model_view_matrix",
+//    [R_UNIFORM_VIEW_MATRIX] = "r_view_matrix",
+//    [R_UNIFORM_CAMERA_MATRIX] = "r_camera_matrix",
+//    [R_UNIFORM_POINT_PROJ_PARAMS] = "r_point_proj_params",
+//    [R_UNIFORM_TEX0] = "r_tex0",
+//    [R_UNIFORM_TEX1] = "r_tex1",
+//    [R_UNIFORM_TEX2] = "r_tex2",
+//    [R_UNIFORM_TEX3] = "r_tex3",
+//    [R_UNIFORM_TEX4] = "r_tex4",
+//    [R_UNIFORM_TEX_ALBEDO] = "r_tex_albedo",
+//    [R_UNIFORM_TEX_NORMAL] = "r_tex_normal",
+//    [R_UNIFORM_TEX_METALNESS] = "r_tex_metalness",
+//    [R_UNIFORM_TEX_ROUGHNESS] = "r_tex_roughness",
+//    [R_UNIFORM_TEX_HEIGHT] = "r_tex_height",
+//    [R_UNIFORM_TEX_CLUSTERS] = "r_tex_clusters",
+//    [R_UNIFORM_TEX_SHADOW_ATLAS] = "r_tex_shadow_atlas",
+//    [R_UNIFORM_TEX_INDIRECT] = "r_tex_indirect",
+//    [R_UNIFORM_CLUSTER_DENOM] = "r_cluster_denom",
+//    [R_UNIFORM_Z_NEAR] = "r_z_near",
+//    [R_UNIFORM_Z_FAR] = "r_z_far",
+//    [R_UNIFORM_WIDTH] = "r_width",
+//    [R_UNIFORM_HEIGHT] = "r_height"
+//};
+//
+//uint32_t r_default_uniform_types[] =
+//{
+//    [R_UNIFORM_MODEL_VIEW_PROJECTION_MATRIX] = R_UNIFORM_TYPE_MAT4,
+//    [R_UNIFORM_MODEL_VIEW_MATRIX] = R_UNIFORM_TYPE_MAT4,
+//    [R_UNIFORM_VIEW_MATRIX] = R_UNIFORM_TYPE_MAT4,
+//    [R_UNIFORM_CAMERA_MATRIX] = R_UNIFORM_TYPE_MAT4,
+//    [R_UNIFORM_POINT_PROJ_PARAMS] = R_UNIFORM_TYPE_VEC2,
+//    [R_UNIFORM_TEX0] = R_UNIFORM_TYPE_UINT,
+//    [R_UNIFORM_TEX1] = R_UNIFORM_TYPE_UINT,
+//    [R_UNIFORM_TEX2] = R_UNIFORM_TYPE_UINT,
+//    [R_UNIFORM_TEX3] = R_UNIFORM_TYPE_UINT,
+//    [R_UNIFORM_TEX4] = R_UNIFORM_TYPE_UINT,
+//    [R_UNIFORM_TEX_ALBEDO] = R_UNIFORM_TYPE_UINT,
+//    [R_UNIFORM_TEX_NORMAL] = R_UNIFORM_TYPE_UINT,
+//    [R_UNIFORM_TEX_METALNESS] = R_UNIFORM_TYPE_UINT,
+//    [R_UNIFORM_TEX_ROUGHNESS] = R_UNIFORM_TYPE_UINT,
+//    [R_UNIFORM_TEX_HEIGHT] = R_UNIFORM_TYPE_UINT,
+//    [R_UNIFORM_TEX_CLUSTERS] = R_UNIFORM_TYPE_UINT,
+//    [R_UNIFORM_TEX_SHADOW_ATLAS] = R_UNIFORM_TYPE_UINT,
+//    [R_UNIFORM_TEX_INDIRECT] = R_UNIFORM_TYPE_UINT,
+//    [R_UNIFORM_CLUSTER_DENOM] = R_UNIFORM_TYPE_FLOAT,
+//    [R_UNIFORM_Z_NEAR] = R_UNIFORM_TYPE_FLOAT,
+//    [R_UNIFORM_Z_FAR] = R_UNIFORM_TYPE_FLOAT,
+//    [R_UNIFORM_WIDTH] = R_UNIFORM_TYPE_INT,
+//    [R_UNIFORM_HEIGHT] = R_UNIFORM_TYPE_INT
+//};
+
+uint32_t r_uniform_type_sizes[] =
+{
+    [R_UNIFORM_TYPE_UINT] = sizeof(uint32_t),
+    [R_UNIFORM_TYPE_INT] = sizeof(int32_t),
+    [R_UNIFORM_TYPE_FLOAT] = sizeof(float),
+    [R_UNIFORM_TYPE_VEC2] = sizeof(vec2_t),
+    [R_UNIFORM_TYPE_VEC3] = sizeof(vec3_t),
+    [R_UNIFORM_TYPE_VEC4] = sizeof(vec4_t),
+    [R_UNIFORM_TYPE_MAT2] = sizeof(mat2_t),
+    [R_UNIFORM_TYPE_MAT3] = sizeof(mat3_t),
+    [R_UNIFORM_TYPE_MAT4] = sizeof(mat4_t),
 };
 
 void r_Init()
@@ -182,23 +248,24 @@ void r_Init()
 
     glClearColor(0.0, 0.0, 0.0, 1.0);
     glClearDepth(1.0);
+    glClearStencil(0x00);
 //    glClipControl(GL_LOWER_LEFT, GL_ZERO_TO_ONE);
 
     glGenBuffers(1, &r_vertex_buffer);
     glBindBuffer(GL_ARRAY_BUFFER, r_vertex_buffer);
     glBufferData(GL_ARRAY_BUFFER, R_VERTEX_BUFFER_SIZE, NULL, GL_DYNAMIC_DRAW);
 
-    glGenBuffers(1, &r_immediate_vertex_buffer);
-    glBindBuffer(GL_ARRAY_BUFFER, r_immediate_vertex_buffer);
-    glBufferData(GL_ARRAY_BUFFER, R_IMMEDIATE_VERTEX_BUFFER_SIZE, NULL, GL_DYNAMIC_DRAW);
+//    glGenBuffers(1, &r_immediate_vertex_buffer);
+//    glBindBuffer(GL_ARRAY_BUFFER, r_immediate_vertex_buffer);
+//    glBufferData(GL_ARRAY_BUFFER, R_IMMEDIATE_VERTEX_BUFFER_SIZE, NULL, GL_DYNAMIC_DRAW);
 
     glGenBuffers(1, &r_index_buffer);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, r_index_buffer);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, R_INDEX_BUFFER_SIZE, NULL, GL_DYNAMIC_DRAW);
 
-    glGenBuffers(1, &r_immediate_index_buffer);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, r_immediate_index_buffer);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, R_IMMEDIATE_INDEX_BUFFER_SIZE, NULL, GL_DYNAMIC_DRAW);
+//    glGenBuffers(1, &r_immediate_index_buffer);
+//    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, r_immediate_index_buffer);
+//    glBufferData(GL_ELEMENT_ARRAY_BUFFER, R_IMMEDIATE_INDEX_BUFFER_SIZE, NULL, GL_DYNAMIC_DRAW);
 
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
@@ -504,13 +571,14 @@ void r_Init()
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32F, r_width, r_height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH24_STENCIL8, r_width, r_height, 0, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8, NULL);
     glBindTexture(GL_TEXTURE_2D, 0);
 
     glGenFramebuffers(1, &r_main_framebuffer);
     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, r_main_framebuffer);
     glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, r_main_color_attachment, 0);
     glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, r_main_depth_attachment, 0);
+    glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_STENCIL_ATTACHMENT, GL_TEXTURE_2D, r_main_depth_attachment, 0);
 
     glGenFramebuffers(1, &r_z_prepass_framebuffer);
     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, r_z_prepass_framebuffer);
@@ -725,15 +793,15 @@ void r_BindMaterial(struct r_material_t *material)
 
         glActiveTexture(GL_TEXTURE0 + R_ALBEDO_TEX_UNIT);
         glBindTexture(GL_TEXTURE_2D, material->diffuse_texture->handle);
-        r_SetUniform1i(R_UNIFORM_TEX_ALBEDO, R_ALBEDO_TEX_UNIT);
+        r_SetDefaultUniformI(R_UNIFORM_TEX_ALBEDO, R_ALBEDO_TEX_UNIT);
 
         glActiveTexture(GL_TEXTURE0 + R_ROUGHNESS_TEX_UNIT);
         glBindTexture(GL_TEXTURE_2D, material->roughness_texture->handle);
-        r_SetUniform1i(R_UNIFORM_TEX_ROUGHNESS, R_ROUGHNESS_TEX_UNIT);
+        r_SetDefaultUniformI(R_UNIFORM_TEX_ROUGHNESS, R_ROUGHNESS_TEX_UNIT);
 
         glActiveTexture(GL_TEXTURE0 + R_NORMAL_TEX_UNIT);
         glBindTexture(GL_TEXTURE_2D, material->normal_texture->handle);
-        r_SetUniform1i(R_UNIFORM_TEX_NORMAL, R_NORMAL_TEX_UNIT);
+        r_SetDefaultUniformI(R_UNIFORM_TEX_NORMAL, R_NORMAL_TEX_UNIT);
     }
 }
 
@@ -1211,7 +1279,7 @@ struct r_shader_t *r_LoadShader(char *vertex_file_name, char *fragment_file_name
 
     for(uint32_t uniform_index = 0; uniform_index < R_UNIFORM_LAST; uniform_index++)
     {
-        shader->uniforms[uniform_index] = glGetUniformLocation(shader_program, d_uniform_names[uniform_index]);
+        shader->uniforms[uniform_index].location = glGetUniformLocation(shader_program, r_default_uniforms[uniform_index].name);
     }
 
     uint32_t lights_uniform_block = glGetUniformBlockIndex(shader_program, "r_lights");
@@ -1287,10 +1355,10 @@ void r_BindShader(struct r_shader_t *shader)
         r_current_shader = shader;
         glUseProgram(shader->handle);
 
-        r_SetUniform1i(R_UNIFORM_WIDTH, r_width);
-        r_SetUniform1i(R_UNIFORM_HEIGHT, r_height);
-        r_SetUniform1f(R_UNIFORM_Z_NEAR, r_z_near);
-        r_SetUniform1f(R_UNIFORM_CLUSTER_DENOM, r_denom);
+        r_SetDefaultUniformI(R_UNIFORM_WIDTH, r_width);
+        r_SetDefaultUniformI(R_UNIFORM_HEIGHT, r_height);
+        r_SetDefaultUniformF(R_UNIFORM_Z_NEAR, r_z_near);
+        r_SetDefaultUniformF(R_UNIFORM_CLUSTER_DENOM, r_denom);
 
         if(shader->attribs & R_ATTRIB_POSITION)
         {
@@ -1334,40 +1402,165 @@ void r_BindShader(struct r_shader_t *shader)
     }
 }
 
+struct r_named_uniform_t *r_GetNamedUniform(struct r_shader_t *shader, char *name)
+{
+    if(shader)
+    {
+        if(!shader->named_uniforms.elem_size)
+        {
+            shader->named_uniforms = ds_list_create(sizeof(struct r_named_uniform_t), 8);
+        }
+    }
+
+    for(uint32_t uniform_index = 0; uniform_index < shader->named_uniforms.cursor; uniform_index++)
+    {
+        struct r_named_uniform_t *uniform = ds_list_get_element(&shader->named_uniforms, uniform_index);
+
+        if(!strcmp(uniform->name, name))
+        {
+            return uniform;
+        }
+    }
+
+    struct r_named_uniform_t *uniform = NULL;
+    uint32_t uniform_location = glGetUniformLocation(shader->handle, name);
+    if(uniform_location != GL_INVALID_INDEX)
+    {
+        GLenum type;
+        GLint size;
+        uint32_t uniform_type;
+        glGetActiveUniform(shader->handle, uniform_location, 0, NULL, &size, &type, NULL);
+
+        switch(type)
+        {
+            case GL_FLOAT:
+                uniform_type = R_UNIFORM_TYPE_FLOAT;
+            break;
+
+            case GL_INT:
+            case GL_SAMPLER_1D:
+            case GL_SAMPLER_2D:
+            case GL_SAMPLER_3D:
+            case GL_SAMPLER_CUBE:
+            case GL_SAMPLER_1D_SHADOW:
+            case GL_SAMPLER_2D_SHADOW:
+            case GL_SAMPLER_1D_ARRAY:
+            case GL_SAMPLER_2D_ARRAY:
+            case GL_UNSIGNED_INT_SAMPLER_1D:
+            case GL_UNSIGNED_INT_SAMPLER_2D:
+            case GL_UNSIGNED_INT_SAMPLER_3D:
+            case GL_UNSIGNED_INT_SAMPLER_CUBE:
+                uniform_type = R_UNIFORM_TYPE_INT;
+            break;
+
+            case GL_UNSIGNED_INT:
+                uniform_type = R_UNIFORM_TYPE_UINT;
+            break;
+
+            case GL_FLOAT_VEC2:
+                uniform_type = R_UNIFORM_TYPE_VEC2;
+            break;
+
+            case GL_FLOAT_VEC3:
+                uniform_type = R_UNIFORM_TYPE_VEC3;
+            break;
+
+            case GL_FLOAT_VEC4:
+                uniform_type = R_UNIFORM_TYPE_VEC4;
+            break;
+
+            case GL_FLOAT_MAT2:
+                uniform_type = R_UNIFORM_TYPE_MAT2;
+            break;
+
+            case GL_FLOAT_MAT3:
+                uniform_type = R_UNIFORM_TYPE_MAT3;
+            break;
+
+            case GL_FLOAT_MAT4:
+                uniform_type = R_UNIFORM_TYPE_MAT4;
+            break;
+
+            default:
+                uniform_type = R_UNIFORM_TYPE_UNKNOWN;
+            break;
+        }
+
+        if(uniform_type != R_UNIFORM_TYPE_UNKNOWN)
+        {
+            uint32_t index = ds_list_add_element(&shader->named_uniforms, NULL);
+            uniform = ds_list_get_element(&shader->named_uniforms, index);
+            uniform->uniform.location = uniform_location;
+            uniform->type = uniform_type;
+            uniform->name = mem_Calloc(1, strlen(name) + 1);
+            strcpy(uniform->name, name);
+        }
+    }
+
+    return uniform;
+}
+
 uint32_t r_GetUniformIndex(struct r_shader_t *shader, char *name)
 {
     return glGetUniformLocation(shader->handle, name);
 }
 
-void r_SetUniformMatrix4(uint32_t uniform, mat4_t *matrix)
+void r_SetDefaultUniformI(uint32_t uniform, int32_t value)
 {
-    if(r_current_shader->uniforms[uniform] != GL_INVALID_INDEX)
+    if(r_current_shader->uniforms[uniform].location != GL_INVALID_INDEX)
     {
-        glUniformMatrix4fv(r_current_shader->uniforms[uniform], 1, GL_FALSE, (const float *)matrix->comps);
+        glUniform1i(r_current_shader->uniforms[uniform].location, value);
     }
 }
 
-void r_SetUniform1f(uint32_t uniform, float value)
+void r_SetDefaultUniformF(uint32_t uniform, float value)
 {
-    if(r_current_shader->uniforms[uniform] != GL_INVALID_INDEX)
+    if(r_current_shader->uniforms[uniform].location != GL_INVALID_INDEX)
     {
-        glUniform1f(r_current_shader->uniforms[uniform], value);
+        glUniform1f(r_current_shader->uniforms[uniform].location, value);
     }
 }
 
-void r_SetUniform2f(uint32_t uniform, float value0, float value1)
+void r_SetDefaultUniformVec2(uint32_t uniform, vec2_t *value)
 {
-    if(r_current_shader->uniforms[uniform] != GL_INVALID_INDEX)
+    if(r_current_shader->uniforms[uniform].location != GL_INVALID_INDEX)
     {
-        glUniform2f(r_current_shader->uniforms[uniform], value0, value1);
+        glUniform2fv(r_current_shader->uniforms[uniform].location, 1, value->comps);
     }
 }
 
-void r_SetUniform1i(uint32_t uniform, uint32_t value)
+void r_SetDefaultUniformMat4(uint32_t uniform, mat4_t *matrix)
 {
-    if(r_current_shader->uniforms[uniform] != GL_INVALID_INDEX)
+    if(r_current_shader->uniforms[uniform].location != GL_INVALID_INDEX)
     {
-        glUniform1i(r_current_shader->uniforms[uniform], value);
+        glUniformMatrix4fv(r_current_shader->uniforms[uniform].location, 1, GL_FALSE, (const float *)matrix->comps);
+    }
+}
+
+void r_SetNamedUniformByName(char *uniform, void *value)
+{
+    struct r_named_uniform_t *named_uniform = r_GetNamedUniform(r_current_shader, uniform);
+    r_SetNamedUniform(named_uniform, value);
+}
+
+void r_SetNamedUniform(struct r_named_uniform_t *uniform, void *value)
+{
+    if(uniform)
+    {
+        switch(uniform->type)
+        {
+            case R_UNIFORM_TYPE_VEC4:
+                r_SetNamedUniformVec4(uniform, value);
+            break;
+        }
+    }
+}
+
+void r_SetNamedUniformVec4(struct r_named_uniform_t *uniform, vec4_t *value)
+{
+    if(uniform && uniform->uniform.location != GL_INVALID_INDEX)
+    {
+        glUniform4fv(uniform->uniform.location, 1, (const float *)value->comps);
     }
 }
 

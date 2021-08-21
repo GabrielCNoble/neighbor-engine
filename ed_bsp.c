@@ -268,30 +268,28 @@ struct ed_bspn_t *ed_BspFromPolygons(struct ed_polygon_t *polygons)
     return node;
 }
 
-uint32_t ed_PolygonsFromBsp(struct ds_buffer_t *polygons, struct ed_bspn_t *bsp)
+void ed_PolygonsFromBsp(struct ds_buffer_t *polygons, struct ed_bspn_t *bsp, uint32_t *vert_count, uint32_t *index_count)
 {
     struct ed_polygon_t *polygon = bsp->splitter;
-    uint32_t vert_count = 0;
 
     while(polygon)
     {
         ds_buffer_resize(polygons, polygons->buffer_size + 1);
         ds_buffer_fill(polygons, polygons->buffer_size - 1, polygon, 1);
-        vert_count += polygon->vertices.buffer_size;
+        *vert_count += polygon->vertices.buffer_size;
+        *index_count += (polygon->vertices.buffer_size - 2) * 3;
         polygon = polygon->next;
     }
 
     if(bsp->front)
     {
-        vert_count += ed_PolygonsFromBsp(polygons, bsp->front);
+        ed_PolygonsFromBsp(polygons, bsp->front, vert_count, index_count);
     }
 
     if(bsp->back)
     {
-        vert_count += ed_PolygonsFromBsp(polygons, bsp->back);
+        ed_PolygonsFromBsp(polygons, bsp->back, vert_count, index_count);
     }
-
-    return vert_count;
 }
 
 int compare_polygons(const void *a, const void *b)
@@ -317,15 +315,16 @@ void ed_GeometryFromBsp(struct r_model_geometry_t *geometry, struct ed_bspn_t *b
     struct ds_buffer_t vertex_buffer;
     struct ds_buffer_t index_buffer;
     struct ds_buffer_t polygon_buffer;
-    uint32_t vert_count;
+    uint32_t vert_count = 0;
+    uint32_t index_count = 0;
     uint32_t first_vertex = 0;
 
     polygon_buffer = ds_buffer_create(sizeof(struct ed_polygon_t), 0);
-    vert_count = ed_PolygonsFromBsp(&polygon_buffer, bsp);
+    ed_PolygonsFromBsp(&polygon_buffer, bsp, &vert_count, &index_count);
     qsort(polygon_buffer.buffer, polygon_buffer.buffer_size, polygon_buffer.elem_size, compare_polygons);
 
     vertex_buffer = ds_buffer_create(sizeof(struct r_vert_t), vert_count);
-    index_buffer = ds_buffer_create(sizeof(uint32_t), (vert_count - 2) * 3);
+    index_buffer = ds_buffer_create(sizeof(uint32_t), index_count);
     batch_buffer = ds_buffer_create(sizeof(struct r_batch_t), 0);
 
     uint32_t *indices = (uint32_t *)index_buffer.buffer;

@@ -7,7 +7,7 @@
 #include "input.h"
 #include "anim.h"
 #include "physics.h"
-#include "editor.h"
+#include "ed_main.h"
 #include "world.h"
 #include "sound.h"
 #include "gui.h"
@@ -23,8 +23,6 @@ extern mat4_t r_view_projection_matrix;
 struct ds_slist_t g_entities;
 struct ds_list_t g_projectiles;
 struct ds_slist_t g_triggers;
-
-//float g_camera_z = G_PLAYER_AREA_Z;
 
 #define G_CAMERA_Z 8.0
 #define G_SCREEN_Y_OFFSET 20.0

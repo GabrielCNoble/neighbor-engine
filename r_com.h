@@ -88,13 +88,41 @@ enum R_ATTRIBS
     R_ATTRIB_COLOR = R_ATTRIB_NORMAL,
 };
 
+enum R_UNIFORM_TYPE
+{
+    R_UNIFORM_TYPE_UINT = 0,
+    R_UNIFORM_TYPE_INT,
+    R_UNIFORM_TYPE_FLOAT,
+    R_UNIFORM_TYPE_VEC2,
+    R_UNIFORM_TYPE_VEC3,
+    R_UNIFORM_TYPE_VEC4,
+    R_UNIFORM_TYPE_MAT2,
+    R_UNIFORM_TYPE_MAT3,
+    R_UNIFORM_TYPE_MAT4,
+    R_UNIFORM_TYPE_UNKNOWN,
+};
+
+struct r_uniform_t
+{
+    uint32_t location;
+};
+
+struct r_named_uniform_t
+{
+    struct r_uniform_t uniform;
+    uint32_t type;
+    char *name;
+};
+
 struct r_shader_t
 {
     uint32_t handle;
     uint32_t index;
     uint32_t attribs;
-    uint32_t uniforms[R_UNIFORM_LAST];
+    struct r_uniform_t uniforms[R_UNIFORM_LAST];
+    struct ds_list_t named_uniforms;
 };
+
 
 struct r_vert_t
 {
@@ -313,6 +341,7 @@ enum R_I_CMDS
 {
     R_I_CMD_DRAW = 0,
     R_I_CMD_SET_STATE,
+    R_I_CMD_SET_UNIFORM,
     R_I_CMD_SET_MATRIX,
     R_I_CMD_SET_BUFFERS,
 };
@@ -384,6 +413,7 @@ struct r_i_geometry_t
 struct r_i_draw_list_t
 {
     uint32_t indexed;
+    float size;
     struct r_i_draw_cmd_t *commands;
     uint32_t command_count;
 };
@@ -403,6 +433,13 @@ struct r_i_texture_t
 struct r_i_shader_t
 {
     struct r_shader_t *shader;
+};
+
+struct r_i_uniform_t
+{
+    struct r_named_uniform_t *uniform;
+    uint32_t count;
+    void *value;
 };
 
 struct r_i_blending_t
@@ -426,9 +463,26 @@ struct r_i_stencil_t
     uint16_t depth_fail;
     uint16_t depth_pass;
 
-    uint16_t operation;
+    uint16_t func;
     uint8_t mask;
     uint8_t ref;
+};
+
+struct r_i_raster_t
+{
+    uint16_t cull_enable;
+    uint16_t cull_face;
+    uint16_t polygon_mode;
+};
+
+struct r_i_draw_mask_t
+{
+    uint16_t red;
+    uint16_t green;
+    uint16_t blue;
+    uint16_t alpha;
+    uint16_t depth;
+    uint16_t stencil;
 };
 
 struct r_i_cull_face_t
@@ -452,7 +506,8 @@ struct r_i_state_t
     struct r_i_blending_t *blending;
     struct r_i_depth_t *depth;
     struct r_i_stencil_t *stencil;
-    struct r_i_cull_face_t *cull_face;
+    struct r_i_raster_t *rasterizer;
+    struct r_i_draw_mask_t *draw_mask;
     struct r_i_scissor_t *scissor;
     struct r_i_texture_t *textures;
     uint32_t texture_count;
@@ -510,10 +565,17 @@ struct r_renderer_stats_t
 #define R_SHADOW_MAP_FACE_POS_Z 4
 #define R_SHADOW_MAP_FACE_NEG_Z 5
 
-#define R_VERTEX_BUFFER_SIZE (sizeof(struct r_vert_t) * 5000000)
-#define R_INDEX_BUFFER_SIZE (sizeof(uint32_t) * 5000000)
+#define R_MAIN_VERTEX_BUFFER_SIZE (sizeof(struct r_vert_t) * 5000000)
+#define R_MAIN_INDEX_BUFFER_SIZE (sizeof(uint32_t) * 5000000)
 #define R_IMMEDIATE_VERTEX_BUFFER_SIZE (sizeof(struct r_vert_t) * 100000)
 #define R_IMMEDIATE_INDEX_BUFFER_SIZE (sizeof(uint32_t) * 100000)
+
+#define R_VERTEX_BUFFER_SIZE (R_MAIN_VERTEX_BUFFER_SIZE + R_IMMEDIATE_VERTEX_BUFFER_SIZE)
+#define R_INDEX_BUFFER_SIZE (R_MAIN_INDEX_BUFFER_SIZE + R_IMMEDIATE_INDEX_BUFFER_SIZE)
+
+#define R_IMMEDIATE_VERTEX_BUFFER_OFFSET R_MAIN_VERTEX_BUFFER_SIZE
+#define R_IMMEDIATE_INDEX_BUFFER_OFFSET R_MAIN_INDEX_BUFFER_SIZE
+
 #define R_MAX_VERTEX_WEIGHTS 16
 
 

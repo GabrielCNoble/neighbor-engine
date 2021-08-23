@@ -576,8 +576,9 @@
 	"r_com.h"
 	"r_main.h"
 
-1629575013 c:\users\gabri\documents\compiler\metroid_thingy\r_main.h
+1629710830 c:\users\gabri\documents\compiler\metroid_thingy\r_main.h
 	"r_com.h"
+	"r_draw.h"
 	"GL/glew.h"
 
 1629575013 source:c:\users\gabri\documents\compiler\metroid_thingy\r_draw.c
@@ -729,12 +730,12 @@
 	"r_vis.h"
 	"game.h"
 
-1629708447 source:c:\users\gabri\documents\compiler\metroid_thingy\ed_bsp.c
+1629709662 source:c:\users\gabri\documents\compiler\metroid_thingy\ed_bsp.c
 	<stdlib.h>
 	"ed_bsp.h"
 	"ed_brush.h"
 
-1629709523 c:\users\gabri\documents\compiler\metroid_thingy\ed_bsp.h
+1629709662 c:\users\gabri\documents\compiler\metroid_thingy\ed_bsp.h
 	<stdint.h>
 	<stddef.h>
 	"ed_com.h"
@@ -742,7 +743,7 @@
 	"dstuff/ds_list.h"
 	"dstuff/ds_buffer.h"
 
-1629708276 c:\users\gabri\documents\compiler\metroid_thingy\ed_com.h
+1629710103 c:\users\gabri\documents\compiler\metroid_thingy\ed_com.h
 	<stdint.h>
 	"dstuff/ds_buffer.h"
 	"dstuff/ds_vector.h"
@@ -893,16 +894,16 @@
 	<stdio.h>
 	<float.h>
 
-1629705922 c:\users\gabri\documents\compiler\metroid_thingy\ed_brush.h
+1629709662 c:\users\gabri\documents\compiler\metroid_thingy\ed_brush.h
 	"ed_com.h"
 
-1629709242 source:c:\users\gabri\documents\compiler\metroid_thingy\ed_brush.c
+1629709662 source:c:\users\gabri\documents\compiler\metroid_thingy\ed_brush.c
 	"ed_brush.h"
 	"dstuff/ds_buffer.h"
 	"r_main.h"
 	"ed_bsp.h"
 
-1629575013 c:\users\gabri\documents\compiler\metroid_thingy\ed_main.h
+1629710038 c:\users\gabri\documents\compiler\metroid_thingy\ed_main.h
 	"dstuff/ds_vector.h"
 	"dstuff/ds_matrix.h"
 	"dstuff/ds_alloc.h"
@@ -911,7 +912,8 @@
 	"ed_brush.h"
 	"ed_pick.h"
 
-1629575013 source:c:\users\gabri\documents\compiler\metroid_thingy\ed_pick.c
+1629711240 source:c:\users\gabri\documents\compiler\metroid_thingy\ed_pick.c
+	<stdio.h>
 	"ed_pick.h"
 	"ed_brush.h"
 	"game.h"
@@ -921,9 +923,10 @@
 	"ed_com.h"
 	"r_com.h"
 
-1629575013 source:c:\users\gabri\documents\compiler\metroid_thingy\ed_main.c
+1629710444 source:c:\users\gabri\documents\compiler\metroid_thingy\ed_main.c
 	"ed_main.h"
 	"ed_bsp.h"
+	"ed_w_ctx.h"
 	"dstuff/ds_slist.h"
 	"dstuff/ds_list.h"
 	"dstuff/ds_mem.h"
@@ -939,4 +942,15 @@
 	<limits.h>
 	<string.h>
 	<float.h>
+
+1629710280 c:\users\gabri\documents\compiler\metroid_thingy\ed_w_ctx.h
+	"ed_com.h"
+
+1629737919 source:c:\users\gabri\documents\compiler\metroid_thingy\ed_w_ctx.c
+	"ed_w_ctx.h"
+	"ed_pick.h"
+	"ed_brush.h"
+	"ed_main.h"
+	"r_main.h"
+	"input.h"
 

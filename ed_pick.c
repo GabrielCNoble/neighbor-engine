@@ -1,3 +1,5 @@
+#include <stdio.h>
+
 #include "ed_pick.h"
 #include "ed_brush.h"
 #include "game.h"
@@ -19,8 +21,8 @@ struct ed_pickable_t *ed_CreatePickable()
     struct ed_pickable_t *pickable;
     uint32_t index;
 
-    index = ds_slist_add_element(&ed_world_context_data.pickables, NULL);
-    pickable = ds_slist_get_element(&ed_world_context_data.pickables, index);
+    index = ds_slist_add_element(&ed_world_context_data.pickables[ed_world_context_data.active_pickable_list], NULL);
+    pickable = ds_slist_get_element(&ed_world_context_data.pickables[ed_world_context_data.active_pickable_list], index);
     pickable->index = index;
 
     return pickable;
@@ -51,7 +53,7 @@ struct ed_pickable_t *ed_GetPickable(uint32_t index)
 {
     struct ed_pickable_t *pickable = NULL;
 
-    pickable = ds_slist_get_element(&ed_world_context_data.pickables, index);
+    pickable = ds_slist_get_element(&ed_world_context_data.pickables[ed_world_context_data.active_pickable_list], index);
 
     if(pickable && pickable->index == 0xffffffff)
     {
@@ -80,17 +82,17 @@ struct ed_pickable_t *ed_CreateBrushPickable(vec3_t *position, mat3_t *orientati
 
 struct ed_pickable_t *ed_CreateLightObject(vec3_t *pos, vec3_t *color, float radius, float energy)
 {
-
+    return NULL;
 }
 
 struct ed_pickable_t *ed_CreateEntityObject(mat4_t *transform, struct r_model_t *model)
 {
-
+    return NULL;
 }
 
 void ed_UpdatePickables()
 {
-    for(uint32_t pickable_index = 0; pickable_index < ed_world_context_data.pickables.cursor; pickable_index++)
+    for(uint32_t pickable_index = 0; pickable_index < ed_world_context_data.pickables[ed_world_context_data.active_pickable_list].cursor; pickable_index++)
     {
         struct ed_pickable_t *pickable = ed_GetPickable(pickable_index);
         if(pickable)
@@ -130,7 +132,7 @@ struct ed_pickable_t *ed_SelectPickable(int32_t mouse_x, int32_t mouse_y)
     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, ed_picking_framebuffer);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    for(uint32_t pickable_index = 0; pickable_index < ed_world_context_data.pickables.cursor; pickable_index++)
+    for(uint32_t pickable_index = 0; pickable_index < ed_world_context_data.pickables[ed_world_context_data.active_pickable_list].cursor; pickable_index++)
     {
         struct ed_pickable_t *pickable = ed_GetPickable(pickable_index);
 

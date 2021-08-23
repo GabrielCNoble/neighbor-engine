@@ -237,7 +237,7 @@ float shadowing(uint light_index, vec3 frag_pos, vec3 frag_normal)
 
     float linear_depth = linear_depths[0];
 
-    if(abs(z_coord) - 0.0001 > abs(linear_depth))
+    if(abs(z_coord) - 0.001 > abs(linear_depth))
     {
         shadow_term = 0.0;
     }

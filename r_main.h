@@ -2,6 +2,7 @@
 #define R_MAIN_H
 
 #include "r_com.h"
+#include "r_draw.h"
 
 #include "GL/glew.h"
 
@@ -104,6 +105,8 @@ struct r_shader_t *r_LoadShader(char *vertex_file_name, char *fragment_file_name
 void r_FreeShader(struct r_shader_t *shader);
 
 void r_BindShader(struct r_shader_t *shader);
+
+struct r_named_uniform_t *r_GetNamedUniform(struct r_shader_t *shader, char *name);
 
 uint32_t r_GetUniformIndex(struct r_shader_t *shader, char *name);
 

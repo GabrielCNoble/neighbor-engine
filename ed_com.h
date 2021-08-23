@@ -107,12 +107,17 @@ struct ed_world_context_data_t
     vec3_t box_start;
     vec3_t box_end;
     struct ed_pickable_t *last_selected;
-    struct ds_slist_t pickables;
+    uint32_t active_pickable_list;
+    struct ds_slist_t pickables[2];
     struct ds_slist_t brushes;
     uint32_t global_brush_vert_count;
     uint32_t global_brush_index_count;
     struct ds_list_t global_brush_batches;
     struct ds_list_t selections;
+
+    float camera_pitch;
+    float camera_yaw;
+    vec3_t camera_pos;
 };
 
 enum ED_CONTEXTS

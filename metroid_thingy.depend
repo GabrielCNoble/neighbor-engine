@@ -468,7 +468,7 @@
 	<limits.h>
 	<stddef.h>
 
-1629423523 source:c:\users\gabri\documents\compiler\metroid_thingy\game.c
+1629673691 source:c:\users\gabri\documents\compiler\metroid_thingy\game.c
 	"dstuff/ds_slist.h"
 	"dstuff/ds_mem.h"
 	"dstuff/ds_file.h"
@@ -572,15 +572,15 @@
 	"dstuff/ds_slist.h"
 	<stdint.h>
 
-1629564506 c:\users\gabri\documents\compiler\metroid_thingy\r_draw.h
+1629575013 c:\users\gabri\documents\compiler\metroid_thingy\r_draw.h
 	"r_com.h"
 	"r_main.h"
 
-1629563713 c:\users\gabri\documents\compiler\metroid_thingy\r_main.h
+1629575013 c:\users\gabri\documents\compiler\metroid_thingy\r_main.h
 	"r_com.h"
 	"GL/glew.h"
 
-1629565812 source:c:\users\gabri\documents\compiler\metroid_thingy\r_draw.c
+1629575013 source:c:\users\gabri\documents\compiler\metroid_thingy\r_draw.c
 	"r_draw.h"
 	"SDL2/SDL.h"
 	"GL/glew.h"
@@ -593,7 +593,7 @@
 	<stddef.h>
 	<stdalign.h>
 
-1629565078 source:c:\users\gabri\documents\compiler\metroid_thingy\r_main.c
+1629673691 source:c:\users\gabri\documents\compiler\metroid_thingy\r_main.c
 	"r_main.h"
 	"SDL2/SDL.h"
 	"GL/glew.h"
@@ -606,7 +606,7 @@
 	"r_draw.h"
 	"anim.h"
 
-1629564391 c:\users\gabri\documents\compiler\metroid_thingy\r_com.h
+1629673691 c:\users\gabri\documents\compiler\metroid_thingy\r_com.h
 	"dstuff/ds_vector.h"
 	"dstuff/ds_matrix.h"
 	"dstuff/ds_alloc.h"
@@ -725,15 +725,16 @@
 	"r_com.h"
 	"r_draw.h"
 
-1629413327 source:c:\users\gabri\documents\compiler\metroid_thingy\r_vis.c
+1629673691 source:c:\users\gabri\documents\compiler\metroid_thingy\r_vis.c
 	"r_vis.h"
 	"game.h"
 
-1629512142 source:c:\users\gabri\documents\compiler\metroid_thingy\ed_bsp.c
-	"ed_bsp.h"
+1629708447 source:c:\users\gabri\documents\compiler\metroid_thingy\ed_bsp.c
 	<stdlib.h>
+	"ed_bsp.h"
+	"ed_brush.h"
 
-1629512090 c:\users\gabri\documents\compiler\metroid_thingy\ed_bsp.h
+1629709523 c:\users\gabri\documents\compiler\metroid_thingy\ed_bsp.h
 	<stdint.h>
 	<stddef.h>
 	"ed_com.h"
@@ -741,7 +742,7 @@
 	"dstuff/ds_list.h"
 	"dstuff/ds_buffer.h"
 
-1629426398 c:\users\gabri\documents\compiler\metroid_thingy\ed_com.h
+1629708276 c:\users\gabri\documents\compiler\metroid_thingy\ed_com.h
 	<stdint.h>
 	"dstuff/ds_buffer.h"
 	"dstuff/ds_vector.h"
@@ -853,7 +854,7 @@
 1625526529 c:\users\gabri\documents\compiler\metroid_thingy\gui.h
 	"cimgui/cimgui.h"
 
-1629517842 source:c:\users\gabri\documents\compiler\metroid_thingy\gui.c
+1629575013 source:c:\users\gabri\documents\compiler\metroid_thingy\gui.c
 	"gui.h"
 	"r_main.h"
 	"r_draw.h"
@@ -892,16 +893,16 @@
 	<stdio.h>
 	<float.h>
 
-1629322545 c:\users\gabri\documents\compiler\metroid_thingy\ed_brush.h
+1629705922 c:\users\gabri\documents\compiler\metroid_thingy\ed_brush.h
 	"ed_com.h"
 
-1629423396 source:c:\users\gabri\documents\compiler\metroid_thingy\ed_brush.c
+1629709242 source:c:\users\gabri\documents\compiler\metroid_thingy\ed_brush.c
 	"ed_brush.h"
 	"dstuff/ds_buffer.h"
 	"r_main.h"
 	"ed_bsp.h"
 
-1629429621 c:\users\gabri\documents\compiler\metroid_thingy\ed_main.h
+1629575013 c:\users\gabri\documents\compiler\metroid_thingy\ed_main.h
 	"dstuff/ds_vector.h"
 	"dstuff/ds_matrix.h"
 	"dstuff/ds_alloc.h"
@@ -910,17 +911,17 @@
 	"ed_brush.h"
 	"ed_pick.h"
 
-1629563835 source:c:\users\gabri\documents\compiler\metroid_thingy\ed_pick.c
+1629575013 source:c:\users\gabri\documents\compiler\metroid_thingy\ed_pick.c
 	"ed_pick.h"
 	"ed_brush.h"
 	"game.h"
 	"r_main.h"
 
-1629518556 c:\users\gabri\documents\compiler\metroid_thingy\ed_pick.h
+1629575013 c:\users\gabri\documents\compiler\metroid_thingy\ed_pick.h
 	"ed_com.h"
 	"r_com.h"
 
-1629566007 source:c:\users\gabri\documents\compiler\metroid_thingy\ed_main.c
+1629575013 source:c:\users\gabri\documents\compiler\metroid_thingy\ed_main.c
 	"ed_main.h"
 	"ed_bsp.h"
 	"dstuff/ds_slist.h"

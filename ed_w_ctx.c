@@ -195,17 +195,17 @@ void ed_WorldContextDrawSelections()
                 r_i_DrawImmediate(R_I_DRAW_CMD_TRIANGLE_LIST, draw_list);
 
 
-//                draw_list = r_i_AllocDrawList(1);
-//                draw_list->commands[0].start = pickable->start;
-//                draw_list->commands[0].count = pickable->count;
-//                draw_list->size = 4.0;
-//                draw_list->indexed = 1;
-//
-//                r_i_SetDrawMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE, 0xff);
-//                r_i_SetDepth(GL_TRUE, GL_LESS);
-//                r_i_SetStencil(GL_TRUE, GL_KEEP, GL_KEEP, GL_REPLACE, GL_EQUAL, 0xff, 0x00);
-//                r_i_SetRasterizer(GL_TRUE, GL_FRONT, GL_LINE);
-//                r_i_DrawImmediate(R_I_DRAW_CMD_TRIANGLE_LIST, draw_list);
+                draw_list = r_i_AllocDrawList(1);
+                draw_list->commands[0].start = pickable->start;
+                draw_list->commands[0].count = pickable->count;
+                draw_list->size = 4.0;
+                draw_list->indexed = 1;
+
+                r_i_SetDrawMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE, 0xff);
+                r_i_SetDepth(GL_TRUE, GL_ALWAYS);
+                r_i_SetStencil(GL_TRUE, GL_KEEP, GL_KEEP, GL_REPLACE, GL_ALWAYS, 0xff, 0x00);
+                r_i_SetRasterizer(GL_TRUE, GL_FRONT, GL_FILL);
+                r_i_DrawImmediate(R_I_DRAW_CMD_TRIANGLE_LIST, draw_list);
 
             }
 
@@ -214,6 +214,7 @@ void ed_WorldContextDrawSelections()
 
         r_i_SetRasterizer(GL_TRUE, GL_BACK, GL_FILL);
         r_i_SetDepth(GL_TRUE, GL_LESS);
+        r_i_SetDrawMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE, 0xff);
         r_i_SetStencil(GL_FALSE, GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE);
     }
 }

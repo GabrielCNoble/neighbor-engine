@@ -301,6 +301,7 @@ void main()
 
     color.rgb = tonemap(color.rgb * 2.0);
     color.rgb *= 1.0 / tonemap(vec3(W));
+    color.a = 1.0;
     gl_FragColor = color + albedo * 0.12;
 
 //    gl_FragColor = color;

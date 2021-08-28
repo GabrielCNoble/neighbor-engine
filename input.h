@@ -7,16 +7,20 @@ enum IN_KEY_STATE
 {
     IN_KEY_STATE_JUST_PRESSED = 1,
     IN_KEY_STATE_PRESSED = 1 << 1,
-    IN_KEY_STATE_JUST_RELEASED = 1 << 2
+    IN_KEY_STATE_JUST_RELEASED = 1 << 2,
+    IN_KEY_STATE_DOUBLE_CLICKED = 1 << 3,
+    IN_KEY_STATE_DOUBLE_CLICK_FAILED = 1 << 4,
 };
 
-void in_Input();
+void in_Input(float delta_time);
 
 uint32_t in_GetKeyState(SDL_Scancode scancode);
 
 uint8_t *in_GetKeyStates();
 
 uint32_t in_GetMouseButtonState(uint32_t button);
+
+uint32_t in_GetMouseDoubleClickState(uint32_t button, uint32_t timeout);
 
 void in_SetMouseRelativeMode(uint32_t enable);
 

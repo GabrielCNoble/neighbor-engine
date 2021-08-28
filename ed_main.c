@@ -176,7 +176,7 @@ void ed_Init()
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_R32UI, r_width, r_height, 0, GL_RED_INTEGER, GL_INT, NULL);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RG32UI, r_width, r_height, 0, GL_RG_INTEGER, GL_INT, NULL);
 
     glGenTextures(1, &ed_picking_depth_texture);
     glBindTexture(GL_TEXTURE_2D, ed_picking_depth_texture);
@@ -202,7 +202,7 @@ void ed_Init()
 //    ed_world_context_data.active_pickable_list = 0;
 //    ed_world_context_data.brushes = ds_slist_create(sizeof(struct ed_brush_t), 512);
 //    ed_world_context_data.global_brush_batches = ds_list_create(sizeof(struct ed_brush_batch_t), 512);
-    ed_WorldContextInit();
+    ed_w_ctx_Init();
     ed_active_context = ed_contexts + ED_CONTEXT_WORLD;
 
     ed_polygons = ds_slist_create(sizeof(struct ed_polygon_t ), 1024);
@@ -242,14 +242,8 @@ void ed_UpdateEditor()
             if(context == ed_active_context)
             {
                 uint32_t just_changed = context->current_state != context->next_state;
-
-                do
-                {
-                    context->current_state = context->next_state;
-                    context->states[context->current_state].update(context, just_changed);
-                    just_changed = context->current_state != context->next_state;
-                }
-                while(just_changed);
+                context->current_state = context->next_state;
+                context->states[context->current_state].update(context, just_changed);
             }
         }
     }
@@ -322,7 +316,7 @@ void ed_UpdateEditor()
     ed_UpdateExplorer();
 }
 
-void ed_SetContextState(struct ed_context_t *context, uint32_t state)
+void ed_SetNextContextState(struct ed_context_t *context, uint32_t state)
 {
     context->next_state = state;
 }

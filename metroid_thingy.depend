@@ -417,10 +417,10 @@
 	"ds_mem.h"
 	<stdarg.h>
 
-1625526529 c:\users\gabri\documents\compiler\metroid_thingy\input.h
+1630025115 c:\users\gabri\documents\compiler\metroid_thingy\input.h
 	"SDL2/SDL.h"
 
-1625526529 source:c:\users\gabri\documents\compiler\metroid_thingy\input.c
+1630025790 source:c:\users\gabri\documents\compiler\metroid_thingy\input.c
 	"input.h"
 	<stdio.h>
 
@@ -468,7 +468,7 @@
 	<limits.h>
 	<stddef.h>
 
-1629783639 source:c:\users\gabri\documents\compiler\metroid_thingy\game.c
+1630149912 source:c:\users\gabri\documents\compiler\metroid_thingy\game.c
 	"dstuff/ds_slist.h"
 	"dstuff/ds_mem.h"
 	"dstuff/ds_file.h"
@@ -743,7 +743,7 @@
 	"dstuff/ds_list.h"
 	"dstuff/ds_buffer.h"
 
-1629740839 c:\users\gabri\documents\compiler\metroid_thingy\ed_com.h
+1630145705 c:\users\gabri\documents\compiler\metroid_thingy\ed_com.h
 	<stdint.h>
 	"dstuff/ds_buffer.h"
 	"dstuff/ds_vector.h"
@@ -903,7 +903,7 @@
 	"r_main.h"
 	"ed_bsp.h"
 
-1629740839 c:\users\gabri\documents\compiler\metroid_thingy\ed_main.h
+1630115016 c:\users\gabri\documents\compiler\metroid_thingy\ed_main.h
 	"dstuff/ds_vector.h"
 	"dstuff/ds_matrix.h"
 	"dstuff/ds_alloc.h"
@@ -912,18 +912,18 @@
 	"ed_brush.h"
 	"ed_pick.h"
 
-1629740839 source:c:\users\gabri\documents\compiler\metroid_thingy\ed_pick.c
+1630149540 source:c:\users\gabri\documents\compiler\metroid_thingy\ed_pick.c
 	<stdio.h>
 	"ed_pick.h"
 	"ed_brush.h"
 	"game.h"
 	"r_main.h"
 
-1629575013 c:\users\gabri\documents\compiler\metroid_thingy\ed_pick.h
+1630141219 c:\users\gabri\documents\compiler\metroid_thingy\ed_pick.h
 	"ed_com.h"
 	"r_com.h"
 
-1629740839 source:c:\users\gabri\documents\compiler\metroid_thingy\ed_main.c
+1630141217 source:c:\users\gabri\documents\compiler\metroid_thingy\ed_main.c
 	"ed_main.h"
 	"ed_bsp.h"
 	"ed_w_ctx.h"
@@ -943,14 +943,16 @@
 	<string.h>
 	<float.h>
 
-1629740839 c:\users\gabri\documents\compiler\metroid_thingy\ed_w_ctx.h
+1630146511 c:\users\gabri\documents\compiler\metroid_thingy\ed_w_ctx.h
 	"ed_com.h"
 
-1629737919 source:c:\users\gabri\documents\compiler\metroid_thingy\ed_w_ctx.c
+1630150647 source:c:\users\gabri\documents\compiler\metroid_thingy\ed_w_ctx.c
 	"ed_w_ctx.h"
 	"ed_pick.h"
 	"ed_brush.h"
 	"ed_main.h"
 	"r_main.h"
+	"gui.h"
+	"game.h"
 	"input.h"
 

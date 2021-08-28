@@ -152,7 +152,7 @@ void g_Init(uint32_t editor_active)
     r_Init();
     p_Init();
     a_Init();
-    in_Input();
+    in_Input(0.016);
     w_Init();
     s_Init();
     gui_Init();
@@ -372,55 +372,55 @@ void g_Init(uint32_t editor_active)
 //    r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(0.0, 2.0, 8.0), &vec3_t_c(1.0, 1.0, 1.0), 8.0, 12.0);
 //    r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(0.0, 2.0, -8.0), &vec3_t_c(1.0, 1.0, 1.0), 8.0, 12.0);
 
-    transform.rows[0].x = 0.3;
-    transform.rows[1].y = 7.0;
-    transform.rows[2].z = 0.3;
-
-    transform.rows[3].x = 0.0;
-    transform.rows[3].y = 0.0;
-    transform.rows[3].z = 0.0;
-
-    g_CreateEntity(&transform, NULL, g_cube_model);
-
-    transform.rows[0].x = 10.0;
-    transform.rows[1].y = 0.1;
-    transform.rows[2].z = 10.0;
-    transform.rows[3].x = 0.0;
-    transform.rows[3].y = -6.0;
-    transform.rows[3].z = -0.0;
-
-    g_CreateEntity(&transform, NULL, g_cube_model);
-    transform.rows[3].y = 6.0;
-    g_CreateEntity(&transform, NULL, g_cube_model);
-
-    transform.rows[0].x = 500.0;
-    transform.rows[1].y = 500.0;
-    transform.rows[2].z = 0.1;
-
-    transform.rows[3].y = 0.0;
-    transform.rows[3].z = -6.0;
-    g_CreateEntity(&transform, NULL, g_cube_model);
-    transform.rows[3].z = 6.0;
-    g_CreateEntity(&transform, NULL, g_cube_model);
+//    transform.rows[0].x = 0.3;
+//    transform.rows[1].y = 7.0;
+//    transform.rows[2].z = 0.3;
 //
-
-    transform.rows[0].x = 0.1;
-    transform.rows[1].y = 500.0;
-    transform.rows[2].z = 500.0;
-
-    transform.rows[3].x = -6.0;
-    g_CreateEntity(&transform, NULL, g_cube_model);
-    transform.rows[3].x = 6.0;
-    g_CreateEntity(&transform, NULL, g_cube_model);
-
-
-    transform.rows[0].x = 0.3;
-    transform.rows[1].y = 0.3;
-    transform.rows[2].z = 0.3;
-
-    transform.rows[3].x = 0.0;
-    transform.rows[3].y = 0.0;
-    transform.rows[3].z = 0.0;
+//    transform.rows[3].x = 0.0;
+//    transform.rows[3].y = 0.0;
+//    transform.rows[3].z = 0.0;
+//
+//    g_CreateEntity(&transform, NULL, g_cube_model);
+//
+//    transform.rows[0].x = 10.0;
+//    transform.rows[1].y = 0.1;
+//    transform.rows[2].z = 10.0;
+//    transform.rows[3].x = 0.0;
+//    transform.rows[3].y = -6.0;
+//    transform.rows[3].z = -0.0;
+//
+//    g_CreateEntity(&transform, NULL, g_cube_model);
+//    transform.rows[3].y = 6.0;
+//    g_CreateEntity(&transform, NULL, g_cube_model);
+//
+//    transform.rows[0].x = 500.0;
+//    transform.rows[1].y = 500.0;
+//    transform.rows[2].z = 0.1;
+//
+//    transform.rows[3].y = 0.0;
+//    transform.rows[3].z = -6.0;
+//    g_CreateEntity(&transform, NULL, g_cube_model);
+//    transform.rows[3].z = 6.0;
+//    g_CreateEntity(&transform, NULL, g_cube_model);
+////
+//
+//    transform.rows[0].x = 0.1;
+//    transform.rows[1].y = 500.0;
+//    transform.rows[2].z = 500.0;
+//
+//    transform.rows[3].x = -6.0;
+//    g_CreateEntity(&transform, NULL, g_cube_model);
+//    transform.rows[3].x = 6.0;
+//    g_CreateEntity(&transform, NULL, g_cube_model);
+//
+//
+//    transform.rows[0].x = 0.3;
+//    transform.rows[1].y = 0.3;
+//    transform.rows[2].z = 0.3;
+//
+//    transform.rows[3].x = 0.0;
+//    transform.rows[3].y = 0.0;
+//    transform.rows[3].z = 0.0;
 
 //    g_CreateEntity(&transform, NULL, g_cube_model);
 
@@ -438,9 +438,9 @@ void g_Init(uint32_t editor_active)
 //        }
 //    }
 
-    transform.rows[0].x = 0.3;
-    transform.rows[1].y = 0.3;
-    transform.rows[2].z = 0.3;
+//    transform.rows[0].x = 0.3;
+//    transform.rows[1].y = 0.3;
+//    transform.rows[2].z = 0.3;
 
 //    transform.rows[3].x = 0.0;
 //    transform.rows[3].y = 0.0;
@@ -448,12 +448,12 @@ void g_Init(uint32_t editor_active)
 
 //    transform.rows[0].x = 1.0;
 //    transform.rows[2].z = 1.0;
-    mat4_t_rotate_x(&transform, -0.5);
-
-    transform.rows[3].x = 0.0;
-    transform.rows[3].y = -1.94;
-    transform.rows[3].z = 0.0;
-    struct g_entity_t *boy_entity;
+//    mat4_t_rotate_x(&transform, -0.5);
+//
+//    transform.rows[3].x = 0.0;
+//    transform.rows[3].y = -1.94;
+//    transform.rows[3].z = 0.0;
+//    struct g_entity_t *boy_entity;
 
 //    boy_entity = g_CreateEntity(&transform, NULL, g_wiggle_model);
 //    g_PlayAnimation(boy_entity, miracle_dance_smooth, "just_dance");
@@ -629,9 +629,9 @@ void g_SetGameState(uint32_t game_state)
 
 void g_MainLoop(uint32_t editor_active)
 {
-    float f = 0;
-    float t = 0;
-    uint32_t row = 0;
+//    float f = 0;
+//    float t = 0;
+//    uint32_t row = 0;
 
     while(g_game_state != G_GAME_STATE_QUIT)
     {
@@ -652,28 +652,28 @@ void g_MainLoop(uint32_t editor_active)
 //            g_lights[light_index]->data.pos_rad.y = sin(f + (float)light_index * 0.5);
 //        }
 
-        f += 0.007;
-        t += 0.03;
-        in_Input();
+//        f += 0.007;
+//        t += 0.03;
+        in_Input(0.016);
         gui_BeginFrame();
         p_UpdateColliders();
 
-        if(in_GetKeyState(SDL_SCANCODE_C) & IN_KEY_STATE_JUST_PRESSED)
-        {
-            mat4_t transform;
-            mat4_t_identity(&transform);
-            transform.rows[0].x = 0.2;
-            transform.rows[1].y = 0.2;
-            transform.rows[2].z = 0.2;
-
-            for(uint32_t index = 0; index < 1000; index++)
-            {
-                transform.rows[3].x = -2000 + index * 4;
-                transform.rows[3].z = row * 4;
-                g_CreateEntity(&transform, NULL, g_wiggle_model);
-            }
-            row++;
-        }
+//        if(in_GetKeyState(SDL_SCANCODE_C) & IN_KEY_STATE_JUST_PRESSED)
+//        {
+//            mat4_t transform;
+//            mat4_t_identity(&transform);
+//            transform.rows[0].x = 0.2;
+//            transform.rows[1].y = 0.2;
+//            transform.rows[2].z = 0.2;
+//
+//            for(uint32_t index = 0; index < 1000; index++)
+//            {
+//                transform.rows[3].x = -2000 + index * 4;
+//                transform.rows[3].z = row * 4;
+//                g_CreateEntity(&transform, NULL, g_wiggle_model);
+//            }
+//            row++;
+//        }
 
         if(in_GetKeyState(SDL_SCANCODE_Z) & IN_KEY_STATE_JUST_PRESSED)
         {

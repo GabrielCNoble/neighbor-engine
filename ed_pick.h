@@ -4,29 +4,12 @@
 #include "ed_com.h"
 #include "r_com.h"
 
+void ed_BeginPicking();
 
-struct ed_pickable_t *ed_CreatePickable();
+uint32_t ed_EndPicking(int32_t mouse_x, int32_t mouse_y, struct ed_pick_result_t *result);
 
-void ed_DestroyPickable(struct ed_pickable_t *pickable);
+void ed_DrawPickable(struct ed_pickable_t *pickable);
 
-struct ed_pickable_t *ed_GetPickable(uint32_t index);
-
-struct ed_pickable_t *ed_CreateBrushPickable(vec3_t *position, mat3_t *orientation, vec3_t *size);
-
-struct ed_pickable_t *ed_CreateLightPickable(vec3_t *pos, vec3_t *color, float radius, float energy);
-
-struct ed_pickable_t *ed_CreateEntityPickable(mat4_t *transform, struct r_model_t *model);
-
-void ed_UpdatePickables();
-
-struct ed_pickable_t *ed_SelectPickable(int32_t mouse_x, int32_t mouse_y);
-
-void ed_ClearSelections();
-
-void ed_AddSelection(struct ed_pickable_t *selection, uint32_t multiple_key_down);
-
-void ed_TranslateSelected(vec3_t *translation);
-
-void ed_RotateSelected(mat3_t *rotation);
+struct ed_pickable_t *ed_SelectPickable(int32_t mouse_x, int32_t mouse_y, struct ds_slist_t *pickables);
 
 #endif

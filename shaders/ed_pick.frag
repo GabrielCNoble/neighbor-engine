@@ -5,5 +5,5 @@ uniform int ed_index;
 
 void main()
 {
-    gl_FragColor = vec4(intBitsToFloat(ed_type), intBitsToFloat(ed_index), 0.0, 1.0);
+    gl_FragColor = vec4(intBitsToFloat(ed_index), intBitsToFloat(ed_type), 0.0, 1.0);
 }

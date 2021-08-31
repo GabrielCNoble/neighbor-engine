@@ -362,6 +362,7 @@ void ed_UpdateBrush(struct ed_brush_t *brush)
         face->clipped_polygons = ed_CopyPolygon(face->polygon);
         face->clipped_vert_count = face->polygon->vertices.buffer_size;
         face->clipped_index_count = (face->clipped_vert_count - 2) * 3;
+        face->clipped_polygon_count = 1;
 
         face->polygon->next = polygons;
         if(polygons)

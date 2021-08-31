@@ -334,17 +334,17 @@ void g_Init(uint32_t editor_active)
 //    g_lights[1] = r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(-0.6, 0.3, -0.6), &vec3_t_c(0.0, 1.0, 0.0), 5.0, 3.0);
 //    g_lights[2] = r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(0.6, 0.3, -0.6), &vec3_t_c(0.0, 0.0, 1.0), 5.0, 3.0);
 
-    float increment = 3.14159265 / 4.0;
-    float angle = 0.0;
-    for(uint32_t index = 0; index < 8; index++)
-    {
-        vec3_t position = vec3_t_c(cos(angle) * 5.0, (((float)(rand() % 250) / 250.0) * 2.0 - 1.0) * 6.0, sin(angle) * 5.0);
-        vec3_t color;
-        vec3_t_normalize(&color, &position);
-        vec3_t_fabs(&color, &color);
-        g_lights[index] = r_CreateLight(R_LIGHT_TYPE_POINT, &position, &color, 7.5, 5.0);
-        angle += increment;
-    }
+//    float increment = 3.14159265 / 4.0;
+//    float angle = 0.0;
+//    for(uint32_t index = 0; index < 8; index++)
+//    {
+//        vec3_t position = vec3_t_c(cos(angle) * 5.0, (((float)(rand() % 250) / 250.0) * 2.0 - 1.0) * 6.0, sin(angle) * 5.0);
+//        vec3_t color;
+//        vec3_t_normalize(&color, &position);
+//        vec3_t_fabs(&color, &color);
+//        g_lights[index] = r_CreateLight(R_LIGHT_TYPE_POINT, &position, &color, 7.5, 5.0);
+//        angle += increment;
+//    }
 
 //    g_player_light = r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(0.0, 0.0, 2.0), &vec3_t_c(1.0, 1.0, 1.0), 10.5, 5.0);
 //

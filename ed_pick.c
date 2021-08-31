@@ -56,7 +56,13 @@ void ed_DrawPickable(struct ed_pickable_t *pickable)
     r_SetDefaultUniformMat4(R_UNIFORM_MODEL_VIEW_PROJECTION_MATRIX, &model_view_projection_matrix);
     glUniform1i(ed_picking_shader_index_uniform, pickable->index + 1);
     glUniform1i(ed_picking_shader_type_uniform, pickable->type + 1);
-    glDrawElements(pickable->mode, pickable->count, GL_UNSIGNED_INT, (void *)(sizeof(uint32_t) * pickable->start));
+    struct ed_pickable_range_t *range = pickable->ranges;
+
+    while(range)
+    {
+        glDrawElements(pickable->mode, range->count, GL_UNSIGNED_INT, (void *)(sizeof(uint32_t) * range->start));
+        range = range->next;
+    }
 }
 
 struct ed_pickable_t *ed_SelectPickable(int32_t mouse_x, int32_t mouse_y, struct ds_slist_t *pickables)

@@ -50,6 +50,8 @@ uint32_t ed_picking_depth_texture;
 uint32_t ed_picking_object_texture;
 uint32_t ed_show_renderer_info_window;
 
+struct r_model_t *ed_translation_widget_model;
+
 extern uint32_t g_game_state;
 extern mat4_t r_camera_matrix;
 extern float r_z_near;
@@ -162,6 +164,8 @@ void ed_Init()
     ed_picking_shader_index_uniform = r_GetUniformIndex(ed_picking_shader, "ed_index");
     ed_outline_shader = r_LoadShader("shaders/ed_outline.vert", "shaders/ed_outline.frag");
     ed_outline_shader_color_uniform = r_GetUniformIndex(ed_outline_shader, "ed_color");
+
+    ed_translation_widget_model = r_LoadModel("models/twidget.mof");
 
     SDL_DisplayMode desktop_display_mode;
 

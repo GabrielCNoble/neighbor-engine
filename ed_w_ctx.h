@@ -16,6 +16,10 @@ void ed_w_ctx_Shutdown();
 
 void ed_w_ctx_FlyCamera();
 
+struct ed_pickable_range_t *ed_w_ctx_AllocPickableRange();
+
+void ed_w_ctx_FreePickableRange(struct ed_pickable_range_t *range);
+
 struct ds_slist_t *ed_w_ctx_PickableListFromType(uint32_t type);
 
 struct ed_pickable_t *ed_w_ctx_CreatePickable(uint32_t type);
@@ -40,9 +44,13 @@ void ed_w_ctx_DeleteSelections();
 
 void ed_w_ctx_AddSelection(struct ed_pickable_t *selection, uint32_t multiple_key_down);
 
+void ed_w_ctx_DropSelection(struct ed_pickable_t *selection, struct ds_slist_t *pickable_list, struct ds_list_t *selection_list);
+
 void ed_w_ctx_TranslateSelected(vec3_t *translation);
 
 void ed_w_ctx_RotateSelected(mat3_t *rotation);
+
+void ed_w_ctx_DrawWidgets();
 
 void ed_w_ctx_DrawGrid();
 

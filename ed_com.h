@@ -73,15 +73,25 @@ enum ED_PICKABLE_TYPE
     ED_PICKABLE_TYPE_WIDGET,
 };
 
+struct ed_pickable_range_t
+{
+    struct ed_pickable_range_t *prev;
+    struct ed_pickable_range_t *next;
+    uint32_t index;
+    uint32_t start;
+    uint32_t count;
+};
+
 struct ed_pickable_t
 {
     uint32_t type;
     uint32_t index;
+    uint32_t selection_index;
 
     mat4_t transform;
     uint32_t mode;
-    uint32_t start;
-    uint32_t count;
+    uint32_t range_count;
+    struct ed_pickable_range_t *ranges;
 
     uint32_t primary_index;
     uint32_t secondary_index;
@@ -91,6 +101,12 @@ struct ed_pick_result_t
 {
     uint32_t type;
     uint32_t index;
+};
+
+struct ed_widget_t
+{
+    mat4_t transform;
+    struct ds_list_t pickables;
 };
 
 
@@ -148,22 +164,19 @@ struct ed_world_context_data_t
 
     struct ds_slist_t pickables[3];
     struct ds_list_t selections[2];
+    struct ds_slist_t pickable_ranges;
 
     struct ds_slist_t *active_pickables;
     struct ds_list_t *active_selections;
-
-//    struct ds_slist_t brush_pickables;
-//    struct ds_list_t brush_selections;
-
 
     struct ds_slist_t brushes;
     uint32_t global_brush_vert_count;
     uint32_t global_brush_index_count;
     struct ds_list_t global_brush_batches;
 
-
     float info_window_alpha;
     uint32_t open_delete_selections_popup;
+//    vec3_t
 
 
     float camera_pitch;

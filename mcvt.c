@@ -101,7 +101,7 @@ int main(int argc, char *argv[])
     uint32_t overwrite = 0;
     if(argc > 1)
     {
-        uint32_t arg_index = 0;
+        uint32_t arg_index = 1;
         while(arg_index < argc)
         {
             if(cur_arg == ARG_NO_ARG)
@@ -154,6 +154,11 @@ int main(int argc, char *argv[])
                     printf("-noanim : don't output animation data.\n\n");
                     printf("-nomodel : don't output model data.\n\n");
                     printf("-help : prints this help, then exits.\n\n");
+                    return 0;
+                }
+                else
+                {
+                    printf("unknown argument '%s'\n", argv[arg_index]);
                     return 0;
                 }
             }

@@ -16,6 +16,12 @@ void ed_w_ctx_Shutdown();
 
 void ed_w_ctx_FlyCamera();
 
+struct ed_widget_t *ed_w_ctx_CreateWidget(mat4_t *transform);
+
+void ed_w_ctx_DestroyWidget(struct ed_widget_t *widget);
+
+void ed_w_ctx_AddPickableToWidget(struct ed_widget_t *widget, struct ed_pickable_t *pickable);
+
 struct ed_pickable_range_t *ed_w_ctx_AllocPickableRange();
 
 void ed_w_ctx_FreePickableRange(struct ed_pickable_range_t *range);

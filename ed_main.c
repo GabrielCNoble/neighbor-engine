@@ -28,14 +28,14 @@ struct ed_context_t *ed_active_context;
 struct ed_context_t ed_contexts[ED_CONTEXT_LAST];
 //uint32_t ed_grid_vert_count;
 //struct r_vert_t *ed_grid;
-struct r_i_verts_t *ed_grid;
+//struct r_i_verts_t *ed_grid;
 struct ds_slist_t ed_polygons;
 struct ds_slist_t ed_bsp_nodes;
 
-struct r_shader_t *ed_center_grid_shader;
-struct r_shader_t *ed_picking_shader;
-uint32_t ed_picking_shader_type_uniform;
-uint32_t ed_picking_shader_index_uniform;
+//struct r_shader_t *ed_center_grid_shader;
+//struct r_shader_t *ed_picking_shader;
+//uint32_t ed_picking_shader_type_uniform;
+//uint32_t ed_picking_shader_index_uniform;
 
 struct r_shader_t *ed_outline_shader;
 uint32_t ed_outline_shader_color_uniform;
@@ -68,8 +68,8 @@ extern struct r_renderer_stats_t r_renderer_stats;
 extern struct r_renderer_state_t r_renderer_state;
 
 
-#define ED_GRID_DIVS 301
-#define ED_GRID_QUAD_SIZE 500.0
+//#define ED_GRID_DIVS 301
+//#define ED_GRID_QUAD_SIZE 500.0
 
 //struct ed_state_t ed_world_context_states[] =
 //{
@@ -131,41 +131,41 @@ void ed_Init()
 //    ed_objects = ds_slist_create(sizeof(struct ed_object_t), 512);
 //    ed_brushes = ds_slist_create(sizeof(struct ed_brush_t), 512);
 //    ed_global_brush_batches = ds_list_create(sizeof(struct ed_brush_batch_t), 512);
-    ed_grid = r_i_AllocImmediateExternData(sizeof(struct r_i_verts_t) + sizeof(struct r_vert_t) * 6);
+//    ed_grid = r_i_AllocImmediateExternData(sizeof(struct r_i_verts_t) + sizeof(struct r_vert_t) * 6);
+//
+//    ed_grid->count = 6;
+//    ed_grid->verts[0].pos = vec3_t_c(-ED_GRID_QUAD_SIZE, 0.0, -ED_GRID_QUAD_SIZE);
+//    ed_grid->verts[0].tex_coords = vec2_t_c(0.0, 0.0);
+//    ed_grid->verts[0].color = vec4_t_c(1.0, 0.0, 0.0, 1.0);
+//
+//    ed_grid->verts[1].pos = vec3_t_c(-ED_GRID_QUAD_SIZE, 0.0, ED_GRID_QUAD_SIZE);
+//    ed_grid->verts[1].tex_coords = vec2_t_c(1.0, 0.0);
+//    ed_grid->verts[1].color = vec4_t_c(0.0, 1.0, 0.0, 1.0);
+//
+//    ed_grid->verts[2].pos = vec3_t_c(ED_GRID_QUAD_SIZE, 0.0, ED_GRID_QUAD_SIZE);
+//    ed_grid->verts[2].tex_coords = vec2_t_c(1.0, 1.0);
+//    ed_grid->verts[2].color = vec4_t_c(0.0, 0.0, 1.0, 1.0);
+//
+//    ed_grid->verts[3].pos = vec3_t_c(ED_GRID_QUAD_SIZE, 0.0, ED_GRID_QUAD_SIZE);
+//    ed_grid->verts[3].tex_coords = vec2_t_c(1.0, 1.0);
+//    ed_grid->verts[3].color = vec4_t_c(0.0, 0.0, 1.0, 1.0);
+//
+//    ed_grid->verts[4].pos = vec3_t_c(ED_GRID_QUAD_SIZE, 0.0, -ED_GRID_QUAD_SIZE);
+//    ed_grid->verts[4].tex_coords = vec2_t_c(0.0, 1.0);
+//    ed_grid->verts[4].color = vec4_t_c(0.0, 0.0, 1.0, 1.0);
+//
+//    ed_grid->verts[5].pos = vec3_t_c(-ED_GRID_QUAD_SIZE, 0.0, -ED_GRID_QUAD_SIZE);
+//    ed_grid->verts[5].tex_coords = vec2_t_c(0.0, 0.0);
+//    ed_grid->verts[5].color = vec4_t_c(1.0, 0.0, 0.0, 1.0);
 
-    ed_grid->count = 6;
-    ed_grid->verts[0].pos = vec3_t_c(-ED_GRID_QUAD_SIZE, 0.0, -ED_GRID_QUAD_SIZE);
-    ed_grid->verts[0].tex_coords = vec2_t_c(0.0, 0.0);
-    ed_grid->verts[0].color = vec4_t_c(1.0, 0.0, 0.0, 1.0);
+//    ed_center_grid_shader = r_LoadShader("shaders/ed_grid.vert", "shaders/ed_grid.frag");
+//    ed_picking_shader = r_LoadShader("shaders/ed_pick.vert", "shaders/ed_pick.frag");
+//    ed_picking_shader_type_uniform = r_GetUniformIndex(ed_picking_shader, "ed_type");
+//    ed_picking_shader_index_uniform = r_GetUniformIndex(ed_picking_shader, "ed_index");
+//    ed_outline_shader = r_LoadShader("shaders/ed_outline.vert", "shaders/ed_outline.frag");
+//    ed_outline_shader_color_uniform = r_GetUniformIndex(ed_outline_shader, "ed_color");
 
-    ed_grid->verts[1].pos = vec3_t_c(-ED_GRID_QUAD_SIZE, 0.0, ED_GRID_QUAD_SIZE);
-    ed_grid->verts[1].tex_coords = vec2_t_c(1.0, 0.0);
-    ed_grid->verts[1].color = vec4_t_c(0.0, 1.0, 0.0, 1.0);
-
-    ed_grid->verts[2].pos = vec3_t_c(ED_GRID_QUAD_SIZE, 0.0, ED_GRID_QUAD_SIZE);
-    ed_grid->verts[2].tex_coords = vec2_t_c(1.0, 1.0);
-    ed_grid->verts[2].color = vec4_t_c(0.0, 0.0, 1.0, 1.0);
-
-    ed_grid->verts[3].pos = vec3_t_c(ED_GRID_QUAD_SIZE, 0.0, ED_GRID_QUAD_SIZE);
-    ed_grid->verts[3].tex_coords = vec2_t_c(1.0, 1.0);
-    ed_grid->verts[3].color = vec4_t_c(0.0, 0.0, 1.0, 1.0);
-
-    ed_grid->verts[4].pos = vec3_t_c(ED_GRID_QUAD_SIZE, 0.0, -ED_GRID_QUAD_SIZE);
-    ed_grid->verts[4].tex_coords = vec2_t_c(0.0, 1.0);
-    ed_grid->verts[4].color = vec4_t_c(0.0, 0.0, 1.0, 1.0);
-
-    ed_grid->verts[5].pos = vec3_t_c(-ED_GRID_QUAD_SIZE, 0.0, -ED_GRID_QUAD_SIZE);
-    ed_grid->verts[5].tex_coords = vec2_t_c(0.0, 0.0);
-    ed_grid->verts[5].color = vec4_t_c(1.0, 0.0, 0.0, 1.0);
-
-    ed_center_grid_shader = r_LoadShader("shaders/ed_grid.vert", "shaders/ed_grid.frag");
-    ed_picking_shader = r_LoadShader("shaders/ed_pick.vert", "shaders/ed_pick.frag");
-    ed_picking_shader_type_uniform = r_GetUniformIndex(ed_picking_shader, "ed_type");
-    ed_picking_shader_index_uniform = r_GetUniformIndex(ed_picking_shader, "ed_index");
-    ed_outline_shader = r_LoadShader("shaders/ed_outline.vert", "shaders/ed_outline.frag");
-    ed_outline_shader_color_uniform = r_GetUniformIndex(ed_outline_shader, "ed_color");
-
-    ed_translation_widget_model = r_LoadModel("models/twidget.mof");
+//    ed_translation_widget_model = r_LoadModel("models/twidget.mof");
 
     SDL_DisplayMode desktop_display_mode;
 

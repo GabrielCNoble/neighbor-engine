@@ -1556,6 +1556,14 @@ void r_SetNamedUniform(struct r_named_uniform_t *uniform, void *value)
     }
 }
 
+void r_SetNamedUniformI(struct r_named_uniform_t *uniform, int32_t value)
+{
+    if(uniform && uniform->uniform.location != GL_INVALID_INDEX)
+    {
+        glUniform1i(uniform->uniform.location, value);
+    }
+}
+
 void r_SetNamedUniformVec4(struct r_named_uniform_t *uniform, vec4_t *value)
 {
     if(uniform && uniform->uniform.location != GL_INVALID_INDEX)

@@ -13,8 +13,8 @@ extern int32_t r_height;
 extern uint32_t r_vertex_buffer;
 extern uint32_t r_index_buffer;
 extern uint32_t ed_picking_framebuffer;
-extern uint32_t ed_picking_shader_type_uniform;
-extern uint32_t ed_picking_shader_index_uniform;
+//extern uint32_t ed_picking_shader_type_uniform;
+//extern uint32_t ed_picking_shader_index_uniform;
 
 void ed_BeginPicking()
 {
@@ -49,13 +49,23 @@ uint32_t ed_EndPicking(int32_t mouse_x, int32_t mouse_y, struct ed_pick_result_t
     return 0;
 }
 
-void ed_DrawPickable(struct ed_pickable_t *pickable)
+void ed_DrawPickable(struct ed_pickable_t *pickable, mat4_t *parent_transform)
 {
     mat4_t model_view_projection_matrix;
-    mat4_t_mul(&model_view_projection_matrix, &pickable->transform, &r_view_projection_matrix);
+
+    if(parent_transform)
+    {
+        mat4_t_mul(&model_view_projection_matrix, &pickable->transform, parent_transform);
+    }
+    else
+    {
+        mat4_t_identity(&model_view_projection_matrix);
+    }
+
+    mat4_t_mul(&model_view_projection_matrix, &model_view_projection_matrix, &r_view_projection_matrix);
     r_SetDefaultUniformMat4(R_UNIFORM_MODEL_VIEW_PROJECTION_MATRIX, &model_view_projection_matrix);
-    glUniform1i(ed_picking_shader_index_uniform, pickable->index + 1);
-    glUniform1i(ed_picking_shader_type_uniform, pickable->type + 1);
+    r_SetNamedUniformI(r_GetNamedUniform(ed_picking_shader, "ed_index"), pickable->index + 1);
+    r_SetNamedUniformI(r_GetNamedUniform(ed_picking_shader, "ed_type"), pickable->type + 1);
     struct ed_pickable_range_t *range = pickable->ranges;
 
     while(range)
@@ -65,7 +75,7 @@ void ed_DrawPickable(struct ed_pickable_t *pickable)
     }
 }
 
-struct ed_pickable_t *ed_SelectPickable(int32_t mouse_x, int32_t mouse_y, struct ds_slist_t *pickables)
+struct ed_pickable_t *ed_SelectPickable(int32_t mouse_x, int32_t mouse_y, struct ds_slist_t *pickables, mat4_t *parent_transform)
 {
     mat4_t model_view_projection_matrix;
     struct ed_pickable_t *selection = NULL;
@@ -78,7 +88,7 @@ struct ed_pickable_t *ed_SelectPickable(int32_t mouse_x, int32_t mouse_y, struct
 
         if(pickable && pickable->index != 0xffffffff)
         {
-            ed_DrawPickable(pickable);
+            ed_DrawPickable(pickable, parent_transform);
         }
     }
 

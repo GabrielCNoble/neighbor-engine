@@ -11,17 +11,22 @@ extern struct ed_context_t ed_contexts[];
 struct ed_world_context_data_t ed_world_context_data;
 struct ed_context_t *ed_world_context;
 extern mat4_t r_camera_matrix;
-extern struct r_shader_t *ed_center_grid_shader;
-extern struct r_shader_t *ed_picking_shader;
-extern struct r_model_t *ed_translation_widget_model;
+
+struct r_shader_t *ed_center_grid_shader;
+struct r_shader_t *ed_picking_shader;
+struct r_model_t *ed_translation_widget_model;
 struct ed_pickable_t *ed_translation_widget;
 struct r_shader_t *ed_outline_shader;
-extern struct r_i_verts_t *ed_grid;
+struct r_i_verts_t *ed_grid;
+
 extern struct ds_slist_t r_lights;
 extern uint32_t r_width;
 extern uint32_t r_height;
 extern float r_fov;
 extern float r_z_near;
+
+#define ED_GRID_DIVS 301
+#define ED_GRID_QUAD_SIZE 500.0
 
 vec4_t ed_selection_outline_colors[][2] =
 {
@@ -60,8 +65,9 @@ void ed_w_ctx_Init()
     ed_world_context_data.selections[ED_WORLD_CONTEXT_LIST_BRUSH_PARTS] = ds_list_create(sizeof(uint32_t), 512);
     ed_world_context_data.pickables[ED_WORLD_CONTEXT_LIST_OBJECTS] = ds_slist_create(sizeof(struct ed_pickable_t), 512);
     ed_world_context_data.pickables[ED_WORLD_CONTEXT_LIST_BRUSH_PARTS] = ds_slist_create(sizeof(struct ed_pickable_t), 512);
-    ed_world_context_data.pickables[ED_WORLD_CONTEXT_LIST_WIDGETS] = ds_slist_create(sizeof(struct ed_pickable_t), 512);
+//    ed_world_context_data.pickables[ED_WORLD_CONTEXT_LIST_WIDGETS] = ds_slist_create(sizeof(struct ed_pickable_t), 512);
     ed_world_context_data.pickable_ranges = ds_slist_create(sizeof(struct ed_pickable_range_t), 512);
+    ed_world_context_data.widgets = ds_slist_create(sizeof(struct ed_widget_t), 16);
 
     ed_world_context_data.active_pickables = &ed_world_context_data.pickables[0];
     ed_world_context_data.active_selections = &ed_world_context_data.selections[0];
@@ -76,6 +82,15 @@ void ed_w_ctx_Init()
     ed_world_context_data.edit_mode = ED_WORLD_CONTEXT_EDIT_MODE_OBJECT;
     ed_world_context = ed_contexts + ED_CONTEXT_WORLD;
 
+    ed_center_grid_shader = r_LoadShader("shaders/ed_grid.vert", "shaders/ed_grid.frag");
+    ed_picking_shader = r_LoadShader("shaders/ed_pick.vert", "shaders/ed_pick.frag");
+//    ed_picking_shader_type_uniform = r_GetUniformIndex(ed_picking_shader, "ed_type");
+//    ed_picking_shader_index_uniform = r_GetUniformIndex(ed_picking_shader, "ed_index");
+    ed_outline_shader = r_LoadShader("shaders/ed_outline.vert", "shaders/ed_outline.frag");
+//    ed_outline_shader_color_uniform = r_GetUniformIndex(ed_outline_shader, "ed_color");
+
+    ed_translation_widget_model = r_LoadModel("models/twidget.mof");
+
 
     ed_translation_widget = ed_w_ctx_CreatePickable(ED_PICKABLE_TYPE_WIDGET);
     ed_translation_widget->mode = GL_TRIANGLES;
@@ -85,6 +100,34 @@ void ed_w_ctx_Init()
     ed_translation_widget->ranges->count = ed_translation_widget_model->indices.buffer_size;
     ed_translation_widget->primary_index = 0;
     mat4_t_identity(&ed_translation_widget->transform);
+
+
+    ed_grid = r_i_AllocImmediateExternData(sizeof(struct r_i_verts_t) + sizeof(struct r_vert_t) * 6);
+
+    ed_grid->count = 6;
+    ed_grid->verts[0].pos = vec3_t_c(-ED_GRID_QUAD_SIZE, 0.0, -ED_GRID_QUAD_SIZE);
+    ed_grid->verts[0].tex_coords = vec2_t_c(0.0, 0.0);
+    ed_grid->verts[0].color = vec4_t_c(1.0, 0.0, 0.0, 1.0);
+
+    ed_grid->verts[1].pos = vec3_t_c(-ED_GRID_QUAD_SIZE, 0.0, ED_GRID_QUAD_SIZE);
+    ed_grid->verts[1].tex_coords = vec2_t_c(1.0, 0.0);
+    ed_grid->verts[1].color = vec4_t_c(0.0, 1.0, 0.0, 1.0);
+
+    ed_grid->verts[2].pos = vec3_t_c(ED_GRID_QUAD_SIZE, 0.0, ED_GRID_QUAD_SIZE);
+    ed_grid->verts[2].tex_coords = vec2_t_c(1.0, 1.0);
+    ed_grid->verts[2].color = vec4_t_c(0.0, 0.0, 1.0, 1.0);
+
+    ed_grid->verts[3].pos = vec3_t_c(ED_GRID_QUAD_SIZE, 0.0, ED_GRID_QUAD_SIZE);
+    ed_grid->verts[3].tex_coords = vec2_t_c(1.0, 1.0);
+    ed_grid->verts[3].color = vec4_t_c(0.0, 0.0, 1.0, 1.0);
+
+    ed_grid->verts[4].pos = vec3_t_c(ED_GRID_QUAD_SIZE, 0.0, -ED_GRID_QUAD_SIZE);
+    ed_grid->verts[4].tex_coords = vec2_t_c(0.0, 1.0);
+    ed_grid->verts[4].color = vec4_t_c(0.0, 0.0, 1.0, 1.0);
+
+    ed_grid->verts[5].pos = vec3_t_c(-ED_GRID_QUAD_SIZE, 0.0, -ED_GRID_QUAD_SIZE);
+    ed_grid->verts[5].tex_coords = vec2_t_c(0.0, 0.0);
+    ed_grid->verts[5].color = vec4_t_c(1.0, 0.0, 0.0, 1.0);
 }
 
 void ed_w_ctx_Shutdown()
@@ -134,6 +177,38 @@ void ed_w_ctx_FlyCamera()
     mat4_t_vec4_t_mul_fast(&translation, &r_camera_matrix, &translation);
     vec3_t_add(&ed_world_context_data.camera_pos, &ed_world_context_data.camera_pos, &vec3_t_c(translation.x, translation.y, translation.z));
 }
+
+struct ed_widget_t *ed_w_ctx_CreateWidget(mat4_t *transform)
+{
+    uint32_t index;
+    struct ed_widget_t *widget;
+
+    index = ds_slist_add_element(&ed_world_context_data.widgets, NULL);
+    widget = ds_slist_get_element(&ed_world_context_data.widgets, index);
+
+    widget->index = index;
+    widget->transform = *transform;
+
+    if(!widget->pickables.buffers)
+    {
+        widget->pickables = ds_slist_create(sizeof(struct ed_pickable_t), 8);
+    }
+
+    return widget;
+}
+
+void ed_w_ctx_DestroyWidget(struct ed_widget_t *widget)
+{
+
+}
+
+//void ed_w_ctx_AddPickableToWidget(struct ed_widget_t *widget, struct ed_pickable_t *pickable)
+//{
+//    if(widget && pickable)
+//    {
+//        ds_list_add_element(&widget->pickables, &pickable);
+//    }
+//}
 
 struct ed_pickable_range_t *ed_w_ctx_AllocPickableRange()
 {
@@ -581,11 +656,11 @@ void ed_w_ctx_DrawWidgets()
     r_i_SetShader(ed_outline_shader);
     r_i_SetUniform(r_GetNamedUniform(ed_outline_shader, "ed_color"), 1, &vec4_t_c(1.0, 0.0, 0.0, 1.0));
 
-    struct r_i_draw_list_t *draw_list = r_i_AllocDrawList(1);
-    draw_list->commands[0].start = ed_translation_widget->ranges->start;
-    draw_list->commands[0].count = ed_translation_widget->ranges->count;
-    draw_list->indexed = 1;
-    r_i_DrawImmediate(R_I_DRAW_CMD_TRIANGLE_LIST, draw_list);
+//    struct r_i_draw_list_t *draw_list = r_i_AllocDrawList(1);
+//    draw_list->commands[0].start = ed_translation_widget->ranges->start;
+//    draw_list->commands[0].count = ed_translation_widget->ranges->count;
+//    draw_list->indexed = 1;
+//    r_i_DrawImmediate(R_I_DRAW_CMD_TRIANGLE_LIST, draw_list);
 }
 
 void ed_w_ctx_DrawGrid()

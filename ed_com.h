@@ -106,7 +106,8 @@ struct ed_pick_result_t
 struct ed_widget_t
 {
     mat4_t transform;
-    struct ds_list_t pickables;
+    uint32_t index;
+    struct ds_slist_t pickables;
 };
 
 
@@ -139,10 +140,7 @@ enum ED_WORLD_CONTEXT_STATES
     ED_WORLD_CONTEXT_STATE_IDLE = 0,
     ED_WORLD_CONTEXT_STATE_LEFT_CLICK,
     ED_WORLD_CONTEXT_STATE_WIDGET_SELECTED,
-//    ED_WORLD_CONTEXT_STATE_RIGHT_CLICK,
     ED_WORLD_CONTEXT_STATE_BRUSH_BOX,
-//    ED_WORLD_CONTEXT_STATE_CREATE_BRUSH,
-//    ED_WORLD_CONTEXT_STATE_PROCESS_SELECTION,
     ED_WORLD_CONTEXT_STATE_ENTER_OBJECT_EDIT_MODE,
     ED_WORLD_CONTEXT_STATE_ENTER_BRUSH_EDIT_MODE,
     ED_WORLD_CONTEXT_STATE_LAST
@@ -152,6 +150,14 @@ enum ED_WORLD_CONTEXT_EDIT_MODES
 {
     ED_WORLD_CONTEXT_EDIT_MODE_OBJECT = 0,
     ED_WORLD_CONTEXT_EDIT_MODE_BRUSH,
+};
+
+enum ED_WORLD_CONTEXT_MANIPULATORS
+{
+    ED_WORLD_CONTEXT_MANIPULATOR_TRANSLATION = 0,
+    ED_WORLD_CONTEXT_MANIPULATOR_ROTATION,
+    ED_WORLD_CONTEXT_MANIPULATOR_SCALE,
+    ED_WORLD_CONTEXT_MANIPULATOR_EXTRUDE,
 };
 
 struct ed_world_context_data_t
@@ -165,6 +171,9 @@ struct ed_world_context_data_t
     struct ds_slist_t pickables[3];
     struct ds_list_t selections[2];
     struct ds_slist_t pickable_ranges;
+    struct ds_slist_t widgets;
+
+    struct ed_widget_t *manipulators[3];
 
     struct ds_slist_t *active_pickables;
     struct ds_list_t *active_selections;
@@ -176,8 +185,6 @@ struct ed_world_context_data_t
 
     float info_window_alpha;
     uint32_t open_delete_selections_popup;
-//    vec3_t
-
 
     float camera_pitch;
     float camera_yaw;

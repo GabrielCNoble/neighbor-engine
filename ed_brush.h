@@ -2,6 +2,7 @@
 #define ED_BRUSH_H
 
 #include "ed_com.h"
+#include "ed_w_ctx.h"
 
 
 struct ed_brush_t *ed_CreateBrush(vec3_t *position, mat3_t *orientation, vec3_t *size);

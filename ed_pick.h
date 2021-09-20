@@ -2,6 +2,7 @@
 #define ED_PICK_H
 
 #include "ed_com.h"
+#include "ed_w_ctx.h"
 #include "r_com.h"
 
 void ed_BeginPicking();

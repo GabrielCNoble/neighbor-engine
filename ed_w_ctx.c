@@ -8,18 +8,20 @@
 #include "input.h"
 
 extern struct ed_context_t ed_contexts[];
-struct ed_world_context_data_t ed_world_context_data;
+struct ed_world_context_data_t ed_w_ctx_data;
 struct ed_context_t *ed_world_context;
 extern mat4_t r_camera_matrix;
 
 struct r_shader_t *ed_center_grid_shader;
 struct r_shader_t *ed_picking_shader;
 struct r_model_t *ed_translation_widget_model;
-struct ed_pickable_t *ed_translation_widget;
+//struct ed_pickable_t *ed_translation_widget;
 struct r_shader_t *ed_outline_shader;
 struct r_i_verts_t *ed_grid;
 
 extern struct ds_slist_t r_lights;
+extern mat4_t r_projection_matrix;
+extern mat4_t r_camera_matrix;
 extern uint32_t r_width;
 extern uint32_t r_height;
 extern float r_fov;
@@ -48,7 +50,8 @@ struct ed_state_t ed_world_context_states[] =
     [ED_WORLD_CONTEXT_STATE_IDLE] = ed_w_ctx_Idle,
     [ED_WORLD_CONTEXT_STATE_LEFT_CLICK] = ed_w_ctx_LeftClick,
     [ED_WORLD_CONTEXT_STATE_BRUSH_BOX] = ed_w_ctx_BrushBox,
-    [ED_WORLD_CONTEXT_STATE_WIDGET_SELECTED] = ed_w_ctx_WidgetSelected
+    [ED_WORLD_CONTEXT_STATE_WIDGET_SELECTED] = ed_w_ctx_WidgetSelected,
+    [ED_WORLD_CONTEXT_STATE_FLY_CAMERA] = ed_w_ctx_FlyCamera
 //    [ED_WORLD_CONTEXT_STATE_CREATE_BRUSH] = ed_WorldContextCreateBrush,
 //    [ED_WORLD_CONTEXT_STATE_PROCESS_SELECTION] = ed_w_ctx_ProcessSelection,
 //    [ED_WORLD_CONTEXT_STATE_ENTER_OBJECT_EDIT_MODE] = ed_WorldContextEnterObjectEditMode,
@@ -57,49 +60,91 @@ struct ed_state_t ed_world_context_states[] =
 
 void ed_w_ctx_Init()
 {
-    ed_contexts[ED_CONTEXT_WORLD].update = ed_w_ctx_Update;
-    ed_contexts[ED_CONTEXT_WORLD].states = ed_world_context_states;
-    ed_contexts[ED_CONTEXT_WORLD].current_state = ED_WORLD_CONTEXT_STATE_IDLE;
-    ed_contexts[ED_CONTEXT_WORLD].context_data = &ed_world_context_data;
-    ed_world_context_data.selections[ED_WORLD_CONTEXT_LIST_OBJECTS] = ds_list_create(sizeof(uint32_t), 512);
-    ed_world_context_data.selections[ED_WORLD_CONTEXT_LIST_BRUSH_PARTS] = ds_list_create(sizeof(uint32_t), 512);
-    ed_world_context_data.pickables[ED_WORLD_CONTEXT_LIST_OBJECTS] = ds_slist_create(sizeof(struct ed_pickable_t), 512);
-    ed_world_context_data.pickables[ED_WORLD_CONTEXT_LIST_BRUSH_PARTS] = ds_slist_create(sizeof(struct ed_pickable_t), 512);
-//    ed_world_context_data.pickables[ED_WORLD_CONTEXT_LIST_WIDGETS] = ds_slist_create(sizeof(struct ed_pickable_t), 512);
-    ed_world_context_data.pickable_ranges = ds_slist_create(sizeof(struct ed_pickable_range_t), 512);
-    ed_world_context_data.widgets = ds_slist_create(sizeof(struct ed_widget_t), 16);
-
-    ed_world_context_data.active_pickables = &ed_world_context_data.pickables[0];
-    ed_world_context_data.active_selections = &ed_world_context_data.selections[0];
-
-    ed_world_context_data.brushes = ds_slist_create(sizeof(struct ed_brush_t), 512);
-    ed_world_context_data.global_brush_batches = ds_list_create(sizeof(struct ed_brush_batch_t), 512);
-
-    ed_world_context_data.camera_pitch = -0.15;
-    ed_world_context_data.camera_yaw = -0.3;
-    ed_world_context_data.camera_pos = vec3_t_c(-6.0, 4.0, 4.0);
-
-    ed_world_context_data.edit_mode = ED_WORLD_CONTEXT_EDIT_MODE_OBJECT;
     ed_world_context = ed_contexts + ED_CONTEXT_WORLD;
+    ed_world_context->update = ed_w_ctx_Update;
+    ed_world_context->states = ed_world_context_states;
+    ed_world_context->current_state = ED_WORLD_CONTEXT_STATE_IDLE;
+    ed_world_context->context_data = &ed_w_ctx_data;
+
+    ed_w_ctx_data.edit_mode = ED_WORLD_CONTEXT_EDIT_MODE_OBJECT;
+    ed_w_ctx_data.selections[ED_WORLD_CONTEXT_LIST_OBJECTS] = ds_list_create(sizeof(uint32_t), 512);
+    ed_w_ctx_data.selections[ED_WORLD_CONTEXT_LIST_BRUSH_PARTS] = ds_list_create(sizeof(uint32_t), 512);
+    ed_w_ctx_data.pickables[ED_WORLD_CONTEXT_LIST_OBJECTS] = ds_slist_create(sizeof(struct ed_pickable_t), 512);
+    ed_w_ctx_data.pickables[ED_WORLD_CONTEXT_LIST_BRUSH_PARTS] = ds_slist_create(sizeof(struct ed_pickable_t), 512);
+//    ed_world_context_data.pickables[ED_WORLD_CONTEXT_LIST_WIDGETS] = ds_slist_create(sizeof(struct ed_pickable_t), 512);
+    ed_w_ctx_data.pickable_ranges = ds_slist_create(sizeof(struct ed_pickable_range_t), 512);
+    ed_w_ctx_data.widgets = ds_slist_create(sizeof(struct ed_widget_t), 16);
+
+    ed_w_ctx_data.active_pickables = &ed_w_ctx_data.pickables[0];
+    ed_w_ctx_data.active_selections = &ed_w_ctx_data.selections[0];
+    ed_w_ctx_data.show_manipulator = 0;
+
+    ed_w_ctx_data.brushes = ds_slist_create(sizeof(struct ed_brush_t), 512);
+    ed_w_ctx_data.global_brush_batches = ds_list_create(sizeof(struct ed_brush_batch_t), 512);
+
+    ed_w_ctx_data.camera_pitch = -0.15;
+    ed_w_ctx_data.camera_yaw = -0.3;
+    ed_w_ctx_data.camera_pos = vec3_t_c(-6.0, 4.0, 4.0);
 
     ed_center_grid_shader = r_LoadShader("shaders/ed_grid.vert", "shaders/ed_grid.frag");
     ed_picking_shader = r_LoadShader("shaders/ed_pick.vert", "shaders/ed_pick.frag");
-//    ed_picking_shader_type_uniform = r_GetUniformIndex(ed_picking_shader, "ed_type");
-//    ed_picking_shader_index_uniform = r_GetUniformIndex(ed_picking_shader, "ed_index");
     ed_outline_shader = r_LoadShader("shaders/ed_outline.vert", "shaders/ed_outline.frag");
-//    ed_outline_shader_color_uniform = r_GetUniformIndex(ed_outline_shader, "ed_color");
-
     ed_translation_widget_model = r_LoadModel("models/twidget.mof");
 
 
-    ed_translation_widget = ed_w_ctx_CreatePickable(ED_PICKABLE_TYPE_WIDGET);
-    ed_translation_widget->mode = GL_TRIANGLES;
-    ed_translation_widget->range_count = 1;
-    ed_translation_widget->ranges = ed_w_ctx_AllocPickableRange();
-    ed_translation_widget->ranges->start = ((struct r_batch_t *)ed_translation_widget_model->batches.buffer)->start;
-    ed_translation_widget->ranges->count = ed_translation_widget_model->indices.buffer_size;
-    ed_translation_widget->primary_index = 0;
-    mat4_t_identity(&ed_translation_widget->transform);
+    ed_w_ctx_data.manipulators[ED_W_CTX_MANIPULATOR_TRANSLATION] = ed_w_ctx_CreateWidget(NULL);
+    struct ed_widget_t *translation_widget = ed_w_ctx_data.manipulators[ED_W_CTX_MANIPULATOR_TRANSLATION];
+    mat4_t_identity(&translation_widget->transform);
+
+    struct ed_pickable_t *translation_axis;
+    translation_axis = ed_w_ctx_CreatePickableOnList(ED_PICKABLE_TYPE_WIDGET, &translation_widget->pickables);
+    translation_axis->mode = GL_TRIANGLES;
+    translation_axis->range_count = 1;
+    translation_axis->ranges = ed_w_ctx_AllocPickableRange();
+    translation_axis->ranges->start = ((struct r_batch_t *)ed_translation_widget_model->batches.buffer)->start;
+    translation_axis->ranges->count = ed_translation_widget_model->indices.buffer_size;
+    translation_axis->primary_index = 0;
+    mat4_t_identity(&translation_axis->transform);
+    translation_axis->transform.rows[0].x = 0.1;
+    translation_axis->transform.rows[1].y = 0.1;
+    translation_axis->transform.rows[2].z = 0.1;
+    mat4_t_rotate_y(&translation_axis->transform, 0.5);
+
+    translation_axis = ed_w_ctx_CreatePickableOnList(ED_PICKABLE_TYPE_WIDGET, &translation_widget->pickables);
+    translation_axis->mode = GL_TRIANGLES;
+    translation_axis->range_count = 1;
+    translation_axis->ranges = ed_w_ctx_AllocPickableRange();
+    translation_axis->ranges->start = ((struct r_batch_t *)ed_translation_widget_model->batches.buffer)->start;
+    translation_axis->ranges->count = ed_translation_widget_model->indices.buffer_size;
+    translation_axis->primary_index = 0;
+    mat4_t_identity(&translation_axis->transform);
+    translation_axis->transform.rows[0].x = 0.1;
+    translation_axis->transform.rows[1].y = 0.1;
+    translation_axis->transform.rows[2].z = 0.1;
+    mat4_t_rotate_x(&translation_axis->transform, -0.5);
+
+    translation_axis = ed_w_ctx_CreatePickableOnList(ED_PICKABLE_TYPE_WIDGET, &translation_widget->pickables);
+    translation_axis->mode = GL_TRIANGLES;
+    translation_axis->range_count = 1;
+    translation_axis->ranges = ed_w_ctx_AllocPickableRange();
+    translation_axis->ranges->start = ((struct r_batch_t *)ed_translation_widget_model->batches.buffer)->start;
+    translation_axis->ranges->count = ed_translation_widget_model->indices.buffer_size;
+    translation_axis->primary_index = 0;
+    mat4_t_identity(&translation_axis->transform);
+    translation_axis->transform.rows[0].x = 0.1;
+    translation_axis->transform.rows[1].y = 0.1;
+    translation_axis->transform.rows[2].z = 0.1;
+//    mat4_t_rotate_x(&translation_axis->transform, -0.5);
+
+
+//    ed_translation_widget = ed_w_ctx_CreatePickable(ED_PICKABLE_TYPE_WIDGET);
+//    ed_translation_widget->mode = GL_TRIANGLES;
+//    ed_translation_widget->range_count = 1;
+//    ed_translation_widget->ranges = ed_w_ctx_AllocPickableRange();
+//    ed_translation_widget->ranges->start = ((struct r_batch_t *)ed_translation_widget_model->batches.buffer)->start;
+//    ed_translation_widget->ranges->count = ed_translation_widget_model->indices.buffer_size;
+//    ed_translation_widget->primary_index = 0;
+//    mat4_t_identity(&ed_translation_widget->transform);
 
 
     ed_grid = r_i_AllocImmediateExternData(sizeof(struct r_i_verts_t) + sizeof(struct r_vert_t) * 6);
@@ -135,63 +180,69 @@ void ed_w_ctx_Shutdown()
 
 }
 
-void ed_w_ctx_FlyCamera()
-{
-    float dx;
-    float dy;
-
-    in_GetMouseDelta(&dx, &dy);
-
-    ed_world_context_data.camera_pitch += dy;
-    ed_world_context_data.camera_yaw -= dx;
-
-    if(ed_world_context_data.camera_pitch > 0.5)
-    {
-        ed_world_context_data.camera_pitch = 0.5;
-    }
-    else if(ed_world_context_data.camera_pitch < -0.5)
-    {
-        ed_world_context_data.camera_pitch = -0.5;
-    }
-
-    vec4_t translation = {};
-
-    if(in_GetKeyState(SDL_SCANCODE_W) & IN_KEY_STATE_PRESSED)
-    {
-        translation.z -= 0.05;
-    }
-    if(in_GetKeyState(SDL_SCANCODE_S) & IN_KEY_STATE_PRESSED)
-    {
-        translation.z += 0.05;
-    }
-
-    if(in_GetKeyState(SDL_SCANCODE_A) & IN_KEY_STATE_PRESSED)
-    {
-        translation.x -= 0.05;
-    }
-    if(in_GetKeyState(SDL_SCANCODE_D) & IN_KEY_STATE_PRESSED)
-    {
-        translation.x += 0.05;
-    }
-
-    mat4_t_vec4_t_mul_fast(&translation, &r_camera_matrix, &translation);
-    vec3_t_add(&ed_world_context_data.camera_pos, &ed_world_context_data.camera_pos, &vec3_t_c(translation.x, translation.y, translation.z));
-}
+//void ed_w_ctx_FlyCamera()
+//{
+//    float dx;
+//    float dy;
+//
+//    igText("Flying camera...");
+//
+//    in_GetMouseDelta(&dx, &dy);
+//
+//    ed_w_ctx_data.camera_pitch += dy;
+//    ed_w_ctx_data.camera_yaw -= dx;
+//
+//    if(ed_w_ctx_data.camera_pitch > 0.5)
+//    {
+//        ed_w_ctx_data.camera_pitch = 0.5;
+//    }
+//    else if(ed_w_ctx_data.camera_pitch < -0.5)
+//    {
+//        ed_w_ctx_data.camera_pitch = -0.5;
+//    }
+//
+//    vec4_t translation = {};
+//
+//    if(in_GetKeyState(SDL_SCANCODE_W) & IN_KEY_STATE_PRESSED)
+//    {
+//        translation.z -= 0.05;
+//    }
+//    if(in_GetKeyState(SDL_SCANCODE_S) & IN_KEY_STATE_PRESSED)
+//    {
+//        translation.z += 0.05;
+//    }
+//
+//    if(in_GetKeyState(SDL_SCANCODE_A) & IN_KEY_STATE_PRESSED)
+//    {
+//        translation.x -= 0.05;
+//    }
+//    if(in_GetKeyState(SDL_SCANCODE_D) & IN_KEY_STATE_PRESSED)
+//    {
+//        translation.x += 0.05;
+//    }
+//
+//    mat4_t_vec4_t_mul_fast(&translation, &r_camera_matrix, &translation);
+//    vec3_t_add(&ed_w_ctx_data.camera_pos, &ed_w_ctx_data.camera_pos, &vec3_t_c(translation.x, translation.y, translation.z));
+//}
 
 struct ed_widget_t *ed_w_ctx_CreateWidget(mat4_t *transform)
 {
     uint32_t index;
     struct ed_widget_t *widget;
 
-    index = ds_slist_add_element(&ed_world_context_data.widgets, NULL);
-    widget = ds_slist_get_element(&ed_world_context_data.widgets, index);
+    index = ds_slist_add_element(&ed_w_ctx_data.widgets, NULL);
+    widget = ds_slist_get_element(&ed_w_ctx_data.widgets, index);
 
     widget->index = index;
-    widget->transform = *transform;
+
+    if(transform)
+    {
+        widget->transform = *transform;
+    }
 
     if(!widget->pickables.buffers)
     {
-        widget->pickables = ds_slist_create(sizeof(struct ed_pickable_t), 8);
+        widget->pickables = ds_slist_create(sizeof(struct ed_pickable_t), 4);
     }
 
     return widget;
@@ -213,8 +264,8 @@ void ed_w_ctx_DestroyWidget(struct ed_widget_t *widget)
 struct ed_pickable_range_t *ed_w_ctx_AllocPickableRange()
 {
     struct ed_pickable_range_t *range = NULL;
-    uint32_t index = ds_slist_add_element(&ed_world_context_data.pickable_ranges, NULL);
-    range = ds_slist_get_element(&ed_world_context_data.pickable_ranges, index);
+    uint32_t index = ds_slist_add_element(&ed_w_ctx_data.pickable_ranges, NULL);
+    range = ds_slist_get_element(&ed_w_ctx_data.pickable_ranges, index);
     range->index = index;
     return range;
 }
@@ -223,7 +274,7 @@ void ed_w_ctx_FreePickableRange(struct ed_pickable_range_t *range)
 {
     if(range && range->index != 0xffffffff)
     {
-        ds_slist_remove_element(&ed_world_context_data.pickable_ranges, range->index);
+        ds_slist_remove_element(&ed_w_ctx_data.pickable_ranges, range->index);
         range->index = 0xffffffff;
     }
 }
@@ -235,33 +286,37 @@ struct ds_slist_t *ed_w_ctx_PickableListFromType(uint32_t type)
         case ED_PICKABLE_TYPE_BRUSH:
         case ED_PICKABLE_TYPE_LIGHT:
         case ED_PICKABLE_TYPE_ENTITY:
-            return &ed_world_context_data.pickables[ED_WORLD_CONTEXT_LIST_OBJECTS];
+            return &ed_w_ctx_data.pickables[ED_WORLD_CONTEXT_LIST_OBJECTS];
 
         case ED_PICKABLE_TYPE_FACE:
-            return &ed_world_context_data.pickables[ED_WORLD_CONTEXT_LIST_BRUSH_PARTS];
+            return &ed_w_ctx_data.pickables[ED_WORLD_CONTEXT_LIST_BRUSH_PARTS];
 
         case ED_PICKABLE_TYPE_WIDGET:
-            return &ed_world_context_data.pickables[ED_WORLD_CONTEXT_LIST_WIDGETS];
+            return &ed_w_ctx_data.pickables[ED_WORLD_CONTEXT_LIST_WIDGETS];
 
     }
 
     return NULL;
 }
 
-struct ed_pickable_t *ed_w_ctx_CreatePickable(uint32_t type)
+struct ed_pickable_t *ed_w_ctx_CreatePickableOnList(uint32_t type, struct ds_slist_t *pickables)
 {
     struct ed_pickable_t *pickable;
     uint32_t index;
 
-    struct ds_slist_t *list = ed_w_ctx_PickableListFromType(type);
-
-    index = ds_slist_add_element(list, NULL);
-    pickable = ds_slist_get_element(list, index);
+    index = ds_slist_add_element(pickables, NULL);
+    pickable = ds_slist_get_element(pickables, index);
     pickable->index = index;
     pickable->type = type;
     pickable->selection_index = 0xffffffff;
 
     return pickable;
+}
+
+struct ed_pickable_t *ed_w_ctx_CreatePickable(uint32_t type)
+{
+    struct ds_slist_t *list = ed_w_ctx_PickableListFromType(type);
+    return ed_w_ctx_CreatePickableOnList(type, list);
 }
 
 void ed_w_ctx_DestroyPickable(struct ed_pickable_t *pickable)
@@ -273,8 +328,8 @@ void ed_w_ctx_DestroyPickable(struct ed_pickable_t *pickable)
             case ED_PICKABLE_TYPE_BRUSH:
             {
                 ed_DestroyBrush(ed_GetBrush(pickable->primary_index));
-                struct ds_slist_t *brush_parts = &ed_world_context_data.pickables[ED_WORLD_CONTEXT_LIST_BRUSH_PARTS];
-                struct ds_list_t *brush_selections = &ed_world_context_data.selections[ED_WORLD_CONTEXT_LIST_BRUSH_PARTS];
+                struct ds_slist_t *brush_parts = &ed_w_ctx_data.pickables[ED_WORLD_CONTEXT_LIST_BRUSH_PARTS];
+                struct ds_list_t *brush_selections = &ed_w_ctx_data.selections[ED_WORLD_CONTEXT_LIST_BRUSH_PARTS];
                 for(uint32_t pickable_index = 0; pickable_index < brush_parts->cursor; pickable_index++)
                 {
                     struct ed_pickable_t *brush_pickable = ds_slist_get_element(brush_parts, pickable_index);
@@ -321,13 +376,9 @@ void ed_w_ctx_DestroyPickable(struct ed_pickable_t *pickable)
     }
 }
 
-struct ed_pickable_t *ed_w_ctx_GetPickable(uint32_t index, uint32_t type)
+struct ed_pickable_t *ed_w_ctx_GetPickableOnList(uint32_t index, struct ds_slist_t *pickables)
 {
-    struct ed_pickable_t *pickable = NULL;
-
-    struct ds_slist_t *list = ed_w_ctx_PickableListFromType(type);
-
-    pickable = ds_slist_get_element(list, index);
+    struct ed_pickable_t *pickable = ds_slist_get_element(pickables, index);
 
     if(pickable && pickable->index == 0xffffffff)
     {
@@ -335,6 +386,12 @@ struct ed_pickable_t *ed_w_ctx_GetPickable(uint32_t index, uint32_t type)
     }
 
     return pickable;
+}
+
+struct ed_pickable_t *ed_w_ctx_GetPickable(uint32_t index, uint32_t type)
+{
+    struct ds_slist_t *list = ed_w_ctx_PickableListFromType(type);
+    return ed_w_ctx_GetPickableOnList(index, list);
 }
 
 struct ed_pickable_t *ed_w_ctx_CreateBrushPickable(vec3_t *position, mat3_t *orientation, vec3_t *size)
@@ -392,7 +449,7 @@ void ed_w_ctx_UpdateUI()
     {
         char *edit_mode_text;
 
-        switch(ed_world_context_data.edit_mode)
+        switch(ed_w_ctx_data.edit_mode)
         {
             case ED_WORLD_CONTEXT_EDIT_MODE_OBJECT:
                 edit_mode_text = "Object";
@@ -409,12 +466,12 @@ void ed_w_ctx_UpdateUI()
             igTableNextColumn();
             igText("Edit mode: %s  ", edit_mode_text);
             igTableNextColumn();
-            igText("Objects: %d  ", ed_world_context_data.pickables[ED_WORLD_CONTEXT_LIST_OBJECTS].used);
+            igText("Objects: %d  ", ed_w_ctx_data.pickables[ED_WORLD_CONTEXT_LIST_OBJECTS].used);
             igTableNextColumn();
-            igText("Selected: %d  ", ed_world_context_data.active_selections->cursor);
+            igText("Selected: %d  ", ed_w_ctx_data.active_selections->cursor);
             igTableNextColumn();
 
-            if(ed_world_context_data.edit_mode == ED_WORLD_CONTEXT_EDIT_MODE_BRUSH)
+            if(ed_w_ctx_data.edit_mode == ED_WORLD_CONTEXT_EDIT_MODE_BRUSH)
             {
                 igTableSetColumnEnabled(-1, 1);
 
@@ -441,10 +498,10 @@ void ed_w_ctx_UpdateUI()
     igPopStyleVar(1);
 
 
-    if(ed_world_context_data.open_delete_selections_popup)
+    if(ed_w_ctx_data.open_delete_selections_popup)
     {
         igOpenPopup_Str("Delete selections", 0);
-        ed_world_context_data.open_delete_selections_popup = 0;
+        ed_w_ctx_data.open_delete_selections_popup = 0;
     }
 
     igSetNextWindowPos((ImVec2){mouse_x, mouse_y}, ImGuiCond_Once, (ImVec2){0.0, 0.0});
@@ -461,9 +518,9 @@ void ed_w_ctx_UpdateUI()
 
 void ed_w_ctx_UpdatePickables()
 {
-    for(uint32_t pickable_index = 0; pickable_index < ed_world_context_data.active_pickables->cursor; pickable_index++)
+    for(uint32_t pickable_index = 0; pickable_index < ed_w_ctx_data.active_pickables->cursor; pickable_index++)
     {
-        struct ed_pickable_t *pickable = ds_slist_get_element(ed_world_context_data.active_pickables, pickable_index);
+        struct ed_pickable_t *pickable = ds_slist_get_element(ed_w_ctx_data.active_pickables, pickable_index);
 
         if(pickable && pickable->index != 0xffffffff)
         {
@@ -544,22 +601,22 @@ void ed_w_ctx_UpdatePickables()
 
 void ed_w_ctx_ClearSelections()
 {
-    for(uint32_t selection_index = 0; selection_index < ed_world_context_data.active_selections->cursor; selection_index++)
+    for(uint32_t selection_index = 0; selection_index < ed_w_ctx_data.active_selections->cursor; selection_index++)
     {
-        uint32_t pickable_index = *(uint32_t *)ds_list_get_element(ed_world_context_data.active_selections, selection_index);
-        struct ed_pickable_t *pickable = ds_slist_get_element(ed_world_context_data.active_pickables, pickable_index);
+        uint32_t pickable_index = *(uint32_t *)ds_list_get_element(ed_w_ctx_data.active_selections, selection_index);
+        struct ed_pickable_t *pickable = ds_slist_get_element(ed_w_ctx_data.active_pickables, pickable_index);
         pickable->selection_index = 0xffffffff;
     }
 
-    ed_world_context_data.active_selections->cursor = 0;
+    ed_w_ctx_data.active_selections->cursor = 0;
 }
 
 void ed_w_ctx_DeleteSelections()
 {
-    for(uint32_t selection_index = 0; selection_index < ed_world_context_data.active_selections->cursor; selection_index++)
+    for(uint32_t selection_index = 0; selection_index < ed_w_ctx_data.active_selections->cursor; selection_index++)
     {
-        uint32_t pickable_index = *(uint32_t *)ds_list_get_element(ed_world_context_data.active_selections, selection_index);
-        struct ed_pickable_t *pickable = ds_slist_get_element(ed_world_context_data.active_pickables, pickable_index);
+        uint32_t pickable_index = *(uint32_t *)ds_list_get_element(ed_w_ctx_data.active_selections, selection_index);
+        struct ed_pickable_t *pickable = ds_slist_get_element(ed_w_ctx_data.active_pickables, pickable_index);
         ed_w_ctx_DestroyPickable(pickable);
     }
 
@@ -583,19 +640,19 @@ void ed_w_ctx_AddSelection(struct ed_pickable_t *selection, uint32_t multiple_ke
 
     if(selection->selection_index != 0xffffffff)
     {
-        uint32_t last_index = ed_world_context_data.active_selections->cursor - 1;
+        uint32_t last_index = ed_w_ctx_data.active_selections->cursor - 1;
         uint32_t selection_index = selection->selection_index;
 
         /* This selection already exists in the list. In this case, it can either be the
         main selection (last in the list), in which case it'll be dropped from the list, or
         it can be some other selection, in which case it'll be re-added at the back of the
         list, becoming the main selection. Either way, we need to remove it here. */
-        ed_w_ctx_DropSelection(selection, ed_world_context_data.active_pickables, ed_world_context_data.active_selections);
+        ed_w_ctx_DropSelection(selection, ed_w_ctx_data.active_pickables, ed_w_ctx_data.active_selections);
 
         if(selection_index >= last_index)
         {
             /* pickable is the last in the list */
-            if(multiple_key_down || !ed_world_context_data.active_selections->cursor)
+            if(multiple_key_down || !ed_w_ctx_data.active_selections->cursor)
             {
                 /* the behavior is, if this is the last pickable, there are more pickables
                 in the list and the multiple selection key is down, this pickable gets dropped.
@@ -614,7 +671,7 @@ void ed_w_ctx_AddSelection(struct ed_pickable_t *selection, uint32_t multiple_ke
     }
 
     /* This is either a new selection, or an already existing selection becoming the main selection. */
-    selection->selection_index = ds_list_add_element(ed_world_context_data.active_selections, &selection->index);
+    selection->selection_index = ds_list_add_element(ed_w_ctx_data.active_selections, &selection->index);
 //    printf("%p %d\n", selection, selection->selection_index);
 }
 
@@ -638,7 +695,7 @@ void ed_w_ctx_DropSelection(struct ed_pickable_t *selection, struct ds_slist_t *
 
 void ed_w_ctx_TranslateSelected(vec3_t *translation)
 {
-    for(uint32_t pickable_index = 0; pickable_index < ed_world_context_data.active_selections->cursor; pickable_index++)
+    for(uint32_t pickable_index = 0; pickable_index < ed_w_ctx_data.active_selections->cursor; pickable_index++)
     {
 
     }
@@ -651,16 +708,59 @@ void ed_w_ctx_RotateSelected(mat3_t *rotation)
 
 void ed_w_ctx_DrawWidgets()
 {
-    r_i_SetModelMatrix(NULL);
-    r_i_SetViewProjectionMatrix(NULL);
     r_i_SetShader(ed_outline_shader);
-    r_i_SetUniform(r_GetNamedUniform(ed_outline_shader, "ed_color"), 1, &vec4_t_c(1.0, 0.0, 0.0, 1.0));
+    mat4_t view_projection_matrix;
+    struct r_named_uniform_t *color_uniform = r_GetNamedUniform(ed_outline_shader, "ed_color");
 
-//    struct r_i_draw_list_t *draw_list = r_i_AllocDrawList(1);
-//    draw_list->commands[0].start = ed_translation_widget->ranges->start;
-//    draw_list->commands[0].count = ed_translation_widget->ranges->count;
-//    draw_list->indexed = 1;
-//    r_i_DrawImmediate(R_I_DRAW_CMD_TRIANGLE_LIST, draw_list);
+    if(ed_w_ctx_data.show_manipulator)
+    {
+        struct ed_widget_t *translation_widget = ed_w_ctx_data.manipulators[ED_W_CTX_MANIPULATOR_TRANSLATION];
+
+        mat4_t_identity(&view_projection_matrix);
+        view_projection_matrix = r_camera_matrix;
+
+        vec3_t_sub(&view_projection_matrix.rows[3].xyz, &view_projection_matrix.rows[3].xyz, &translation_widget->transform.rows[3].xyz);
+        vec3_t_normalize(&view_projection_matrix.rows[3].xyz, &view_projection_matrix.rows[3].xyz);
+        vec3_t_mul(&view_projection_matrix.rows[3].xyz, &view_projection_matrix.rows[3].xyz, 5.0);
+
+        mat4_t_invvm(&view_projection_matrix, &view_projection_matrix);
+        mat4_t_mul(&view_projection_matrix, &view_projection_matrix, &r_projection_matrix);
+        r_i_SetViewProjectionMatrix(&view_projection_matrix);
+
+        for(uint32_t pickable_index = 0; pickable_index < translation_widget->pickables.cursor; pickable_index++)
+        {
+            struct ed_pickable_t *pickable = ed_w_ctx_GetPickableOnList(pickable_index, &translation_widget->pickables);
+
+            if(pickable)
+            {
+
+                switch(pickable_index)
+                {
+                    case 0:
+                        r_i_SetUniform(color_uniform, 1, &vec4_t_c(1.0, 0.0, 0.0, 1.0));
+                    break;
+
+                    case 1:
+                        r_i_SetUniform(color_uniform, 1, &vec4_t_c(0.0, 1.0, 0.0, 1.0));
+                    break;
+
+                    case 2:
+                        r_i_SetUniform(color_uniform, 1, &vec4_t_c(0.0, 0.0, 1.0, 1.0));
+                    break;
+                }
+
+                r_i_SetModelMatrix(&pickable->transform);
+
+                struct r_i_draw_list_t *draw_list = r_i_AllocDrawList(1);
+                draw_list->commands[0].start = pickable->ranges->start;
+                draw_list->commands[0].count = pickable->ranges->count;
+                draw_list->indexed = 1;
+                r_i_DrawImmediate(R_I_DRAW_CMD_TRIANGLE_LIST, draw_list);
+            }
+        }
+    }
+
+
 }
 
 void ed_w_ctx_DrawGrid()
@@ -682,7 +782,7 @@ void ed_w_ctx_DrawGrid()
 
 void ed_w_ctx_DrawBrushes()
 {
-    for(uint32_t brush_index = 0; brush_index < ed_world_context_data.brushes.cursor; brush_index++)
+    for(uint32_t brush_index = 0; brush_index < ed_w_ctx_data.brushes.cursor; brush_index++)
     {
         struct ed_brush_t *brush = ed_GetBrush(brush_index);
 
@@ -717,14 +817,14 @@ void ed_w_ctx_DrawLights()
 
 void ed_w_ctx_DrawSelections(struct ds_list_t *selections, struct ds_slist_t *pickables)
 {
-    if(ed_world_context_data.active_selections->cursor)
+    if(ed_w_ctx_data.active_selections->cursor)
     {
         r_i_SetViewProjectionMatrix(NULL);
         r_i_SetShader(ed_outline_shader);
         r_i_SetBuffers(NULL, NULL);
         r_i_SetRasterizer(GL_TRUE, GL_FRONT, GL_LINE);
 
-        uint32_t selection_count = ed_world_context_data.active_selections->cursor - 1;
+        uint32_t selection_count = ed_w_ctx_data.active_selections->cursor - 1;
         uint32_t selection_index = 0;
         uint8_t stencil_value = 1;
 
@@ -734,8 +834,8 @@ void ed_w_ctx_DrawSelections(struct ds_list_t *selections, struct ds_slist_t *pi
         {
             for(; selection_index < selection_count; selection_index++)
             {
-                uint32_t pickable_index = *(uint32_t *)ds_list_get_element(ed_world_context_data.active_selections, selection_index);
-                struct ed_pickable_t *pickable = ds_slist_get_element(ed_world_context_data.active_pickables, pickable_index);
+                uint32_t pickable_index = *(uint32_t *)ds_list_get_element(ed_w_ctx_data.active_selections, selection_index);
+                struct ed_pickable_t *pickable = ds_slist_get_element(ed_w_ctx_data.active_pickables, pickable_index);
 
                 r_i_SetModelMatrix(&pickable->transform);
                 struct r_i_draw_list_t *draw_list = NULL;
@@ -822,7 +922,7 @@ void ed_w_ctx_DrawSelections(struct ds_list_t *selections, struct ds_slist_t *pi
                         draw_list->commands[0].count = pickable->ranges->count;
                         draw_list->size = 4.0;
                         draw_list->indexed = 1;
-
+//
                         r_i_SetDrawMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE, 0xff);
                         r_i_SetDepth(GL_TRUE, GL_ALWAYS);
                         r_i_SetStencil(GL_TRUE, GL_KEEP, GL_KEEP, GL_REPLACE, GL_ALWAYS, 0xff, 0xff);
@@ -864,18 +964,19 @@ void ed_w_ctx_DrawSelections(struct ds_list_t *selections, struct ds_slist_t *pi
         r_i_SetBlending(GL_FALSE, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         r_i_SetDrawMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE, 0xff);
         r_i_SetStencil(GL_FALSE, GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE);
+        r_i_SetBlending(GL_FALSE, GL_NONE, GL_NONE);
     }
 }
 
 void ed_w_ctx_PingInfoWindow()
 {
-    ed_world_context_data.info_window_alpha = 1.0;
+    ed_w_ctx_data.info_window_alpha = 1.0;
 }
 
 void ed_w_ctx_Update()
 {
-    r_SetViewPos(&ed_world_context_data.camera_pos);
-    r_SetViewPitchYaw(ed_world_context_data.camera_pitch, ed_world_context_data.camera_yaw);
+    r_SetViewPos(&ed_w_ctx_data.camera_pos);
+    r_SetViewPitchYaw(ed_w_ctx_data.camera_pitch, ed_w_ctx_data.camera_yaw);
 
     ed_w_ctx_UpdateUI();
     ed_w_ctx_UpdatePickables();
@@ -890,9 +991,14 @@ void ed_w_ctx_Idle(struct ed_context_t *context, uint32_t just_changed)
 {
     struct ed_world_context_data_t *context_data = context->context_data;
 
+//    igText("R Mouse down: fly camera");
+//    igText("L Mouse down: select object...");
+//    igText("Tab: switch edit mode");
+//    igText("Delete: delete selections");
+
     if(in_GetMouseButtonState(SDL_BUTTON_RIGHT) & IN_KEY_STATE_PRESSED)
     {
-        ed_w_ctx_FlyCamera();
+        ed_SetNextContextState(context, ED_WORLD_CONTEXT_STATE_FLY_CAMERA);
     }
     else if(in_GetMouseButtonState(SDL_BUTTON_LEFT) & IN_KEY_STATE_JUST_PRESSED)
     {
@@ -911,10 +1017,61 @@ void ed_w_ctx_Idle(struct ed_context_t *context, uint32_t just_changed)
         }
     }
 
-    if(ed_world_context_data.active_selections->cursor && (in_GetKeyState(SDL_SCANCODE_DELETE) & IN_KEY_STATE_JUST_PRESSED))
+    if(ed_w_ctx_data.active_selections->cursor && (in_GetKeyState(SDL_SCANCODE_DELETE) & IN_KEY_STATE_JUST_PRESSED))
     {
-        ed_world_context_data.open_delete_selections_popup = 1;
+        ed_w_ctx_data.open_delete_selections_popup = 1;
     }
+}
+
+void ed_w_ctx_FlyCamera(struct ed_context_t *context, uint32_t just_changed)
+{
+    float dx;
+    float dy;
+
+//    igText("R Mouse up: stop flying camera");
+
+    if(!(in_GetMouseButtonState(SDL_BUTTON_RIGHT) & IN_KEY_STATE_PRESSED))
+    {
+        ed_SetNextContextState(context, ED_WORLD_CONTEXT_STATE_IDLE);
+        return;
+    }
+
+    in_GetMouseDelta(&dx, &dy);
+
+    ed_w_ctx_data.camera_pitch += dy;
+    ed_w_ctx_data.camera_yaw -= dx;
+
+    if(ed_w_ctx_data.camera_pitch > 0.5)
+    {
+        ed_w_ctx_data.camera_pitch = 0.5;
+    }
+    else if(ed_w_ctx_data.camera_pitch < -0.5)
+    {
+        ed_w_ctx_data.camera_pitch = -0.5;
+    }
+
+    vec4_t translation = {};
+
+    if(in_GetKeyState(SDL_SCANCODE_W) & IN_KEY_STATE_PRESSED)
+    {
+        translation.z -= 0.05;
+    }
+    if(in_GetKeyState(SDL_SCANCODE_S) & IN_KEY_STATE_PRESSED)
+    {
+        translation.z += 0.05;
+    }
+
+    if(in_GetKeyState(SDL_SCANCODE_A) & IN_KEY_STATE_PRESSED)
+    {
+        translation.x -= 0.05;
+    }
+    if(in_GetKeyState(SDL_SCANCODE_D) & IN_KEY_STATE_PRESSED)
+    {
+        translation.x += 0.05;
+    }
+
+    mat4_t_vec4_t_mul_fast(&translation, &r_camera_matrix, &translation);
+    vec3_t_add(&ed_w_ctx_data.camera_pos, &ed_w_ctx_data.camera_pos, &vec3_t_c(translation.x, translation.y, translation.z));
 }
 
 void ed_w_ctx_RightClick(struct ed_context_t *context, uint32_t just_changed)
@@ -934,13 +1091,20 @@ void ed_w_ctx_LeftClick(struct ed_context_t *context, uint32_t just_changed)
     in_GetMouseDelta(&dx, &dy);
     in_GetMousePos(&mouse_x, &mouse_y);
 
+//    igText("L Mouse up: select object");
+//
+//    if(context_data->edit_mode == ED_WORLD_CONTEXT_EDIT_MODE_BRUSH)
+//    {
+//        igText("L Ctrl down: brush box");
+//    }
+
     if(just_changed)
     {
-        context_data->last_selected = ed_SelectPickable(mouse_x, mouse_y, &ed_world_context_data.pickables[ED_WORLD_CONTEXT_LIST_WIDGETS]);
+        context_data->last_selected = ed_SelectPickable(mouse_x, mouse_y, &ed_w_ctx_data.pickables[ED_WORLD_CONTEXT_LIST_WIDGETS], NULL);
 
         if(!context_data->last_selected)
         {
-            context_data->last_selected = ed_SelectPickable(mouse_x, mouse_y, ed_world_context_data.active_pickables);
+            context_data->last_selected = ed_SelectPickable(mouse_x, mouse_y, ed_w_ctx_data.active_pickables, NULL);
         }
     }
 
@@ -974,6 +1138,8 @@ void ed_w_ctx_LeftClick(struct ed_context_t *context, uint32_t just_changed)
 void ed_w_ctx_BrushBox(struct ed_context_t *context, uint32_t just_changed)
 {
     struct ed_world_context_data_t *context_data = (struct ed_world_context_data_t *)context->context_data;
+
+//    igText("L mouse up: create brush");
 
     if(in_GetMouseButtonState(SDL_BUTTON_LEFT) & IN_KEY_STATE_PRESSED)
     {
@@ -1076,22 +1242,29 @@ void ed_w_ctx_ObjectSelected(struct ed_context_t *context, uint32_t just_changed
     int32_t mouse_x;
     int32_t mouse_y;
     in_GetMousePos(&mouse_x, &mouse_y);
-    struct ed_pickable_t *selection = ed_SelectPickable(mouse_x, mouse_y, ed_world_context_data.active_pickables);
+    struct ed_pickable_t *selection = ed_SelectPickable(mouse_x, mouse_y, ed_w_ctx_data.active_pickables, NULL);
 
     if(selection == context_data->last_selected)
     {
         ed_w_ctx_AddSelection(selection, shift_state & IN_KEY_STATE_PRESSED);
     }
 
-//    for(uint32_t selection_index = 0; selection_index < ed_world_context_data.active_selections->cursor; selection_index++)
-//    {
-//        uint32_t pickable_index = *(uint32_t *)ds_list_get_element(ed_world_context_data.active_selections, selection_index);
-//        struct ed_pickable_t *pickable = ds_slist_get_element(ed_world_context_data.active_pickables, pickable_index);
-//
-//        printf("%p %d %d\n", pickable, pickable->selection_index, selection_index);
-//    }
-//
-//    printf("\n");
+    ed_w_ctx_data.show_manipulator = ed_w_ctx_data.active_selections->cursor;
+
+    if(ed_w_ctx_data.show_manipulator)
+    {
+        struct ed_widget_t *manipulator = ed_w_ctx_data.manipulators[ED_W_CTX_MANIPULATOR_TRANSLATION];
+        manipulator->transform.rows[3] = vec4_t_c(0.0, 0.0, 0.0, 1.0);
+
+        for(uint32_t selection_index = 0; selection_index < ed_w_ctx_data.active_selections->cursor; selection_index++)
+        {
+            uint32_t pickable_index = *(uint32_t *)ds_list_get_element(ed_w_ctx_data.active_selections, selection_index);
+            struct ed_pickable_t *pickable = ds_slist_get_element(ed_w_ctx_data.active_pickables, pickable_index);
+            vec3_t_add(&manipulator->transform.rows[3].xyz, &manipulator->transform.rows[3].xyz, &pickable->transform.rows[3].xyz);
+        }
+
+        vec3_t_div(&manipulator->transform.rows[3].xyz, &manipulator->transform.rows[3].xyz, (float)ed_w_ctx_data.active_selections->cursor);
+    }
 
     context_data->last_selected = NULL;
 }

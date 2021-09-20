@@ -52,7 +52,7 @@ vec3_t ed_cube_brush_tangents[] =
     vec3_t_c(-1.0, 0.0, 0.0),
 };
 
-extern struct ed_world_context_data_t ed_world_context_data;
+extern struct ed_world_context_data_t ed_w_ctx_data;
 
 extern struct ds_slist_t ed_polygons;
 extern struct ds_slist_t ed_bsp_nodes;
@@ -64,8 +64,8 @@ struct ed_brush_t *ed_CreateBrush(vec3_t *position, mat3_t *orientation, vec3_t 
     vec3_t dims;
     vec3_t_fabs(&dims, size);
 
-    index = ds_slist_add_element(&ed_world_context_data.brushes, NULL);
-    brush = ds_slist_get_element(&ed_world_context_data.brushes, index);
+    index = ds_slist_add_element(&ed_w_ctx_data.brushes, NULL);
+    brush = ds_slist_get_element(&ed_w_ctx_data.brushes, index);
     brush->index = index;
 
     brush->vertices = ds_buffer_create(sizeof(vec3_t), 8);
@@ -108,8 +108,8 @@ void ed_DestroyBrush(struct ed_brush_t *brush)
 {
     if(brush)
     {
-        ed_world_context_data.global_brush_vert_count -= brush->model->verts.buffer_size;
-        ed_world_context_data.global_brush_index_count -= brush->model->indices.buffer_size;
+        ed_w_ctx_data.global_brush_vert_count -= brush->model->verts.buffer_size;
+        ed_w_ctx_data.global_brush_index_count -= brush->model->indices.buffer_size;
 
         for(uint32_t batch_index = 0; batch_index < brush->model->batches.buffer_size; batch_index++)
         {
@@ -144,7 +144,7 @@ void ed_DestroyBrush(struct ed_brush_t *brush)
         ds_slist_destroy(&brush->bsp_nodes);
         r_DestroyModel(brush->model);
 
-        ds_slist_remove_element(&ed_world_context_data.brushes, brush->index);
+        ds_slist_remove_element(&ed_w_ctx_data.brushes, brush->index);
         brush->index = 0xffffffff;
     }
 }
@@ -153,9 +153,9 @@ struct ed_brush_batch_t *ed_GetGlobalBrushBatch(struct r_material_t *material)
 {
     struct ed_brush_batch_t *batch = NULL;
 
-    for(uint32_t batch_index = 0; batch_index < ed_world_context_data.global_brush_batches.cursor; batch_index++)
+    for(uint32_t batch_index = 0; batch_index < ed_w_ctx_data.global_brush_batches.cursor; batch_index++)
     {
-        batch = ds_list_get_element(&ed_world_context_data.global_brush_batches, batch_index);
+        batch = ds_list_get_element(&ed_w_ctx_data.global_brush_batches, batch_index);
 
         if(batch->batch.material == material)
         {
@@ -165,8 +165,8 @@ struct ed_brush_batch_t *ed_GetGlobalBrushBatch(struct r_material_t *material)
 
     if(!batch)
     {
-        uint32_t index = ds_list_add_element(&ed_world_context_data.global_brush_batches, NULL);
-        batch = ds_list_get_element(&ed_world_context_data.global_brush_batches, index);
+        uint32_t index = ds_list_add_element(&ed_w_ctx_data.global_brush_batches, NULL);
+        batch = ds_list_get_element(&ed_w_ctx_data.global_brush_batches, index);
         batch->index = index;
         batch->batch.material = material;
         batch->batch.count = 0;
@@ -182,7 +182,7 @@ struct ed_brush_t *ed_GetBrush(uint32_t index)
 
     if(index != 0xffffffff)
     {
-        brush = ds_slist_get_element(&ed_world_context_data.brushes, index);
+        brush = ds_slist_get_element(&ed_w_ctx_data.brushes, index);
 
         if(brush && brush->index == 0xffffffff)
         {
@@ -482,8 +482,8 @@ void ed_UpdateBrush(struct ed_brush_t *brush)
     }
     else
     {
-        ed_world_context_data.global_brush_vert_count -= brush->model->verts.buffer_size;
-        ed_world_context_data.global_brush_index_count -= brush->model->indices.buffer_size;
+        ed_w_ctx_data.global_brush_vert_count -= brush->model->verts.buffer_size;
+        ed_w_ctx_data.global_brush_index_count -= brush->model->indices.buffer_size;
 
         for(uint32_t batch_index = 0; batch_index < brush->model->batches.buffer_size; batch_index++)
         {
@@ -495,8 +495,8 @@ void ed_UpdateBrush(struct ed_brush_t *brush)
         r_UpdateModelGeometry(brush->model, &geometry);
     }
 
-    ed_world_context_data.global_brush_vert_count += brush->model->verts.buffer_size;
-    ed_world_context_data.global_brush_index_count += brush->model->indices.buffer_size;
+    ed_w_ctx_data.global_brush_vert_count += brush->model->verts.buffer_size;
+    ed_w_ctx_data.global_brush_index_count += brush->model->indices.buffer_size;
 
     for(uint32_t batch_index = 0; batch_index < brush->model->batches.buffer_size; batch_index++)
     {
@@ -513,14 +513,14 @@ void ed_UpdateBrush(struct ed_brush_t *brush)
 
 void ed_BuildWorldGeometry()
 {
-    struct ds_buffer_t vertices = ds_buffer_create(sizeof(struct r_vert_t), ed_world_context_data.global_brush_vert_count);
-    struct ds_buffer_t indices = ds_buffer_create(sizeof(uint32_t), ed_world_context_data.global_brush_index_count);
-    struct ds_buffer_t batches = ds_buffer_create(sizeof(struct r_batch_t), ed_world_context_data.global_brush_batches.cursor);
+    struct ds_buffer_t vertices = ds_buffer_create(sizeof(struct r_vert_t), ed_w_ctx_data.global_brush_vert_count);
+    struct ds_buffer_t indices = ds_buffer_create(sizeof(uint32_t), ed_w_ctx_data.global_brush_index_count);
+    struct ds_buffer_t batches = ds_buffer_create(sizeof(struct r_batch_t), ed_w_ctx_data.global_brush_batches.cursor);
 
     for(uint32_t global_batch_index = 0; global_batch_index < batches.buffer_size; global_batch_index++)
     {
         struct r_batch_t *batch = (struct r_batch_t *)batches.buffer + global_batch_index;
-        struct ed_brush_batch_t *brush_batch = ds_list_get_element(&ed_world_context_data.global_brush_batches, global_batch_index);
+        struct ed_brush_batch_t *brush_batch = ds_list_get_element(&ed_w_ctx_data.global_brush_batches, global_batch_index);
 
         *batch = brush_batch->batch;
 
@@ -532,7 +532,7 @@ void ed_BuildWorldGeometry()
 
         batch->count = 0;
 
-        for(uint32_t brush_index = 0; brush_index < ed_world_context_data.brushes.cursor; brush_index++)
+        for(uint32_t brush_index = 0; brush_index < ed_w_ctx_data.brushes.cursor; brush_index++)
         {
             struct ed_brush_t *brush = ed_GetBrush(brush_index);
 

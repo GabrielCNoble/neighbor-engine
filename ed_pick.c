@@ -59,7 +59,7 @@ void ed_DrawPickable(struct ed_pickable_t *pickable, mat4_t *parent_transform)
     }
     else
     {
-        mat4_t_identity(&model_view_projection_matrix);
+        model_view_projection_matrix = pickable->transform;
     }
 
     mat4_t_mul(&model_view_projection_matrix, &model_view_projection_matrix, &r_view_projection_matrix);

@@ -37,8 +37,8 @@ struct ds_slist_t ed_bsp_nodes;
 //uint32_t ed_picking_shader_type_uniform;
 //uint32_t ed_picking_shader_index_uniform;
 
-struct r_shader_t *ed_outline_shader;
-uint32_t ed_outline_shader_color_uniform;
+//struct r_shader_t *ed_outline_shader;
+//uint32_t ed_outline_shader_color_uniform;
 
 
 
@@ -50,7 +50,7 @@ uint32_t ed_picking_depth_texture;
 uint32_t ed_picking_object_texture;
 uint32_t ed_show_renderer_info_window;
 
-struct r_model_t *ed_translation_widget_model;
+//struct r_model_t *ed_translation_widget_model;
 
 extern uint32_t g_game_state;
 extern mat4_t r_camera_matrix;

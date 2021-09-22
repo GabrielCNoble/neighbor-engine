@@ -1,6 +1,6 @@
 #include "ed_main.h"
 #include "ed_bsp.h"
-#include "ed_w_ctx.h"
+#include "ed_world.h"
 #include "dstuff/ds_slist.h"
 #include "dstuff/ds_list.h"
 #include "dstuff/ds_mem.h"
@@ -206,7 +206,7 @@ void ed_Init()
 //    ed_world_context_data.active_pickable_list = 0;
 //    ed_world_context_data.brushes = ds_slist_create(sizeof(struct ed_brush_t), 512);
 //    ed_world_context_data.global_brush_batches = ds_list_create(sizeof(struct ed_brush_batch_t), 512);
-    ed_w_ctx_Init();
+    ed_w_Init();
     ed_active_context = ed_contexts + ED_CONTEXT_WORLD;
 
     ed_polygons = ds_slist_create(sizeof(struct ed_polygon_t ), 1024);

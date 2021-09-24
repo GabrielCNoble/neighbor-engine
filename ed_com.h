@@ -13,6 +13,21 @@ struct ed_brush_batch_t
     uint32_t index;
 };
 
+struct ed_brush_edge_t
+{
+    struct ed_brush_edge_t *sibling;
+    struct ed_brush_edge_t *next;
+    struct ed_brush_edge_t *prev;
+    struct ed_brush_face_t *face;
+};
+
+struct ed_brush_face_t
+{
+    struct ed_brush_edge_t *edges;
+    struct ed_brush_face_t *next;
+    struct ed_brush_face_t *prev;
+};
+
 struct ed_brush_t
 {
     mat3_t orientation;

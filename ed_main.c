@@ -223,6 +223,8 @@ void ed_Init()
     ed_EnumerateExplorerDrives();
     ed_SetExplorerLoadCallback(test_load_callback);
     ed_SetExplorerSaveCallback(test_save_callback);
+
+    r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(0.0, 20.0, 0.0), &vec3_t_c(1.0, 1.0, 1.0), 50.0, 10.0);
 }
 
 void ed_Shutdown()

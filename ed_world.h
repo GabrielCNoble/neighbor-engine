@@ -4,65 +4,6 @@
 #include "ed_com.h"
 #include "ed_pick.h"
 
-//enum ED_PICKABLE_TYPE
-//{
-//    ED_PICKABLE_TYPE_BRUSH = 1,
-//    ED_PICKABLE_TYPE_ENTITY,
-//    ED_PICKABLE_TYPE_LIGHT,
-//    ED_PICKABLE_TYPE_FACE,
-//    ED_PICKABLE_TYPE_WIDGET,
-//};
-//
-//struct ed_pickable_range_t
-//{
-//    struct ed_pickable_range_t *prev;
-//    struct ed_pickable_range_t *next;
-//    uint32_t index;
-//    uint32_t start;
-//    uint32_t count;
-//};
-//
-//struct ed_pickable_t
-//{
-//    uint32_t type;
-//    uint32_t index;
-//    struct ds_slist_t *list;
-//
-//    uint32_t selection_index;
-//
-//    mat4_t transform;
-//    uint32_t mode;
-//    uint32_t range_count;
-//    struct ed_pickable_range_t *ranges;
-//
-//    uint32_t primary_index;
-//    uint32_t secondary_index;
-//};
-//
-//struct ed_pick_result_t
-//{
-//    uint32_t type;
-//    uint32_t index;
-//};
-//
-//
-//
-//struct ed_widget_t
-//{
-//    mat4_t transform;
-//    uint32_t index;
-//    uint32_t stencil_layer;
-//    struct ds_slist_t pickables;
-//};
-
-//enum ED_W_CTX_PICKABLE_LISTS
-//{
-//    ED_W_CTX_PICKABLE_LIST_OBJECT = 0,
-//    ED_W_CTX_PICKABLE_LIST_BRUSH_PARTS,
-//    ED_W_CTX_PICKABLE_LIST_LAST
-////    ED_WORLD_CONTEXT_LIST_WIDGETS
-//};
-
 enum ED_WORLD_CONTEXT_STATES
 {
     ED_WORLD_CONTEXT_STATE_IDLE = 0,
@@ -97,10 +38,17 @@ struct ed_w_ctx_object_list_t
 
 struct ed_world_context_data_t
 {
-    vec3_t box_start;
-    vec3_t box_end;
-//    uint32_t edit_mode;
-//    uint32_t active_list;
+
+    struct
+    {
+        vec3_t box_start;
+        vec3_t box_end;
+        vec3_t plane_point;
+        vec2_t box_size;
+        mat3_t plane_orientation;
+
+        uint32_t drawing;
+    } brush;
 
     struct
     {
@@ -111,8 +59,6 @@ struct ed_world_context_data_t
 
     } pickables;
 
-//    struct ds_slist_t pickables[3];
-//    struct ds_list_t selections[2];
     struct ds_slist_t pickable_ranges;
     struct ds_slist_t widgets;
 
@@ -120,14 +66,17 @@ struct ed_world_context_data_t
     {
         uint32_t mode;
         uint32_t visible;
-        vec3_t start_offset;
-        struct ed_widget_t *widgets[3];
+        float prev_angle;
+        vec3_t prev_offset;
         mat4_t transform;
+        float linear_snap;
+        float angular_snap;
+        struct ed_widget_t *widgets[3];
 
     } manipulator;
 
-//    struct ds_slist_t *active_pickables;
-//    struct ds_list_t *active_selections;
+    struct ed_widget_t *ball_widget;
+    mat4_t ball_transform;
 
     struct ds_slist_t brushes;
     uint32_t global_brush_vert_count;
@@ -136,7 +85,6 @@ struct ed_world_context_data_t
 
     float info_window_alpha;
     uint32_t open_delete_selections_popup;
-//    uint32_t show_manipulator;
 
     float camera_pitch;
     float camera_yaw;
@@ -149,41 +97,11 @@ void ed_w_Shutdown();
 
 void ed_w_ManipulatorWidgetSetupPickableDrawState(uint32_t pickable_index, struct ed_pickable_t *pickable);
 
-//struct ed_widget_t *ed_w_ctx_CreateWidget(mat4_t *transform);
-//
-//void ed_w_ctx_DestroyWidget(struct ed_widget_t *widget);
-//
-//void ed_w_ctx_WidgetViewProjectionMatrix(struct ed_widget_t *widget, mat4_t *view_projection_matrix);
-//
-//struct ed_pickable_range_t *ed_w_ctx_AllocPickableRange();
-//
-//void ed_w_ctx_FreePickableRange(struct ed_pickable_range_t *range);
-//
-//struct ds_slist_t *ed_w_ctx_PickableListFromType(uint32_t type);
-//
-//struct ed_pickable_t *ed_w_ctx_CreatePickableOnList(uint32_t type, struct ds_slist_t *pickables);
-//
-//struct ed_pickable_t *ed_w_ctx_CreatePickable(uint32_t type);
-//
-//void ed_w_ctx_DestroyPickableOnList(struct ed_pickable_t *pickable, struct ds_slist_t *pickables);
-//
-//void ed_w_ctx_DestroyPickable(struct ed_pickable_t *pickable);
-//
-//struct ed_pickable_t *ed_w_ctx_GetPickableOnList(uint32_t index, struct ds_slist_t *pickables);
-//
-//struct ed_pickable_t *ed_w_ctx_GetPickable(uint32_t index, uint32_t type);
-//
-//struct ed_pickable_t *ed_w_ctx_CreateBrushPickable(vec3_t *position, mat3_t *orientation, vec3_t *size);
-//
-//struct ed_pickable_t *ed_w_ctx_CreateLightPickable(vec3_t *pos, vec3_t *color, float radius, float energy);
-//
-//struct ed_pickable_t *ed_w_ctx_CreateEntityPickable(mat4_t *transform, struct r_model_t *model);
-
-void ed_w_UpdateUI();
-
-void ed_w_UpdatePickables();
-
-void ed_w_DeleteSelections();
+/*
+=============================================================
+=============================================================
+=============================================================
+*/
 
 void ed_w_AddSelection(struct ed_pickable_t *selection, uint32_t multiple_key_down, struct ds_list_t *selections);
 
@@ -191,9 +109,27 @@ void ed_w_DropSelection(struct ed_pickable_t *selection, struct ds_list_t *selec
 
 void ed_w_ClearSelections(struct ds_list_t *selections);
 
+void ed_w_DeleteSelections();
+
 void ed_w_TranslateSelected(vec3_t *translation, uint32_t transform_mode);
 
-void ed_w_RotateSelected(mat3_t *rotation, uint32_t transform_mode);
+void ed_w_RotateSelected(mat3_t *rotation, vec3_t *pivot, uint32_t transform_mode);
+
+/*
+=============================================================
+=============================================================
+=============================================================
+*/
+
+void ed_w_UpdateUI();
+
+void ed_w_UpdatePickables();
+
+/*
+=============================================================
+=============================================================
+=============================================================
+*/
 
 void ed_w_DrawManipulator();
 

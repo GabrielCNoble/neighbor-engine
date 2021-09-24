@@ -43,7 +43,7 @@ void ed_BeginPicking(mat4_t *view_projection_matrix)
 
 }
 
-uint32_t ed_EndPicking(int32_t mouse_x, int32_t mouse_y, struct ed_pick_result_t *result)
+uint32_t ed_EndPicking(int32_t mouse_x, int32_t mouse_y, struct ed_pickable_t *result)
 {
     mouse_y = r_height - (mouse_y + 1);
     glBindFramebuffer(GL_READ_FRAMEBUFFER, ed_picking_framebuffer);
@@ -101,7 +101,7 @@ struct ed_pickable_t *ed_SelectPickable(int32_t mouse_x, int32_t mouse_y, struct
         }
     }
 
-    struct ed_pick_result_t result;
+    struct ed_pickable_t result;
 
     if(ed_EndPicking(mouse_x, mouse_y, &result))
     {
@@ -114,13 +114,9 @@ struct ed_pickable_t *ed_SelectPickable(int32_t mouse_x, int32_t mouse_y, struct
 struct ed_pickable_t *ed_SelectWidget(int32_t mouse_x, int32_t mouse_y, struct ed_widget_t *widget, mat4_t *widget_transform)
 {
     mat4_t view_projection_matrix;
-    widget->compute_view_projection_matrix(&view_projection_matrix, widget_transform);
-    return ed_SelectPickable(mouse_x, mouse_y, &widget->pickables, widget_transform, &view_projection_matrix);
+    widget->compute_model_view_projection_matrix(&view_projection_matrix, widget_transform);
+    return ed_SelectPickable(mouse_x, mouse_y, &widget->pickables, NULL, &view_projection_matrix);
 }
-
-
-
-
 
 struct ed_widget_t *ed_CreateWidget()
 {
@@ -131,7 +127,7 @@ struct ed_widget_t *ed_CreateWidget()
     widget = ds_slist_get_element(&ed_w_ctx_data.widgets, index);
 
     widget->index = index;
-    widget->compute_view_projection_matrix = ed_WidgetDefaultComputeViewProjectionMatrix;
+    widget->compute_model_view_projection_matrix = ed_WidgetDefaultComputeModelViewProjectionMatrix;
     widget->setup_pickable_draw_state = ed_WidgetDefaultSetupPickableDrawState;
 
     if(!widget->pickables.buffers)
@@ -150,12 +146,7 @@ void ed_DestroyWidget(struct ed_widget_t *widget)
 void ed_DrawWidget(struct ed_widget_t *widget, mat4_t *widget_transform)
 {
     mat4_t view_projection_matrix;
-    widget->compute_view_projection_matrix(&view_projection_matrix, widget_transform);
-
-    if(widget_transform)
-    {
-        mat4_t_mul(&view_projection_matrix, widget_transform, &view_projection_matrix);
-    }
+    widget->compute_model_view_projection_matrix(&view_projection_matrix, widget_transform);
 
     r_i_SetViewProjectionMatrix(&view_projection_matrix);
     r_i_SetDepth(GL_TRUE, GL_ALWAYS);
@@ -199,7 +190,7 @@ void ed_DrawWidget(struct ed_widget_t *widget, mat4_t *widget_transform)
     r_i_SetStencil(GL_FALSE, GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE);
 }
 
-void ed_WidgetDefaultComputeViewProjectionMatrix(mat4_t *view_projection_matrix, mat4_t *widget_transform)
+void ed_WidgetDefaultComputeModelViewProjectionMatrix(mat4_t *view_projection_matrix, mat4_t *widget_transform)
 {
     mat4_t_identity(view_projection_matrix);
     *view_projection_matrix = r_camera_matrix;
@@ -262,6 +253,7 @@ struct ed_pickable_t *ed_CreatePickableOnList(uint32_t type, struct ds_slist_t *
     pickable->index = index;
     pickable->list = pickables;
     pickable->type = type;
+    pickable->transform_flags = 0;
     pickable->selection_index = 0xffffffff;
 
     return pickable;
@@ -355,6 +347,7 @@ struct ed_pickable_t *ed_CreateBrushPickable(vec3_t *position, mat3_t *orientati
     pickable->primary_index = brush->index;
     pickable->range_count = 1;
     pickable->ranges = ed_AllocPickableRange();
+    mat4_t_comp(&pickable->transform, &brush->orientation, &brush->position);
 
     for(uint32_t face_index = 0; face_index < brush->faces.cursor; face_index++)
     {
@@ -364,6 +357,7 @@ struct ed_pickable_t *ed_CreateBrushPickable(vec3_t *position, mat3_t *orientati
         face_pickable->secondary_index = face_index;
         face_pickable->mode = GL_TRIANGLES;
         face_pickable->range_count = 0;
+        mat4_t_comp(&face_pickable->transform, &brush->orientation, &brush->position);
     }
 
     return pickable;

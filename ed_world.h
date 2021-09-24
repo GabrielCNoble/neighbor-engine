@@ -67,6 +67,7 @@ struct ed_world_context_data_t
         uint32_t mode;
         uint32_t visible;
         float prev_angle;
+        vec3_t start_pos;
         vec3_t prev_offset;
         mat4_t transform;
         float linear_snap;
@@ -148,6 +149,8 @@ void ed_w_PingInfoWindow();
 void ed_w_Update();
 
 uint32_t ed_w_IntersectPlaneFromCamera(float mouse_x, float mouse_y, vec3_t *plane_point, vec3_t *plane_normal, vec3_t *result);
+
+void ed_w_PointPixelCoords(int32_t *x, int32_t *y, vec3_t *point);
 
 void ed_w_Idle(struct ed_context_t *context, uint32_t just_changed);
 

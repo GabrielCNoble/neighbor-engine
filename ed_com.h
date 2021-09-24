@@ -19,6 +19,9 @@ struct ed_brush_edge_t
     struct ed_brush_edge_t *next;
     struct ed_brush_edge_t *prev;
     struct ed_brush_face_t *face;
+
+    uint32_t vert0;
+    uint32_t vert1;
 };
 
 struct ed_brush_face_t

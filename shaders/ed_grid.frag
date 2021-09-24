@@ -37,7 +37,7 @@ void main()
         }
         else
         {
-            alpha = clamp(1.0 - position_z * 0.1, 0.0, 1.0);
+            alpha = clamp(1.0 - position_z * 0.3, 0.0, 1.0);
             color = vec3(0.6);
         }
     }

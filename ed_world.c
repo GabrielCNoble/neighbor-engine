@@ -12,6 +12,7 @@ extern struct ed_context_t ed_contexts[];
 struct ed_world_context_data_t ed_w_ctx_data;
 struct ed_context_t *ed_world_context;
 extern mat4_t r_camera_matrix;
+extern mat4_t r_view_projection_matrix;
 
 struct r_shader_t *ed_center_grid_shader;
 struct r_shader_t *ed_picking_shader;
@@ -54,7 +55,7 @@ float ed_w_angular_snap_values[] =
 };
 
 #define ED_GRID_DIVS 301
-#define ED_GRID_QUAD_SIZE 500.0
+#define ED_GRID_QUAD_SIZE 250.0
 #define ED_W_BRUSH_BOX_CROSSHAIR_DIM 0.3
 
 vec4_t ed_selection_outline_colors[][2] =
@@ -990,6 +991,16 @@ uint32_t ed_w_IntersectPlaneFromCamera(float mouse_x, float mouse_y, vec3_t *pla
     return 0;
 }
 
+void ed_w_PointPixelCoords(int32_t *x, int32_t *y, vec3_t *point)
+{
+    vec4_t result;
+    result.xyz = *point;
+    result.w = 1.0;
+    mat4_t_vec4_t_mul_fast(&result, &r_view_projection_matrix, &result);
+    *x = r_width * ((result.x / result.w) * 0.5 + 0.5);
+    *y = r_height * (1.0 - ((result.y / result.w) * 0.5 + 0.5));
+}
+
 void ed_w_Idle(struct ed_context_t *context, uint32_t just_changed)
 {
     struct ed_world_context_data_t *context_data = context->context_data;
@@ -1336,19 +1347,69 @@ void ed_w_BrushBox(struct ed_context_t *context, uint32_t just_changed)
                     r_i_DrawLine(&corners[2], &corners[3], &vec4_t_c(0.0, 1.0, 0.0, 1.0), 2.0);
                     r_i_DrawLine(&corners[3], &corners[0], &vec4_t_c(0.0, 1.0, 0.0, 1.0), 2.0);
 
+
                     context_data->brush.box_size.x = fabsf(proj_u);
                     context_data->brush.box_size.y = fabsf(proj_v);
+
+                    vec4_t edge_center;
+                    int32_t window_x;
+                    int32_t window_y;
+
+                    vec3_t_add(&edge_center.xyz, &corners[3], &corners[0]);
+                    vec3_t_mul(&edge_center.xyz, &edge_center.xyz, 0.5);
+                    ed_w_PointPixelCoords(&window_x, &window_y, &edge_center);
+
+                    igSetNextWindowPos((ImVec2){window_x, window_y}, 0, (ImVec2){0.5, 0.5});
+                    igSetNextWindowBgAlpha(0.15);
+                    if(igBegin("dimh", NULL, ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoTitleBar |
+                                             ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoDecoration))
+                    {
+                        igText("%f m", context_data->brush.box_size.x);
+                    }
+
+                    igEnd();
+
+
+                    vec3_t_add(&edge_center.xyz, &corners[3], &corners[2]);
+                    vec3_t_mul(&edge_center.xyz, &edge_center.xyz, 0.5);
+                    ed_w_PointPixelCoords(&window_x, &window_y, &edge_center);
+
+                    igSetNextWindowPos((ImVec2){window_x, window_y}, 0, (ImVec2){0.5, 0.5});
+                    igSetNextWindowBgAlpha(0.15);
+                    if(igBegin("dimv", NULL, ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoTitleBar |
+                                             ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoDecoration))
+                    {
+                        igText("%f m", context_data->brush.box_size.y);
+                    }
+
+                    igEnd();
                 }
                 else
                 {
                     vec3_t start = intersection;
                     vec3_t end = intersection;
+                    vec3_t normal = plane_orientation.rows[1];
 
                     vec3_t u_axis;
                     vec3_t v_axis;
 
                     vec3_t_mul(&u_axis, &plane_orientation.rows[0], ED_W_BRUSH_BOX_CROSSHAIR_DIM);
                     vec3_t_mul(&v_axis, &plane_orientation.rows[2], ED_W_BRUSH_BOX_CROSSHAIR_DIM);
+
+                    int32_t window_x;
+                    int32_t window_y;
+
+                    ed_w_PointPixelCoords(&window_x, &window_y, &intersection);
+
+                    igSetNextWindowPos((ImVec2){window_x, window_y}, 0, (ImVec2){0.0, 0.0});
+                    igSetNextWindowBgAlpha(0.25);
+                    if(igBegin("crosshair", NULL, ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoTitleBar |
+                                             ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoDecoration))
+                    {
+                        igText("pos: [%f, %f, %f]", intersection.x, intersection.y, intersection.z);
+                        igText("norm: [%f, %f, %f]", normal.x, normal.y, normal.z);
+                    }
+                    igEnd();
 
                     r_i_DrawLine(&vec3_t_c(start.x + u_axis.x, start.y + u_axis.y, start.z + u_axis.z),
                                  &vec3_t_c(end.x - u_axis.x, end.y - u_axis.y, end.z - u_axis.z),
@@ -1404,10 +1465,20 @@ void ed_w_TransformSelections(struct ed_context_t *context, uint32_t just_change
         mat4_t *manipulator_transform = &ed_w_ctx_data.manipulator.transform;
         vec3_t axis_vec = manipulator_transform->rows[context_data->pickables.last_selected->index].xyz;
         vec3_t intersection;
+        vec4_t axis_color[] =
+        {
+            vec4_t_c(1.0, 0.0, 0.0, 1.0),
+            vec4_t_c(0.0, 1.0, 0.0, 1.0),
+            vec4_t_c(0.0, 0.0, 1.0, 1.0),
+        };
         float mouse_x;
         float mouse_y;
 
         in_GetNormalizedMousePos(&mouse_x, &mouse_y);
+
+        r_i_SetShader(NULL);
+        r_i_SetViewProjectionMatrix(NULL);
+        r_i_SetModelMatrix(NULL);
 
         switch(context_data->manipulator.mode)
         {
@@ -1430,6 +1501,7 @@ void ed_w_TransformSelections(struct ed_context_t *context, uint32_t just_change
 
                 if(just_changed)
                 {
+                    context_data->manipulator.start_pos = manipulator_transform->rows[3].xyz;
                     context_data->manipulator.prev_offset = cur_offset;
                 }
 
@@ -1443,6 +1515,26 @@ void ed_w_TransformSelections(struct ed_context_t *context, uint32_t just_change
                         cur_offset.comps[index] = context_data->manipulator.linear_snap * f;
                     }
                 }
+
+
+//                r_i_DrawLine(&context_data->manipulator.start_pos, &manipulator_transform->rows[3].xyz, &axis_color[axis_index], 2.0);
+//
+//                int32_t window_x;
+//                int32_t window_y;
+//                vec3_t disp;
+//                vec3_t_sub(&disp, &context_data->manipulator.start_pos, &manipulator_transform->rows[3].xyz);
+//
+//                ed_w_PointPixelCoords(&window_x, &window_y, &manipulator_transform->rows[3].xyz);
+//                igSetNextWindowPos((ImVec2){window_x, window_y}, 0, (ImVec2){0.0, 0.0});
+//                igSetNextWindowBgAlpha(0.25);
+//                if(igBegin("displacement", NULL, ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoTitleBar |
+//                                             ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoDecoration))
+//                {
+//                    igText("x: %f m", disp.x);
+//                    igText("y: %f m", disp.y);
+//                    igText("z: %f m", disp.z);
+//                }
+//                igEnd();
 
                 ed_w_TranslateSelected(&cur_offset, 0);
             }

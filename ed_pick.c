@@ -349,15 +349,17 @@ struct ed_pickable_t *ed_CreateBrushPickable(vec3_t *position, mat3_t *orientati
     pickable->ranges = ed_AllocPickableRange();
     mat4_t_comp(&pickable->transform, &brush->orientation, &brush->position);
 
-    for(uint32_t face_index = 0; face_index < brush->faces.cursor; face_index++)
+    struct ed_brush_face_t *face = brush->faces;
+
+    while(face)
     {
-        struct ed_face_t *face = ds_list_get_element(&brush->faces, face_index);
         struct ed_pickable_t *face_pickable = ed_CreatePickable(ED_PICKABLE_TYPE_FACE);
         face_pickable->primary_index = brush->index;
-        face_pickable->secondary_index = face_index;
+        face_pickable->secondary_index = face->index;
         face_pickable->mode = GL_TRIANGLES;
         face_pickable->range_count = 0;
         mat4_t_comp(&face_pickable->transform, &brush->orientation, &brush->position);
+        face = face->next;
     }
 
     return pickable;

@@ -1,5 +1,7 @@
 #include "input.h"
+#include "SDL2\SDL_events.h"
 #include <stdio.h>
+#include <string.h>
 
 #define IN_DOUBLE_CLICK_FRAMES 25
 
@@ -11,6 +13,8 @@ uint32_t in_mouse_timers[4] = {IN_DOUBLE_CLICK_FRAMES, IN_DOUBLE_CLICK_FRAMES, I
 
 int32_t in_mouse_x;
 int32_t in_mouse_y;
+int32_t in_prev_mouse_x;
+int32_t in_prev_mouse_y;
 int32_t in_mouse_dx;
 int32_t in_mouse_dy;
 
@@ -20,133 +24,135 @@ float in_normalized_dx;
 float in_normalized_dy;
 
 uint32_t in_relative_mouse = 0;
+uint32_t in_warp_mouse = 0;
+uint32_t in_warp_frame = 0;
 uint32_t in_text_input = 0;
 
+extern SDL_Window *r_window;
 extern uint32_t r_width;
 extern uint32_t r_height;
 
 void in_Input(float delta_time)
 {
     SDL_Event event;
-    uint32_t has_event = SDL_PollEvent(&event);
-
-    uint32_t mouse_state;
-    int32_t dx;
-    int32_t dy;
-
-    if(in_relative_mouse)
-    {
-        mouse_state = SDL_GetRelativeMouseState(&dx, &dy);
-    }
-    else
-    {
-        mouse_state = SDL_GetMouseState(&dx, &dy);
-
-        int temp = dx;
-        dx -= in_mouse_x;
-        in_mouse_x = temp;
-
-        temp = dy;
-        dy -= in_mouse_y;
-        in_mouse_y = temp;
-
-        in_normalized_x = ((float)in_mouse_x / (float)r_width) * 2.0 - 1.0;
-        in_normalized_y = 1.0 - ((float)in_mouse_y/ (float)r_height) * 2.0;
-    }
-
-    in_mouse_dx = dx;
-    in_mouse_dy = dy;
-
-    in_normalized_dx = (float)dx / (float)r_width;
-    in_normalized_dy = -(float)dy / (float)r_height;
 
     for(uint32_t mouse_button = SDL_BUTTON_LEFT; mouse_button <= SDL_BUTTON_RIGHT; mouse_button++)
     {
         uint32_t button_index = mouse_button - 1;
-        in_mouse_state[button_index] &= ~(IN_KEY_STATE_JUST_PRESSED |
-                                          IN_KEY_STATE_JUST_RELEASED |
-                                          IN_KEY_STATE_DOUBLE_CLICKED |
-                                          IN_KEY_STATE_DOUBLE_CLICK_FAILED);
-
-        if(mouse_state & SDL_BUTTON(mouse_button))
-        {
-            if(!(in_mouse_state[button_index] & IN_KEY_STATE_PRESSED))
-            {
-                in_mouse_state[button_index] |= IN_KEY_STATE_JUST_PRESSED;
-
-                if(in_mouse_timers[button_index] == IN_DOUBLE_CLICK_FRAMES)
-                {
-                    in_mouse_timers[button_index] = 0;
-                }
-            }
-
-            if(in_mouse_timers[button_index] && in_mouse_timers[button_index] < IN_DOUBLE_CLICK_FRAMES)
-            {
-                in_mouse_state[button_index] |= IN_KEY_STATE_DOUBLE_CLICKED;
-                in_mouse_timers[button_index] = IN_DOUBLE_CLICK_FRAMES;
-            }
-
-            in_mouse_state[button_index] |= IN_KEY_STATE_PRESSED;
-        }
-        else
-        {
-            if(in_mouse_state[button_index] & IN_KEY_STATE_PRESSED)
-            {
-                in_mouse_state[button_index] |= IN_KEY_STATE_JUST_RELEASED;
-            }
-
-            in_mouse_state[button_index] &= ~IN_KEY_STATE_PRESSED;
-
-            if(in_mouse_timers[button_index] < IN_DOUBLE_CLICK_FRAMES)
-            {
-                in_mouse_timers[button_index]++;
-
-                if(in_mouse_timers[button_index] == IN_DOUBLE_CLICK_FRAMES)
-                {
-                    in_mouse_state[button_index] |= IN_KEY_STATE_DOUBLE_CLICK_FAILED;
-                }
-            }
-        }
+        in_mouse_state[button_index] &= ~(IN_KEY_STATE_JUST_PRESSED | IN_KEY_STATE_JUST_RELEASED | IN_KEY_STATE_DOUBLE_CLICKED);
     }
-
-    in_text_buffer[0] = '\0';
-    in_keyboard = SDL_GetKeyboardState(NULL);
 
     for(uint32_t scancode = 0; scancode < SDL_NUM_SCANCODES; scancode++)
     {
         in_keyboard_state[scancode] &= ~(IN_KEY_STATE_JUST_PRESSED | IN_KEY_STATE_JUST_RELEASED);
-        if(in_keyboard[scancode])
-        {
-            if(!(in_keyboard_state[scancode] & IN_KEY_STATE_PRESSED))
-            {
-                in_keyboard_state[scancode] |= IN_KEY_STATE_JUST_PRESSED;
-            }
-
-            in_keyboard_state[scancode] |= IN_KEY_STATE_PRESSED;
-        }
-        else
-        {
-            if(in_keyboard_state[scancode] & IN_KEY_STATE_PRESSED)
-            {
-                in_keyboard_state[scancode] |= IN_KEY_STATE_JUST_RELEASED;
-            }
-
-            in_keyboard_state[scancode] &= ~IN_KEY_STATE_PRESSED;
-        }
     }
 
-    if(in_text_input)
+    in_prev_mouse_x = in_mouse_x;
+    in_prev_mouse_y = in_mouse_y;
+
+    while(SDL_PollEvent(&event))
     {
-        while(has_event)
+        switch(event.type)
         {
-            if(event.type == SDL_TEXTINPUT)
-            {
-                strncpy(in_text_buffer, event.text.text, sizeof(in_text_buffer));
-            }
+            case SDL_TEXTINPUT:
+                if(in_text_input)
+                {
+                    strncpy(in_text_buffer, event.text.text, sizeof(in_text_buffer));
+                }
+            break;
 
-            has_event = SDL_PollEvent(&event);
+            case SDL_MOUSEMOTION:
+                in_mouse_x = event.motion.x;
+                in_mouse_y = event.motion.y;
+            break;
+
+            case SDL_MOUSEBUTTONUP:
+            case SDL_MOUSEBUTTONDOWN:
+            {
+                uint32_t button = event.button.button - 1;
+
+                if(event.button.state == SDL_PRESSED)
+                {
+                    in_mouse_state[button] = IN_KEY_STATE_PRESSED | IN_KEY_STATE_JUST_PRESSED;
+
+                    if(event.button.clicks > 1)
+                    {
+                        in_mouse_state[button] |= IN_KEY_STATE_DOUBLE_CLICKED;
+                    }
+                }
+                else
+                {
+                    in_mouse_state[button] = IN_KEY_STATE_JUST_PRESSED;
+                }
+            }
+            break;
+
+            case SDL_KEYUP:
+            case SDL_KEYDOWN:
+                if(!event.key.repeat)
+                {
+                    uint32_t scancode = event.key.keysym.scancode;
+
+                    if(event.key.state == SDL_PRESSED)
+                    {
+                        in_keyboard_state[scancode] = IN_KEY_STATE_PRESSED | IN_KEY_STATE_JUST_PRESSED;
+                    }
+                    else
+                    {
+                        in_keyboard_state[scancode] = IN_KEY_STATE_JUST_RELEASED;
+                    }
+                }
+            break;
         }
     }
+
+    in_mouse_dx = in_mouse_x - in_prev_mouse_x;
+    in_mouse_dy = in_mouse_y - in_prev_mouse_y;
+
+    if(in_relative_mouse)
+    {
+        if(in_warp_mouse)
+        {
+            in_warp_frame = 0;
+
+            if(in_mouse_x < 0)
+            {
+                in_mouse_x = r_width + in_mouse_x;
+                in_prev_mouse_x += r_width;
+                in_warp_frame = 1;
+            }
+            else if(in_mouse_x >= r_width)
+            {
+                in_mouse_x = in_mouse_x - r_width;
+                in_prev_mouse_x -= r_width;
+                in_warp_frame = 1;
+            }
+
+            if(in_mouse_y < 0)
+            {
+                in_mouse_y = r_height + in_mouse_y;
+                in_prev_mouse_y += r_height;
+                in_warp_frame = 1;
+            }
+            else if(in_mouse_y >= r_height)
+            {
+                in_mouse_y = in_mouse_y - r_height;
+                in_prev_mouse_y -= r_height;
+                in_warp_frame = 1;
+            }
+
+            if(in_warp_frame)
+            {
+                SDL_WarpMouseInWindow(r_window, in_mouse_x, in_mouse_y);
+            }
+        }
+    }
+
+    in_normalized_x = ((float)in_mouse_x / (float)r_width) * 2.0 - 1.0;
+    in_normalized_y = 1.0 - ((float)in_mouse_y/ (float)r_height) * 2.0;
+
+    in_normalized_dx = (float)in_mouse_dx / (float)r_width;
+    in_normalized_dy = -(float)in_mouse_dy / (float)r_height;
 }
 
 uint32_t in_GetKeyState(SDL_Scancode scancode)
@@ -184,10 +190,16 @@ uint32_t in_GetMouseDoubleClickState(uint32_t button, uint32_t timeout)
     return button_state;
 }
 
-void in_SetMouseRelativeMode(uint32_t enable)
+void in_SetMouseRelative(uint32_t enable)
 {
     in_relative_mouse = enable;
-    SDL_SetRelativeMouseMode(enable);
+//    SDL_SetRelativeMouseMode(enable);
+}
+
+void in_SetMouseWarp(uint32_t enable)
+{
+    in_warp_mouse = enable;
+    SDL_CaptureMouse(enable);
 }
 
 void in_GetMouseDelta(float *dx, float *dy)

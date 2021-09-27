@@ -73,6 +73,8 @@ void gui_BeginFrame()
     io->MousePos.x = (float)mouse_x;
     io->MousePos.y = (float)mouse_y;
     io->MouseDown[0] = in_GetMouseButtonState(SDL_BUTTON_LEFT) & IN_KEY_STATE_PRESSED;
+    io->MouseDown[1] = in_GetMouseButtonState(SDL_BUTTON_RIGHT) & IN_KEY_STATE_PRESSED;
+    io->MouseDown[2] = in_GetMouseButtonState(SDL_BUTTON_MIDDLE) & IN_KEY_STATE_PRESSED;
 
     if(io->WantTextInput)
     {

@@ -8,6 +8,8 @@ float grid1_divs = grid0_divs * 10.0;
 float grid2_divs = grid1_divs * 10.0;
 float line_width = 2;
 
+#define MAX_ALPHA 0.35
+
 void main()
 {
     vec2 tex_coords_dx = abs(dFdx(tex_coords));
@@ -17,7 +19,7 @@ void main()
     vec2 grid1_tex_coord = vec2(fract(tex_coords.x * grid1_divs), fract(tex_coords.y * grid1_divs));
     vec2 grid2_tex_coord = vec2(fract(tex_coords.x * grid2_divs), fract(tex_coords.y * grid2_divs));
 
-    float alpha = 1.0;
+    float alpha = MAX_ALPHA;
     vec3 color = vec3(0.8);
 
     float tex_coords_delta_x = max(tex_coords_dx.x, tex_coords_dy.x) * line_width;
@@ -32,18 +34,18 @@ void main()
                 discard;
             }
 
-            alpha = clamp(1.0 - position_z * 1.5, 0.0, 1.0);
+            alpha = clamp(MAX_ALPHA - position_z * 1.0, 0.0, MAX_ALPHA);
             color = vec3(0.4);
         }
         else
         {
-            alpha = clamp(1.0 - position_z * 0.3, 0.0, 1.0);
+            alpha = clamp(MAX_ALPHA - position_z * 0.3, 0.0, MAX_ALPHA);
             color = vec3(0.6);
         }
     }
     else
     {
-        alpha = clamp(1.0 - position_z * 0.01, 0.0, 1.0);
+        alpha = clamp(MAX_ALPHA - position_z * 0.005, 0.0, MAX_ALPHA);
     }
 
     if(alpha == 0.0)

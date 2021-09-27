@@ -417,12 +417,14 @@
 	"ds_mem.h"
 	<stdarg.h>
 
-1630175440 c:\users\gabri\documents\compiler\metroid_thingy\input.h
+1632565598 c:\users\gabri\documents\compiler\metroid_thingy\input.h
 	"SDL2/SDL.h"
 
-1630175440 source:c:\users\gabri\documents\compiler\metroid_thingy\input.c
+1632572663 source:c:\users\gabri\documents\compiler\metroid_thingy\input.c
 	"input.h"
+	"SDL2\SDL_events.h"
 	<stdio.h>
+	<string.h>
 
 1629563610 c:\users\gabri\documents\compiler\metroid_thingy\lib\dstuff\ds_matrix.h
 	"ds_vector.h"
@@ -468,7 +470,7 @@
 	<limits.h>
 	<stddef.h>
 
-1630406555 source:c:\users\gabri\documents\compiler\metroid_thingy\game.c
+1632526463 source:c:\users\gabri\documents\compiler\metroid_thingy\game.c
 	"dstuff/ds_slist.h"
 	"dstuff/ds_mem.h"
 	"dstuff/ds_file.h"
@@ -576,7 +578,7 @@
 	"r_com.h"
 	"r_main.h"
 
-1632087663 c:\users\gabri\documents\compiler\metroid_thingy\r_main.h
+1632526463 c:\users\gabri\documents\compiler\metroid_thingy\r_main.h
 	"r_com.h"
 	"r_draw.h"
 	"GL/glew.h"
@@ -594,7 +596,7 @@
 	<stddef.h>
 	<stdalign.h>
 
-1632148828 source:c:\users\gabri\documents\compiler\metroid_thingy\r_main.c
+1632783658 source:c:\users\gabri\documents\compiler\metroid_thingy\r_main.c
 	"r_main.h"
 	"SDL2/SDL.h"
 	"GL/glew.h"
@@ -607,7 +609,7 @@
 	"r_draw.h"
 	"anim.h"
 
-1632149148 c:\users\gabri\documents\compiler\metroid_thingy\r_com.h
+1632526463 c:\users\gabri\documents\compiler\metroid_thingy\r_com.h
 	"dstuff/ds_vector.h"
 	"dstuff/ds_matrix.h"
 	"dstuff/ds_alloc.h"
@@ -730,20 +732,14 @@
 	"r_vis.h"
 	"game.h"
 
-1629709662 source:c:\users\gabri\documents\compiler\metroid_thingy\ed_bsp.c
+1632775479 source:c:\users\gabri\documents\compiler\metroid_thingy\ed_bsp.c
 	<stdlib.h>
 	"ed_bsp.h"
 	"ed_brush.h"
 
-1629709662 c:\users\gabri\documents\compiler\metroid_thingy\ed_bsp.h
-	<stdint.h>
-	<stddef.h>
-	"ed_com.h"
-	"dstuff/ds_vector.h"
-	"dstuff/ds_list.h"
-	"dstuff/ds_buffer.h"
+1632777058 c:\users\gabri\documents\compiler\metroid_thingy\ed_bsp.h
 
-1632420876 c:\users\gabri\documents\compiler\metroid_thingy\ed_com.h
+1632563998 c:\users\gabri\documents\compiler\metroid_thingy\ed_com.h
 	<stdint.h>
 	"dstuff/ds_buffer.h"
 	"dstuff/ds_vector.h"
@@ -855,7 +851,7 @@
 1625526529 c:\users\gabri\documents\compiler\metroid_thingy\gui.h
 	"cimgui/cimgui.h"
 
-1629575013 source:c:\users\gabri\documents\compiler\metroid_thingy\gui.c
+1632572797 source:c:\users\gabri\documents\compiler\metroid_thingy\gui.c
 	"gui.h"
 	"r_main.h"
 	"r_draw.h"
@@ -894,17 +890,16 @@
 	<stdio.h>
 	<float.h>
 
-1632266358 c:\users\gabri\documents\compiler\metroid_thingy\ed_brush.h
-	"ed_com.h"
+1632783835 c:\users\gabri\documents\compiler\metroid_thingy\ed_brush.h
 	"ed_world.h"
 
-1632090069 source:c:\users\gabri\documents\compiler\metroid_thingy\ed_brush.c
+1632783953 source:c:\users\gabri\documents\compiler\metroid_thingy\ed_brush.c
 	"ed_brush.h"
 	"dstuff/ds_buffer.h"
 	"r_main.h"
 	"ed_bsp.h"
 
-1630175440 c:\users\gabri\documents\compiler\metroid_thingy\ed_main.h
+1632526463 c:\users\gabri\documents\compiler\metroid_thingy\ed_main.h
 	"dstuff/ds_vector.h"
 	"dstuff/ds_matrix.h"
 	"dstuff/ds_alloc.h"
@@ -913,7 +908,7 @@
 	"ed_brush.h"
 	"ed_pick.h"
 
-1632398980 source:c:\users\gabri\documents\compiler\metroid_thingy\ed_pick.c
+1632599038 source:c:\users\gabri\documents\compiler\metroid_thingy\ed_pick.c
 	<stdio.h>
 	"ed_pick.h"
 	"ed_world.h"
@@ -921,11 +916,11 @@
 	"game.h"
 	"r_main.h"
 
-1632359802 c:\users\gabri\documents\compiler\metroid_thingy\ed_pick.h
+1632526463 c:\users\gabri\documents\compiler\metroid_thingy\ed_pick.h
 	"ed_com.h"
 	"r_com.h"
 
-1632420082 source:c:\users\gabri\documents\compiler\metroid_thingy\ed_main.c
+1632780838 source:c:\users\gabri\documents\compiler\metroid_thingy\ed_main.c
 	"ed_main.h"
 	"ed_bsp.h"
 	"ed_world.h"
@@ -959,11 +954,11 @@
 	"game.h"
 	"input.h"
 
-1632518223 c:\users\gabri\documents\compiler\metroid_thingy\ed_world.h
+1632706016 c:\users\gabri\documents\compiler\metroid_thingy\ed_world.h
 	"ed_com.h"
 	"ed_pick.h"
 
-1632433802 source:c:\users\gabri\documents\compiler\metroid_thingy\ed_world.c
+1632784007 source:c:\users\gabri\documents\compiler\metroid_thingy\ed_world.c
 	<float.h>
 	"ed_world.h"
 	"ed_pick.h"

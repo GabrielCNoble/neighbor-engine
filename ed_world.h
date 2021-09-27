@@ -46,8 +46,19 @@ struct ed_world_context_data_t
         vec3_t plane_point;
         vec2_t box_size;
         mat3_t plane_orientation;
-
         uint32_t drawing;
+
+        struct ds_slist_t bsp_nodes;
+        struct ds_slist_t bsp_polygons;
+
+        struct ds_slist_t brushes;
+        struct ds_slist_t brush_faces;
+        struct ds_slist_t brush_face_polygons;
+        struct ds_slist_t brush_edges;
+
+        uint32_t brush_vert_count;
+        uint32_t brush_index_count;
+        struct ds_list_t brush_batches;
     } brush;
 
     struct
@@ -78,11 +89,6 @@ struct ed_world_context_data_t
 
     struct ed_widget_t *ball_widget;
     mat4_t ball_transform;
-
-    struct ds_slist_t brushes;
-    uint32_t global_brush_vert_count;
-    uint32_t global_brush_index_count;
-    struct ds_list_t global_brush_batches;
 
     float info_window_alpha;
     uint32_t open_delete_selections_popup;

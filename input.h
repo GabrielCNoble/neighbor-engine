@@ -22,7 +22,9 @@ uint32_t in_GetMouseButtonState(uint32_t button);
 
 uint32_t in_GetMouseDoubleClickState(uint32_t button, uint32_t timeout);
 
-void in_SetMouseRelativeMode(uint32_t enable);
+void in_SetMouseRelative(uint32_t enable);
+
+void in_SetMouseWarp(uint32_t enable);
 
 void in_GetMouseDelta(float *dx, float *dy);
 

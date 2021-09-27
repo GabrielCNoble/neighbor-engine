@@ -209,8 +209,8 @@ void ed_Init()
     ed_w_Init();
     ed_active_context = ed_contexts + ED_CONTEXT_WORLD;
 
-    ed_polygons = ds_slist_create(sizeof(struct ed_polygon_t ), 1024);
-    ed_bsp_nodes = ds_slist_create(sizeof(struct ed_bspn_t), 1024);
+//    ed_polygons = ds_slist_create(sizeof(struct ed_polygon_t ), 1024);
+//    ed_bsp_nodes = ds_slist_create(sizeof(struct ed_bspn_t), 1024);
 
     ed_explorer_state.current_file[0] = '\0';
     ed_explorer_state.current_path[0] = '\0';
@@ -225,6 +225,8 @@ void ed_Init()
     ed_SetExplorerSaveCallback(test_save_callback);
 
     r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(0.0, 20.0, 0.0), &vec3_t_c(1.0, 1.0, 1.0), 50.0, 10.0);
+
+    in_SetMouseRelative(1);
 }
 
 void ed_Shutdown()

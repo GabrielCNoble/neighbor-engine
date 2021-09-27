@@ -101,8 +101,13 @@ void ed_w_Init()
     ed_w_ctx_data.pickable_ranges = ds_slist_create(sizeof(struct ed_pickable_range_t), 512);
     ed_w_ctx_data.widgets = ds_slist_create(sizeof(struct ed_widget_t), 16);
 
-    ed_w_ctx_data.brushes = ds_slist_create(sizeof(struct ed_brush_t), 512);
-    ed_w_ctx_data.global_brush_batches = ds_list_create(sizeof(struct ed_brush_batch_t), 512);
+    ed_w_ctx_data.brush.bsp_nodes = ds_slist_create(sizeof(struct ed_bsp_node_t), 512);
+    ed_w_ctx_data.brush.bsp_polygons = ds_slist_create(sizeof(struct ed_bsp_polygon_t), 512);
+    ed_w_ctx_data.brush.brushes = ds_slist_create(sizeof(struct ed_brush_t), 512);
+    ed_w_ctx_data.brush.brush_edges = ds_slist_create(sizeof(struct ed_brush_edge_t), 512);
+    ed_w_ctx_data.brush.brush_faces = ds_slist_create(sizeof(struct ed_brush_face_t), 512);
+    ed_w_ctx_data.brush.brush_face_polygons = ds_slist_create(sizeof(struct ed_brush_face_polygon_t), 512);
+    ed_w_ctx_data.brush.brush_batches = ds_list_create(sizeof(struct ed_brush_batch_t), 512);
 
     ed_w_ctx_data.camera_pitch = -0.15;
     ed_w_ctx_data.camera_yaw = -0.3;
@@ -640,7 +645,7 @@ void ed_w_UpdatePickables()
                 case ED_PICKABLE_TYPE_FACE:
                 {
                     struct ed_brush_t *brush = ed_GetBrush(pickable->primary_index);
-                    struct ed_face_t *face = ds_list_get_element(&brush->faces, pickable->secondary_index);
+                    struct ed_brush_face_t *face = ed_GetBrushFace(pickable->secondary_index);
                     struct r_batch_t *first_batch = brush->model->batches.buffer;
 
                     if(pickable->range_count > face->clipped_polygon_count)
@@ -670,13 +675,13 @@ void ed_w_UpdatePickables()
                         }
                     }
 
-                    struct ed_polygon_t *polygon = face->clipped_polygons;
+                    struct ed_bsp_polygon_t *polygon = face->clipped_polygons;
                     struct ed_pickable_range_t *range = pickable->ranges;
 
                     while(polygon)
                     {
-                        range->start = polygon->mesh_start + first_batch->start;
-                        range->count = polygon->mesh_count;
+                        range->start = polygon->model_start + first_batch->start;
+                        range->count = polygon->model_count;
 
                         polygon = polygon->next;
                         range = range->next;
@@ -685,6 +690,10 @@ void ed_w_UpdatePickables()
                     if(!pickable->transform_flags)
                     {
                         mat4_t_comp(&pickable->transform, &brush->orientation, &brush->position);
+                    }
+                    else
+                    {
+                        ed_TranslateBrushFace(brush, pickable->secondary_index, &pickable->translation);
                     }
                 }
                 break;
@@ -743,7 +752,7 @@ void ed_w_DrawGrid()
 
 void ed_w_DrawBrushes()
 {
-    for(uint32_t brush_index = 0; brush_index < ed_w_ctx_data.brushes.cursor; brush_index++)
+    for(uint32_t brush_index = 0; brush_index < ed_w_ctx_data.brush.brushes.cursor; brush_index++)
     {
         struct ed_brush_t *brush = ed_GetBrush(brush_index);
 
@@ -984,8 +993,12 @@ uint32_t ed_w_IntersectPlaneFromCamera(float mouse_x, float mouse_y, vec3_t *pla
     if(denom)
     {
         float frac = dist_a / denom;
-        vec3_t_fmadd(result, &camera_pos, &mouse_vec.xyz, frac);
-        return 1;
+
+        if(frac >= 0.0)
+        {
+            vec3_t_fmadd(result, &camera_pos, &mouse_vec.xyz, frac);
+            return 1;
+        }
     }
 
     return 0;
@@ -1011,9 +1024,10 @@ void ed_w_Idle(struct ed_context_t *context, uint32_t just_changed)
 //    igText("Tab: switch edit mode");
 //    igText("Delete: delete selections");
 
-    if(in_GetMouseButtonState(SDL_BUTTON_RIGHT) & IN_KEY_STATE_PRESSED)
+    if(in_GetKeyState(SDL_SCANCODE_LALT) & IN_KEY_STATE_PRESSED)
     {
         ed_SetNextContextState(context, ED_WORLD_CONTEXT_STATE_FLY_CAMERA);
+        in_SetMouseWarp(1);
     }
     else if(in_GetMouseButtonState(SDL_BUTTON_LEFT) & IN_KEY_STATE_JUST_PRESSED)
     {
@@ -1058,11 +1072,10 @@ void ed_w_FlyCamera(struct ed_context_t *context, uint32_t just_changed)
     float dx;
     float dy;
 
-//    igText("R Mouse up: stop flying camera");
-
-    if(!(in_GetMouseButtonState(SDL_BUTTON_RIGHT) & IN_KEY_STATE_PRESSED))
+    if(!(in_GetKeyState(SDL_SCANCODE_LALT) & IN_KEY_STATE_PRESSED))
     {
         ed_SetNextContextState(context, ED_WORLD_CONTEXT_STATE_IDLE);
+        in_SetMouseWarp(0);
         return;
     }
 
@@ -1206,9 +1219,9 @@ void ed_w_BrushBox(struct ed_context_t *context, uint32_t just_changed)
                 if(surface)
                 {
                     struct ed_brush_t *brush = ed_GetBrush(surface->primary_index);
-                    struct ed_face_t *face = ds_list_get_element(&brush->faces, surface->secondary_index);
-                    context_data->brush.plane_orientation.rows[1] = face->normal;
-                    context_data->brush.plane_point = *(vec3_t *)face->polygon->vertices.buffer;
+                    struct ed_brush_face_t *face = ed_GetBrushFace(surface->secondary_index);
+                    context_data->brush.plane_orientation.rows[1] = face->polygons->normal;
+                    context_data->brush.plane_point = *(vec3_t *)ds_list_get_element(&face->clipped_polygons->vertices, 0);
                     mat3_t_vec3_t_mul(&context_data->brush.plane_orientation.rows[1], &context_data->brush.plane_orientation.rows[1], &brush->orientation);
                     mat3_t_vec3_t_mul(&context_data->brush.plane_point, &context_data->brush.plane_point, &brush->orientation);
                     vec3_t_add(&context_data->brush.plane_point, &context_data->brush.plane_point, &brush->position);
@@ -1351,12 +1364,12 @@ void ed_w_BrushBox(struct ed_context_t *context, uint32_t just_changed)
                     context_data->brush.box_size.x = fabsf(proj_u);
                     context_data->brush.box_size.y = fabsf(proj_v);
 
-                    vec4_t edge_center;
+                    vec3_t edge_center;
                     int32_t window_x;
                     int32_t window_y;
 
-                    vec3_t_add(&edge_center.xyz, &corners[3], &corners[0]);
-                    vec3_t_mul(&edge_center.xyz, &edge_center.xyz, 0.5);
+                    vec3_t_add(&edge_center, &corners[3], &corners[0]);
+                    vec3_t_mul(&edge_center, &edge_center, 0.5);
                     ed_w_PointPixelCoords(&window_x, &window_y, &edge_center);
 
                     igSetNextWindowPos((ImVec2){window_x, window_y}, 0, (ImVec2){0.5, 0.5});
@@ -1370,8 +1383,8 @@ void ed_w_BrushBox(struct ed_context_t *context, uint32_t just_changed)
                     igEnd();
 
 
-                    vec3_t_add(&edge_center.xyz, &corners[3], &corners[2]);
-                    vec3_t_mul(&edge_center.xyz, &edge_center.xyz, 0.5);
+                    vec3_t_add(&edge_center, &corners[3], &corners[2]);
+                    vec3_t_mul(&edge_center, &edge_center, 0.5);
                     ed_w_PointPixelCoords(&window_x, &window_y, &edge_center);
 
                     igSetNextWindowPos((ImVec2){window_x, window_y}, 0, (ImVec2){0.5, 0.5});
@@ -1519,22 +1532,22 @@ void ed_w_TransformSelections(struct ed_context_t *context, uint32_t just_change
 
 //                r_i_DrawLine(&context_data->manipulator.start_pos, &manipulator_transform->rows[3].xyz, &axis_color[axis_index], 2.0);
 //
-//                int32_t window_x;
-//                int32_t window_y;
-//                vec3_t disp;
-//                vec3_t_sub(&disp, &context_data->manipulator.start_pos, &manipulator_transform->rows[3].xyz);
-//
-//                ed_w_PointPixelCoords(&window_x, &window_y, &manipulator_transform->rows[3].xyz);
-//                igSetNextWindowPos((ImVec2){window_x, window_y}, 0, (ImVec2){0.0, 0.0});
-//                igSetNextWindowBgAlpha(0.25);
-//                if(igBegin("displacement", NULL, ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoTitleBar |
-//                                             ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoDecoration))
-//                {
-//                    igText("x: %f m", disp.x);
-//                    igText("y: %f m", disp.y);
-//                    igText("z: %f m", disp.z);
-//                }
-//                igEnd();
+                int32_t window_x;
+                int32_t window_y;
+                vec3_t disp;
+                vec3_t_sub(&disp, &manipulator_transform->rows[3].xyz, &context_data->manipulator.start_pos);
+
+                ed_w_PointPixelCoords(&window_x, &window_y, &manipulator_transform->rows[3].xyz);
+                igSetNextWindowPos((ImVec2){window_x, window_y}, 0, (ImVec2){0.0, 0.0});
+                igSetNextWindowBgAlpha(0.25);
+                if(igBegin("displacement", NULL, ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoTitleBar |
+                                             ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoDecoration))
+                {
+                    vec3_t pos = manipulator_transform->rows[3].xyz;
+                    igText("disp: [%f m, %f m, %f m]", disp.x, disp.y, disp.z);
+                    igText("pos: [%f, %f, %f]", pos.x, pos.y, pos.z);
+                }
+                igEnd();
 
                 ed_w_TranslateSelected(&cur_offset, 0);
             }

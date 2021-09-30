@@ -85,32 +85,60 @@ struct ed_brush_t *ed_CreateBrush(vec3_t *position, mat3_t *orientation, vec3_t 
     brush->position = *position;
     brush->faces = NULL;
 
-    struct ed_brush_face_t *last_face = NULL;
-    struct ed_brush_edge_t *last_edge = NULL;
+    struct ed_face_t *last_face = NULL;
+    struct ed_edge_t *last_edge = NULL;
 
     for(uint32_t face_index = 0; face_index < 6; face_index++)
     {
-        struct ed_brush_face_t *face = ed_AllocBrushFace();
+        struct ed_face_t *face = ed_AllocFace();
 
         face->material = r_GetDefaultMaterial();
-        face->polygons = ed_AllocBrushFacePolygon();
+        face->polygons = ed_AllocFacePolygon();
         face->tex_coords_scale = vec2_t_c(1.0, 1.0);
         face->tex_coords_rot = 0.0;
         face->brush = brush;
 
-        struct ed_brush_face_polygon_t *face_polygon = face->polygons;
+        struct ed_face_polygon_t *face_polygon = face->polygons;
         face_polygon->normal = ed_cube_brush_normals[face_index];
         face_polygon->tangent = ed_cube_brush_tangents[face_index];
         face_polygon->face = face;
 
         for(uint32_t vert_index = 0; vert_index < 4; vert_index++)
         {
-            struct ed_brush_edge_t *edge = ed_AllocBrushEdge();
+//            struct ed_edge_t *edge = ed_AllocEdge();
 
-            edge->brush = brush;
-            edge->polygon = face_polygon;
-            edge->vert0 = ed_cube_brush_indices[face_index][vert_index];
-            edge->vert1 = ed_cube_brush_indices[face_index][(vert_index + 1) % 4];
+            uint32_t vert0 = ed_cube_brush_indices[face_index][vert_index];
+            uint32_t vert1 = ed_cube_brush_indices[face_index][(vert_index + 1) % 4];
+
+            struct ed_edge_t *edge = last_edge;
+
+            while(edge)
+            {
+                if(edge->verts[0] == vert1 && edge->verts[1] == vert0)
+                {
+                    break;
+                }
+
+                edge = edge->polygons[0].prev;
+            }
+
+            if(!edge)
+            {
+                edge = ed_AllocEdge();
+                edge->brush = brush;
+                edge->polygons[0].prev = last_edge;
+                last_edge = edge;
+            }
+
+            uint32_t polygon_index = edge->polygons[0].polygon != NULL;
+            edge->polygons[polygon_index].polygon = face_polygon;
+            edge->verts[polygon_index] = vert0;
+            edge->verts[!polygon_index] = vert1;
+
+//            edge->brush = brush;
+//            edge->polygon = face_polygon;
+//            edge->vert0 = ed_cube_brush_indices[face_index][vert_index];
+//            edge->vert1 = ed_cube_brush_indices[face_index][(vert_index + 1) % 4];
 
             /* edges in a face are stored in a doubly linked list. All edges of the brush are linked
             by the prev pointer, and only edges that belong to a specific face are linked by the prev
@@ -124,11 +152,11 @@ struct ed_brush_t *ed_CreateBrush(vec3_t *position, mat3_t *orientation, vec3_t 
             }
             else
             {
-                last_edge->next = edge;
+                polygon_index = face_polygon->last_edge->polygons[1].polygon == face_polygon;
+                face_polygon->last_edge->polygons[polygon_index].next = edge;
             }
 
-            edge->prev = last_edge;
-            last_edge = edge;
+            face_polygon->last_edge = edge;
         }
 
         if(!brush->faces)
@@ -144,41 +172,41 @@ struct ed_brush_t *ed_CreateBrush(vec3_t *position, mat3_t *orientation, vec3_t 
         last_face = face;
     }
 
-    struct ed_brush_edge_t *edge = last_edge;
-    struct ed_brush_edge_t *prev_edge_list = last_edge;
+//    struct ed_edge_t *edge = last_edge;
+//    struct ed_edge_t *prev_edge_list = last_edge;
 
-    while(edge->prev)
-    {
-        if(prev_edge_list == edge)
-        {
-            /* since edges are allocated as faces are created, the edges of a face will be adjacent to one another.
-            To avoid testing edges belonging to the same face we skip them until reaching an edge that doesn't belong
-            to that face. */
-
-            while(prev_edge_list && prev_edge_list->polygon == edge->polygon)
-            {
-                prev_edge_list = prev_edge_list->prev;
-            }
-        }
-
-        struct ed_brush_edge_t *prev_edge = prev_edge_list;
-
-        while(prev_edge)
-        {
-            if(edge->vert0 == prev_edge->vert1 && edge->vert1 == prev_edge->vert0)
-            {
-                /* Two edges that represent a shared edge will have the same vert indexes,
-                but always in reverse order. */
-                edge->sibling = prev_edge;
-                prev_edge->sibling = edge;
-                break;
-            }
-
-            prev_edge = prev_edge->prev;
-        }
-
-        edge = edge->prev;
-    }
+//    while(edge->polygons[0].prev)
+//    {
+//        if(prev_edge_list == edge)
+//        {
+//            /* since edges are allocated as faces are created, the edges of a face will be adjacent to one another.
+//            To avoid testing edges belonging to the same face we skip them until reaching an edge that doesn't belong
+//            to that face. */
+//
+//            while(prev_edge_list && prev_edge_list->polygon == edge->polygon)
+//            {
+//                prev_edge_list = prev_edge_list->polygons[0].prev;
+//            }
+//        }
+//
+//        struct ed_edge_t *prev_edge = prev_edge_list;
+//
+//        while(prev_edge)
+//        {
+//            if(edge->vert0 == prev_edge->vert1 && edge->vert1 == prev_edge->vert0)
+//            {
+//                /* Two edges that represent a shared edge will have the same vert indexes,
+//                but always in reverse order. */
+//                edge->sibling = prev_edge;
+//                prev_edge->sibling = edge;
+//                break;
+//            }
+//
+//            prev_edge = prev_edge->prev;
+//        }
+//
+//        edge = edge->prev;
+//    }
 
     brush->model = NULL;
     ed_UpdateBrush(brush);
@@ -220,26 +248,27 @@ void ed_DestroyBrush(struct ed_brush_t *brush)
 //            }
 //        }
 
-        struct ed_brush_face_t *face = brush->faces;
+        struct ed_face_t *face = brush->faces;
 
         while(face)
         {
-            struct ed_brush_face_t *next_face = face->next;
-            struct ed_brush_face_polygon_t *polygon = face->polygons;
+            struct ed_face_t *next_face = face->next;
+            struct ed_face_polygon_t *polygon = face->polygons;
 
             while(polygon)
             {
-                struct ed_brush_edge_t *edge = polygon->edges;
+                struct ed_edge_t *edge = polygon->edges;
 
                 while(edge)
                 {
-                    struct ed_brush_edge_t *next_edge = edge->next;
-                    ed_FreeBrushEdge(edge);
+                    uint32_t polygon_index = edge->polygons[1].polygon == polygon;
+                    struct ed_edge_t *next_edge = edge->polygons[polygon_index].next;
+                    ed_FreeEdge(edge);
                     edge = next_edge;
                 }
 
-                struct ed_brush_face_polygon_t *next_polygon = polygon->next;
-                ed_FreeBrushFacePolygon(polygon);
+                struct ed_face_polygon_t *next_polygon = polygon->next;
+                ed_FreeFacePolygon(polygon);
                 polygon = next_polygon;
             }
 
@@ -252,13 +281,11 @@ void ed_DestroyBrush(struct ed_brush_t *brush)
                 clipped_polygon = next_polygon;
             }
 
-            ed_FreeBrushFace(face);
+            ed_FreeFace(face);
             face = next_face;
         }
 
         ds_slist_destroy(&brush->vertices);
-//        ds_slist_destroy(&brush->polygons);
-//        ds_slist_destroy(&brush->bsp_nodes);
         r_DestroyModel(brush->model);
 
         ds_slist_remove_element(&ed_w_ctx_data.brush.brushes, brush->index);
@@ -310,10 +337,10 @@ struct ed_brush_t *ed_GetBrush(uint32_t index)
     return brush;
 }
 
-struct ed_brush_face_t *ed_AllocBrushFace()
+struct ed_face_t *ed_AllocFace()
 {
     uint32_t index = ds_slist_add_element(&ed_w_ctx_data.brush.brush_faces, NULL);
-    struct ed_brush_face_t *face = ds_slist_get_element(&ed_w_ctx_data.brush.brush_faces, index);
+    struct ed_face_t *face = ds_slist_get_element(&ed_w_ctx_data.brush.brush_faces, index);
 
     face->index = index;
     face->polygons = NULL;
@@ -326,9 +353,9 @@ struct ed_brush_face_t *ed_AllocBrushFace()
     return face;
 }
 
-struct ed_brush_face_t *ed_GetBrushFace(uint32_t index)
+struct ed_face_t *ed_GetFace(uint32_t index)
 {
-    struct ed_brush_face_t *face;
+    struct ed_face_t *face;
 
     face = ds_slist_get_element(&ed_w_ctx_data.brush.brush_faces, index);
 
@@ -340,7 +367,7 @@ struct ed_brush_face_t *ed_GetBrushFace(uint32_t index)
     return face;
 }
 
-void ed_FreeBrushFace(struct ed_brush_face_t *face)
+void ed_FreeFace(struct ed_face_t *face)
 {
     if(face && face->index != 0xffffffff)
     {
@@ -349,21 +376,23 @@ void ed_FreeBrushFace(struct ed_brush_face_t *face)
     }
 }
 
-struct ed_brush_face_polygon_t *ed_AllocBrushFacePolygon()
+struct ed_face_polygon_t *ed_AllocFacePolygon()
 {
     uint32_t index = ds_slist_add_element(&ed_w_ctx_data.brush.brush_face_polygons, NULL);
-    struct ed_brush_face_polygon_t *polygon = ds_slist_get_element(&ed_w_ctx_data.brush.brush_face_polygons, index);
+    struct ed_face_polygon_t *polygon = ds_slist_get_element(&ed_w_ctx_data.brush.brush_face_polygons, index);
 
     polygon->index = index;
     polygon->face = NULL;
     polygon->brush = NULL;
     polygon->next = NULL;
     polygon->prev = NULL;
+    polygon->edges = NULL;
+    polygon->last_edge = NULL;
 
     return polygon;
 }
 
-void ed_FreeBrushFacePolygon(struct ed_brush_face_polygon_t *polygon)
+void ed_FreeFacePolygon(struct ed_face_polygon_t *polygon)
 {
     if(polygon && polygon->index != 0xffffffff)
     {
@@ -372,23 +401,40 @@ void ed_FreeBrushFacePolygon(struct ed_brush_face_polygon_t *polygon)
     }
 }
 
-struct ed_brush_edge_t *ed_AllocBrushEdge()
+struct ed_edge_t *ed_AllocEdge()
 {
     uint32_t index = ds_slist_add_element(&ed_w_ctx_data.brush.brush_edges, NULL);
-    struct ed_brush_edge_t *edge = ds_slist_get_element(&ed_w_ctx_data.brush.brush_edges, index);
+    struct ed_edge_t *edge = ds_slist_get_element(&ed_w_ctx_data.brush.brush_edges, index);
 
     edge->index = index;
-    edge->polygon = NULL;
-    edge->next = NULL;
-    edge->prev = NULL;
     edge->brush = NULL;
-    edge->vert0 = 0xffffffff;
-    edge->vert1 = 0xffffffff;
+    edge->verts[0] = 0xffffffff;
+    edge->verts[1] = 0xffffffff;
+    edge->polygons[0].next = NULL;
+    edge->polygons[0].prev = NULL;
+    edge->polygons[0].polygon = NULL;
+    edge->polygons[1].next = NULL;
+    edge->polygons[1].prev = NULL;
+    edge->polygons[1].polygon = NULL;
 
     return edge;
 }
 
-void ed_FreeBrushEdge(struct ed_brush_edge_t *edge)
+struct ed_edge_t *ed_GetEdge(uint32_t index)
+{
+    struct ed_edge_t *edge;
+
+    edge = ds_slist_get_element(&ed_w_ctx_data.brush.brush_edges, index);
+
+    if(edge && edge->index == 0xffffffff)
+    {
+        edge = NULL;
+    }
+
+    return edge;
+}
+
+void ed_FreeEdge(struct ed_edge_t *edge)
 {
     if(edge && edge->index != 0xffffffff)
     {
@@ -397,90 +443,16 @@ void ed_FreeBrushEdge(struct ed_brush_edge_t *edge)
     }
 }
 
-//struct ed_clipped_polygon_t *ed_AllocClippedPolygon(struct ed_brush_t *brush)
-//{
-//    struct ed_clipped_polygon_t *polygon = NULL;
-//    uint32_t index;
-//
-//    if(brush)
-//    {
-//        index = ds_slist_add_element(&brush->polygons, NULL);
-//        polygon = ds_slist_get_element(&brush->polygons, index);
-//    }
-//    else
-//    {
-//        index = ds_slist_add_element(&ed_polygons, NULL);
-//        polygon = ds_slist_get_element(&ed_polygons, index);
-//    }
-//
-//    if(!polygon->vertices.elem_size)
-//    {
-//        polygon->vertices = ds_buffer_create(sizeof(struct r_vert_t), 0);
-//    }
-//
-//    polygon->index = index;
-//    polygon->prev = NULL;
-//    polygon->next = NULL;
-//    polygon->brush = brush;
-//
-//    return polygon;
-//}
-//
-//struct ed_clipped_polygon_t *ed_CopyPolygon(struct ed_clipped_polygon_t *src)
-//{
-//    struct ed_clipped_polygon_t *copy = NULL;
-//
-//    if(src)
-//    {
-//        copy = ed_AllocPolygon(src->brush);
-//
-//        copy->normal = src->normal;
-//        copy->material = src->material;
-//
-//        if(copy->vertices.buffer_size < src->vertices.buffer_size)
-//        {
-//            ds_buffer_resize(&copy->vertices, src->vertices.buffer_size);
-//        }
-//
-//        memcpy(copy->vertices.buffer, src->vertices.buffer, src->vertices.elem_size * src->vertices.buffer_size);
-//    }
-//
-//    return copy;
-//}
-//
-//void ed_FreeClippedPolygon(struct ed_clipped_polygon_t *polygon, uint32_t free_vertices)
-//{
-//    if(polygon)
-//    {
-//        if(free_indices && polygon->vertices.buffer)
-//        {
-//            ds_buffer_destroy(&polygon->vertices);
-//        }
-//
-//        if(polygon->brush)
-//        {
-//            ds_slist_remove_element(&polygon->brush->polygons, polygon->index);
-//        }
-//        else
-//        {
-//            ds_slist_remove_element(&ed_polygons, polygon->index);
-//        }
-//
-//        polygon->index = 0xffffffff;
-//    }
-//}
-
-
 int compare_polygons(const void *a, const void *b)
 {
     struct ed_bsp_polygon_t *polygon_a = *(struct ed_bsp_polygon_t **)a;
     struct ed_bsp_polygon_t *polygon_b = *(struct ed_bsp_polygon_t **)b;
 
-    if(polygon_a->face->material > polygon_b->face->material)
+    if(polygon_a->face_polygon->face->material > polygon_b->face_polygon->face->material)
     {
         return 1;
     }
-    else if (polygon_a->face->material == polygon_b->face->material)
+    else if (polygon_a->face_polygon->face->material == polygon_b->face_polygon->face->material)
     {
         return 0;
     }
@@ -498,7 +470,7 @@ void ed_UpdateBrush(struct ed_brush_t *brush)
     brush->clipped_index_count = 0;
     brush->clipped_polygon_count = 0;
 
-    struct ed_brush_face_t *face = brush->faces;
+    struct ed_face_t *face = brush->faces;
 
     while(face)
     {
@@ -574,7 +546,7 @@ void ed_UpdateBrush(struct ed_brush_t *brush)
         {
             struct r_batch_t *batch = batches + polygon_batch_index;
 
-            if(batch->material == polygon->face->material)
+            if(batch->material == polygon->face_polygon->face->material)
             {
                 polygon_batch = batch;
                 break;
@@ -588,7 +560,7 @@ void ed_UpdateBrush(struct ed_brush_t *brush)
             polygon_batch = batches + polygon_batch_index;
             polygon_batch->count = 0;
             polygon_batch->start = 0;
-            polygon_batch->material = polygon->face->material;
+            polygon_batch->material = polygon->face_polygon->face->material;
 
             if(polygon_batch_index)
             {
@@ -620,6 +592,19 @@ void ed_UpdateBrush(struct ed_brush_t *brush)
         }
 
         polygon->model_count = polygon_batch->count - polygon->model_count;
+
+
+//        struct ed_face_polygon_t *face_polygon = polygon->face_polygon;
+//        struct ed_edge_t *edge = face_polygon->edges;
+
+//        uint32_t vert_index = polygon->model_start;
+//
+//        while(edge)
+//        {
+//            edge->model_start = vert_index;
+//            vert_index++;
+//            edge = edge->next;
+//        }
 
         first_vertex += polygon->vertices.cursor;
     }
@@ -668,21 +653,84 @@ void ed_UpdateBrush(struct ed_brush_t *brush)
 
 void ed_TranslateBrushFace(struct ed_brush_t *brush, uint32_t face_index, vec3_t *translation)
 {
-    struct ed_brush_face_t *face = ed_GetBrushFace(face_index);
+    struct ed_face_t *face = ed_GetFace(face_index);
 
     if(face)
     {
-        struct ed_brush_face_polygon_t *polygon = face->polygons;
+        struct ed_face_polygon_t *polygon = face->polygons;
+        struct ed_brush_t *brush = face->brush;
 
         while(polygon)
         {
-            struct ed_brush_edge_t *edge = polygon->edges;
+            struct ed_edge_t *edge = polygon->edges;
 
             while(edge)
             {
-                vec3_t *brush_vertex = ds_slist_get_element(&face->brush->vertices, edge->vert0);
+                uint32_t polygon_index = edge->polygons[1].polygon == polygon;
+                vec3_t *brush_vertex = ds_slist_get_element(&face->brush->vertices, edge->verts[polygon_index]);
                 vec3_t_add(brush_vertex, brush_vertex, translation);
-                edge = edge->next;
+                edge = edge->polygons[polygon_index].next;
+            }
+
+            struct ed_edge_t *first_edge = polygon->edges;
+            uint32_t polygon_index = first_edge->polygons[1].polygon == polygon;
+            struct ed_edge_t *second_edge = first_edge->polygons[polygon_index].next;
+
+            vec3_t edge0_vec;
+            vec3_t edge1_vec;
+
+            vec3_t *vert0 = ds_slist_get_element(&brush->vertices, first_edge->verts[polygon_index]);
+            vec3_t *vert1 = ds_slist_get_element(&brush->vertices, first_edge->verts[!polygon_index]);
+            polygon_index = second_edge->polygons[1].polygon == polygon;
+            vec3_t *vert2 = ds_slist_get_element(&brush->vertices, second_edge->verts[!polygon_index]);
+
+            vec3_t_sub(&edge0_vec, vert1, vert0);
+            vec3_t_sub(&edge1_vec, vert2, vert1);
+
+            vec3_t_cross(&polygon->normal, &edge1_vec, &edge0_vec);
+            vec3_t_normalize(&polygon->normal, &polygon->normal);
+
+            polygon->tangent = edge0_vec;
+            vec3_t_normalize(&polygon->tangent, &polygon->tangent);
+
+            polygon = polygon->next;
+        }
+
+        polygon = face->polygons;
+
+        while(polygon)
+        {
+            struct ed_edge_t *edge = polygon->edges;
+
+            while(edge)
+            {
+                uint32_t polygon_index = edge->polygons[0].polygon == polygon;
+                struct ed_face_polygon_t *neighbor_polygon = edge->polygons[polygon_index].polygon;
+
+                struct ed_edge_t *first_edge = neighbor_polygon->edges;
+                polygon_index = first_edge->polygons[1].polygon == neighbor_polygon;
+                struct ed_edge_t *second_edge = first_edge->polygons[polygon_index].next;
+
+                vec3_t edge0_vec;
+                vec3_t edge1_vec;
+
+                vec3_t *vert0 = ds_slist_get_element(&brush->vertices, first_edge->verts[polygon_index]);
+                vec3_t *vert1 = ds_slist_get_element(&brush->vertices, first_edge->verts[!polygon_index]);
+                polygon_index = second_edge->polygons[1].polygon == neighbor_polygon;
+                vec3_t *vert2 = ds_slist_get_element(&brush->vertices, second_edge->verts[!polygon_index]);
+
+                vec3_t_sub(&edge0_vec, vert1, vert0);
+                vec3_t_sub(&edge1_vec, vert2, vert1);
+
+                vec3_t_cross(&neighbor_polygon->normal, &edge1_vec, &edge0_vec);
+                vec3_t_normalize(&neighbor_polygon->normal, &neighbor_polygon->normal);
+
+                neighbor_polygon->tangent = edge0_vec;
+                vec3_t_normalize(&neighbor_polygon->tangent, &neighbor_polygon->tangent);
+
+
+                polygon_index = edge->polygons[1].polygon == polygon;
+                edge = edge->polygons[polygon_index].next;
             }
 
             polygon = polygon->next;
@@ -764,44 +812,75 @@ void ed_FreeBspNode(struct ed_bsp_node_t *node)
     }
 }
 
-struct ed_bsp_polygon_t *ed_BspPolygonFromBrushFace(struct ed_brush_face_t *face)
+struct ed_bsp_polygon_t *ed_BspPolygonFromBrushFace(struct ed_face_t *face)
 {
-    struct ed_brush_face_polygon_t *face_polygon = face->polygons;
+    struct ed_face_polygon_t *face_polygon = face->polygons;
     struct ed_bsp_polygon_t *bsp_polygons = NULL;
+    struct ed_bsp_polygon_t *last_bsp_polygon = NULL;
+    struct ed_bsp_polygon_t dummy_polygon;
+    struct ed_bsp_polygon_t *bsp_polygon = &dummy_polygon;
+
+    dummy_polygon.next = face->clipped_polygons;
 
     while(face_polygon)
     {
-        struct ed_bsp_polygon_t *bsp_polygon = ed_AllocBspPolygon(face_polygon->edge_count);
-        bsp_polygon->face = face;
+        if(!bsp_polygon->next)
+        {
+            bsp_polygon = ed_AllocBspPolygon(face_polygon->edge_count);
+        }
+        else
+        {
+            bsp_polygon = bsp_polygon->next;
+        }
+
+        bsp_polygon->vertices.cursor = 0;
+        bsp_polygon->face_polygon = face_polygon;
         bsp_polygon->normal = face_polygon->normal;
+        bsp_polygon->point = vec3_t_c(0.0, 0.0, 0.0);
 
         struct ds_list_t *polygon_verts = &bsp_polygon->vertices;
         struct ds_slist_t *brush_verts = &face->brush->vertices;
-        struct ed_brush_edge_t *edge = face_polygon->edges;
+        struct ed_edge_t *edge = face_polygon->edges;
 
         while(edge)
         {
-            vec3_t *brush_vert = ds_slist_get_element(brush_verts, edge->vert0);
+            uint32_t polygon_index = edge->polygons[1].polygon == face_polygon;
+            vec3_t *brush_vert = ds_slist_get_element(brush_verts, edge->verts[polygon_index]);
             struct r_vert_t *polygon_vert = ds_list_get_element(polygon_verts, ds_list_add_element(polygon_verts, NULL));
+
+            vec3_t_add(&bsp_polygon->point, &bsp_polygon->point, brush_vert);
 
             polygon_vert->pos = *brush_vert;
             polygon_vert->normal.xyz = face_polygon->normal;
             polygon_vert->tangent = face_polygon->tangent;
             polygon_vert->tex_coords = vec2_t_c(0.0, 0.0);
 
-            edge = edge->next;
+            edge = edge->polygons[polygon_index].next;
         }
 
-        bsp_polygon->next = bsp_polygons;
+        vec3_t_div(&bsp_polygon->point, &bsp_polygon->point, bsp_polygon->vertices.cursor);
 
-        if(bsp_polygons)
+        if(!bsp_polygons)
         {
-            bsp_polygons->prev = bsp_polygon;
+            bsp_polygons = bsp_polygon;
+        }
+        else
+        {
+            last_bsp_polygon->next = bsp_polygon;
+            bsp_polygon->prev = last_bsp_polygon;
         }
 
-        bsp_polygons = bsp_polygon;
-
+        last_bsp_polygon = bsp_polygon;
         face_polygon = face_polygon->next;
+    }
+
+    struct ed_bsp_polygon_t *unused_polygon = last_bsp_polygon->next;
+
+    while(unused_polygon)
+    {
+        struct ed_bsp_polygon_t *next_polygon = unused_polygon->next;
+        ed_FreeBspPolygon(unused_polygon, 0);
+        unused_polygon = next_polygon;
     }
 
     return bsp_polygons;
@@ -813,7 +892,7 @@ struct ed_bsp_polygon_t *ed_AllocBspPolygon(uint32_t vert_count)
     struct ed_bsp_polygon_t *polygon = ds_slist_get_element(&ed_w_ctx_data.brush.bsp_polygons, index);
 
     polygon->index = index;
-    polygon->face = NULL;
+    polygon->face_polygon = NULL;
     polygon->next = NULL;
     polygon->prev = NULL;
 

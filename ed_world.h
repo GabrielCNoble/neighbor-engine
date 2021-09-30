@@ -130,6 +130,8 @@ void ed_w_RotateSelected(mat3_t *rotation, vec3_t *pivot, uint32_t transform_mod
 
 void ed_w_UpdateUI();
 
+void ed_w_UpdateManipulator();
+
 void ed_w_UpdatePickables();
 
 /*

@@ -73,6 +73,7 @@ void ed_DrawPickable(struct ed_pickable_t *pickable, mat4_t *parent_transform)
         model_matrix = pickable->transform;
     }
 
+    mat4_t_mul(&model_matrix, &pickable->draw_offset, &model_matrix);
     r_SetDefaultUniformMat4(R_UNIFORM_MODEL_MATRIX, &model_matrix);
     r_SetNamedUniformI(r_GetNamedUniform(ed_picking_shader, "ed_index"), pickable->index + 1);
     r_SetNamedUniformI(r_GetNamedUniform(ed_picking_shader, "ed_type"), pickable->type + 1);
@@ -236,6 +237,7 @@ struct ds_slist_t *ed_PickableListFromType(uint32_t type)
             return &ed_w_ctx_data.pickables.lists[ED_W_CTX_EDIT_MODE_OBJECT].pickables;
 
         case ED_PICKABLE_TYPE_FACE:
+        case ED_PICKABLE_TYPE_EDGE:
             return &ed_w_ctx_data.pickables.lists[ED_W_CTX_EDIT_MODE_BRUSH].pickables;
 
     }
@@ -255,6 +257,8 @@ struct ed_pickable_t *ed_CreatePickableOnList(uint32_t type, struct ds_slist_t *
     pickable->type = type;
     pickable->transform_flags = 0;
     pickable->selection_index = 0xffffffff;
+
+    mat4_t_identity(&pickable->draw_offset);
 
     return pickable;
 }
@@ -349,7 +353,7 @@ struct ed_pickable_t *ed_CreateBrushPickable(vec3_t *position, mat3_t *orientati
     pickable->ranges = ed_AllocPickableRange();
     mat4_t_comp(&pickable->transform, &brush->orientation, &brush->position);
 
-    struct ed_brush_face_t *face = brush->faces;
+    struct ed_face_t *face = brush->faces;
 
     while(face)
     {
@@ -359,6 +363,26 @@ struct ed_pickable_t *ed_CreateBrushPickable(vec3_t *position, mat3_t *orientati
         face_pickable->mode = GL_TRIANGLES;
         face_pickable->range_count = 0;
         mat4_t_comp(&face_pickable->transform, &brush->orientation, &brush->position);
+
+        struct ed_face_polygon_t *polygon = face->polygons;
+
+//        while(polygon)
+//        {
+//            struct ed_edge_t *edge = polygon->edges;
+//
+//            while(edge)
+//            {
+//                struct ed_pickable_t *edge_pickable = ed_CreatePickable(ED_PICKABLE_TYPE_EDGE);
+//                edge_pickable->primary_index = brush->index;
+//                edge_pickable->secondary_index = edge->index;
+//                edge_pickable->mode = GL_LINES;
+//                edge_pickable->range_count = 0;
+//                edge = edge->next;
+//            }
+//
+//            polygon = polygon->next;
+//        }
+
         face = face->next;
     }
 

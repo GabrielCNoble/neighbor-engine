@@ -12,6 +12,7 @@ enum ED_PICKABLE_TYPE
     ED_PICKABLE_TYPE_ENTITY,
     ED_PICKABLE_TYPE_LIGHT,
     ED_PICKABLE_TYPE_FACE,
+    ED_PICKABLE_TYPE_EDGE,
     ED_PICKABLE_TYPE_WIDGET,
 };
 
@@ -43,7 +44,9 @@ struct ed_pickable_t
     vec3_t translation;
     vec3_t scale;
     mat3_t rotation;
+
     mat4_t transform;
+    mat4_t draw_offset;
 
     uint32_t mode;
     uint32_t range_count;

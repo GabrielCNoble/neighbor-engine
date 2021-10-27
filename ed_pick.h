@@ -9,12 +9,16 @@
 enum ED_PICKABLE_TYPE
 {
     ED_PICKABLE_TYPE_BRUSH = 1,
-    ED_PICKABLE_TYPE_ENTITY,
-    ED_PICKABLE_TYPE_LIGHT,
-    ED_PICKABLE_TYPE_FACE,
-    ED_PICKABLE_TYPE_EDGE,
-    ED_PICKABLE_TYPE_WIDGET,
+    ED_PICKABLE_TYPE_ENTITY = 1 << 1,
+    ED_PICKABLE_TYPE_LIGHT = 1 << 2,
+    ED_PICKABLE_TYPE_FACE = 1 << 3,
+    ED_PICKABLE_TYPE_EDGE = 1 << 4,
+    ED_PICKABLE_TYPE_VERT = 1 << 5,
+    ED_PICKABLE_TYPE_WIDGET = 1 << 6,
 };
+
+#define ED_PICKABLE_BRUSH_PART_MASK (ED_PICKABLE_TYPE_FACE | ED_PICKABLE_TYPE_EDGE | ED_PICKABLE_TYPE_VERT)
+#define ED_PICKABLE_OBJECT_MASK (ED_PICKABLE_TYPE_BRUSH | ED_PICKABLE_TYPE_ENTITY | ED_PICKABLE_TYPE_LIGHT)
 
 struct ed_pickable_range_t
 {
@@ -92,7 +96,7 @@ struct ed_widget_t
     uint32_t stencil_layer;
     struct ds_slist_t pickables;
 
-    void (*mvp_mat_fn)(mat4_t *view_projection_matrix, mat4_t *widget_transform);
+//    void (*mvp_mat_fn)(mat4_t *view_projection_matrix, mat4_t *widget_transform);
     void (*setup_ds_fn)(uint32_t pickable_index, struct ed_pickable_t *pickable);
 };
 
@@ -105,7 +109,7 @@ void ed_PickableModelViewProjectionMatrix(struct ed_pickable_t *pickable, mat4_t
 
 void ed_DrawPickable(struct ed_pickable_t *pickable, mat4_t *parent_transform);
 
-struct ed_pickable_t *ed_SelectPickable(int32_t mouse_x, int32_t mouse_y, struct ds_slist_t *pickables, mat4_t *parent_transform);
+struct ed_pickable_t *ed_SelectPickable(int32_t mouse_x, int32_t mouse_y, struct ds_slist_t *pickables, mat4_t *parent_transform, uint32_t ignore_types);
 
 struct ed_pickable_t *ed_SelectWidget(int32_t mouse_x, int32_t mouse_y, struct ed_widget_t *widget, mat4_t *widget_transform);
 

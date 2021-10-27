@@ -863,10 +863,12 @@ void ed_UpdateBrush(struct ed_brush_t *brush)
     }
 
     brush->vert_transforms.cursor = 0;
-    struct ed_face_t *face = brush->faces;
+    struct ed_face_t *face = NULL;
 
     if(brush->flags & ED_BRUSH_FLAG_GEOMETRY_MODIFIED)
     {
+        face = brush->faces;
+
         while(face)
         {
             struct ed_face_polygon_t *face_polygon = face->polygons;
@@ -916,6 +918,13 @@ void ed_UpdateBrush(struct ed_brush_t *brush)
 
             vec3_t_div(&face->center, &face->center, (float)point_count);
 
+            face = face->next;
+        }
+
+        face = brush->faces;
+
+        while(face)
+        {
             /* regen bsp polygons/reallocate pickable ranges for this face */
             face->clipped_polygons = ed_BspPolygonFromBrushFace(face);
             struct ed_bsp_polygon_t *bsp_polygon = face->clipped_polygons;
@@ -931,35 +940,6 @@ void ed_UpdateBrush(struct ed_brush_t *brush)
                 face->clipped_polygon_count++;
                 bsp_polygon = bsp_polygon->next;
             }
-
-//            struct ed_pickable_t *face_pickable = face->pickable;
-//
-//            if(face_pickable->range_count > face->clipped_polygon_count)
-//            {
-//                while(face_pickable->range_count > face->clipped_polygon_count)
-//                {
-//                    struct ed_pickable_range_t *next_range = face_pickable->ranges->next;
-//                    next_range->prev = NULL;
-//
-//                    ed_FreePickableRange(face_pickable->ranges);
-//                    face_pickable->range_count--;
-//                    face_pickable->ranges = next_range;
-//                }
-//            }
-//            else if(face_pickable->range_count < face->clipped_polygon_count)
-//            {
-//                while(face_pickable->range_count < face->clipped_polygon_count)
-//                {
-//                    struct ed_pickable_range_t *new_range = ed_AllocPickableRange();
-//                    new_range->next = face_pickable->ranges;
-//                    if(face_pickable->ranges)
-//                    {
-//                        face_pickable->ranges->prev = new_range;
-//                    }
-//                    face_pickable->ranges = new_range;
-//                    face_pickable->range_count++;
-//                }
-//            }
 
             brush->clipped_vert_count += face->clipped_vert_count;
             brush->clipped_index_count += face->clipped_index_count;

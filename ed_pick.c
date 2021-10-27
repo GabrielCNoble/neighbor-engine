@@ -16,6 +16,7 @@ extern int32_t r_height;
 extern uint32_t r_vertex_buffer;
 extern uint32_t r_index_buffer;
 extern uint32_t ed_picking_framebuffer;
+extern struct r_model_t *ed_light_pickable_model;
 
 void ed_BeginPicking()
 {
@@ -110,7 +111,7 @@ void ed_PickableModelViewProjectionMatrix(struct ed_pickable_t *pickable, mat4_t
 //    }
 //}
 
-struct ed_pickable_t *ed_SelectPickable(int32_t mouse_x, int32_t mouse_y, struct ds_slist_t *pickables, mat4_t *parent_transform)
+struct ed_pickable_t *ed_SelectPickable(int32_t mouse_x, int32_t mouse_y, struct ds_slist_t *pickables, mat4_t *parent_transform, uint32_t ignore_types)
 {
     struct ed_pickable_t *selection = NULL;
     mat4_t view_projection_matrix;
@@ -124,7 +125,7 @@ struct ed_pickable_t *ed_SelectPickable(int32_t mouse_x, int32_t mouse_y, struct
     {
         struct ed_pickable_t *pickable = ed_GetPickableOnList(pickable_index, pickables);
 
-        if(pickable)
+        if(pickable && (!(pickable->type & ignore_types)))
         {
             mat4_t model_view_projection_matrix;
             ed_PickableModelViewProjectionMatrix(pickable, parent_transform, &model_view_projection_matrix);
@@ -132,6 +133,15 @@ struct ed_pickable_t *ed_SelectPickable(int32_t mouse_x, int32_t mouse_y, struct
             r_SetNamedUniformI(ed_index, pickable->index + 1);
             r_SetNamedUniformI(ed_type, pickable->type + 1);
             struct ed_pickable_range_t *range = pickable->ranges;
+
+            if(pickable->mode == GL_POINTS)
+            {
+                glPointSize(8.0);
+            }
+            else
+            {
+                glPointSize(1.0);
+            }
 
             while(range)
             {
@@ -153,7 +163,7 @@ struct ed_pickable_t *ed_SelectPickable(int32_t mouse_x, int32_t mouse_y, struct
 
 struct ed_pickable_t *ed_SelectWidget(int32_t mouse_x, int32_t mouse_y, struct ed_widget_t *widget, mat4_t *widget_transform)
 {
-    return ed_SelectPickable(mouse_x, mouse_y, &widget->pickables, widget_transform);
+    return ed_SelectPickable(mouse_x, mouse_y, &widget->pickables, widget_transform, 0);
 }
 
 struct ed_widget_t *ed_CreateWidget()
@@ -277,20 +287,20 @@ void ed_FreePickableRange(struct ed_pickable_range_t *range)
 
 struct ds_slist_t *ed_PickableListFromType(uint32_t type)
 {
-    switch(type)
-    {
-        case ED_PICKABLE_TYPE_BRUSH:
-        case ED_PICKABLE_TYPE_LIGHT:
-        case ED_PICKABLE_TYPE_ENTITY:
-            return &ed_w_ctx_data.pickables.lists[ED_W_CTX_EDIT_MODE_OBJECT].pickables;
-
-        case ED_PICKABLE_TYPE_FACE:
-        case ED_PICKABLE_TYPE_EDGE:
-            return &ed_w_ctx_data.pickables.lists[ED_W_CTX_EDIT_MODE_BRUSH].pickables;
-
-    }
-
-    return NULL;
+//    switch(type)
+//    {
+//        case ED_PICKABLE_TYPE_BRUSH:
+//        case ED_PICKABLE_TYPE_LIGHT:
+//        case ED_PICKABLE_TYPE_ENTITY:
+//            return &ed_w_ctx_data.pickables.lists[ED_LEV_EDITOR_EDIT_MODE_OBJECT].pickables;
+//
+//        case ED_PICKABLE_TYPE_FACE:
+//        case ED_PICKABLE_TYPE_EDGE:
+//            return &ed_w_ctx_data.pickables.lists[ED_LEV_EDITOR_EDIT_MODE_BRUSH].pickables;
+//
+//    }
+//
+//    return NULL;
 }
 
 struct ed_pickable_t *ed_CreatePickableOnList(uint32_t type, struct ds_slist_t *pickables)
@@ -318,8 +328,8 @@ struct ed_pickable_t *ed_CreatePickableOnList(uint32_t type, struct ds_slist_t *
 
 struct ed_pickable_t *ed_CreatePickable(uint32_t type)
 {
-    struct ds_slist_t *list = ed_PickableListFromType(type);
-    struct ed_pickable_t *pickable = ed_CreatePickableOnList(type, list);
+//    struct ds_slist_t *list = ed_PickableListFromType(type);
+    struct ed_pickable_t *pickable = ed_CreatePickableOnList(type, &ed_w_ctx_data.pickables.pickables);
     return pickable;
 }
 
@@ -331,9 +341,9 @@ void ed_DestroyPickable(struct ed_pickable_t *pickable)
         {
             case ED_PICKABLE_TYPE_BRUSH:
             {
-                struct ds_list_t *selections = &ed_w_ctx_data.pickables.lists[ED_W_CTX_EDIT_MODE_BRUSH].selections;
+                struct ds_list_t *selections = &ed_w_ctx_data.pickables.selections;
 
-                struct ed_brush_t *brush = ed_GetBrush(pickable->secondary_index);
+                struct ed_brush_t *brush = ed_GetBrush(pickable->primary_index);
                 struct ed_face_t *face = brush->faces;
 
                 while(face)
@@ -370,7 +380,7 @@ void ed_DestroyPickable(struct ed_pickable_t *pickable)
             pickable->ranges = next;
         }
 
-        ds_slist_remove_element(pickable->list, pickable->index);
+        ds_slist_remove_element(&ed_w_ctx_data.pickables.pickables, pickable->index);
         pickable->index = 0xffffffff;
     }
 }
@@ -389,8 +399,7 @@ struct ed_pickable_t *ed_GetPickableOnList(uint32_t index, struct ds_slist_t *pi
 
 struct ed_pickable_t *ed_GetPickable(uint32_t index, uint32_t type)
 {
-    struct ds_slist_t *list = ed_PickableListFromType(type);
-    return ed_GetPickableOnList(index, list);
+    return ed_GetPickableOnList(index, &ed_w_ctx_data.pickables.pickables);
 }
 
 struct ed_pickable_t *ed_CreateBrushPickable(vec3_t *position, mat3_t *orientation, vec3_t *size)
@@ -402,7 +411,7 @@ struct ed_pickable_t *ed_CreateBrushPickable(vec3_t *position, mat3_t *orientati
 
     pickable = ed_CreatePickable(ED_PICKABLE_TYPE_BRUSH);
     pickable->mode = GL_TRIANGLES;
-    pickable->secondary_index = brush->index;
+    pickable->primary_index = brush->index;
     pickable->range_count = 1;
     pickable->ranges = ed_AllocPickableRange();
     mat4_t_comp(&pickable->transform, &brush->orientation, &brush->position);
@@ -451,7 +460,22 @@ struct ed_pickable_t *ed_CreateBrushPickable(vec3_t *position, mat3_t *orientati
 
 struct ed_pickable_t *ed_CreateLightPickable(vec3_t *pos, vec3_t *color, float radius, float energy)
 {
-    return NULL;
+    struct r_light_t *light = r_CreateLight(R_LIGHT_TYPE_POINT, pos, color, radius, energy);
+    struct ed_pickable_t *pickable = ed_CreatePickable(ED_PICKABLE_TYPE_LIGHT);
+    pickable->primary_index = light->index;
+
+    pickable->mode = GL_POINTS;
+    pickable->range_count = 1;
+    pickable->ranges = ed_AllocPickableRange();
+    pickable->ranges->start = ((struct r_batch_t *)ed_light_pickable_model->batches.buffer)[0].start;
+    pickable->ranges->count = 1;
+
+    mat3_t rot;
+    mat3_t_identity(&rot);
+    mat4_t_comp(&pickable->transform, &rot, pos);
+    pickable->draw_transform = pickable->transform;
+
+    return pickable;
 }
 
 struct ed_pickable_t *ed_CreateEntityPickable(mat4_t *transform, struct r_model_t *model)

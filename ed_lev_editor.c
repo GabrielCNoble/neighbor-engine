@@ -4,6 +4,7 @@
 #include "ed_brush.h"
 #include "ed_main.h"
 #include "r_main.h"
+#include "dstuff/ds_buffer.h"
 #include "gui.h"
 #include "game.h"
 #include "input.h"
@@ -18,6 +19,7 @@ struct r_shader_t *ed_center_grid_shader;
 struct r_shader_t *ed_picking_shader;
 struct r_model_t *ed_translation_widget_model;
 struct r_model_t *ed_rotation_widget_model;
+struct r_model_t *ed_light_pickable_model;
 struct r_model_t *ed_ball_widget_model;
 //struct ed_pickable_t *ed_translation_widget;
 struct r_shader_t *ed_outline_shader;
@@ -73,34 +75,37 @@ vec4_t ed_selection_outline_colors[][2] =
     [ED_PICKABLE_TYPE_FACE][1] = vec4_t_c(0.3, 0.4, 1.0, 1.0),
 };
 
-struct ed_state_t ed_world_context_states[] =
-{
-    [ED_WORLD_CONTEXT_STATE_IDLE] = ed_w_Idle,
-    [ED_WORLD_CONTEXT_STATE_LEFT_CLICK] = ed_w_LeftClick,
-    [ED_WORLD_CONTEXT_STATE_RIGHT_CLICK] = ed_w_RightClick,
-    [ED_WORLD_CONTEXT_STATE_BRUSH_BOX] = ed_w_BrushBox,
-    [ED_WORLD_CONTEXT_STATE_TRANSFORM_SELECTIONS] = ed_w_TransformSelections,
-    [ED_WORLD_CONTEXT_STATE_PICK_OBJECT] = ed_w_PickObject,
-    [ED_WORLD_CONTEXT_STATE_FLY_CAMERA] = ed_w_FlyCamera
-};
+//struct ed_state_t ed_world_context_states[] =
+//{
+//    [ED_WORLD_CONTEXT_STATE_IDLE] = ed_w_Idle,
+//    [ED_WORLD_CONTEXT_STATE_LEFT_CLICK] = ed_w_LeftClick,
+//    [ED_WORLD_CONTEXT_STATE_RIGHT_CLICK] = ed_w_RightClick,
+//    [ED_WORLD_CONTEXT_STATE_BRUSH_BOX] = ed_w_BrushBox,
+//    [ED_WORLD_CONTEXT_STATE_TRANSFORM_SELECTIONS] = ed_w_TransformSelections,
+//    [ED_WORLD_CONTEXT_STATE_PICK_OBJECT] = ed_w_PickObject,
+//    [ED_WORLD_CONTEXT_STATE_FLY_CAMERA] = ed_w_FlyCamera
+//};
 
 void ed_w_Init()
 {
     ed_world_context = ed_contexts + ED_CONTEXT_WORLD;
     ed_world_context->update = ed_w_Update;
-    ed_world_context->states = ed_world_context_states;
-    ed_world_context->current_state = ED_WORLD_CONTEXT_STATE_IDLE;
+//    ed_world_context->states = ed_world_context_states;
+    ed_world_context->next_state = ed_w_Idle;
     ed_world_context->context_data = &ed_w_ctx_data;
 
-    ed_w_ctx_data.pickables.edit_mode = ED_W_CTX_EDIT_MODE_OBJECT;
+//    ed_w_ctx_data.pickables.edit_mode = ED_LEV_EDITOR_EDIT_MODE_OBJECT;
     ed_w_ctx_data.pickables.last_selected = NULL;
-    ed_w_ctx_data.pickables.lists[ED_W_CTX_EDIT_MODE_OBJECT].pickables = ds_slist_create(sizeof(struct ed_pickable_t), 512);
-    ed_w_ctx_data.pickables.lists[ED_W_CTX_EDIT_MODE_OBJECT].selections = ds_list_create(sizeof(struct ed_pickable_t *), 512);
-    ed_w_ctx_data.pickables.lists[ED_W_CTX_EDIT_MODE_BRUSH].pickables = ds_slist_create(sizeof(struct ed_pickable_t), 512);
-    ed_w_ctx_data.pickables.lists[ED_W_CTX_EDIT_MODE_BRUSH].selections = ds_list_create(sizeof(struct ed_pickable_t *), 512);
-    ed_w_ctx_data.pickables.active_list = ed_w_ctx_data.pickables.lists + ed_w_ctx_data.pickables.edit_mode;
+    ed_w_ctx_data.pickables.selections = ds_list_create(sizeof(struct ed_pickable_t *), 512);
+    ed_w_ctx_data.pickables.pickables = ds_slist_create(sizeof(struct ed_pickable_t), 512);
+//    ed_w_ctx_data.pickables.lists[ED_LEV_EDITOR_EDIT_MODE_OBJECT].pickables = ds_slist_create(sizeof(struct ed_pickable_t), 512);
+//    ed_w_ctx_data.pickables.lists[ED_LEV_EDITOR_EDIT_MODE_OBJECT].selections = ds_list_create(sizeof(struct ed_pickable_t *), 512);
+//    ed_w_ctx_data.pickables.lists[ED_LEV_EDITOR_EDIT_MODE_BRUSH].pickables = ds_slist_create(sizeof(struct ed_pickable_t), 512);
+//    ed_w_ctx_data.pickables.lists[ED_LEV_EDITOR_EDIT_MODE_BRUSH].selections = ds_list_create(sizeof(struct ed_pickable_t *), 512);
+//    ed_w_ctx_data.pickables.active_list = ed_w_ctx_data.pickables.lists + ed_w_ctx_data.pickables.edit_mode;
     ed_w_ctx_data.pickables.modified_brushes = ds_list_create(sizeof(struct ed_brush_t *), 512);
     ed_w_ctx_data.pickables.modified_pickables = ds_list_create(sizeof(struct ed_pickable_t *), 512);
+    ed_w_ctx_data.pickables.secondary_click_function = ED_LEV_EDITOR_SECONDARY_CLICK_FUNC_BRUSH;
 
     ed_w_ctx_data.pickable_ranges = ds_slist_create(sizeof(struct ed_pickable_range_t), 512);
     ed_w_ctx_data.widgets = ds_slist_create(sizeof(struct ed_widget_t), 16);
@@ -133,9 +138,9 @@ void ed_w_Init()
 
     mat4_t_identity(&ed_w_ctx_data.manipulator.transform);
     ed_w_ctx_data.manipulator.linear_snap = 0.25;
-    ed_w_ctx_data.manipulator.mode = ED_W_CTX_MANIPULATOR_MODE_TRANSLATION;
-    ed_w_ctx_data.manipulator.widgets[ED_W_CTX_MANIPULATOR_MODE_TRANSLATION] = ed_CreateWidget(NULL);
-    struct ed_widget_t *widget = ed_w_ctx_data.manipulator.widgets[ED_W_CTX_MANIPULATOR_MODE_TRANSLATION];
+    ed_w_ctx_data.manipulator.mode = ED_LEV_EDITOR_MANIP_MODE_TRANSLATION;
+    ed_w_ctx_data.manipulator.widgets[ED_LEV_EDITOR_MANIP_MODE_TRANSLATION] = ed_CreateWidget(NULL);
+    struct ed_widget_t *widget = ed_w_ctx_data.manipulator.widgets[ED_LEV_EDITOR_MANIP_MODE_TRANSLATION];
     widget->setup_ds_fn = ed_w_ManipulatorWidgetSetupPickableDrawState;
 
     struct ed_pickable_t *translation_axis;
@@ -193,8 +198,8 @@ void ed_w_Init()
 
 
 
-    ed_w_ctx_data.manipulator.widgets[ED_W_CTX_MANIPULATOR_MODE_ROTATION] = ed_CreateWidget(NULL);
-    widget = ed_w_ctx_data.manipulator.widgets[ED_W_CTX_MANIPULATOR_MODE_ROTATION];
+    ed_w_ctx_data.manipulator.widgets[ED_LEV_EDITOR_MANIP_MODE_ROTATION] = ed_CreateWidget(NULL);
+    widget = ed_w_ctx_data.manipulator.widgets[ED_LEV_EDITOR_MANIP_MODE_ROTATION];
     widget->setup_ds_fn = ed_w_ManipulatorWidgetSetupPickableDrawState;
 
     struct ed_pickable_t *rotation_axis;
@@ -247,11 +252,27 @@ void ed_w_Init()
 
 
 
+    struct ds_buffer_t vert_buffer = ds_buffer_create(sizeof(struct r_vert_t), 1);
+    struct ds_buffer_t index_buffer = ds_buffer_create(sizeof(uint32_t), 1);
+    struct ds_buffer_t batch_buffer = ds_buffer_create(sizeof(struct r_batch_t), 1);
 
+    ((struct r_vert_t *)vert_buffer.buffer)[0].pos = vec3_t_c(0.0, 0.0, 0.0);
+    ((uint32_t *)index_buffer.buffer)[0] = 0;
+    ((struct r_batch_t *)batch_buffer.buffer)[0] = (struct r_batch_t){.start = 0, .count = 0, .material = NULL};
 
+    struct r_model_geometry_t geometry = {};
 
+    geometry.batches = batch_buffer.buffer;
+    geometry.batch_count = 1;
+    geometry.verts = vert_buffer.buffer;
+    geometry.vert_count = 1;
+    geometry.indices = index_buffer.buffer;
+    geometry.index_count = 1;
 
-
+    ed_light_pickable_model = r_CreateModel(&geometry, NULL);
+    ds_buffer_destroy(&vert_buffer);
+    ds_buffer_destroy(&index_buffer);
+    ds_buffer_destroy(&batch_buffer);
 
     ed_grid = r_i_AllocImmediateExternData(sizeof(struct r_i_verts_t) + sizeof(struct r_vert_t) * 6);
 
@@ -316,7 +337,7 @@ void ed_w_AddSelection(struct ed_pickable_t *selection, uint32_t multiple_key_do
 {
     if(!selections)
     {
-        selections = &ed_w_ctx_data.pickables.active_list->selections;
+        selections = &ed_w_ctx_data.pickables.selections;
     }
 
     if(selection->selection_index != 0xffffffff)
@@ -359,7 +380,7 @@ void ed_w_DropSelection(struct ed_pickable_t *selection, struct ds_list_t *selec
 {
     if(!selections)
     {
-        selections = &ed_w_ctx_data.pickables.active_list->selections;
+        selections = &ed_w_ctx_data.pickables.selections;
     }
 
     if(selection && selection->selection_index != 0xffffffff)
@@ -381,7 +402,7 @@ void ed_w_ClearSelections(struct ds_list_t *selections)
 {
     if(!selections)
     {
-        selections = &ed_w_ctx_data.pickables.active_list->selections;
+        selections = &ed_w_ctx_data.pickables.selections;
     }
 
     for(uint32_t selection_index = 0; selection_index < selections->cursor; selection_index++)
@@ -395,7 +416,7 @@ void ed_w_ClearSelections(struct ds_list_t *selections)
 
 void ed_w_DeleteSelections()
 {
-    struct ds_list_t *selections = &ed_w_ctx_data.pickables.active_list->selections;
+    struct ds_list_t *selections = &ed_w_ctx_data.pickables.selections;
     for(uint32_t selection_index = 0; selection_index < selections->cursor; selection_index++)
     {
         struct ed_pickable_t *pickable = *(struct ed_pickable_t **)ds_list_get_element(selections, selection_index);
@@ -407,11 +428,11 @@ void ed_w_DeleteSelections()
 
 void ed_w_TranslateSelected(vec3_t *translation, uint32_t transform_mode)
 {
-    struct ed_w_ctx_object_list_t *active_list = ed_w_ctx_data.pickables.active_list;
+    struct ds_list_t *selections = &ed_w_ctx_data.pickables.selections;
 
-    for(uint32_t selection_index = 0; selection_index < active_list->selections.cursor; selection_index++)
+    for(uint32_t selection_index = 0; selection_index < selections->cursor; selection_index++)
     {
-        struct ed_pickable_t *pickable = *(struct ed_pickable_t **)ds_list_get_element(&active_list->selections, selection_index);
+        struct ed_pickable_t *pickable = *(struct ed_pickable_t **)ds_list_get_element(selections, selection_index);
         pickable->translation = *translation;
         pickable->transform_flags |= ED_PICKABLE_TRANSFORM_FLAG_TRANSLATION;
         ed_w_MarkPickableModified(pickable);
@@ -420,11 +441,11 @@ void ed_w_TranslateSelected(vec3_t *translation, uint32_t transform_mode)
 
 void ed_w_RotateSelected(mat3_t *rotation, vec3_t *pivot, uint32_t transform_mode)
 {
-    struct ed_w_ctx_object_list_t *active_list = ed_w_ctx_data.pickables.active_list;
+    struct ds_list_t *selections = &ed_w_ctx_data.pickables.selections;
 
-    for(uint32_t selection_index = 0; selection_index < active_list->selections.cursor; selection_index++)
+    for(uint32_t selection_index = 0; selection_index < selections->cursor; selection_index++)
     {
-        struct ed_pickable_t *pickable = *(struct ed_pickable_t **)ds_list_get_element(&active_list->selections, selection_index);
+        struct ed_pickable_t *pickable = *(struct ed_pickable_t **)ds_list_get_element(selections, selection_index);
         pickable->rotation = *rotation;
         pickable->transform_flags |= ED_PICKABLE_TRANSFORM_FLAG_ROTATION;
 
@@ -482,25 +503,25 @@ void ed_w_UpdateUI()
         char *edit_mode_text = NULL;
         char *transform_mode_text = NULL;
 
-        switch(ed_w_ctx_data.pickables.edit_mode)
-        {
-            case ED_W_CTX_EDIT_MODE_OBJECT:
-                edit_mode_text = "Object";
-            break;
-
-            case ED_W_CTX_EDIT_MODE_BRUSH:
-                edit_mode_text = "Brush";
-            break;
-        }
+//        switch(ed_w_ctx_data.pickables.edit_mode)
+//        {
+//            case ED_LEV_EDITOR_EDIT_MODE_OBJECT:
+//                edit_mode_text = "Object";
+//            break;
+//
+//            case ED_LEV_EDITOR_EDIT_MODE_BRUSH:
+//                edit_mode_text = "Brush";
+//            break;
+//        }
 
 
         switch(ed_w_ctx_data.manipulator.mode)
         {
-            case ED_W_CTX_MANIPULATOR_MODE_TRANSLATION:
+            case ED_LEV_EDITOR_MANIP_MODE_TRANSLATION:
                 transform_mode_text = "Translation";
             break;
 
-            case ED_W_CTX_MANIPULATOR_MODE_ROTATION:
+            case ED_LEV_EDITOR_MANIP_MODE_ROTATION:
                 transform_mode_text = "Rotation";
             break;
         }
@@ -509,17 +530,17 @@ void ed_w_UpdateUI()
         igPushStyleVar_Float(ImGuiStyleVar_Alpha, 0.5);
         if(igBeginTable("Stats table", 6, ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_Hideable, (ImVec2){0.0, 0.0}, 0.0))
         {
-            struct ed_w_ctx_object_list_t *list = ed_w_ctx_data.pickables.active_list;
+            struct ds_slist_t *pickables = &ed_w_ctx_data.pickables.pickables;
+            struct ds_list_t *selections = &ed_w_ctx_data.pickables.selections;
+//            struct ed_lev_editor_object_list_t *list = ed_w_ctx_data.pickables.active_list;
 
-
-//            igTableSetupColumn("blah", 0, 100.0, 0);
             igTableNextRow(0, 0.0);
+//            igTableNextColumn();
+//            igText("Edit mode: %s  ", edit_mode_text);
             igTableNextColumn();
-            igText("Edit mode: %s  ", edit_mode_text);
+            igText("Objects: %d  ", pickables->used);
             igTableNextColumn();
-            igText("Objects: %d  ", list->pickables.used);
-            igTableNextColumn();
-            igText("Selected: %d  ", list->selections.cursor);
+            igText("Selected: %d  ", selections->cursor);
             igTableNextColumn();
             igText("Manipulator: %s  ", transform_mode_text);
             igTableNextColumn();
@@ -528,7 +549,7 @@ void ed_w_UpdateUI()
             char snap_preview[32];
             igText("Snap: ");
             igSameLine(0.0, -1.0);
-            if(ed_w_ctx_data.manipulator.mode == ED_W_CTX_MANIPULATOR_MODE_ROTATION)
+            if(ed_w_ctx_data.manipulator.mode == ED_LEV_EDITOR_MANIP_MODE_ROTATION)
             {
                 sprintf(snap_preview, "%0.4f deg", ed_w_ctx_data.manipulator.angular_snap * 180.0);
                 igSetNextItemWidth(120.0);
@@ -602,24 +623,24 @@ void ed_w_UpdateUI()
     igPushStyleVar_Vec2(ImGuiStyleVar_WindowPadding, (ImVec2){2, 2});
     if(igBegin("##Footer", NULL, footer_flags))
     {
-//        if(igButton("Blah", (ImVec2){20.0, 20.0}))
-//        {
-//            printf("I'm a button, watcha gonna do bout it?\n");
-//        }
-//
+        if(igButton("Brush", (ImVec2){0.0, 20.0}))
+        {
+            ed_w_ctx_data.pickables.secondary_click_function = ED_LEV_EDITOR_SECONDARY_CLICK_FUNC_BRUSH;
+        }
+
 //        if(igIsItemHovered(0))
 //        {
 //            igBeginTooltip();
 //            igText("This is blah");
 //            igEndTooltip();
 //        }
-//
-//        igSameLine(0.0, -1.0);
-//
-//        if(igButton("Blah", (ImVec2){20.0, 20.0}))
-//        {
-//            printf("I'm a button, watcha gonna do bout it?\n");
-//        }
+
+        igSameLine(0.0, -1.0);
+
+        if(igButton("Light", (ImVec2){0.0, 20.0}))
+        {
+            ed_w_ctx_data.pickables.secondary_click_function = ED_LEV_EDITOR_SECONDARY_CLICK_FUNC_LIGHT;
+        }
     }
     igEnd();
 
@@ -628,7 +649,7 @@ void ed_w_UpdateUI()
 
 void ed_w_UpdateManipulator()
 {
-    struct ds_list_t *selections = &ed_w_ctx_data.pickables.active_list->selections;
+    struct ds_list_t *selections = &ed_w_ctx_data.pickables.selections;
     ed_w_ctx_data.manipulator.visible = selections->cursor;
 
     if(ed_w_ctx_data.manipulator.visible)
@@ -690,7 +711,7 @@ void ed_w_UpdatePickableObjects()
             {
                 case ED_PICKABLE_TYPE_BRUSH:
                 {
-                    struct ed_brush_t *brush = ed_GetBrush(pickable->secondary_index);
+                    struct ed_brush_t *brush = ed_GetBrush(pickable->primary_index);
                     struct r_batch_t *first_batch = brush->model->batches.buffer;
                     pickable->ranges->start = first_batch->start;
                     pickable->ranges->count = brush->model->indices.buffer_size;
@@ -709,18 +730,18 @@ void ed_w_UpdatePickableObjects()
                             mat3_t_mul(&brush->orientation, &brush->orientation, &pickable->rotation);
                         }
 
-                        struct ed_face_t *face = brush->faces;
-
                         /* update brush to update its entity transform */
                         ed_w_MarkBrushModified(brush);
+                    }
 
-                        while(face)
-                        {
-                            /* face/edge/vertice pickables also depend on the up to date brush transform,
-                            so mark those as modified so they can have their transforms updated as well */
-                            ed_w_MarkPickableModified(face->pickable);
-                            face = face->next;
-                        }
+                    struct ed_face_t *face = brush->faces;
+
+                    while(face)
+                    {
+                        /* face/edge/vertice pickables also depend on the up to date brush transform,
+                        so mark those as modified so they can have their transforms updated as well */
+                        ed_w_MarkPickableModified(face->pickable);
+                        face = face->next;
                     }
 
                     mat4_t_comp(&pickable->transform, &brush->orientation, &brush->position);
@@ -796,45 +817,11 @@ void ed_w_UpdatePickableObjects()
                         needs to be recomputed every time some vertice gets moved), so mark it as modified,
                         so it can have its transform recomputed */
                         ed_w_MarkPickableModified(brush->pickable);
-
-
-                        /* this seems a bit odd, but we also need to mark this pickable as modified again. The reason
-                        is that its transform depends on the updated brush transform, since that influences the position
-                        of face centers. Those will get updated only after all vertex modifications are applied, so we
-                        mark it as modified again to have its transform recomputed. */
-                        pickable->modified_index = 0xffffffff;
-                        ed_w_MarkPickableModified(pickable);
-
-                        struct ed_face_polygon_t *polygon = face->polygons;
-
-                        while(polygon)
-                        {
-                            struct ed_edge_t *edge = polygon->edges;
-
-                            while(edge)
-                            {
-                                uint32_t neighbor_index = edge->polygons[0].polygon == polygon;
-                                struct ed_face_polygon_t *neighbor_polygon = edge->polygons[neighbor_index].polygon;
-                                struct ed_face_t *neighbor_face = neighbor_polygon->face;
-                                struct ed_pickable_t *neighbor_pickable = neighbor_face->pickable;
-
-                                if(neighbor_pickable->modified_index == 0xffffffff)
-                                {
-                                    /* mark neighbor pickables as modified, since the vertices modified
-                                    will affect its face center and polygon normals/uvs */
-                                    ed_w_MarkPickableModified(neighbor_pickable);
-                                }
-
-                                edge = edge->polygons[!neighbor_index].next;
-                            }
-
-                            polygon = polygon->next;
-                        }
                     }
                     else
                     {
                         /* this pickable wasn't modified directly, but was marked as modified because its transform
-                        was affected by some brush geometry change */
+                        was affected by some brush geometry/transform change */
                         vec3_t face_position = face->center;
                         mat3_t_vec3_t_mul(&face_position, &face_position, &brush->orientation);
 
@@ -873,7 +860,18 @@ void ed_w_UpdatePickableObjects()
     //                break;
 
                 case ED_PICKABLE_TYPE_LIGHT:
+                {
+                    struct r_light_t *light = r_GetLight(pickable->primary_index);
+                    mat3_t rot;
+                    if(pickable->transform_flags & ED_PICKABLE_TRANSFORM_FLAG_TRANSLATION)
+                    {
+                        vec3_t_add(&light->data.pos_rad.xyz, &light->data.pos_rad.xyz, &pickable->translation);
+                    }
 
+                    mat3_t_identity(&rot);
+                    mat4_t_comp(&pickable->transform, &rot, &light->data.pos_rad.xyz);
+                    pickable->draw_transform = pickable->transform;
+                }
                 break;
 
                 case ED_PICKABLE_TYPE_ENTITY:
@@ -901,59 +899,6 @@ void ed_w_UpdatePickableObjects()
     while(pickable_index < pickable_count);
 
     pickables->cursor = 0;
-
-//        for(uint32_t pickable_index = 0; pickable_index < pickables->cursor; pickable_index++)
-//        {
-//            struct ed_pickable_t *pickable = ed_GetPickableOnList(pickable_index, pickables);
-//
-//            if(pickable)
-//            {
-//                switch(pickable->type)
-//                {
-//                    case ED_PICKABLE_TYPE_FACE:
-//                    {
-//                        struct ed_brush_t *brush = ed_GetBrush(pickable->primary_index);
-//                        struct ed_face_t *face = ed_GetFace(pickable->secondary_index);
-//
-//                        vec3_t face_position = face->center;
-//                        mat3_t_vec3_t_mul(&face_position, &face_position, &brush->orientation);
-//
-//                        mat4_t_comp(&pickable->transform, &brush->orientation, &brush->position);
-//                        vec3_t_add(&pickable->transform.rows[3].xyz, &pickable->transform.rows[3].xyz, &face_position);
-//
-//                        mat4_t draw_offset;
-//                        mat4_t_identity(&draw_offset);
-//                        vec3_t_mul(&draw_offset.rows[3].xyz, &face->center, -1.0);
-//                        mat4_t_mul(&pickable->draw_transform, &draw_offset, &pickable->transform);
-//                    }
-//                    break;
-//
-//    //                case ED_PICKABLE_TYPE_EDGE:
-//    //                {
-//    //                    struct ed_brush_t *brush = ed_GetBrush(pickable->primary_index);
-//    //                    struct ed_edge_t *edge = ed_GetEdge(pickable->secondary_index);
-//    //                    struct r_model_t *model = brush->model;
-//    //                    struct r_batch_t *first_batch = model->batches.buffer;
-//    //
-//    //                    if(!pickable->range_count)
-//    //                    {
-//    //                        pickable->ranges = ed_AllocPickableRange();
-//    //                        pickable->range_count = 1;
-//    //                    }
-//    //
-//    //                    pickable->ranges->start = first_batch->start + edge->model_start;
-//    //                    pickable->ranges->count = 2;
-//    //
-//    //                    if(!pickable->transform_flags)
-//    //                    {
-//    //                        mat4_t_comp(&pickable->transform, &brush->orientation, &brush->position);
-//    //                    }
-//    //                }
-//    //                break;
-//                }
-//            }
-//        }
-//    }
 }
 
 void ed_w_Update()
@@ -1049,9 +994,9 @@ void ed_w_DrawLights()
 
 void ed_w_DrawSelections()
 {
-    struct ed_w_ctx_object_list_t *list = ed_w_ctx_data.pickables.active_list;
+    struct ds_list_t *selections = &ed_w_ctx_data.pickables.selections;
 
-    if(list->selections.cursor)
+    if(selections->cursor)
     {
         r_i_SetViewProjectionMatrix(NULL);
         r_i_SetShader(ed_outline_shader);
@@ -1059,7 +1004,7 @@ void ed_w_DrawSelections()
         r_i_SetRasterizer(GL_TRUE, GL_FRONT, GL_LINE);
         r_i_SetModelMatrix(NULL);
 
-        uint32_t selection_count = list->selections.cursor - 1;
+        uint32_t selection_count = selections->cursor - 1;
         uint32_t selection_index = 0;
         uint8_t stencil_value = 1;
 
@@ -1069,11 +1014,7 @@ void ed_w_DrawSelections()
         {
             for(; selection_index < selection_count; selection_index++)
             {
-                struct ed_pickable_t *pickable = *(struct ed_pickable_t **)ds_list_get_element(&list->selections, selection_index);
-
-//                mat4_t model_matrix;
-//                mat4_t_mul(&model_matrix, &pickable->draw_offset, &pickable->transform);
-//                r_i_SetModelMatrix(&model_matrix);
+                struct ed_pickable_t *pickable = *(struct ed_pickable_t **)ds_list_get_element(selections, selection_index);
 
                 mat4_t model_view_projection_matrix;
                 ed_PickableModelViewProjectionMatrix(pickable, NULL, &model_view_projection_matrix);
@@ -1293,7 +1234,7 @@ void ed_w_PointPixelCoords(int32_t *x, int32_t *y, vec3_t *point)
 void ed_w_Idle(struct ed_context_t *context, uint32_t just_changed)
 {
     struct ed_world_context_data_t *context_data = context->context_data;
-    struct ds_list_t *selections = &ed_w_ctx_data.pickables.active_list->selections;
+    struct ds_list_t *selections = &ed_w_ctx_data.pickables.selections;
 
 //    igText("R Mouse down: fly camera");
 //    igText("L Mouse down: select object...");
@@ -1302,33 +1243,21 @@ void ed_w_Idle(struct ed_context_t *context, uint32_t just_changed)
 
     if(in_GetKeyState(SDL_SCANCODE_LALT) & IN_KEY_STATE_PRESSED)
     {
-        ed_SetNextContextState(context, ED_WORLD_CONTEXT_STATE_FLY_CAMERA);
+        ed_SetNextContextState(context, ed_w_FlyCamera);
         in_SetMouseWarp(1);
     }
     else if(in_GetMouseButtonState(SDL_BUTTON_LEFT) & IN_KEY_STATE_JUST_PRESSED)
     {
-        ed_SetNextContextState(context, ED_WORLD_CONTEXT_STATE_LEFT_CLICK);
+        ed_SetNextContextState(context, ed_w_LeftClick);
     }
     else if(in_GetMouseButtonState(SDL_BUTTON_RIGHT) & IN_KEY_STATE_JUST_PRESSED)
     {
-        ed_SetNextContextState(context, ED_WORLD_CONTEXT_STATE_RIGHT_CLICK);
+        ed_SetNextContextState(context, ed_w_RightClick);
     }
-
-//    if(in_GetKeyState(SDL_SCANCODE_TAB) & IN_KEY_STATE_JUST_PRESSED)
-//    {
-//        if(context_data->pickables.edit_mode == ED_W_CTX_EDIT_MODE_OBJECT)
-//        {
-//            ed_w_EnterBrushEditMode(context, just_changed);
-//        }
-//        else
-//        {
-//            ed_w_EnterObjectEditMode(context, just_changed);
-//        }
-//    }
 
     if(in_GetKeyState(SDL_SCANCODE_LCTRL) & IN_KEY_STATE_PRESSED)
     {
-        ed_SetNextContextState(context, ED_WORLD_CONTEXT_STATE_BRUSH_BOX);
+        ed_SetNextContextState(context, ed_w_BrushBox);
     }
 
     if(selections->cursor && (in_GetKeyState(SDL_SCANCODE_DELETE) & IN_KEY_STATE_JUST_PRESSED))
@@ -1338,12 +1267,12 @@ void ed_w_Idle(struct ed_context_t *context, uint32_t just_changed)
 
     if(in_GetKeyState(SDL_SCANCODE_G) & IN_KEY_STATE_JUST_PRESSED)
     {
-        ed_w_ctx_data.manipulator.mode = ED_W_CTX_MANIPULATOR_MODE_TRANSLATION;
+        ed_w_ctx_data.manipulator.mode = ED_LEV_EDITOR_MANIP_MODE_TRANSLATION;
     }
 
     else if(in_GetKeyState(SDL_SCANCODE_R) & IN_KEY_STATE_JUST_PRESSED)
     {
-        ed_w_ctx_data.manipulator.mode = ED_W_CTX_MANIPULATOR_MODE_ROTATION;
+        ed_w_ctx_data.manipulator.mode = ED_LEV_EDITOR_MANIP_MODE_ROTATION;
     }
 }
 
@@ -1354,7 +1283,7 @@ void ed_w_FlyCamera(struct ed_context_t *context, uint32_t just_changed)
 
     if(!(in_GetKeyState(SDL_SCANCODE_LALT) & IN_KEY_STATE_PRESSED))
     {
-        ed_SetNextContextState(context, ED_WORLD_CONTEXT_STATE_IDLE);
+        ed_SetNextContextState(context, ed_w_Idle);
         in_SetMouseWarp(0);
         return;
     }
@@ -1401,28 +1330,23 @@ void ed_w_RightClick(struct ed_context_t *context, uint32_t just_changed)
 {
     struct ed_world_context_data_t *context_data = (struct ed_world_context_data_t *)context->context_data;
 
-//    if(just_changed && context_data->pickables.edit_mode == ED_W_CTX_EDIT_MODE_OBJECT)
-//    {
-//        ed_w_EnterBrushEditMode(context, just_changed);
-//        context_data->pickables.mouse_first_released = 0;
-//    }
+    switch(context_data->pickables.secondary_click_function)
+    {
+        case ED_LEV_EDITOR_SECONDARY_CLICK_FUNC_BRUSH:
+            context_data->pickables.ignore_types = ED_PICKABLE_OBJECT_MASK;
+            ed_w_PickObjectOrWidget(context, just_changed);
+        break;
 
-    context_data->pickables.next_edit_mode = ED_W_CTX_EDIT_MODE_BRUSH;
-
-    ed_w_PickObjectOrWidget(context, just_changed);
+        case ED_LEV_EDITOR_SECONDARY_CLICK_FUNC_LIGHT:
+            ed_SetNextContextState(context, ed_w_PlaceLightAtCursor);
+        break;
+    }
 }
 
 void ed_w_LeftClick(struct ed_context_t *context, uint32_t just_changed)
 {
     struct ed_world_context_data_t *context_data = (struct ed_world_context_data_t *)context->context_data;
-
-//    if(just_changed)
-//    {
-    context_data->pickables.next_edit_mode = ED_W_CTX_EDIT_MODE_OBJECT;
-//        ed_w_EnterObjectEditMode(context, just_changed);
-//        context_data->pickables.mouse_first_released = 0;
-//    }
-
+    context_data->pickables.ignore_types = ED_PICKABLE_BRUSH_PART_MASK;
     ed_w_PickObjectOrWidget(context, just_changed);
 }
 
@@ -1441,7 +1365,7 @@ void ed_w_BrushBox(struct ed_context_t *context, uint32_t just_changed)
     {
         if(in_GetKeyState(SDL_SCANCODE_ESCAPE) & IN_KEY_STATE_PRESSED)
         {
-            ed_SetNextContextState(context, ED_WORLD_CONTEXT_STATE_IDLE);
+            ed_SetNextContextState(context, ed_w_Idle);
         }
         else
         {
@@ -1454,11 +1378,13 @@ void ed_w_BrushBox(struct ed_context_t *context, uint32_t just_changed)
             in_GetMousePos(&mouse_x, &mouse_y);
 
             vec3_t intersection = {};
-            struct ds_slist_t *pickables = &context_data->pickables.lists[ED_W_CTX_EDIT_MODE_BRUSH].pickables;
-            struct ed_pickable_t *surface = ed_SelectPickable(mouse_x, mouse_y, pickables, NULL);
 
             if(!context_data->brush.drawing)
             {
+                uint32_t ignore_types = ED_PICKABLE_OBJECT_MASK | ED_PICKABLE_TYPE_EDGE | ED_PICKABLE_TYPE_VERT;
+                struct ds_slist_t *pickables = &context_data->pickables.pickables;
+                struct ed_pickable_t *surface = ed_SelectPickable(mouse_x, mouse_y, pickables, NULL, ignore_types);
+
                 if(surface)
                 {
                     struct ed_brush_t *brush = ed_GetBrush(surface->primary_index);
@@ -1688,7 +1614,7 @@ void ed_w_BrushBox(struct ed_context_t *context, uint32_t just_changed)
 
         if(!context_data->brush.drawing)
         {
-            ed_SetNextContextState(context, ED_WORLD_CONTEXT_STATE_IDLE);
+            ed_SetNextContextState(context, ed_w_Idle);
         }
         else
         {
@@ -1704,7 +1630,7 @@ void ed_w_BrushBox(struct ed_context_t *context, uint32_t just_changed)
             vec3_t_fmadd(&position, &position, &context_data->brush.plane_orientation.rows[1], size.y * 0.5);
 
             ed_CreateBrushPickable(&position, &context_data->brush.plane_orientation, &size);
-            ed_SetNextContextState(context, ED_WORLD_CONTEXT_STATE_IDLE);
+            ed_SetNextContextState(context, ed_w_Idle);
         }
     }
 }
@@ -1721,7 +1647,7 @@ void ed_w_PickObjectOrWidget(struct ed_context_t *context, uint32_t just_changed
     {
         context_data->pickables.last_selected = NULL;
 
-        if(context_data->pickables.active_list->selections.cursor)
+        if(context_data->pickables.selections.cursor)
         {
             struct ed_widget_t *manipulator = context_data->manipulator.widgets[context_data->manipulator.mode];
             context_data->pickables.last_selected = ed_SelectWidget(mouse_x, mouse_y, manipulator, &context_data->manipulator.transform);
@@ -1732,7 +1658,7 @@ void ed_w_PickObjectOrWidget(struct ed_context_t *context, uint32_t just_changed
     {
         if(context_data->pickables.last_selected->type == ED_PICKABLE_TYPE_WIDGET)
         {
-            ed_SetNextContextState(context, ED_WORLD_CONTEXT_STATE_TRANSFORM_SELECTIONS);
+            ed_SetNextContextState(context, ed_w_TransformSelections);
         }
         else
         {
@@ -1741,7 +1667,7 @@ void ed_w_PickObjectOrWidget(struct ed_context_t *context, uint32_t just_changed
     }
     else
     {
-        ed_SetNextContextState(context, ED_WORLD_CONTEXT_STATE_PICK_OBJECT);
+        ed_SetNextContextState(context, ed_w_PickObject);
     }
 }
 
@@ -1751,51 +1677,75 @@ void ed_w_PickObject(struct ed_context_t *context, uint32_t just_changed)
     uint32_t button_state = in_GetMouseButtonState(SDL_BUTTON_LEFT) | in_GetMouseButtonState(SDL_BUTTON_RIGHT);
     int32_t mouse_x;
     int32_t mouse_y;
-    uint32_t mode_change = context_data->pickables.edit_mode != context_data->pickables.next_edit_mode;
+//    uint32_t mode_change = context_data->pickables.edit_mode != context_data->pickables.next_edit_mode;
 
     in_GetMousePos(&mouse_x, &mouse_y);
 
     if(!(button_state & IN_KEY_STATE_PRESSED))
     {
-        struct ed_w_ctx_object_list_t *mode_list;
+        uint32_t ignore_types = context_data->pickables.ignore_types;;
+        struct ds_slist_t *pickables = &context_data->pickables.pickables;
 
-        if(mode_change)
-        {
-            mode_list = &context_data->pickables.lists[context_data->pickables.next_edit_mode];
-        }
-        else
-        {
-            mode_list = context_data->pickables.active_list;
-        }
+//        if(context_data->pickables.next_edit_mode == ED_LEV_EDITOR_EDIT_MODE_BRUSH)
+//        {
+//            ignore_types = ED_PICKABLE_TYPE_ENTITY | ED_PICKABLE_TYPE_BRUSH | ED_PICKABLE_TYPE_LIGHT;
+//        }
+//        else
+//        {
+//            ignore_types = ED_PICKABLE_TYPE_FACE | ED_PICKABLE_TYPE_EDGE;
+//        }
 
-        context_data->pickables.last_selected = ed_SelectPickable(mouse_x, mouse_y, &mode_list->pickables, NULL);
+        context_data->pickables.last_selected = ed_SelectPickable(mouse_x, mouse_y, pickables, NULL, ignore_types);
 
         if(context_data->pickables.last_selected)
         {
-            if(mode_change)
+            struct ed_pickable_t *pickable = context_data->pickables.last_selected;
+
+            if(pickable->type & ED_PICKABLE_BRUSH_PART_MASK)
             {
-                ed_w_SetEditMode(context, just_changed);
+                struct ed_brush_t *brush = ed_GetBrush(pickable->primary_index);
+
+                if(brush->pickable->selection_index != 0xffffffff)
+                {
+                    ed_w_DropSelection(brush->pickable, NULL);
+                }
+            }
+            else if(pickable->type == ED_PICKABLE_TYPE_BRUSH)
+            {
+                struct ed_brush_t *brush = ed_GetBrush(pickable->primary_index);
+                struct ed_face_t *face = brush->faces;
+
+                while(face)
+                {
+                    if(face->pickable->selection_index != 0xffffffff)
+                    {
+                        ed_w_DropSelection(face->pickable, NULL);
+                    }
+
+                    face = face->next;
+                }
             }
 
-            if(context_data->pickables.last_selected->selection_index == 0xffffffff || !mode_change)
-            {
-                uint32_t shift_state = in_GetKeyState(SDL_SCANCODE_LSHIFT);
-                ed_w_AddSelection(context_data->pickables.last_selected, shift_state & IN_KEY_STATE_PRESSED, NULL);
-//                printf("%d\n", context_data->pickables.last_selected->index);
-            }
+            uint32_t shift_state = in_GetKeyState(SDL_SCANCODE_LSHIFT);
+            ed_w_AddSelection(context_data->pickables.last_selected, shift_state & IN_KEY_STATE_PRESSED, NULL);
         }
 
         context_data->pickables.last_selected = NULL;
 
-        ed_SetNextContextState(context, ED_WORLD_CONTEXT_STATE_IDLE);
+        ed_SetNextContextState(context, ed_w_Idle);
     }
 }
 
-//void ed_w_WidgetSelected(struct ed_context_t *context, uint32_t just_changed)
-//{
-//    struct ed_world_context_data_t *context_data = (struct ed_world_context_data_t *)context->context_data;
-//    ed_SetNextContextState(context, ED_WORLD_CONTEXT_STATE_TRANSFORM_SELECTIONS);
-//}
+void ed_w_PlaceLightAtCursor(struct ed_context_t *context, uint32_t just_changed)
+{
+    struct ed_world_context_data_t *context_data = (struct ed_world_context_data_t *)context->context_data;
+
+    if(!(in_GetMouseButtonState(SDL_BUTTON_RIGHT) & IN_KEY_STATE_PRESSED))
+    {
+        ed_CreateLightPickable(&vec3_t_c(0.0, 0.0, 0.0), &vec3_t_c(1.0, 1.0, 1.0), 6.0, 10.0);
+        ed_SetNextContextState(context, ed_w_Idle);
+    }
+}
 
 void ed_w_TransformSelections(struct ed_context_t *context, uint32_t just_changed)
 {
@@ -1827,7 +1777,7 @@ void ed_w_TransformSelections(struct ed_context_t *context, uint32_t just_change
 
         switch(context_data->manipulator.mode)
         {
-            case ED_W_CTX_MANIPULATOR_MODE_TRANSLATION:
+            case ED_LEV_EDITOR_MANIP_MODE_TRANSLATION:
             {
                 vec3_t manipulator_cam_vec;
                 vec3_t_sub(&manipulator_cam_vec, &r_camera_matrix.rows[3].xyz, &manipulator_transform->rows[3].xyz);
@@ -1885,7 +1835,7 @@ void ed_w_TransformSelections(struct ed_context_t *context, uint32_t just_change
             }
             break;
 
-            case ED_W_CTX_MANIPULATOR_MODE_ROTATION:
+            case ED_LEV_EDITOR_MANIP_MODE_ROTATION:
             {
                 ed_w_IntersectPlaneFromCamera(mouse_x, mouse_y, &manipulator_transform->rows[3].xyz, &axis_vec, &intersection);
 
@@ -1947,48 +1897,13 @@ void ed_w_TransformSelections(struct ed_context_t *context, uint32_t just_change
     }
     else
     {
-        ed_SetNextContextState(context, ED_WORLD_CONTEXT_STATE_IDLE);
+        ed_SetNextContextState(context, ed_w_Idle);
         context_data->pickables.last_selected = NULL;
     }
 }
 
-//void ed_w_ObjectSelected(struct ed_context_t *context, uint32_t just_changed)
-//{
-//    struct ed_world_context_data_t *context_data = (struct ed_world_context_data_t *)context->context_data;
-//    uint32_t mouse_state = in_GetMouseButtonState(SDL_BUTTON_LEFT);
-//    uint32_t shift_state = in_GetKeyState(SDL_SCANCODE_LSHIFT);
-//
-//    int32_t mouse_x;
-//    int32_t mouse_y;
-//    in_GetMousePos(&mouse_x, &mouse_y);
-//    struct ed_w_ctx_object_list_t *active_list = context_data->pickables.active_list;
-//    struct ed_pickable_t *selection = ed_SelectPickable(mouse_x, mouse_y, &active_list->pickables, NULL, NULL);
-//
-//    if(selection == context_data->pickables.last_selected)
-//    {
-//        ed_w_AddSelection(selection, shift_state & IN_KEY_STATE_PRESSED, NULL);
-//    }
-//
-//    context_data->pickables.last_selected = NULL;
-//}
-
 void ed_w_SetEditMode(struct ed_context_t *context, uint32_t just_changed)
 {
     struct ed_world_context_data_t *context_data = context->context_data;
-    context_data->pickables.edit_mode = context_data->pickables.next_edit_mode;
-    context_data->pickables.active_list = context_data->pickables.lists + context_data->pickables.edit_mode;
+//    context_data->pickables.edit_mode = context_data->pickables.next_edit_mode;
 }
-
-//void ed_w_EnterObjectEditMode(struct ed_context_t *context, uint32_t just_changed)
-//{
-//    struct ed_world_context_data_t *context_data = context->context_data;
-//    context_data->pickables.edit_mode = ED_W_CTX_EDIT_MODE_OBJECT;
-//    context_data->pickables.active_list = context_data->pickables.lists + ED_W_CTX_EDIT_MODE_OBJECT;
-//}
-//
-//void ed_w_EnterBrushEditMode(struct ed_context_t *context, uint32_t just_changed)
-//{
-//    struct ed_world_context_data_t *context_data = context->context_data;
-//    context_data->pickables.edit_mode = ED_W_CTX_EDIT_MODE_BRUSH;
-//    context_data->pickables.active_list = context_data->pickables.lists + ED_W_CTX_EDIT_MODE_BRUSH;
-//}

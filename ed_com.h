@@ -24,9 +24,9 @@ enum ED_CONTEXTS
 struct ed_context_t
 {
     void (*update)();
-    uint32_t current_state;
-    uint32_t next_state;
-    struct ed_state_t *states;
+    void (*current_state)(struct ed_context_t *context, uint32_t just_changed);
+    void (*next_state)(struct ed_context_t *context, uint32_t just_changed);
+//    struct ed_state_t *states;
     void *context_data;
 };
 

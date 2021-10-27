@@ -385,7 +385,7 @@
 	<stdio.h>
 	<string.h>
 
-1635315886 source:c:\users\gabri\documents\compiler\metroid_thingy\impl.c
+1635324708 source:c:\users\gabri\documents\compiler\metroid_thingy\impl.c
 	"dstuff/ds_vector.h"
 	"dstuff/ds_mem.h"
 	"dstuff/ds_slist.h"
@@ -579,7 +579,7 @@
 	"r_com.h"
 	"r_main.h"
 
-1635315860 c:\users\gabri\documents\compiler\metroid_thingy\r_main.h
+1635324708 c:\users\gabri\documents\compiler\metroid_thingy\r_main.h
 	"r_com.h"
 	"r_draw.h"
 	"GL/glew.h"
@@ -597,7 +597,7 @@
 	<stddef.h>
 	<stdalign.h>
 
-1635316782 source:c:\users\gabri\documents\compiler\metroid_thingy\r_main.c
+1635326385 source:c:\users\gabri\documents\compiler\metroid_thingy\r_main.c
 	"r_main.h"
 	"SDL2/SDL.h"
 	"GL/glew.h"
@@ -611,7 +611,7 @@
 	"stb/stb_include.h"
 	"anim.h"
 
-1635313764 c:\users\gabri\documents\compiler\metroid_thingy\r_com.h
+1635324708 c:\users\gabri\documents\compiler\metroid_thingy\r_com.h
 	"dstuff/ds_vector.h"
 	"dstuff/ds_matrix.h"
 	"dstuff/ds_alloc.h"
@@ -647,7 +647,7 @@
 	"ed_com.h"
 	"ed_brush.h"
 
-1629322545 c:\users\gabri\documents\compiler\metroid_thingy\world.h
+1635324822 c:\users\gabri\documents\compiler\metroid_thingy\world.h
 	<stdint.h>
 	"r_main.h"
 
@@ -741,7 +741,7 @@
 
 1635293460 c:\users\gabri\documents\compiler\metroid_thingy\ed_bsp.h
 
-1635293460 c:\users\gabri\documents\compiler\metroid_thingy\ed_com.h
+1635327922 c:\users\gabri\documents\compiler\metroid_thingy\ed_com.h
 	<stdint.h>
 	"dstuff/ds_buffer.h"
 	"dstuff/ds_vector.h"
@@ -892,10 +892,10 @@
 	<stdio.h>
 	<float.h>
 
-1635293460 c:\users\gabri\documents\compiler\metroid_thingy\ed_brush.h
+1635324940 c:\users\gabri\documents\compiler\metroid_thingy\ed_brush.h
 	"ed_lev_editor.h"
 
-1635315879 source:c:\users\gabri\documents\compiler\metroid_thingy\ed_brush.c
+1635332234 source:c:\users\gabri\documents\compiler\metroid_thingy\ed_brush.c
 	<float.h>
 	"ed_brush.h"
 	"dstuff/ds_buffer.h"
@@ -903,7 +903,7 @@
 	"game.h"
 	"ed_bsp.h"
 
-1632526463 c:\users\gabri\documents\compiler\metroid_thingy\ed_main.h
+1635326552 c:\users\gabri\documents\compiler\metroid_thingy\ed_main.h
 	"dstuff/ds_vector.h"
 	"dstuff/ds_matrix.h"
 	"dstuff/ds_alloc.h"
@@ -912,7 +912,7 @@
 	"ed_brush.h"
 	"ed_pick.h"
 
-1635293460 source:c:\users\gabri\documents\compiler\metroid_thingy\ed_pick.c
+1635330480 source:c:\users\gabri\documents\compiler\metroid_thingy\ed_pick.c
 	<stdio.h>
 	"ed_pick.h"
 	"ed_lev_editor.h"
@@ -920,11 +920,11 @@
 	"game.h"
 	"r_main.h"
 
-1635293460 c:\users\gabri\documents\compiler\metroid_thingy\ed_pick.h
+1635330608 c:\users\gabri\documents\compiler\metroid_thingy\ed_pick.h
 	"ed_com.h"
 	"r_com.h"
 
-1635293460 source:c:\users\gabri\documents\compiler\metroid_thingy\ed_main.c
+1635326608 source:c:\users\gabri\documents\compiler\metroid_thingy\ed_main.c
 	"ed_main.h"
 	"ed_bsp.h"
 	"ed_lev_editor.h"
@@ -973,18 +973,19 @@
 	"game.h"
 	"input.h"
 
-1635293460 c:\users\gabri\documents\compiler\metroid_thingy\ed_lev_editor.h
+1635329607 c:\users\gabri\documents\compiler\metroid_thingy\ed_lev_editor.h
 	"ed_com.h"
 	"ed_pick.h"
 	"ed_brush.h"
 
-1635293460 source:c:\users\gabri\documents\compiler\metroid_thingy\ed_lev_editor.c
+1635331910 source:c:\users\gabri\documents\compiler\metroid_thingy\ed_lev_editor.c
 	<float.h>
 	"ed_lev_editor.h"
 	"ed_pick.h"
 	"ed_brush.h"
 	"ed_main.h"
 	"r_main.h"
+	"dstuff/ds_buffer.h"
 	"gui.h"
 	"game.h"
 	"input.h"

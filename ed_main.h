@@ -15,7 +15,7 @@ void ed_Shutdown();
 
 void ed_UpdateEditor();
 
-void ed_SetNextContextState(struct ed_context_t *context, uint32_t state);
+void ed_SetNextContextState(struct ed_context_t *context, void (*state_fn)(struct ed_context_t *context, uint32_t just_changed));
 
 /*
 =============================================================

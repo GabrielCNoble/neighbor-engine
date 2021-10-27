@@ -5,35 +5,41 @@
 #include "ed_pick.h"
 #include "ed_brush.h"
 
-enum ED_WORLD_CONTEXT_STATES
+//enum ED_WORLD_CONTEXT_STATES
+//{
+//    ED_WORLD_CONTEXT_STATE_IDLE = 0,
+//    ED_WORLD_CONTEXT_STATE_LEFT_CLICK,
+//    ED_WORLD_CONTEXT_STATE_RIGHT_CLICK,
+//    ED_WORLD_CONTEXT_STATE_TRANSFORM_SELECTIONS,
+//    ED_WORLD_CONTEXT_STATE_PICK_OBJECT,
+//    ED_WORLD_CONTEXT_STATE_BRUSH_BOX,
+//    ED_WORLD_CONTEXT_STATE_ENTER_OBJECT_EDIT_MODE,
+//    ED_WORLD_CONTEXT_STATE_ENTER_BRUSH_EDIT_MODE,
+//    ED_WORLD_CONTEXT_STATE_FLY_CAMERA,
+//    ED_WORLD_CONTEXT_STATE_LAST
+//};
+
+enum ED_LEV_EDITOR_EDIT_MODES
 {
-    ED_WORLD_CONTEXT_STATE_IDLE = 0,
-    ED_WORLD_CONTEXT_STATE_LEFT_CLICK,
-    ED_WORLD_CONTEXT_STATE_RIGHT_CLICK,
-    ED_WORLD_CONTEXT_STATE_TRANSFORM_SELECTIONS,
-    ED_WORLD_CONTEXT_STATE_PICK_OBJECT,
-    ED_WORLD_CONTEXT_STATE_BRUSH_BOX,
-    ED_WORLD_CONTEXT_STATE_ENTER_OBJECT_EDIT_MODE,
-    ED_WORLD_CONTEXT_STATE_ENTER_BRUSH_EDIT_MODE,
-    ED_WORLD_CONTEXT_STATE_FLY_CAMERA,
-    ED_WORLD_CONTEXT_STATE_LAST
+    ED_LEV_EDITOR_EDIT_MODE_OBJECT = 0,
+    ED_LEV_EDITOR_EDIT_MODE_BRUSH,
+    ED_LEV_EDITOR_EDIT_MODE_LAST
 };
 
-enum ED_W_CTX_EDIT_MODES
+enum ED_LEV_EDITOR_MANIP_MODES
 {
-    ED_W_CTX_EDIT_MODE_OBJECT = 0,
-    ED_W_CTX_EDIT_MODE_BRUSH,
-    ED_W_CTX_EDIT_MODE_LAST
+    ED_LEV_EDITOR_MANIP_MODE_TRANSLATION = 0,
+    ED_LEV_EDITOR_MANIP_MODE_ROTATION,
+    ED_LEV_EDITOR_MANIP_MODE_SCALE,
 };
 
-enum ED_W_CTX_MANIPULATOR_MODES
+enum ED_LEV_EDITOR_SECONDARY_CLICK_FUNCS
 {
-    ED_W_CTX_MANIPULATOR_MODE_TRANSLATION = 0,
-    ED_W_CTX_MANIPULATOR_MODE_ROTATION,
-    ED_W_CTX_MANIPULATOR_MODE_SCALE,
+    ED_LEV_EDITOR_SECONDARY_CLICK_FUNC_BRUSH = 0,
+    ED_LEV_EDITOR_SECONDARY_CLICK_FUNC_LIGHT
 };
 
-struct ed_w_ctx_object_list_t
+struct ed_lev_editor_object_list_t
 {
     struct ds_slist_t pickables;
     struct ds_list_t selections;
@@ -72,11 +78,15 @@ struct ed_world_context_data_t
 
     struct
     {
-        uint32_t edit_mode;
-        uint32_t next_edit_mode;
-        uint32_t mouse_first_released;
-        struct ed_w_ctx_object_list_t *active_list;
-        struct ed_w_ctx_object_list_t lists[ED_W_CTX_EDIT_MODE_LAST];
+//        uint32_t edit_mode;
+//        uint32_t next_edit_mode;
+//        uint32_t mouse_first_released;
+        uint32_t ignore_types;
+        uint32_t secondary_click_function;
+        struct ds_slist_t pickables;
+        struct ds_list_t selections;
+//        struct ed_lev_editor_object_list_t *active_list;
+//        struct ed_lev_editor_object_list_t lists[ED_LEV_EDITOR_EDIT_MODE_LAST];
         struct ds_list_t modified_brushes;
         struct ds_list_t modified_pickables;
         struct ed_pickable_t *last_selected;
@@ -191,6 +201,8 @@ void ed_w_BrushBox(struct ed_context_t *context, uint32_t just_changed);
 void ed_w_PickObjectOrWidget(struct ed_context_t *context, uint32_t just_changed);
 
 void ed_w_PickObject(struct ed_context_t *context, uint32_t just_changed);
+
+void ed_w_PlaceLightAtCursor(struct ed_context_t *context, uint32_t just_changed);
 
 //void ed_w_WidgetSelected(struct ed_context_t *context, uint32_t just_changed);
 

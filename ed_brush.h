@@ -146,6 +146,19 @@ struct ed_brush_t
     uint32_t modified_index;
 };
 
+struct ed_polygon_record_t
+{
+    uint32_t face_id;
+    uint32_t vert_count;
+};
+
+struct ed_brush_record_t
+{
+    vec3_t position;
+    mat3_t orientation;
+//    vec3_t vertices[];
+};
+
 struct ed_brush_t *ed_AllocBrush();
 
 struct ed_brush_t *ed_CreateBrush(vec3_t *position, mat3_t *orientation, vec3_t *size);

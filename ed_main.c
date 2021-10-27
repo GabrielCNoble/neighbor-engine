@@ -185,7 +185,7 @@ void ed_Init()
     ed_SetExplorerLoadCallback(test_load_callback);
     ed_SetExplorerSaveCallback(test_save_callback);
 
-    r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(0.0, 20.0, 0.0), &vec3_t_c(1.0, 1.0, 1.0), 50.0, 10.0);
+//    r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(0.0, 20.0, 0.0), &vec3_t_c(1.0, 1.0, 1.0), 50.0, 10.0);
 
     in_SetMouseRelative(1);
 }
@@ -211,7 +211,7 @@ void ed_UpdateEditor()
             {
                 uint32_t just_changed = context->current_state != context->next_state;
                 context->current_state = context->next_state;
-                context->states[context->current_state].update(context, just_changed);
+                context->current_state(context, just_changed);
             }
 
             context->update();
@@ -286,9 +286,9 @@ void ed_UpdateEditor()
     ed_UpdateExplorer();
 }
 
-void ed_SetNextContextState(struct ed_context_t *context, uint32_t state)
+void ed_SetNextContextState(struct ed_context_t *context, void (*state_fn)(struct ed_context_t *context, uint32_t just_changed))
 {
-    context->next_state = state;
+    context->next_state = state_fn;
 }
 
 /*

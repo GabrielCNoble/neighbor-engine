@@ -44,6 +44,10 @@
 #define STBI_FREE mem_Free
 #include "stb/stb_image.h"
 
+#define STB_INCLUDE_IMPLEMENTATION
+#define STB_INCLUDE_LINE_NONE
+#include "stb/stb_include.h"
+
 //#define TINYOBJ_LOADER_C_IMPLEMENTATION
 //#define TINYOBJ_MALLOC mem_Malloc
 //#define TINYOBJ_REALLOC mem_Realloc

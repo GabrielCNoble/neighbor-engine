@@ -8,6 +8,7 @@
 #include "dstuff/ds_obj.h"
 #include "dstuff/ds_alloc.h"
 #include "r_draw.h"
+#include "stb/stb_include.h"
 #include "anim.h"
 
 //extern struct stack_list_t d_shaders;
@@ -1188,6 +1189,163 @@ void r_DestroyLight(struct r_light_t *light)
 ============================================================================
 */
 
+//struct r_shader_text_buffer_t *r_AllocShaderTextBuffer(struct r_shader_preproc_t *pre_proc)
+//{
+//
+//}
+//
+//void r_SetErrorMessage(struct r_shader_text_buffer_t *buffer, uint32_t line, char *message)
+//{
+//    uint32_t message_len = strlen(message) + 1;
+//
+//    if(buffer->size < message_len)
+//    {
+//        buffer->buffer = mem_Realloc(buffer->buffer, message_len);
+//        buffer->size = message_len;
+//    }
+//
+//    strcpy(buffer->buffer, message);
+//    buffer->line = line;
+//}
+//
+//void r_SkipWhitespace(struct r_shader_text_buffer_t *buffer)
+//{
+//    while(buffer->buffer[buffer->cursor] == ' ')buffer->cursor++;
+//}
+//
+//char r_AdvanceUntilChar(struct r_shader_text_buffer_t *buffer, char c)
+//{
+//    while(buffer->buffer[buffer->cursor] != c)
+//    {
+//        if(buffer->buffer[buffer->cursor] == '\n' && c != '\n')
+//        {
+//            buffer->line++;
+//            return '\n';
+//        }
+//
+//        if(buffer->buffer[buffer->cursor] == '\r' && c != '\r')
+//        {
+//            return '\r';
+//        }
+//
+//        if(buffer->buffer[buffer->cursor] == '\0' && c != '\0')
+//        {
+//            return '\0';
+//        }
+//
+//        buffer->cursor++;
+//    }
+//
+//    return c;
+//}
+//
+//uint32_t r_PreprocessShaderSourceRec(struct r_shader_preproc_t *pre_proc)
+//{
+//    struct r_shader_text_buffer_t *buffer = ds_list_get_last_element(pre_proc->buffers);
+//    char file_name[PATH_MAX];
+//
+//    while(buffer->buffer[buffer->cursor])
+//    {
+//        if(buffer->buffer[buffer->cursor] == '#')
+//        {
+//            uint32_t directive_start = buffer->cursor;
+//            buffer->cursor++;
+//            r_SkipWhitespace(buffer);
+//
+//            uint32_t include_len = strlen("include");
+//
+//            if(!strncmp(buffer->buffer + buffer->cursor, "include", include_len))
+//            {
+//                buffer->cursor += include_len;
+//                r_SkipWhitespace(buffer);
+//
+//                if(buffer->buffer[buffer->cursor] != '"')
+//                {
+//                    r_SetErrorMessage(buffer, buffer->line, "Missing \" before include name.");
+//                    return 0;
+//                }
+//
+//                buffer->cursor++;
+//                uint32_t name_start = buffer->cursor;
+//
+//                switch(r_AdvanceUntilChar(buffer, '"'))
+//                {
+//                    case '\r':
+//                        r_SetErrorMessage(buffer, buffer->line, "Stray carriage return inside include file name.");
+//                    break;
+//
+//                    case '\n':
+//                        r_SetErrorMessage(buffer, buffer->line, "Stray newline inside include file name.");
+//                    break;
+//
+//                    case '\0':
+//                        r_SetErrorMessage(buffer, buffer->line, "Unexpected end of source reached.");
+//                    break;
+//                }
+//
+//                if(buffer->cursor == name_start)
+//                {
+//                    r_SetErrorMessage(buffer, buffer->line, "No file name provided in include directive.");
+//                }
+//
+//                uint32_t name_len = buffer->cursor - name_start;
+//                strncpy(file_name, buffer->buffer + name_start, name_len);
+//                file_name[name_len] = '\0';
+//
+//                char *file_buffer;
+//                uint32_t file_buffer_size;
+//                FILE *file = fopen(file_name, "r");
+//
+//                if(!file)
+//                {
+//                    r_SetErrorMessage(buffer, buffer->line, "Couldn't find file.");
+//                }
+//
+//                read_file(file, &file_buffer, &file_buffer_size);
+//                buffer->cursor++;
+//                uint32_t directive_end = buffer->cursor;
+//
+//
+//            }
+//        }
+//        else
+//        {
+//            if(buffer->buffer[buffer->cursor] == '\n')
+//            {
+//                buffer->line++;
+//            }
+//
+//            buffer->cursor++;
+//        }
+//    }
+//
+//    return 1;
+//}
+//
+//char *r_PreprocessShaderSource(char *shader_source)
+//{
+//    char *preprocessed_source = NULL;
+//
+//    if(shader_source)
+//    {
+//        struct r_shader_preproc_t pre_proc;
+//        uint32_t source_len = strlen(shader_source) + 1;
+//
+//        pre_proc.buffers = ds_list_create(sizeof(struct r_shader_text_buffer_t), 8);
+//        uint32_t source_buffer = ds_list_add_element(&pre_proc.buffers, NULL);
+//        struct r_shader_text_buffer_t *buffer = ds_list_get_element(&pre_proc.buffers, source_buffer);
+//
+//        buffer->buffer = mem_Calloc(source_len, 1);
+//        buffer->size = source_len;
+//        buffer->cursor = 0;
+//        buffer->line = 0;
+//
+//        strcpy(buffer->buffer, shader_source);
+//    }
+//
+//    return preprocessed_source;
+//}
+
 struct r_shader_t *r_LoadShader(char *vertex_file_name, char *fragment_file_name)
 {
     FILE *shader_file;
@@ -1199,6 +1357,7 @@ struct r_shader_t *r_LoadShader(char *vertex_file_name, char *fragment_file_name
     int32_t compilation_status;
     int32_t info_log_length;
     char *info_log;
+    char include_error[256];
 
     if(!file_exists(vertex_file_name))
     {
@@ -1216,11 +1375,23 @@ struct r_shader_t *r_LoadShader(char *vertex_file_name, char *fragment_file_name
     shader_file = fopen(vertex_file_name, "rb");
     read_file(shader_file, (void **)&shader_source, NULL);
     fclose(shader_file);
+
+    char *preprocessed_shader_source = stb_include_string(shader_source, NULL, "shaders", NULL, include_error);
+
+    if(!preprocessed_shader_source)
+    {
+        printf("preprocessor error: %s\n", include_error);
+        mem_Free(shader_source);
+        return NULL;
+    }
+
     vertex_shader = glCreateShader(GL_VERTEX_SHADER);
-    glShaderSource(vertex_shader, 1, (const GLchar * const *)&shader_source, NULL);
+    glShaderSource(vertex_shader, 1, (const GLchar * const *)&preprocessed_shader_source, NULL);
+    free(preprocessed_shader_source);
     mem_Free(shader_source);
     glCompileShader(vertex_shader);
     glGetShaderiv(vertex_shader, GL_COMPILE_STATUS, &compilation_status);
+
     if(!compilation_status)
     {
         glGetShaderiv(vertex_shader, GL_INFO_LOG_LENGTH, &info_log_length);
@@ -1236,8 +1407,19 @@ struct r_shader_t *r_LoadShader(char *vertex_file_name, char *fragment_file_name
     shader_file = fopen(fragment_file_name, "rb");
     read_file(shader_file, (void **)&shader_source, NULL);
     fclose(shader_file);
+    preprocessed_shader_source = stb_include_string(shader_source, NULL, "shaders", NULL, include_error);
+
+    if(!preprocessed_shader_source)
+    {
+        printf("preprocessor error: %s\n", include_error);
+        glDeleteShader(vertex_shader);
+        mem_Free(shader_source);
+    }
+
+
     fragment_shader = glCreateShader(GL_FRAGMENT_SHADER);
-    glShaderSource(fragment_shader, 1, (const GLchar * const *)&shader_source, NULL);
+    glShaderSource(fragment_shader, 1, (const GLchar * const *)&preprocessed_shader_source, NULL);
+    free(preprocessed_shader_source);
     mem_Free(shader_source);
     glCompileShader(fragment_shader);
     glGetShaderiv(fragment_shader, GL_COMPILE_STATUS, &compilation_status);

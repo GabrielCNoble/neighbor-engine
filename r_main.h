@@ -99,6 +99,8 @@ void r_DestroyLight(struct r_light_t *light);
 ============================================================================
 ============================================================================
 */
+//
+//char *r_PreprocessShaderSource(char *shader_source);
 
 struct r_shader_t *r_LoadShader(char *vertex_file_name, char *fragment_file_name);
 

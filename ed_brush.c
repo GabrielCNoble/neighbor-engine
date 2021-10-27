@@ -188,108 +188,108 @@ struct ed_brush_t *ed_CreateBrush(vec3_t *position, mat3_t *orientation, vec3_t 
 
 struct ed_brush_t *ed_CopyBrush(struct ed_brush_t *brush)
 {
-    struct ed_brush_t *copy;
-    copy = ed_AllocBrush();
-    copy->vertices = ds_slist_create(sizeof(vec3_t), brush->vertices.size);
-    copy->vert_transforms = ds_list_create(sizeof(struct ed_vert_transform_t), 32);
-    copy->main_brush = copy;
-    copy->flags |= ED_BRUSH_FLAG_GEOMETRY_MODIFIED;
-
-    for(uint32_t vert_index = 0; vert_index < brush->vertices.size; vert_index++)
-    {
-        uint32_t index = ed_AllocVertex(copy);
-        vec3_t *copy_vertice = ed_GetVertex(copy, index);
-        vec3_t *vertice = ed_GetVertex(copy, vert_index);
-        *copy_vertice = *vertice;
-    }
-
-    copy->orientation = brush->orientation;
-    copy->position = brush->position;
-    copy->faces = NULL;
-
-    struct ed_face_t *last_face = NULL;
-    struct ed_edge_t *brush_edges = NULL;
-
-    struct ed_face_t *brush_face = brush->faces;
-
-    while(brush_face)
-    {
-        struct ed_face_t *copy_face = ed_AllocFace();
-
-        copy_face->material = brush_face->material;
-        copy_face->polygons = ed_AllocFacePolygon();
-        copy_face->tex_coords_scale = brush_face->tex_coords_scale;
-        copy_face->tex_coords_rot = brush_face->tex_coords_rot;
-        copy_face->brush = copy;
-
-        struct ed_face_polygon_t *face_polygon = copy_face->polygons;
-        face->flags = ED_FACE_FLAG_GEOMETRY_MODIFIED;
-        face_polygon->face = copy_face;
-
-        for(uint32_t vert_index = 0; vert_index < 4; vert_index++)
-        {
-            uint32_t vert0 = ed_cube_brush_indices[face_index][vert_index];
-            uint32_t vert1 = ed_cube_brush_indices[face_index][(vert_index + 1) % 4];
-
-            struct ed_edge_t *edge = brush_edges;
-
-            while(edge)
-            {
-                if(edge->verts[0] == vert1 && edge->verts[1] == vert0)
-                {
-                    break;
-                }
-
-                edge = edge->init_next;
-            }
-
-            if(!edge)
-            {
-                edge = ed_AllocEdge();
-                edge->brush = brush;
-                edge->init_next = brush_edges;
-                brush_edges = edge;
-            }
-
-            face_polygon->edge_count++;
-
-            uint32_t polygon_index = edge->polygons[0].polygon != NULL;
-            edge->polygons[polygon_index].polygon = face_polygon;
-            edge->verts[polygon_index] = vert0;
-            edge->verts[!polygon_index] = vert1;
-
-            if(!face_polygon->edges)
-            {
-                face_polygon->edges = edge;
-            }
-            else
-            {
-                polygon_index = face_polygon->last_edge->polygons[1].polygon == face_polygon;
-                face_polygon->last_edge->polygons[polygon_index].next = edge;
-                polygon_index = edge->polygons[1].polygon == face_polygon;
-                edge->polygons[polygon_index].prev = face_polygon->last_edge;
-            }
-
-            face_polygon->last_edge = edge;
-        }
-
-        if(!brush->faces)
-        {
-            brush->faces = face;
-        }
-        else
-        {
-            last_face->next = face;
-            face->prev = last_face;
-        }
-
-        last_face = face;
-
-        brush_face = brush_face->next;
-    }
-
-    brush->model = NULL;
-    ed_UpdateBrush(brush);
+//    struct ed_brush_t *copy;
+//    copy = ed_AllocBrush();
+//    copy->vertices = ds_slist_create(sizeof(vec3_t), brush->vertices.size);
+//    copy->vert_transforms = ds_list_create(sizeof(struct ed_vert_transform_t), 32);
+//    copy->main_brush = copy;
+//    copy->flags |= ED_BRUSH_FLAG_GEOMETRY_MODIFIED;
+//
+//    for(uint32_t vert_index = 0; vert_index < brush->vertices.size; vert_index++)
+//    {
+//        uint32_t index = ed_AllocVertex(copy);
+//        vec3_t *copy_vertice = ed_GetVertex(copy, index);
+//        vec3_t *vertice = ed_GetVertex(copy, vert_index);
+//        *copy_vertice = *vertice;
+//    }
+//
+//    copy->orientation = brush->orientation;
+//    copy->position = brush->position;
+//    copy->faces = NULL;
+//
+//    struct ed_face_t *last_face = NULL;
+//    struct ed_edge_t *brush_edges = NULL;
+//
+//    struct ed_face_t *brush_face = brush->faces;
+//
+//    while(brush_face)
+//    {
+//        struct ed_face_t *copy_face = ed_AllocFace();
+//
+//        copy_face->material = brush_face->material;
+//        copy_face->polygons = ed_AllocFacePolygon();
+//        copy_face->tex_coords_scale = brush_face->tex_coords_scale;
+//        copy_face->tex_coords_rot = brush_face->tex_coords_rot;
+//        copy_face->brush = copy;
+//
+//        struct ed_face_polygon_t *face_polygon = copy_face->polygons;
+//        face->flags = ED_FACE_FLAG_GEOMETRY_MODIFIED;
+//        face_polygon->face = copy_face;
+//
+//        for(uint32_t vert_index = 0; vert_index < 4; vert_index++)
+//        {
+//            uint32_t vert0 = ed_cube_brush_indices[face_index][vert_index];
+//            uint32_t vert1 = ed_cube_brush_indices[face_index][(vert_index + 1) % 4];
+//
+//            struct ed_edge_t *edge = brush_edges;
+//
+//            while(edge)
+//            {
+//                if(edge->verts[0] == vert1 && edge->verts[1] == vert0)
+//                {
+//                    break;
+//                }
+//
+//                edge = edge->init_next;
+//            }
+//
+//            if(!edge)
+//            {
+//                edge = ed_AllocEdge();
+//                edge->brush = brush;
+//                edge->init_next = brush_edges;
+//                brush_edges = edge;
+//            }
+//
+//            face_polygon->edge_count++;
+//
+//            uint32_t polygon_index = edge->polygons[0].polygon != NULL;
+//            edge->polygons[polygon_index].polygon = face_polygon;
+//            edge->verts[polygon_index] = vert0;
+//            edge->verts[!polygon_index] = vert1;
+//
+//            if(!face_polygon->edges)
+//            {
+//                face_polygon->edges = edge;
+//            }
+//            else
+//            {
+//                polygon_index = face_polygon->last_edge->polygons[1].polygon == face_polygon;
+//                face_polygon->last_edge->polygons[polygon_index].next = edge;
+//                polygon_index = edge->polygons[1].polygon == face_polygon;
+//                edge->polygons[polygon_index].prev = face_polygon->last_edge;
+//            }
+//
+//            face_polygon->last_edge = edge;
+//        }
+//
+//        if(!brush->faces)
+//        {
+//            brush->faces = face;
+//        }
+//        else
+//        {
+//            last_face->next = face;
+//            face->prev = last_face;
+//        }
+//
+//        last_face = face;
+//
+//        brush_face = brush_face->next;
+//    }
+//
+//    brush->model = NULL;
+//    ed_UpdateBrush(brush);
 
     return brush;
 }

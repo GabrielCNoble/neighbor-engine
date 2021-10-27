@@ -114,6 +114,19 @@ struct r_named_uniform_t
     char *name;
 };
 
+struct r_shader_text_buffer_t
+{
+    char *buffer;
+    uint32_t cursor;
+    uint32_t line;
+    uint32_t size;
+};
+
+struct r_shader_preproc_t
+{
+    struct ds_list_t buffers;
+};
+
 struct r_shader_t
 {
     uint32_t handle;

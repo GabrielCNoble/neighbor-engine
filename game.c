@@ -688,7 +688,6 @@ void g_MainLoop(uint32_t editor_active)
                 {
                     g_SetGameState(G_GAME_STATE_EDITING);
                 }
-                g_UpdateEntities();
                 a_UpdateAnimations(0.01666);
             break;
 
@@ -697,6 +696,7 @@ void g_MainLoop(uint32_t editor_active)
             break;
         }
 
+        g_UpdateEntities();
         r_VisibleLights();
         r_VisibleEntitiesOnLights();
         r_VisibleEntities();
@@ -942,7 +942,11 @@ struct g_entity_t *g_GetEntity(uint32_t index)
 
 void g_DestroyEntity(struct g_entity_t *entity)
 {
-
+    if(entity && entity->index == 0xffffffff)
+    {
+        ds_slist_remove_element(&g_entities, entity->index);
+        entity->index = 0xffffffff;
+    }
 }
 
 void g_UpdateEntityExtents(struct g_entity_t *entity)
@@ -972,7 +976,7 @@ void g_UpdateEntityExtents(struct g_entity_t *entity)
 
         corners[4].x = max.x;
         corners[4].y = max.y;
-        corners[4].z = min.x;
+        corners[4].z = min.z;
 
         corners[5].x = max.x;
         corners[5].y = min.y;
@@ -1010,6 +1014,32 @@ void g_UpdateEntityExtents(struct g_entity_t *entity)
         entity->extents.x = max.x - min.x;
         entity->extents.y = max.y - min.y;
         entity->extents.z = max.z - min.z;
+
+//        mat4_t transform;
+//        mat4_t_identity(&transform);
+//        transform.rows[3] = entity->transform.rows[3];
+////
+//        r_i_SetViewProjectionMatrix(NULL);
+//        r_i_SetModelMatrix(&transform);
+//        r_i_SetShader(NULL);
+////
+//        r_i_DrawLine(&vec3_t_c(min.x, max.y, max.z), &vec3_t_c(min.x, max.y, min.z), &vec4_t_c(0.0, 1.0, 0.0, 1.0), 1.0);
+//        r_i_DrawLine(&vec3_t_c(min.x, min.y, max.z), &vec3_t_c(min.x, min.y, min.z), &vec4_t_c(0.0, 1.0, 0.0, 1.0), 1.0);
+//
+//        r_i_DrawLine(&vec3_t_c(max.x, max.y, max.z), &vec3_t_c(max.x, max.y, min.z), &vec4_t_c(0.0, 1.0, 0.0, 1.0), 1.0);
+//        r_i_DrawLine(&vec3_t_c(max.x, min.y, max.z), &vec3_t_c(max.x, min.y, min.z), &vec4_t_c(0.0, 1.0, 0.0, 1.0), 1.0);
+////
+//        r_i_DrawLine(&vec3_t_c(max.x, max.y, max.z), &vec3_t_c(min.x, max.y, max.z), &vec4_t_c(0.0, 1.0, 0.0, 1.0), 1.0);
+//        r_i_DrawLine(&vec3_t_c(max.x, min.y, max.z), &vec3_t_c(min.x, min.y, max.z), &vec4_t_c(0.0, 1.0, 0.0, 1.0), 1.0);
+////
+//        r_i_DrawLine(&vec3_t_c(max.x, max.y, min.z), &vec3_t_c(min.x, max.y, min.z), &vec4_t_c(0.0, 1.0, 0.0, 1.0), 1.0);
+//        r_i_DrawLine(&vec3_t_c(max.x, min.y, min.z), &vec3_t_c(min.x, min.y, min.z), &vec4_t_c(0.0, 1.0, 0.0, 1.0), 1.0);
+//
+//        r_i_DrawLine(&vec3_t_c(max.x, max.y, min.z), &vec3_t_c(max.x, min.y, min.z), &vec4_t_c(0.0, 1.0, 0.0, 1.0), 1.0);
+//        r_i_DrawLine(&vec3_t_c(min.x, max.y, min.z), &vec3_t_c(min.x, min.y, min.z), &vec4_t_c(0.0, 1.0, 0.0, 1.0), 1.0);
+//
+//        r_i_DrawLine(&vec3_t_c(max.x, max.y, max.z), &vec3_t_c(max.x, min.y, max.z), &vec4_t_c(0.0, 1.0, 0.0, 1.0), 1.0);
+//        r_i_DrawLine(&vec3_t_c(min.x, max.y, max.z), &vec3_t_c(min.x, min.y, max.z), &vec4_t_c(0.0, 1.0, 0.0, 1.0), 1.0);
     }
 }
 

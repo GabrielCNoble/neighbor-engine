@@ -587,7 +587,7 @@ void r_Init()
     glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, r_main_depth_attachment, 0);
 
     r_renderer_state.use_z_prepass = 1;
-    r_renderer_state.max_shadow_res = 8;
+    r_renderer_state.max_shadow_res = 16;
 }
 
 void r_Shutdown()

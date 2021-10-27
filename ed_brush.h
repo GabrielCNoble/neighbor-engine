@@ -1,7 +1,7 @@
 #ifndef ED_BRUSH_H
 #define ED_BRUSH_H
 
-#include "ed_world.h"
+#include "ed_lev_editor.h"
 
 struct ed_bsp_polygon_t
 {
@@ -41,21 +41,12 @@ struct ed_brush_batch_t
     uint32_t index;
 };
 
-//struct ed_clipped_polygon_t
-//{
-//    struct ed_polygon_t *next;
-//    struct ed_polygon_t *prev;
-//    struct ed_brush_t *brush;
-//    struct ds_buffer_t vertices;
-//    struct r_material_t *material;
-//    vec3_t normal;
-//    uint32_t index;
-//    uint32_t mesh_start;
-//    uint32_t mesh_count;
-//};
-
 struct ed_edge_t
 {
+    uint32_t index;
+    struct ed_edge_t *init_next;
+    struct ed_pickable_t *pickable;
+
     struct
     {
         struct ed_edge_t *next;
@@ -67,11 +58,6 @@ struct ed_edge_t
     uint32_t verts[2];
 
     struct ed_brush_t *brush;
-    uint32_t index;
-
-//    uint32_t vert0;
-//    uint32_t vert1;
-
     uint32_t model_start;
 };
 
@@ -89,6 +75,13 @@ struct ed_face_polygon_t
 
     vec3_t tangent;
     vec3_t normal;
+    vec3_t center;
+};
+
+enum ED_FACE_FLAGS
+{
+    ED_FACE_FLAG_GEOMETRY_MODIFIED = 1,
+    ED_FACE_FLAG_MATERIAL_MODIFIED = 1 << 1,
 };
 
 struct ed_face_t
@@ -98,39 +91,66 @@ struct ed_face_t
     struct ed_brush_t *brush;
     uint32_t index;
 
+    struct ed_pickable_t *pickable;
+
     struct r_material_t *material;
     struct ed_face_polygon_t *polygons;
-//    struct ed_face_polygon_t *clipped_polygons;
     struct ed_bsp_polygon_t *clipped_polygons;
 
     uint32_t clipped_vert_count;
     uint32_t clipped_index_count;
     uint32_t clipped_polygon_count;
 
+    uint32_t flags;
+
+    vec3_t center;
     vec2_t tex_coords_scale;
     float tex_coords_rot;
 };
 
+struct ed_vert_transform_t
+{
+    vec3_t translation;
+    uint32_t index;
+};
+
+enum ED_BRUSH_FLAGS
+{
+    ED_BRUSH_FLAG_GEOMETRY_MODIFIED = 1,
+    ED_BRUSH_FLAG_MATERIAL_MODIFIED = 1 << 1,
+};
+
 struct ed_brush_t
 {
+    struct ed_brush_t *next;
+    struct ed_brush_t *prev;
+    struct ed_brush_t *last;
+
+    struct ed_brush_t *main_brush;
+    struct ed_pickable_t *pickable;
+
     mat3_t orientation;
     vec3_t position;
     uint32_t index;
-    struct ds_slist_t polygons;
-    struct ds_slist_t bsp_nodes;
     struct ed_face_t *faces;
     struct ds_slist_t vertices;
+    struct ds_list_t vert_transforms;
     struct r_model_t *model;
-
-
+    struct g_entity_t *entity;
 
     uint32_t clipped_vert_count;
     uint32_t clipped_index_count;
     uint32_t clipped_polygon_count;
+    uint32_t flags;
+
+    uint32_t modified_index;
 };
 
+struct ed_brush_t *ed_AllocBrush();
 
 struct ed_brush_t *ed_CreateBrush(vec3_t *position, mat3_t *orientation, vec3_t *size);
+
+struct ed_brush_t *ed_CopyBrush(struct ed_brush_t *brush);
 
 void ed_DestroyBrush(struct ed_brush_t *brush);
 
@@ -154,9 +174,25 @@ struct ed_edge_t *ed_GetEdge(uint32_t index);
 
 void ed_FreeEdge(struct ed_edge_t *edge);
 
-void ed_UpdateBrush(struct ed_brush_t *brush);
+uint32_t ed_AllocVertex(struct ed_brush_t *brush);
+
+vec3_t *ed_GetVertex(struct ed_brush_t *brush, uint32_t index);
+
+void ed_FreeVertex(struct ed_brush_t *brush, uint32_t index);
+
+struct ed_vert_transform_t *ed_FindVertTransform(struct ed_brush_t *brush, uint32_t vert_index);
+
+void ed_ExtrudeBrushFace(struct ed_brush_t *brush, uint32_t face_index);
+
+void ed_DeleteBrushFace(struct ed_brush_t *brush, uint32_t face_index);
+
+void ed_SetFaceMaterial(struct ed_brush_t *brush, uint32_t face_index, struct r_material_t *material);
 
 void ed_TranslateBrushFace(struct ed_brush_t *brush, uint32_t face_index, vec3_t *translation);
+
+void ed_RotateBrushFace(struct ed_brush_t *brush, uint32_t face_index, mat3_t *rotation);
+
+void ed_UpdateBrush(struct ed_brush_t *brush);
 
 void ed_BuildWorldGeometry();
 

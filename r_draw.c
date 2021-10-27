@@ -103,7 +103,7 @@ void r_BeginFrame()
     glViewport(0, 0, r_width, r_height);
     glDisable(GL_SCISSOR_TEST);
     glDepthMask(GL_TRUE);
-
+    glClearColor(0.01, 0.01, 0.01, 1.0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
     glBindVertexArray(r_vao);
 

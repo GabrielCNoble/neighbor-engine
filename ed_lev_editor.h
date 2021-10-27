@@ -1,14 +1,17 @@
-#ifndef ED_WORLD_H
-#define ED_WORLD_H
+#ifndef ED_LEV_EDITOR_H
+#define ED_LEV_EDITOR_H
 
 #include "ed_com.h"
 #include "ed_pick.h"
+#include "ed_brush.h"
 
 enum ED_WORLD_CONTEXT_STATES
 {
     ED_WORLD_CONTEXT_STATE_IDLE = 0,
     ED_WORLD_CONTEXT_STATE_LEFT_CLICK,
+    ED_WORLD_CONTEXT_STATE_RIGHT_CLICK,
     ED_WORLD_CONTEXT_STATE_TRANSFORM_SELECTIONS,
+    ED_WORLD_CONTEXT_STATE_PICK_OBJECT,
     ED_WORLD_CONTEXT_STATE_BRUSH_BOX,
     ED_WORLD_CONTEXT_STATE_ENTER_OBJECT_EDIT_MODE,
     ED_WORLD_CONTEXT_STATE_ENTER_BRUSH_EDIT_MODE,
@@ -52,9 +55,15 @@ struct ed_world_context_data_t
         struct ds_slist_t bsp_polygons;
 
         struct ds_slist_t brushes;
+//        struct ds_list_t modified_brushes;
         struct ds_slist_t brush_faces;
         struct ds_slist_t brush_face_polygons;
         struct ds_slist_t brush_edges;
+
+        struct ds_buffer_t polygon_buffer;
+        struct ds_buffer_t vertex_buffer;
+        struct ds_buffer_t index_buffer;
+        struct ds_buffer_t batch_buffer;
 
         uint32_t brush_vert_count;
         uint32_t brush_index_count;
@@ -64,8 +73,12 @@ struct ed_world_context_data_t
     struct
     {
         uint32_t edit_mode;
+        uint32_t next_edit_mode;
+        uint32_t mouse_first_released;
         struct ed_w_ctx_object_list_t *active_list;
         struct ed_w_ctx_object_list_t lists[ED_W_CTX_EDIT_MODE_LAST];
+        struct ds_list_t modified_brushes;
+        struct ds_list_t modified_pickables;
         struct ed_pickable_t *last_selected;
 
     } pickables;
@@ -81,6 +94,7 @@ struct ed_world_context_data_t
         vec3_t start_pos;
         vec3_t prev_offset;
         mat4_t transform;
+        vec2_t screen_pos;
         float linear_snap;
         float angular_snap;
         struct ed_widget_t *widgets[3];
@@ -122,6 +136,10 @@ void ed_w_TranslateSelected(vec3_t *translation, uint32_t transform_mode);
 
 void ed_w_RotateSelected(mat3_t *rotation, vec3_t *pivot, uint32_t transform_mode);
 
+void ed_w_MarkPickableModified(struct ed_pickable_t *pickable);
+
+void ed_w_MarkBrushModified(struct ed_brush_t *brush);
+
 /*
 =============================================================
 =============================================================
@@ -132,7 +150,9 @@ void ed_w_UpdateUI();
 
 void ed_w_UpdateManipulator();
 
-void ed_w_UpdatePickables();
+void ed_w_UpdatePickableObjects();
+
+void ed_w_Update();
 
 /*
 =============================================================
@@ -148,13 +168,11 @@ void ed_w_DrawGrid();
 
 void ed_w_DrawBrushes();
 
-void ed_wx_DrawLights();
+void ed_w_DrawLights();
 
-void ed_w_DrawSelections(struct ds_list_t *selections, struct ds_slist_t *pickables);
+void ed_w_DrawSelections();
 
 void ed_w_PingInfoWindow();
-
-void ed_w_Update();
 
 uint32_t ed_w_IntersectPlaneFromCamera(float mouse_x, float mouse_y, vec3_t *plane_point, vec3_t *plane_normal, vec3_t *result);
 
@@ -170,15 +188,21 @@ void ed_w_RightClick(struct ed_context_t *context, uint32_t just_changed);
 
 void ed_w_BrushBox(struct ed_context_t *context, uint32_t just_changed);
 
-void ed_w_WidgetSelected(struct ed_context_t *context, uint32_t just_changed);
+void ed_w_PickObjectOrWidget(struct ed_context_t *context, uint32_t just_changed);
+
+void ed_w_PickObject(struct ed_context_t *context, uint32_t just_changed);
+
+//void ed_w_WidgetSelected(struct ed_context_t *context, uint32_t just_changed);
 
 void ed_w_TransformSelections(struct ed_context_t *context, uint32_t just_changed);
 
-void ed_w_ObjectSelected(struct ed_context_t *context, uint32_t just_changed);
+//void ed_w_ObjectSelected(struct ed_context_t *context, uint32_t just_changed);
 
-void ed_w_EnterObjectEditMode(struct ed_context_t *context, uint32_t just_changed);
+void ed_w_SetEditMode(struct ed_context_t *context, uint32_t just_changed);
 
-void ed_w_EnterBrushEditMode(struct ed_context_t *context, uint32_t just_changed);
+//void ed_w_EnterObjectEditMode(struct ed_context_t *context, uint32_t just_changed);
+
+//void ed_w_EnterBrushEditMode(struct ed_context_t *context, uint32_t just_changed);
 
 
 #endif // ED_W_CTX_H

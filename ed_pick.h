@@ -25,6 +25,19 @@ struct ed_pickable_range_t
     uint32_t count;
 };
 
+enum ED_PICKABLE_DRAW_RENDER_FLAGS
+{
+    ED_PICKABLE_DRAW_RENDER_FLAG_OUTLINE = 1,
+    ED_PICKABLE_DRAW_RENDER_FLAG_NO_DEPTH_TEST = 1 << 1,
+    ED_PICKABLE_DRAW_RENDER_FLAG_BLEND = 1 << 2,
+};
+
+enum ED_PICKABLE_DRAW_TRANSF_FLAGS
+{
+    ED_PICKABLE_DRAW_TRANSF_FLAG_BILLBOARD = 1,
+    ED_PICKABLE_DRAW_TRANSF_FLAG_FIXED_CAM_DIST = 1 << 1
+};
+
 enum ED_PICKABLE_TRANSFORM_FLAGS
 {
     ED_PICKABLE_TRANSFORM_FLAG_TRANSLATION = 1,
@@ -38,15 +51,19 @@ struct ed_pickable_t
     uint32_t index;
     struct ds_slist_t *list;
     uint32_t selection_index;
+    uint32_t modified_index;
+    struct ed_pick_dep_t *deps;
 
     uint32_t transform_flags;
+    uint32_t draw_render_flags;
+    uint32_t draw_transf_flags;
+    float camera_distance;
 
     vec3_t translation;
     vec3_t scale;
     mat3_t rotation;
-
     mat4_t transform;
-    mat4_t draw_offset;
+    mat4_t draw_transform;
 
     uint32_t mode;
     uint32_t range_count;
@@ -54,13 +71,20 @@ struct ed_pickable_t
 
     uint32_t primary_index;
     uint32_t secondary_index;
+    uint32_t update_index;
 };
 
-//struct ed_pick_result_t
-//{
-//    uint32_t type;
-//    uint32_t index;
-//};
+struct ed_pick_dep_t
+{
+    struct
+    {
+        struct ed_pick_dep_t *next;
+        struct ed_pick_dep_t *prev;
+        struct ed_pickable_t *pickable;
+    } pickables[2];
+
+    uint32_t index;
+};
 
 struct ed_widget_t
 {
@@ -68,18 +92,20 @@ struct ed_widget_t
     uint32_t stencil_layer;
     struct ds_slist_t pickables;
 
-    void (*compute_model_view_projection_matrix)(mat4_t *view_projection_matrix, mat4_t *widget_transform);
-    void (*setup_pickable_draw_state)(uint32_t pickable_index, struct ed_pickable_t *pickable);
+    void (*mvp_mat_fn)(mat4_t *view_projection_matrix, mat4_t *widget_transform);
+    void (*setup_ds_fn)(uint32_t pickable_index, struct ed_pickable_t *pickable);
 };
 
 
-void ed_BeginPicking(mat4_t *view_projection_matrix);
+void ed_BeginPicking();
 
 uint32_t ed_EndPicking(int32_t mouse_x, int32_t mouse_y, struct ed_pickable_t *result);
 
+void ed_PickableModelViewProjectionMatrix(struct ed_pickable_t *pickable, mat4_t *parent_transform, mat4_t *model_view_projection_matrix);
+
 void ed_DrawPickable(struct ed_pickable_t *pickable, mat4_t *parent_transform);
 
-struct ed_pickable_t *ed_SelectPickable(int32_t mouse_x, int32_t mouse_y, struct ds_slist_t *pickables, mat4_t *parent_transform, mat4_t *view_projection_matrix);
+struct ed_pickable_t *ed_SelectPickable(int32_t mouse_x, int32_t mouse_y, struct ds_slist_t *pickables, mat4_t *parent_transform);
 
 struct ed_pickable_t *ed_SelectWidget(int32_t mouse_x, int32_t mouse_y, struct ed_widget_t *widget, mat4_t *widget_transform);
 
@@ -91,7 +117,7 @@ void ed_DestroyWidget(struct ed_widget_t *widget);
 
 void ed_DrawWidget(struct ed_widget_t *widget, mat4_t *widget_transform);
 
-void ed_WidgetDefaultComputeModelViewProjectionMatrix(mat4_t *view_projection_matrix, mat4_t *widget_transform);
+//void ed_WidgetDefaultComputeModelViewProjectionMatrix(mat4_t *view_projection_matrix, mat4_t *widget_transform);
 
 void ed_WidgetDefaultSetupPickableDrawState(uint32_t pickable_index, struct ed_pickable_t *pickable);
 

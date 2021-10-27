@@ -1,6 +1,6 @@
 #include "ed_main.h"
 #include "ed_bsp.h"
-#include "ed_world.h"
+#include "ed_lev_editor.h"
 #include "dstuff/ds_slist.h"
 #include "dstuff/ds_list.h"
 #include "dstuff/ds_mem.h"
@@ -128,45 +128,6 @@ void test_save_callback(char *path, char *file)
 
 void ed_Init()
 {
-//    ed_objects = ds_slist_create(sizeof(struct ed_object_t), 512);
-//    ed_brushes = ds_slist_create(sizeof(struct ed_brush_t), 512);
-//    ed_global_brush_batches = ds_list_create(sizeof(struct ed_brush_batch_t), 512);
-//    ed_grid = r_i_AllocImmediateExternData(sizeof(struct r_i_verts_t) + sizeof(struct r_vert_t) * 6);
-//
-//    ed_grid->count = 6;
-//    ed_grid->verts[0].pos = vec3_t_c(-ED_GRID_QUAD_SIZE, 0.0, -ED_GRID_QUAD_SIZE);
-//    ed_grid->verts[0].tex_coords = vec2_t_c(0.0, 0.0);
-//    ed_grid->verts[0].color = vec4_t_c(1.0, 0.0, 0.0, 1.0);
-//
-//    ed_grid->verts[1].pos = vec3_t_c(-ED_GRID_QUAD_SIZE, 0.0, ED_GRID_QUAD_SIZE);
-//    ed_grid->verts[1].tex_coords = vec2_t_c(1.0, 0.0);
-//    ed_grid->verts[1].color = vec4_t_c(0.0, 1.0, 0.0, 1.0);
-//
-//    ed_grid->verts[2].pos = vec3_t_c(ED_GRID_QUAD_SIZE, 0.0, ED_GRID_QUAD_SIZE);
-//    ed_grid->verts[2].tex_coords = vec2_t_c(1.0, 1.0);
-//    ed_grid->verts[2].color = vec4_t_c(0.0, 0.0, 1.0, 1.0);
-//
-//    ed_grid->verts[3].pos = vec3_t_c(ED_GRID_QUAD_SIZE, 0.0, ED_GRID_QUAD_SIZE);
-//    ed_grid->verts[3].tex_coords = vec2_t_c(1.0, 1.0);
-//    ed_grid->verts[3].color = vec4_t_c(0.0, 0.0, 1.0, 1.0);
-//
-//    ed_grid->verts[4].pos = vec3_t_c(ED_GRID_QUAD_SIZE, 0.0, -ED_GRID_QUAD_SIZE);
-//    ed_grid->verts[4].tex_coords = vec2_t_c(0.0, 1.0);
-//    ed_grid->verts[4].color = vec4_t_c(0.0, 0.0, 1.0, 1.0);
-//
-//    ed_grid->verts[5].pos = vec3_t_c(-ED_GRID_QUAD_SIZE, 0.0, -ED_GRID_QUAD_SIZE);
-//    ed_grid->verts[5].tex_coords = vec2_t_c(0.0, 0.0);
-//    ed_grid->verts[5].color = vec4_t_c(1.0, 0.0, 0.0, 1.0);
-
-//    ed_center_grid_shader = r_LoadShader("shaders/ed_grid.vert", "shaders/ed_grid.frag");
-//    ed_picking_shader = r_LoadShader("shaders/ed_pick.vert", "shaders/ed_pick.frag");
-//    ed_picking_shader_type_uniform = r_GetUniformIndex(ed_picking_shader, "ed_type");
-//    ed_picking_shader_index_uniform = r_GetUniformIndex(ed_picking_shader, "ed_index");
-//    ed_outline_shader = r_LoadShader("shaders/ed_outline.vert", "shaders/ed_outline.frag");
-//    ed_outline_shader_color_uniform = r_GetUniformIndex(ed_outline_shader, "ed_color");
-
-//    ed_translation_widget_model = r_LoadModel("models/twidget.mof");
-
     SDL_DisplayMode desktop_display_mode;
 
     SDL_GetDesktopDisplayMode(0, &desktop_display_mode);
@@ -245,7 +206,6 @@ void ed_UpdateEditor()
         for(uint32_t context_index = 0; context_index < ED_CONTEXT_LAST; context_index++)
         {
             struct ed_context_t *context = ed_contexts + context_index;
-            context->update();
 
             if(context == ed_active_context)
             {
@@ -253,6 +213,8 @@ void ed_UpdateEditor()
                 context->current_state = context->next_state;
                 context->states[context->current_state].update(context, just_changed);
             }
+
+            context->update();
         }
     }
 

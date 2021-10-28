@@ -2,10 +2,10 @@
 #define ED_COM_H
 
 #include <stdint.h>
-#include "dstuff/ds_buffer.h"
-#include "dstuff/ds_vector.h"
-#include "dstuff/ds_matrix.h"
-#include "r_com.h"
+#include "../lib/dstuff/ds_buffer.h"
+#include "../lib/dstuff/ds_vector.h"
+#include "../lib/dstuff/ds_matrix.h"
+#include "../engine/r_com.h"
 
 
 struct ed_context_t;
@@ -29,6 +29,9 @@ struct ed_context_t
 //    struct ed_state_t *states;
     void *context_data;
 };
+
+
+
 
 
 #endif // ED_COM_H

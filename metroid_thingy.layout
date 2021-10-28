@@ -2,14 +2,44 @@
 <CodeBlocks_layout_file>
 	<FileVersion major="1" minor="0" />
 	<ActiveTarget name="Debug" />
-	<File name="ed_brush.h" open="1" top="0" tabpos="10" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+	<File name="ed_com.h" open="0" top="0" tabpos="5" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
 		<Cursor>
-			<Cursor1 position="2655" topLine="104" />
+			<Cursor1 position="618" topLine="15" />
 		</Cursor>
 	</File>
-	<File name="r_draw.c" open="0" top="0" tabpos="12" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+	<File name="r_vis.h" open="0" top="0" tabpos="7" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
 		<Cursor>
-			<Cursor1 position="21787" topLine="419" />
+			<Cursor1 position="93" topLine="0" />
+		</Cursor>
+	</File>
+	<File name="physics.c" open="0" top="0" tabpos="6" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="22906" topLine="564" />
+		</Cursor>
+	</File>
+	<File name="lib\cimgui\imgui\imgui_tables.cpp" open="0" top="0" tabpos="0" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="22338" topLine="265" />
+		</Cursor>
+	</File>
+	<File name="anim.h" open="0" top="0" tabpos="1" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="140" topLine="4" />
+		</Cursor>
+	</File>
+	<File name="r_main.h" open="1" top="0" tabpos="2" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="3544" topLine="87" />
+		</Cursor>
+	</File>
+	<File name="ed_lev_editor.c" open="1" top="1" tabpos="10" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="37064" topLine="846" />
+		</Cursor>
+	</File>
+	<File name="lib\cimgui\imgui\imgui.cpp" open="0" top="0" tabpos="0" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="467261" topLine="9016" />
 		</Cursor>
 	</File>
 	<File name="physics.h" open="0" top="0" tabpos="8" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
@@ -22,114 +52,9 @@
 			<Cursor1 position="4583" topLine="0" />
 		</Cursor>
 	</File>
-	<File name="ed_pick.h" open="1" top="1" tabpos="7" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+	<File name="r_main.c" open="1" top="0" tabpos="1" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
 		<Cursor>
-			<Cursor1 position="2000" topLine="86" />
-		</Cursor>
-	</File>
-	<File name="lib\tinycthread\tinycthread.h" open="0" top="0" tabpos="7" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="17140" topLine="462" />
-		</Cursor>
-	</File>
-	<File name="anim.c" open="0" top="0" tabpos="10" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="23271" topLine="592" />
-		</Cursor>
-	</File>
-	<File name="game.c" open="1" top="0" tabpos="2" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="34120" topLine="929" />
-		</Cursor>
-	</File>
-	<File name="lib\cimgui\imgui\imgui_tables.cpp" open="0" top="0" tabpos="0" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="22338" topLine="265" />
-		</Cursor>
-	</File>
-	<File name="ed_world.c" open="0" top="0" tabpos="9" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="25388" topLine="553" />
-		</Cursor>
-	</File>
-	<File name="lib\cimgui\imgui\imgui.h" open="0" top="0" tabpos="14" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="70830" topLine="633" />
-		</Cursor>
-	</File>
-	<File name="ed_main.c" open="1" top="0" tabpos="6" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="9072" topLine="218" />
-		</Cursor>
-	</File>
-	<File name="ed_phys.h" open="0" top="0" tabpos="0" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="40" topLine="0" />
-		</Cursor>
-	</File>
-	<File name="ed_world.h" open="1" top="0" tabpos="9" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="3803" topLine="125" />
-		</Cursor>
-	</File>
-	<File name="ed_pick.c" open="1" top="0" tabpos="8" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="4092" topLine="106" />
-		</Cursor>
-	</File>
-	<File name="sound.c" open="0" top="0" tabpos="8" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="5852" topLine="219" />
-		</Cursor>
-	</File>
-	<File name="lib\cimgui\cimgui.h" open="0" top="0" tabpos="11" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="14999" topLine="338" />
-		</Cursor>
-	</File>
-	<File name="r_vis.h" open="0" top="0" tabpos="7" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="93" topLine="0" />
-		</Cursor>
-	</File>
-	<File name="input.h" open="0" top="0" tabpos="11" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="277" topLine="0" />
-		</Cursor>
-	</File>
-	<File name="r_draw.h" open="1" top="0" tabpos="4" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="2341" topLine="53" />
-		</Cursor>
-	</File>
-	<File name="r_com.h" open="0" top="0" tabpos="5" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="570" topLine="16" />
-		</Cursor>
-	</File>
-	<File name="physics.c" open="0" top="0" tabpos="6" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="22906" topLine="564" />
-		</Cursor>
-	</File>
-	<File name="impl.c" open="0" top="0" tabpos="8" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="742" topLine="0" />
-		</Cursor>
-	</File>
-	<File name="main.c" open="0" top="0" tabpos="10" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="573" topLine="0" />
-		</Cursor>
-	</File>
-	<File name="gui.c" open="0" top="0" tabpos="13" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="3687" topLine="115" />
-		</Cursor>
-	</File>
-	<File name="game.h" open="1" top="0" tabpos="3" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="215" topLine="0" />
+			<Cursor1 position="29315" topLine="525" />
 		</Cursor>
 	</File>
 	<File name="lib\cimgui\imgui\imgui_demo.cpp" open="0" top="0" tabpos="0" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
@@ -137,59 +62,19 @@
 			<Cursor1 position="221162" topLine="4136" />
 		</Cursor>
 	</File>
-	<File name="ed_brush.c" open="1" top="0" tabpos="11" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="7113" topLine="207" />
-		</Cursor>
-	</File>
-	<File name="lib\cimgui\imgui\imgui.cpp" open="0" top="0" tabpos="0" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="467261" topLine="9016" />
-		</Cursor>
-	</File>
-	<File name="anim.h" open="0" top="0" tabpos="1" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="140" topLine="4" />
-		</Cursor>
-	</File>
-	<File name="ed_main.h" open="0" top="0" tabpos="0" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="298" topLine="5" />
-		</Cursor>
-	</File>
-	<File name="world.h" open="0" top="0" tabpos="0" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="338" topLine="0" />
-		</Cursor>
-	</File>
-	<File name="ed_bsp.c" open="0" top="0" tabpos="9" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="2454" topLine="63" />
-		</Cursor>
-	</File>
-	<File name="r_main.c" open="1" top="0" tabpos="1" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="22312" topLine="434" />
-		</Cursor>
-	</File>
-	<File name="ed_com.h" open="1" top="0" tabpos="5" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="470" topLine="0" />
-		</Cursor>
-	</File>
 	<File name="r_vis.c" open="0" top="0" tabpos="13" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
 		<Cursor>
 			<Cursor1 position="15278" topLine="300" />
 		</Cursor>
 	</File>
-	<File name="ed_bsp.h" open="0" top="0" tabpos="6" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+	<File name="gui.c" open="0" top="0" tabpos="13" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
 		<Cursor>
-			<Cursor1 position="391" topLine="0" />
+			<Cursor1 position="3687" topLine="115" />
 		</Cursor>
 	</File>
-	<File name="sound.h" open="0" top="0" tabpos="4" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+	<File name="game.h" open="0" top="0" tabpos="3" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
 		<Cursor>
-			<Cursor1 position="120" topLine="0" />
+			<Cursor1 position="215" topLine="0" />
 		</Cursor>
 	</File>
 	<File name="lib\cimgui\cimgui.cpp" open="0" top="0" tabpos="12" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
@@ -197,14 +82,129 @@
 			<Cursor1 position="36270" topLine="1097" />
 		</Cursor>
 	</File>
-	<File name="r_main.h" open="0" top="0" tabpos="2" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+	<File name="ed_phys.h" open="0" top="0" tabpos="0" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
 		<Cursor>
-			<Cursor1 position="3531" topLine="64" />
+			<Cursor1 position="40" topLine="0" />
+		</Cursor>
+	</File>
+	<File name="r_com.h" open="0" top="0" tabpos="5" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="2976" topLine="140" />
+		</Cursor>
+	</File>
+	<File name="ed_lev_editor.h" open="1" top="0" tabpos="4" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="4513" topLine="162" />
+		</Cursor>
+	</File>
+	<File name="anim.c" open="0" top="0" tabpos="10" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="23271" topLine="592" />
+		</Cursor>
+	</File>
+	<File name="ed_main.h" open="1" top="0" tabpos="6" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="293" topLine="25" />
 		</Cursor>
 	</File>
 	<File name="world.c" open="0" top="0" tabpos="9" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
 		<Cursor>
 			<Cursor1 position="949" topLine="0" />
+		</Cursor>
+	</File>
+	<File name="ed_bsp.h" open="0" top="0" tabpos="6" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="391" topLine="0" />
+		</Cursor>
+	</File>
+	<File name="r_draw.h" open="0" top="0" tabpos="4" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="2341" topLine="12" />
+		</Cursor>
+	</File>
+	<File name="ed_brush.c" open="1" top="0" tabpos="7" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="40373" topLine="1147" />
+		</Cursor>
+	</File>
+	<File name="lib\tinycthread\tinycthread.h" open="0" top="0" tabpos="7" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="17140" topLine="462" />
+		</Cursor>
+	</File>
+	<File name="sound.h" open="0" top="0" tabpos="4" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="120" topLine="0" />
+		</Cursor>
+	</File>
+	<File name="main.c" open="0" top="0" tabpos="10" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="573" topLine="0" />
+		</Cursor>
+	</File>
+	<File name="sound.c" open="0" top="0" tabpos="8" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="5852" topLine="219" />
+		</Cursor>
+	</File>
+	<File name="impl.c" open="0" top="0" tabpos="8" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="1068" topLine="16" />
+		</Cursor>
+	</File>
+	<File name="ed_bsp.c" open="0" top="0" tabpos="9" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="2454" topLine="63" />
+		</Cursor>
+	</File>
+	<File name="lib\cimgui\imgui\imgui.h" open="0" top="0" tabpos="14" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="70830" topLine="633" />
+		</Cursor>
+	</File>
+	<File name="ed_pick.c" open="1" top="0" tabpos="9" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="17399" topLine="459" />
+		</Cursor>
+	</File>
+	<File name="ed_pick.h" open="1" top="0" tabpos="8" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="4271" topLine="116" />
+		</Cursor>
+	</File>
+	<File name="lib\cimgui\cimgui.h" open="0" top="0" tabpos="11" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="14999" topLine="338" />
+		</Cursor>
+	</File>
+	<File name="ed_main.c" open="0" top="0" tabpos="6" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="7575" topLine="195" />
+		</Cursor>
+	</File>
+	<File name="r_draw.c" open="0" top="0" tabpos="12" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="21787" topLine="419" />
+		</Cursor>
+	</File>
+	<File name="game.c" open="0" top="0" tabpos="2" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="34120" topLine="929" />
+		</Cursor>
+	</File>
+	<File name="ed_brush.h" open="1" top="0" tabpos="5" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="5296" topLine="218" />
+		</Cursor>
+	</File>
+	<File name="input.h" open="0" top="0" tabpos="11" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="277" topLine="0" />
+		</Cursor>
+	</File>
+	<File name="world.h" open="1" top="0" tabpos="3" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="80" topLine="0" />
 		</Cursor>
 	</File>
 </CodeBlocks_layout_file>

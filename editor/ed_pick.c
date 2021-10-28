@@ -1,12 +1,12 @@
 #include <stdio.h>
 
 #include "ed_pick.h"
-#include "ed_lev_editor.h"
 #include "ed_brush.h"
-#include "game.h"
-#include "r_main.h"
+#include "ed_level.h"
+#include "../engine/game.h"
+#include "../engine/r_main.h"
 
-extern struct ed_world_context_data_t ed_w_ctx_data;
+extern struct ed_level_state_t ed_level_state;
 extern struct r_shader_t *ed_picking_shader;
 extern mat4_t r_view_projection_matrix;
 extern mat4_t r_camera_matrix;
@@ -171,8 +171,8 @@ struct ed_widget_t *ed_CreateWidget()
     uint32_t index;
     struct ed_widget_t *widget;
 
-    index = ds_slist_add_element(&ed_w_ctx_data.widgets, NULL);
-    widget = ds_slist_get_element(&ed_w_ctx_data.widgets, index);
+    index = ds_slist_add_element(&ed_level_state.widgets, NULL);
+    widget = ds_slist_get_element(&ed_level_state.widgets, index);
 
     widget->index = index;
 //    widget->mvp_mat_fn = ed_WidgetDefaultComputeModelViewProjectionMatrix;
@@ -270,8 +270,8 @@ void ed_WidgetDefaultSetupPickableDrawState(uint32_t pickable_index, struct ed_p
 struct ed_pickable_range_t *ed_AllocPickableRange()
 {
     struct ed_pickable_range_t *range = NULL;
-    uint32_t index = ds_slist_add_element(&ed_w_ctx_data.pickable_ranges, NULL);
-    range = ds_slist_get_element(&ed_w_ctx_data.pickable_ranges, index);
+    uint32_t index = ds_slist_add_element(&ed_level_state.pickable_ranges, NULL);
+    range = ds_slist_get_element(&ed_level_state.pickable_ranges, index);
     range->index = index;
     return range;
 }
@@ -280,7 +280,7 @@ void ed_FreePickableRange(struct ed_pickable_range_t *range)
 {
     if(range && range->index != 0xffffffff)
     {
-        ds_slist_remove_element(&ed_w_ctx_data.pickable_ranges, range->index);
+        ds_slist_remove_element(&ed_level_state.pickable_ranges, range->index);
         range->index = 0xffffffff;
     }
 }
@@ -292,11 +292,11 @@ struct ds_slist_t *ed_PickableListFromType(uint32_t type)
 //        case ED_PICKABLE_TYPE_BRUSH:
 //        case ED_PICKABLE_TYPE_LIGHT:
 //        case ED_PICKABLE_TYPE_ENTITY:
-//            return &ed_w_ctx_data.pickables.lists[ED_LEV_EDITOR_EDIT_MODE_OBJECT].pickables;
+//            return &ed_level_state.pickables.lists[ED_LEV_EDITOR_EDIT_MODE_OBJECT].pickables;
 //
 //        case ED_PICKABLE_TYPE_FACE:
 //        case ED_PICKABLE_TYPE_EDGE:
-//            return &ed_w_ctx_data.pickables.lists[ED_LEV_EDITOR_EDIT_MODE_BRUSH].pickables;
+//            return &ed_level_state.pickables.lists[ED_LEV_EDITOR_EDIT_MODE_BRUSH].pickables;
 //
 //    }
 //
@@ -329,7 +329,7 @@ struct ed_pickable_t *ed_CreatePickableOnList(uint32_t type, struct ds_slist_t *
 struct ed_pickable_t *ed_CreatePickable(uint32_t type)
 {
 //    struct ds_slist_t *list = ed_PickableListFromType(type);
-    struct ed_pickable_t *pickable = ed_CreatePickableOnList(type, &ed_w_ctx_data.pickables.pickables);
+    struct ed_pickable_t *pickable = ed_CreatePickableOnList(type, &ed_level_state.pickables.pickables);
     return pickable;
 }
 
@@ -341,7 +341,7 @@ void ed_DestroyPickable(struct ed_pickable_t *pickable)
         {
             case ED_PICKABLE_TYPE_BRUSH:
             {
-                struct ds_list_t *selections = &ed_w_ctx_data.pickables.selections;
+                struct ds_list_t *selections = &ed_level_state.pickables.selections;
 
                 struct ed_brush_t *brush = ed_GetBrush(pickable->primary_index);
                 struct ed_face_t *face = brush->faces;
@@ -380,7 +380,7 @@ void ed_DestroyPickable(struct ed_pickable_t *pickable)
             pickable->ranges = next;
         }
 
-        ds_slist_remove_element(&ed_w_ctx_data.pickables.pickables, pickable->index);
+        ds_slist_remove_element(&ed_level_state.pickables.pickables, pickable->index);
         pickable->index = 0xffffffff;
     }
 }
@@ -399,14 +399,49 @@ struct ed_pickable_t *ed_GetPickableOnList(uint32_t index, struct ds_slist_t *pi
 
 struct ed_pickable_t *ed_GetPickable(uint32_t index, uint32_t type)
 {
-    return ed_GetPickableOnList(index, &ed_w_ctx_data.pickables.pickables);
+    return ed_GetPickableOnList(index, &ed_level_state.pickables.pickables);
 }
 
-struct ed_pickable_t *ed_CreateBrushPickable(vec3_t *position, mat3_t *orientation, vec3_t *size)
+struct ed_pickable_t *ed_CopyPickable(struct ed_pickable_t *src_pickable)
+{
+    struct ed_pickable_t *copy = NULL;
+
+    switch(src_pickable->type)
+    {
+        case ED_PICKABLE_TYPE_BRUSH:
+        {
+            struct ed_brush_t *src_brush = ed_GetBrush(src_pickable->primary_index);
+            copy = ed_CreateBrushPickable(NULL, NULL, NULL, src_brush);
+        }
+        break;
+
+        case ED_PICKABLE_TYPE_LIGHT:
+        {
+            struct r_light_t *src_light = r_GetLight(src_pickable->primary_index);
+            copy = ed_CreateLightPickable(&src_light->data.pos_rad.xyz,
+                                          &src_light->data.color_res.xyz,
+                                          src_light->data.pos_rad.w, src_light->energy);
+        }
+        break;
+    }
+
+    return copy;
+}
+
+struct ed_pickable_t *ed_CreateBrushPickable(vec3_t *position, mat3_t *orientation, vec3_t *size, struct ed_brush_t *src_brush)
 {
     struct ed_pickable_t *pickable = NULL;
+    struct ed_brush_t *brush;
 
-    struct ed_brush_t *brush = ed_CreateBrush(position, orientation, size);
+    if(src_brush)
+    {
+        brush = ed_CopyBrush(src_brush);
+    }
+    else
+    {
+        brush = ed_CreateBrush(position, orientation, size);
+    }
+
     struct r_batch_t *first_batch = (struct r_batch_t *)brush->model->batches.buffer;
 
     pickable = ed_CreatePickable(ED_PICKABLE_TYPE_BRUSH);
@@ -433,20 +468,28 @@ struct ed_pickable_t *ed_CreateBrushPickable(vec3_t *position, mat3_t *orientati
         face->pickable = face_pickable;
         ed_w_MarkPickableModified(face_pickable);
 
-        struct ed_face_polygon_t *polygon = face->polygons;
-
+//        struct ed_face_polygon_t *polygon = face->polygons;
+//
 //        while(polygon)
 //        {
 //            struct ed_edge_t *edge = polygon->edges;
 //
 //            while(edge)
 //            {
-//                struct ed_pickable_t *edge_pickable = ed_CreatePickable(ED_PICKABLE_TYPE_EDGE);
-//                edge_pickable->primary_index = brush->index;
-//                edge_pickable->secondary_index = edge->index;
-//                edge_pickable->mode = GL_LINES;
-//                edge_pickable->range_count = 0;
-//                edge = edge->next;
+//                if(!edge->pickable)
+//                {
+//                    struct ed_pickable_t *edge_pickable = ed_CreatePickable(ED_PICKABLE_TYPE_EDGE);
+//                    edge_pickable->primary_index = brush->index;
+//                    edge_pickable->secondary_index = edge->index;
+//                    edge_pickable->mode = GL_LINES;
+//                    edge_pickable->ranges = ed_AllocPickableRange();
+//                    edge_pickable->range_count = 1;
+//                    edge->pickable = edge_pickable;
+//                    ed_w_MarkPickableModified(edge_pickable);
+//                }
+//
+//                uint32_t polygon_index = edge->polygons[1].polygon == polygon;
+//                edge = edge->polygons[polygon_index].next;
 //            }
 //
 //            polygon = polygon->next;

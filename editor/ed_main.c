@@ -1,6 +1,6 @@
 #include "ed_main.h"
 #include "ed_bsp.h"
-#include "ed_lev_editor.h"
+#include "ed_level.h"
 #include "dstuff/ds_slist.h"
 #include "dstuff/ds_list.h"
 #include "dstuff/ds_mem.h"
@@ -9,10 +9,10 @@
 #include "dstuff/ds_path.h"
 #include "dstuff/ds_dir.h"
 #include "dstuff/ds_buffer.h"
-#include "game.h"
-#include "input.h"
-#include "gui.h"
-#include "r_draw.h"
+#include "../engine/game.h"
+#include "../engine/input.h"
+#include "../engine/gui.h"
+#include "../engine/r_draw.h"
 #include <limits.h>
 #include <string.h>
 #include <float.h>

@@ -1,0 +1,109 @@
+#ifndef ED_LEVEL_DEFS_H
+#define ED_LEVEL_DEFS_H
+
+#include "ed_defs.h"
+
+enum ED_LEVEL_EDIT_MODES
+{
+    ED_LEVEL_EDIT_MODE_OBJECT = 0,
+    ED_LEVEL_EDIT_MODE_BRUSH,
+    ED_LEVEL_EDIT_MODE_LAST
+};
+
+enum ED_LEVEL_MANIP_MODES
+{
+    ED_LEVEL_MANIP_MODE_TRANSLATION = 0,
+    ED_LEVEL_MANIP_MODE_ROTATION,
+    ED_LEVEL_MANIP_MODE_SCALE,
+};
+
+enum ED_LEVEL_SECONDARY_CLICK_FUNCS
+{
+    ED_LEVEL_SECONDARY_CLICK_FUNC_BRUSH = 0,
+    ED_LEVEL_SECONDARY_CLICK_FUNC_LIGHT
+};
+
+//struct ed_lev_editor_object_list_t
+//{
+//    struct ds_slist_t pickables;
+//    struct ds_list_t selections;
+//};
+
+struct ed_level_state_t
+{
+
+    struct
+    {
+        vec3_t box_start;
+        vec3_t box_end;
+        vec3_t plane_point;
+        vec2_t box_size;
+        mat3_t plane_orientation;
+        uint32_t drawing;
+
+        struct ds_slist_t bsp_nodes;
+        struct ds_slist_t bsp_polygons;
+
+        struct ds_slist_t brushes;
+//        struct ds_list_t modified_brushes;
+        struct ds_slist_t brush_faces;
+        struct ds_slist_t brush_face_polygons;
+        struct ds_slist_t brush_edges;
+
+        struct ds_buffer_t polygon_buffer;
+        struct ds_buffer_t vertex_buffer;
+        struct ds_buffer_t index_buffer;
+        struct ds_buffer_t batch_buffer;
+
+        uint32_t brush_vert_count;
+        uint32_t brush_index_count;
+        struct ds_list_t brush_batches;
+    } brush;
+
+    struct
+    {
+//        uint32_t edit_mode;
+//        uint32_t next_edit_mode;
+//        uint32_t mouse_first_released;
+        uint32_t ignore_types;
+        uint32_t secondary_click_function;
+        struct ds_slist_t pickables;
+        struct ds_list_t selections;
+//        struct ed_lev_editor_object_list_t *active_list;
+//        struct ed_lev_editor_object_list_t lists[ED_LEV_EDITOR_EDIT_MODE_LAST];
+        struct ds_list_t modified_brushes;
+        struct ds_list_t modified_pickables;
+        struct ed_pickable_t *last_selected;
+
+    } pickables;
+
+    struct ds_slist_t pickable_ranges;
+    struct ds_slist_t widgets;
+
+    struct
+    {
+        uint32_t mode;
+        uint32_t visible;
+        float prev_angle;
+        vec3_t start_pos;
+        vec3_t prev_offset;
+        mat4_t transform;
+        vec2_t screen_pos;
+        float linear_snap;
+        float angular_snap;
+        struct ed_widget_t *widgets[3];
+
+    } manipulator;
+
+    struct ed_widget_t *ball_widget;
+    mat4_t ball_transform;
+
+    float info_window_alpha;
+    uint32_t open_delete_selections_popup;
+
+    float camera_pitch;
+    float camera_yaw;
+    vec3_t camera_pos;
+};
+
+#endif

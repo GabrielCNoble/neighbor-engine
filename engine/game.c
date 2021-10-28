@@ -7,7 +7,7 @@
 #include "input.h"
 #include "anim.h"
 #include "physics.h"
-#include "ed_main.h"
+#include "../editor/ed_main.h"
 #include "world.h"
 #include "sound.h"
 #include "gui.h"

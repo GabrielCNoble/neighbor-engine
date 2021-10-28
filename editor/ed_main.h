@@ -5,7 +5,7 @@
 #include "dstuff/ds_matrix.h"
 #include "dstuff/ds_alloc.h"
 #include "dstuff/ds_buffer.h"
-#include "ed_com.h"
+#include "ed_defs.h"
 #include "ed_brush.h"
 #include "ed_pick.h"
 

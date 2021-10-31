@@ -56,15 +56,17 @@
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="editor/ed_brush.h" />
+		<Unit filename="editor/ed_brush_defs.h" />
 		<Unit filename="editor/ed_bsp.c">
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="editor/ed_bsp.h" />
-		<Unit filename="editor/ed_com.h" />
-		<Unit filename="editor/ed_lev_editor.c">
+		<Unit filename="editor/ed_defs.h" />
+		<Unit filename="editor/ed_level.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="editor/ed_lev_editor.h" />
+		<Unit filename="editor/ed_level.h" />
+		<Unit filename="editor/ed_level_defs.h" />
 		<Unit filename="editor/ed_main.c">
 			<Option compilerVar="CC" />
 		</Unit>
@@ -73,6 +75,7 @@
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="editor/ed_pick.h" />
+		<Unit filename="editor/ed_pick_defs.h" />
 		<Unit filename="engine/anim.c">
 			<Option compilerVar="CC" />
 		</Unit>
@@ -92,9 +95,15 @@
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="engine/input.h" />
+		<Unit filename="engine/l_defs.h" />
+		<Unit filename="engine/level.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="engine/level.h" />
 		<Unit filename="engine/main.c">
 			<Option compilerVar="CC" />
 		</Unit>
+		<Unit filename="engine/main.h" />
 		<Unit filename="engine/physics.c">
 			<Option compilerVar="CC" />
 		</Unit>
@@ -103,6 +112,19 @@
 		<Unit filename="engine/r_draw.c">
 			<Option compilerVar="CC" />
 		</Unit>
+		<Unit filename="engine/r_draw.h" />
+		<Unit filename="engine/r_main.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="engine/r_main.h" />
+		<Unit filename="engine/r_vis.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="engine/r_vis.h" />
+		<Unit filename="engine/sound.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="engine/sound.h" />
 		<Unit filename="lib/cimgui/cimgui.cpp" />
 		<Unit filename="lib/cimgui/cimgui.h" />
 		<Unit filename="lib/cimgui/imgui/imconfig.h" />
@@ -116,6 +138,10 @@
 		<Unit filename="lib/cimgui/imgui/imstb_rectpack.h" />
 		<Unit filename="lib/cimgui/imgui/imstb_textedit.h" />
 		<Unit filename="lib/cimgui/imgui/imstb_truetype.h" />
+		<Unit filename="lib/lzo/minilzo.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="lib/lzo/minilzo.h" />
 		<Unit filename="lib/tinycthread/tinycthread.c">
 			<Option compilerVar="CC" />
 		</Unit>

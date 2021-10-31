@@ -1,9 +1,9 @@
 #define SDL_MAIN_HANDLED
 #include "SDL2/SDL.h"
-#include <stdio.h>
-#include "game.h"
+#include "main.h"
 
-
+extern uint32_t g_editor;
+extern uint32_t g_game_state;
 
 int main(int argc, char *argv[])
 {
@@ -11,42 +11,61 @@ int main(int argc, char *argv[])
     {
         printf("oh, shit...\n");
     }
-    
-    uint32_t editor_active = 0;
+
+    uint32_t editor = 0;
+
     if(argc > 1)
     {
         for(uint32_t arg_index = 1; arg_index < argc; arg_index++)
         {
             if(!strcmp(argv[arg_index], "-ed"))
             {
-                editor_active = 1;
+                editor = 1;
                 break;
             }
         }
     }
-    
-    g_Init(editor_active);
-    g_MainLoop();
-    
-//    r_Init();
-//    p_Init();
-//    a_Init();
-//    g_Init();
-//    in_Input();
-//    
-//    uint32_t editor = 0;
-//    
-//    
-//    while(!(in_GetKeyState(SDL_SCANCODE_ESCAPE) & IN_KEY_STATE_JUST_PRESSED))
-//    {
-//        in_Input();
-//        p_UpdateColliders();
-//        g_UpdateEntities();
-//        a_UpdateAnimations();
-//        g_DrawEntities();
-//        r_BeginFrame();
-//        r_DrawBatches();
-//        r_DrawImmediateBatches();
-//        r_EndFrame();
-//    }
+
+    r_Init();
+    p_Init();
+    a_Init();
+    in_Input(0.016);
+    l_Init();
+    s_Init();
+    gui_Init();
+    g_Init(editor);
+
+    while(g_game_state != G_GAME_STATE_QUIT)
+    {
+        float delta_time = 0.016;
+
+        in_Input(delta_time);
+        gui_BeginFrame(delta_time);
+        g_GameMain(delta_time);
+
+        switch(g_game_state)
+        {
+            case G_GAME_STATE_PLAYING:
+                p_UpdateColliders(delta_time);
+                a_UpdateAnimations(delta_time);
+            break;
+
+            case G_GAME_STATE_MAIN_MENU:
+
+            break;
+
+            case G_GAME_STATE_PAUSED:
+
+            break;
+        }
+
+        g_UpdateEntities();
+        r_VisibleLights();
+        r_VisibleEntitiesOnLights();
+        r_VisibleEntities();
+        r_BeginFrame();
+        gui_EndFrame();
+        r_DrawCmds();
+        r_EndFrame();
+    }
 }

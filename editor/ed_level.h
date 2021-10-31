@@ -91,17 +91,17 @@ void ed_w_PickObject(struct ed_context_t *context, uint32_t just_changed);
 
 void ed_w_PlaceLightAtCursor(struct ed_context_t *context, uint32_t just_changed);
 
-//void ed_w_WidgetSelected(struct ed_context_t *context, uint32_t just_changed);
-
 void ed_w_TransformSelections(struct ed_context_t *context, uint32_t just_changed);
 
-//void ed_w_ObjectSelected(struct ed_context_t *context, uint32_t just_changed);
+void ed_SerializeLevel(void **level_buffer, size_t *buffer_size);
 
-void ed_w_SetEditMode(struct ed_context_t *context, uint32_t just_changed);
+void ed_DeserializeLevel(void *level_buffer, size_t buffer_size);
 
-//void ed_w_EnterObjectEditMode(struct ed_context_t *context, uint32_t just_changed);
+void ed_SaveLevel(char *path, char *file);
 
-//void ed_w_EnterBrushEditMode(struct ed_context_t *context, uint32_t just_changed);
+void ed_LoadLevel(char *path, char *file);
+
+void ed_ResetLevelEditor();
 
 
 #endif // ED_W_CTX_H

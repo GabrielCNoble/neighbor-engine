@@ -8,7 +8,7 @@
 #include "anim.h"
 #include "physics.h"
 #include "../editor/ed_main.h"
-#include "world.h"
+#include "level.h"
 #include "sound.h"
 #include "gui.h"
 #include <string.h>
@@ -19,6 +19,7 @@
 extern mat4_t r_view_matrix;
 extern mat4_t r_inv_view_matrix;
 extern mat4_t r_view_projection_matrix;
+uint32_t g_editor = 0;
 
 struct ds_slist_t g_entities;
 struct ds_list_t g_projectiles;
@@ -149,36 +150,31 @@ void g_TestCallback(void *data, float delta_time)
 
 void g_Init(uint32_t editor_active)
 {
-    r_Init();
-    p_Init();
-    a_Init();
-    in_Input(0.016);
-    w_Init();
-    s_Init();
-    gui_Init();
-
-    if(editor_active)
-    {
-        ed_Init();
-    }
-
+    g_editor = editor_active;
     g_entities = ds_slist_create(sizeof(struct g_entity_t), 512);
     g_projectiles = ds_list_create(sizeof(struct g_projectile_t), 512);
     r_SetViewPitchYaw(g_camera_pitch, g_camera_yaw);
     r_SetViewPos(&g_camera_pos);
 
-    g_boy_model = r_LoadModel("models/Boy.mof");
+    g_game_state = G_GAME_STATE_MAIN_MENU;
+
+    if(g_editor)
+    {
+        ed_Init();
+    }
+
+//    g_boy_model = r_LoadModel("models/Boy.mof");
 //    g_sponza_model = r_LoadModel("models/sponza2.mof");
-    struct a_animation_t *dance_step_maybe = a_LoadAnimation("models/DanceStepMaybe.anf");
-    struct a_animation_t *miracle_dance_blockout = a_LoadAnimation("models/MiracleDanceBlockout.anf");
-    struct a_animation_t *miracle_dance_smooth = a_LoadAnimation("models/MiracleDanceSmooth.anf");
+//    struct a_animation_t *dance_step_maybe = a_LoadAnimation("models/DanceStepMaybe.anf");
+//    struct a_animation_t *miracle_dance_blockout = a_LoadAnimation("models/MiracleDanceBlockout.anf");
+//    struct a_animation_t *miracle_dance_smooth = a_LoadAnimation("models/MiracleDanceSmooth.anf");
 
 
 
 
 //    g_gun_model = r_LoadModel("models/shocksplinter.mof");
-    g_wiggle_model = r_LoadModel("models/dude.mof");
-    g_cube_model = r_LoadModel("models/Cube.mof");
+//    g_wiggle_model = r_LoadModel("models/dude.mof");
+//    g_cube_model = r_LoadModel("models/Cube.mof");
 
 //    g_run_animation = a_LoadAnimation("models/run.anf");
 //    g_idle_animation = a_LoadAnimation("models/idle.anf");
@@ -314,8 +310,6 @@ void g_Init(uint32_t editor_active)
 
 //    g_LoadMap("map8.png");
 
-    g_game_state = G_GAME_STATE_EDITING;
-
 //    for(uint32_t y = 0; y < 11; y++)
 //    {
 //        for(uint32_t x = 0; x < 75; x++)
@@ -326,8 +320,8 @@ void g_Init(uint32_t editor_active)
 
 //    r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(4.0, -0.3, -2.0), &vec3_t_c(1.0, 1.0, 1.0), 6.0, 5.0);
 
-    mat4_t transform;
-    mat4_t_identity(&transform);
+//    mat4_t transform;
+//    mat4_t_identity(&transform);
 
 
 //    g_lights[0] = r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(0.0, 0.3, 0.4), &vec3_t_c(1.0, 0.0, 0.0), 5.0, 3.0);
@@ -627,84 +621,74 @@ void g_SetGameState(uint32_t game_state)
     g_game_state = game_state;
 }
 
+void g_GameMain(float delta_time)
+{
+    if(in_GetKeyState(SDL_SCANCODE_ESCAPE) & IN_KEY_STATE_PRESSED)
+    {
+        if(g_editor)
+        {
+            g_SetGameState(G_GAME_STATE_EDITING);
+        }
+        else
+        {
+            g_SetGameState(G_GAME_STATE_PAUSED);
+        }
+    }
+
+    if(g_editor)
+    {
+        ed_UpdateEditor();
+    }
+}
+
 void g_MainLoop(uint32_t editor_active)
 {
-//    float f = 0;
-//    float t = 0;
-//    uint32_t row = 0;
-
-    while(g_game_state != G_GAME_STATE_QUIT)
-    {
-//        g_player_entity->transform.rows[3].x = cos(f) * 2.0;
-////        g_player_entity->transform.rows[3].y = sin(t) * 2.0;
-//        g_player_entity->transform.rows[3].z = sin(f) * 2.0;
-
-//        g_player_light->data.pos_rad.x = cos(f) * 2.4;
-//        g_player_light->data.pos_rad.y = sin(t * 5) * 0.4;
-//        g_player_light->data.pos_rad.z = sin(f) * 2.4;
-
-
-//        g_player_light->data.pos_rad.y = sin(f) ;
-//        g_player_light->data.pos_rad.z = 2.0 + cos(f) * 0.7;
-//        g_player_light->data.pos_rad.x = cos(t) * 3.0;
-//        for(uint32_t light_index = 0; light_index < 3; light_index++)
-//        {
-//            g_lights[light_index]->data.pos_rad.y = sin(f + (float)light_index * 0.5);
-//        }
-
-//        f += 0.007;
-//        t += 0.03;
-        in_Input(0.016);
-        gui_BeginFrame();
-        p_UpdateColliders();
-
-//        if(in_GetKeyState(SDL_SCANCODE_C) & IN_KEY_STATE_JUST_PRESSED)
-//        {
-//            mat4_t transform;
-//            mat4_t_identity(&transform);
-//            transform.rows[0].x = 0.2;
-//            transform.rows[1].y = 0.2;
-//            transform.rows[2].z = 0.2;
+//    while(1)
+//    {
+//        in_Input(0.016);
+//        gui_BeginFrame();
 //
-//            for(uint32_t index = 0; index < 1000; index++)
-//            {
-//                transform.rows[3].x = -2000 + index * 4;
-//                transform.rows[3].z = row * 4;
-//                g_CreateEntity(&transform, NULL, g_wiggle_model);
-//            }
-//            row++;
-//        }
-
-        if(in_GetKeyState(SDL_SCANCODE_Z) & IN_KEY_STATE_JUST_PRESSED)
-        {
-            r_renderer_state.use_z_prepass^= 1;
-        }
-
-        switch(g_game_state)
-        {
-            case G_GAME_STATE_PLAYING:
+//        switch(g_game_state)
+//        {
+//            case G_GAME_STATE_PLAYING:
+//                if(in_GetKeyState(SDL_SCANCODE_ESCAPE) & IN_KEY_STATE_PRESSED)
+//                {
+//                    if(g_editor)
+//                    {
+//                        g_SetGameState(G_GAME_STATE_EDITING);
+//                        break;
+//                    }
+//                    else
+//                    {
+//                        g_SetGameState(G_GAME_STATE_PAUSED);
+//                    }
+//                }
 //                p_UpdateColliders();
-                if(in_GetKeyState(SDL_SCANCODE_ESCAPE) & IN_KEY_STATE_PRESSED)
-                {
-                    g_SetGameState(G_GAME_STATE_EDITING);
-                }
-                a_UpdateAnimations(0.01666);
-            break;
-
-            case G_GAME_STATE_EDITING:
-                ed_UpdateEditor();
-            break;
-        }
-
-        g_UpdateEntities();
-        r_VisibleLights();
-        r_VisibleEntitiesOnLights();
-        r_VisibleEntities();
-        r_BeginFrame();
-        gui_EndFrame();
-        r_DrawCmds();
-        r_EndFrame();
-    }
+//                a_UpdateAnimations(0.01666);
+//            break;
+//
+//            case G_GAME_STATE_PAUSED:
+//
+//            break;
+//
+//            case G_GAME_STATE_EDITING:
+//                ed_UpdateEditor();
+//            break;
+//
+//            case G_GAME_STATE_QUIT:
+//                return;
+//            break;
+//        }
+//
+//        g_UpdateEntities();
+//        r_VisibleLights();
+//        r_VisibleEntitiesOnLights();
+//        r_VisibleEntities();
+//        r_BeginFrame();
+//        gui_EndFrame();
+//        r_DrawCmds();
+//        r_EndFrame();
+//    }
 }
 
 void g_LoadMap(char *file_name)

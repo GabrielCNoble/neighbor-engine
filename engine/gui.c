@@ -60,7 +60,7 @@ void gui_Shutdown()
 
 }
 
-void gui_BeginFrame()
+void gui_BeginFrame(float delta_time)
 {
     ImGuiIO *io = igGetIO();
     io->DisplaySize.x = r_width;
@@ -68,13 +68,14 @@ void gui_BeginFrame()
     int32_t mouse_x;
     int32_t mouse_y;
     uint8_t *keyboard_state = in_GetKeyStates();
+    uint32_t *mouse_state = in_GetMouseButtonStates();
 
     in_GetMousePos(&mouse_x, &mouse_y);
     io->MousePos.x = (float)mouse_x;
     io->MousePos.y = (float)mouse_y;
-    io->MouseDown[0] = in_GetMouseButtonState(SDL_BUTTON_LEFT) & IN_KEY_STATE_PRESSED;
-    io->MouseDown[1] = in_GetMouseButtonState(SDL_BUTTON_RIGHT) & IN_KEY_STATE_PRESSED;
-    io->MouseDown[2] = in_GetMouseButtonState(SDL_BUTTON_MIDDLE) & IN_KEY_STATE_PRESSED;
+    io->MouseDown[0] = mouse_state[SDL_BUTTON_LEFT - 1] & IN_KEY_STATE_PRESSED;
+    io->MouseDown[1] = mouse_state[SDL_BUTTON_RIGHT - 1] & IN_KEY_STATE_PRESSED;
+    io->MouseDown[2] = mouse_state[SDL_BUTTON_MIDDLE - 1] & IN_KEY_STATE_PRESSED;
 
     if(io->WantTextInput)
     {

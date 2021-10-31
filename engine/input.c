@@ -27,6 +27,8 @@ uint32_t in_relative_mouse = 0;
 uint32_t in_warp_mouse = 0;
 uint32_t in_warp_frame = 0;
 uint32_t in_text_input = 0;
+uint32_t in_mouse_input_dropped = 0;
+uint32_t in_keybord_input_dropped = 0;
 
 extern SDL_Window *r_window;
 extern uint32_t r_width;
@@ -82,7 +84,7 @@ void in_Input(float delta_time)
                 }
                 else
                 {
-                    in_mouse_state[button] = IN_KEY_STATE_JUST_PRESSED;
+                    in_mouse_state[button] = IN_KEY_STATE_JUST_RELEASED;
                 }
             }
             break;
@@ -153,10 +155,18 @@ void in_Input(float delta_time)
 
     in_normalized_dx = (float)in_mouse_dx / (float)r_width;
     in_normalized_dy = -(float)in_mouse_dy / (float)r_height;
+
+    in_mouse_input_dropped = 0;
+    in_keybord_input_dropped = 0;
 }
 
 uint32_t in_GetKeyState(SDL_Scancode scancode)
 {
+    if(in_keybord_input_dropped)
+    {
+        return 0;
+    }
+
     return in_keyboard_state[scancode];
 }
 
@@ -167,7 +177,17 @@ uint8_t *in_GetKeyStates()
 
 uint32_t in_GetMouseButtonState(uint32_t button)
 {
+    if(in_mouse_input_dropped)
+    {
+        return 0;
+    }
+
     return in_mouse_state[button - 1];
+}
+
+uint32_t *in_GetMouseButtonStates()
+{
+    return in_mouse_state;
 }
 
 uint32_t in_GetMouseDoubleClickState(uint32_t button, uint32_t timeout)
@@ -204,8 +224,16 @@ void in_SetMouseWarp(uint32_t enable)
 
 void in_GetMouseDelta(float *dx, float *dy)
 {
-    *dx = in_normalized_dx;
-    *dy = in_normalized_dy;
+    if(in_mouse_input_dropped)
+    {
+        *dx = 0.0;
+        *dy = 0.0;
+    }
+    else
+    {
+        *dx = in_normalized_dx;
+        *dy = in_normalized_dy;
+    }
 }
 
 void in_GetNormalizedMousePos(float *x, float *y)
@@ -227,23 +255,13 @@ char *in_GetTextBuffer()
 
 void in_DropKeyboardInput()
 {
-    for(uint32_t scancode = 0; scancode < SDL_NUM_SCANCODES; scancode++)
-    {
-        in_keyboard_state[scancode] = 0;
-    }
-
+    in_keybord_input_dropped = 1;
     in_text_buffer[0] = '\0';
 }
 
 void in_DropMouseInput()
 {
-    for(uint32_t mouse_button = SDL_BUTTON_LEFT; mouse_button <= SDL_BUTTON_RIGHT; mouse_button++)
-    {
-        in_mouse_state[mouse_button - 1] = 0;
-    }
-
-    in_mouse_dx = 0;
-    in_mouse_dy = 0;
+    in_mouse_input_dropped = 1;
 }
 
 void in_DropInput()

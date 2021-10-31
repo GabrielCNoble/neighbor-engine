@@ -134,6 +134,7 @@ struct ed_face_t
 struct ed_vert_transform_t
 {
     vec3_t translation;
+    vec3_t rotation;
     uint32_t index;
 };
 
@@ -169,17 +170,52 @@ struct ed_brush_t
     uint32_t modified_index;
 };
 
+struct ed_edge_record_t
+{
+
+};
+
 struct ed_polygon_record_t
 {
-    uint32_t face_id;
     uint32_t vert_count;
+};
+
+struct ed_face_record_t
+{
+    uint32_t polygon_start;
+    uint32_t polygon_count;
+
+    float uv_scale;
+    float uv_rot;
+
+    char material[32];
 };
 
 struct ed_brush_record_t
 {
     vec3_t position;
     mat3_t orientation;
-//    vec3_t vertices[];
+    uint32_t face_start;
+    uint32_t face_count;
+    uint32_t uuid;
+};
+
+struct ed_verts_record_t
+{
+    vec3_t vert;
+    uint32_t uuid;
+};
+
+struct ed_brush_section_t
+{
+    size_t brush_record_start;
+    size_t brush_record_count;
+
+    size_t reserved[32];
 };
 
 #endif
+
+
+
+

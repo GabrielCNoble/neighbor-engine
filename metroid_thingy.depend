@@ -465,7 +465,7 @@
 	"ds_list.h"
 	"ds_vector.h"
 
-1628911951 c:\users\gabri\documents\compiler\metroid_thingy\lib\dstuff\ds_path.h
+1635680234 c:\users\gabri\documents\compiler\metroid_thingy\lib\dstuff\ds_path.h
 	"ds_path.h"
 	<string.h>
 	<limits.h>
@@ -1004,43 +1004,43 @@
 	"dstuff/ds_slist.h"
 	"dstuff/ds_mem.h"
 
-1629322545 c:\users\gabri\documents\compiler\metroid_thingy\engine\anim.h
-	"dstuff/ds_vector.h"
-	"dstuff/ds_matrix.h"
-	"dstuff/ds_list.h"
-	"dstuff/ds_slist.h"
+1635679607 c:\users\gabri\documents\compiler\metroid_thingy\engine\anim.h
+	"../lib/dstuff/ds_vector.h"
+	"../lib/dstuff/ds_matrix.h"
+	"../lib/dstuff/ds_list.h"
+	"../lib/dstuff/ds_slist.h"
 	<stdint.h>
 
 1629575013 c:\users\gabri\documents\compiler\metroid_thingy\engine\r_draw.h
 	"r_com.h"
 	"r_main.h"
 
-1635324708 c:\users\gabri\documents\compiler\metroid_thingy\engine\r_com.h
-	"dstuff/ds_vector.h"
-	"dstuff/ds_matrix.h"
-	"dstuff/ds_alloc.h"
-	"dstuff/ds_buffer.h"
+1635679690 c:\users\gabri\documents\compiler\metroid_thingy\engine\r_com.h
+	"../lib/dstuff/ds_vector.h"
+	"../lib/dstuff/ds_matrix.h"
+	"../lib/dstuff/ds_alloc.h"
+	"../lib/dstuff/ds_buffer.h"
 	<stdint.h>
 	<stddef.h>
 	<stdalign.h>
 
-1635324708 c:\users\gabri\documents\compiler\metroid_thingy\engine\r_main.h
+1635679705 c:\users\gabri\documents\compiler\metroid_thingy\engine\r_main.h
 	"r_com.h"
 	"r_draw.h"
-	"GL/glew.h"
+	"../lib/GLEW/include/GL/glew.h"
 
-1635293460 source:c:\users\gabri\documents\compiler\metroid_thingy\engine\gui.c
+1635646933 source:c:\users\gabri\documents\compiler\metroid_thingy\engine\gui.c
 	"gui.h"
 	"r_main.h"
 	"r_draw.h"
 	"input.h"
 	<stdint.h>
 
-1625526529 c:\users\gabri\documents\compiler\metroid_thingy\engine\gui.h
-	"cimgui/cimgui.h"
+1635679634 c:\users\gabri\documents\compiler\metroid_thingy\engine\gui.h
+	"../lib/cimgui/cimgui.h"
 
-1635293460 c:\users\gabri\documents\compiler\metroid_thingy\engine\input.h
-	"SDL2/SDL.h"
+1635679659 c:\users\gabri\documents\compiler\metroid_thingy\engine\input.h
+	"../lib/SDL/include/SDL2/SDL.h"
 
 1635324708 source:c:\users\gabri\documents\compiler\metroid_thingy\engine\impl.c
 	"dstuff/ds_vector.h"
@@ -1059,7 +1059,7 @@
 	"stb/stb_image.h"
 	"stb/stb_include.h"
 
-1635293460 source:c:\users\gabri\documents\compiler\metroid_thingy\engine\input.c
+1635666726 source:c:\users\gabri\documents\compiler\metroid_thingy\engine\input.c
 	"input.h"
 	"SDL2\SDL_events.h"
 	<stdio.h>
@@ -1086,12 +1086,12 @@
 	"dstuff/ds_matrix.h"
 	"../engine/r_com.h"
 
-1635402927 c:\users\gabri\documents\compiler\metroid_thingy\editor\ed_pick.h
+1635669076 c:\users\gabri\documents\compiler\metroid_thingy\editor\ed_pick.h
 	"ed_pick_defs.h"
 	"ed_brush_defs.h"
 	"../engine/r_com.h"
 
-1635402061 source:c:\users\gabri\documents\compiler\metroid_thingy\engine\game.c
+1635647177 source:c:\users\gabri\documents\compiler\metroid_thingy\engine\game.c
 	"dstuff/ds_slist.h"
 	"dstuff/ds_mem.h"
 	"dstuff/ds_file.h"
@@ -1102,39 +1102,39 @@
 	"anim.h"
 	"physics.h"
 	"../editor/ed_main.h"
-	"world.h"
+	"level.h"
 	"sound.h"
 	"gui.h"
 	<string.h>
 	<stdio.h>
 	<float.h>
 
-1630196030 c:\users\gabri\documents\compiler\metroid_thingy\engine\game.h
-	"dstuff/ds_vector.h"
-	"dstuff/ds_matrix.h"
-	"dstuff/ds_list.h"
+1635679619 c:\users\gabri\documents\compiler\metroid_thingy\engine\game.h
+	"../lib/dstuff/ds_vector.h"
+	"../lib/dstuff/ds_matrix.h"
+	"../lib/dstuff/ds_list.h"
 	"physics.h"
 	"anim.h"
 	"r_draw.h"
 	"r_vis.h"
 	<stdint.h>
 
-1629322545 c:\users\gabri\documents\compiler\metroid_thingy\engine\physics.h
-	"dstuff/ds_vector.h"
-	"dstuff/ds_matrix.h"
-	"dstuff/ds_list.h"
-	"dstuff/ds_dbvt.h"
+1635679685 c:\users\gabri\documents\compiler\metroid_thingy\engine\physics.h
+	"../lib/dstuff/ds_vector.h"
+	"../lib/dstuff/ds_matrix.h"
+	"../lib/dstuff/ds_list.h"
+	"../lib/dstuff/ds_dbvt.h"
 	<stdint.h>
 
 1629322545 c:\users\gabri\documents\compiler\metroid_thingy\engine\r_vis.h
 	"r_com.h"
 	"r_draw.h"
 
-1635402354 c:\users\gabri\documents\compiler\metroid_thingy\editor\ed_main.h
-	"dstuff/ds_vector.h"
-	"dstuff/ds_matrix.h"
-	"dstuff/ds_alloc.h"
-	"dstuff/ds_buffer.h"
+1635679759 c:\users\gabri\documents\compiler\metroid_thingy\editor\ed_main.h
+	"../lib/dstuff/ds_vector.h"
+	"../lib/dstuff/ds_matrix.h"
+	"../lib/dstuff/ds_alloc.h"
+	"../lib/dstuff/ds_buffer.h"
 	"ed_defs.h"
 	"ed_brush.h"
 	"ed_pick.h"
@@ -1143,16 +1143,15 @@
 	<stdint.h>
 	"r_main.h"
 
-1625526529 c:\users\gabri\documents\compiler\metroid_thingy\engine\sound.h
-	"dstuff/ds_vector.h"
+1635679712 c:\users\gabri\documents\compiler\metroid_thingy\engine\sound.h
+	"../lib/dstuff/ds_vector.h"
 	<stdint.h>
 
-1625526529 source:c:\users\gabri\documents\compiler\metroid_thingy\engine\main.c
+1635647135 source:c:\users\gabri\documents\compiler\metroid_thingy\engine\main.c
 	"SDL2/SDL.h"
-	<stdio.h>
-	"game.h"
+	"main.h"
 
-1629322545 source:c:\users\gabri\documents\compiler\metroid_thingy\engine\physics.c
+1635646893 source:c:\users\gabri\documents\compiler\metroid_thingy\engine\physics.c
 	<float.h>
 	"physics.h"
 	"dstuff/ds_slist.h"
@@ -1161,7 +1160,7 @@
 	"dstuff/ds_dbvt.h"
 	"r_draw.h"
 
-1635404547 source:c:\users\gabri\documents\compiler\metroid_thingy\editor\ed_brush.c
+1635483834 source:c:\users\gabri\documents\compiler\metroid_thingy\editor\ed_brush.c
 	<float.h>
 	"ed_brush.h"
 	"ed_pick_defs.h"
@@ -1196,7 +1195,7 @@
 	"../engine/game.h"
 	"../engine/input.h"
 
-1635404587 source:c:\users\gabri\documents\compiler\metroid_thingy\editor\ed_pick.c
+1635670704 source:c:\users\gabri\documents\compiler\metroid_thingy\editor\ed_pick.c
 	<stdio.h>
 	"ed_pick.h"
 	"ed_brush.h"
@@ -1204,7 +1203,7 @@
 	"../engine/game.h"
 	"../engine/r_main.h"
 
-1635402645 source:c:\users\gabri\documents\compiler\metroid_thingy\editor\ed_main.c
+1635674703 source:c:\users\gabri\documents\compiler\metroid_thingy\editor\ed_main.c
 	"ed_main.h"
 	"ed_bsp.h"
 	"ed_level.h"
@@ -1224,7 +1223,7 @@
 	<string.h>
 	<float.h>
 
-1635326385 source:c:\users\gabri\documents\compiler\metroid_thingy\engine\r_main.c
+1635411280 source:c:\users\gabri\documents\compiler\metroid_thingy\engine\r_main.c
 	"r_main.h"
 	"SDL2/SDL.h"
 	"GL/glew.h"
@@ -1269,16 +1268,16 @@
 	"dstuff/ds_alloc.h"
 	"r_draw.h"
 
-1635402875 c:\users\gabri\documents\compiler\metroid_thingy\editor\ed_brush_defs.h
+1635679574 c:\users\gabri\documents\compiler\metroid_thingy\editor\ed_brush_defs.h
 	"ed_defs.h"
 
-1635402866 c:\users\gabri\documents\compiler\metroid_thingy\editor\ed_pick_defs.h
+1635416418 c:\users\gabri\documents\compiler\metroid_thingy\editor\ed_pick_defs.h
 	"ed_defs.h"
 
-1635404362 c:\users\gabri\documents\compiler\metroid_thingy\editor\ed_level_defs.h
+1635671837 c:\users\gabri\documents\compiler\metroid_thingy\editor\ed_level_defs.h
 	"ed_defs.h"
 
-1635402636 source:c:\users\gabri\documents\compiler\metroid_thingy\editor\ed_level.c
+1635680757 source:c:\users\gabri\documents\compiler\metroid_thingy\editor\ed_level.c
 	<float.h>
 	"ed_level.h"
 	"ed_pick.h"
@@ -1289,8 +1288,75 @@
 	"../engine/gui.h"
 	"../engine/game.h"
 	"../engine/input.h"
+	"../engine/l_defs.h"
+	"../engine/level.h"
 
-1635402895 c:\users\gabri\documents\compiler\metroid_thingy\editor\ed_level.h
+1635673422 c:\users\gabri\documents\compiler\metroid_thingy\editor\ed_level.h
 	"ed_pick.h"
 	"ed_level_defs.h"
+
+1635674778 source:c:\users\gabri\documents\compiler\metroid_thingy\engine\level.c
+	"level.h"
+	"dstuff/ds_dbvt.h"
+	"dstuff/ds_alloc.h"
+	"../editor/ed_level_defs.h"
+	"r_draw.h"
+
+1635675250 c:\users\gabri\documents\compiler\metroid_thingy\engine\level.h
+	"l_defs.h"
+	"r_main.h"
+
+1635602096 c:\users\gabri\documents\compiler\metroid_thingy\engine\main.h
+	"game.h"
+	"r_main.h"
+	"sound.h"
+	"level.h"
+	"physics.h"
+	"anim.h"
+	"input.h"
+	"gui.h"
+	"../editor/ed_main.h"
+	<stdio.h>
+
+1635671508 c:\users\gabri\documents\compiler\metroid_thingy\engine\level_defs.h
+	<stdint.h>
+	"dstuff/ds_vector.h"
+	"dstuff/ds_matrix.h"
+
+1635679667 c:\users\gabri\documents\compiler\metroid_thingy\engine\l_defs.h
+	<stdint.h>
+	"../lib/dstuff/ds_vector.h"
+	"../lib/dstuff/ds_matrix.h"
+
+1488408854 source:c:\users\gabri\documents\compiler\metroid_thingy\lib\lzo\minilzo.c
+	<config.h>
+	<limits.h>
+	<stddef.h>
+	"minilzo.h"
+	<config.h>
+	<limits.h>
+	<stddef.h>
+	<lzo/lzodefs.h>
+	<lzo/lzoconf.h>
+	<string.h>
+	<string.h>
+	<assert.h>
+	<unchecked.h>
+	<intrin.h>
+	<lzo/lzo1x.h>
+
+1488408854 c:\users\gabri\documents\compiler\metroid_thingy\lib\lzo\minilzo.h
+	<config.h>
+	<limits.h>
+	<stddef.h>
+	"lzodefs.h"
+	"lzoconf.h"
+
+1488408854 c:\users\gabri\documents\compiler\metroid_thingy\lib\lzo\lzodefs.h
+
+1488408854 c:\users\gabri\documents\compiler\metroid_thingy\lib\lzo\lzoconf.h
+	<config.h>
+	<limits.h>
+	<stddef.h>
+	<lzo/lzodefs.h>
 

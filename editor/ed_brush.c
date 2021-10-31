@@ -115,6 +115,7 @@ struct ed_brush_t *ed_CreateBrush(vec3_t *position, mat3_t *orientation, vec3_t 
         struct ed_face_t *face = ed_AllocFace();
 
         face->material = r_GetDefaultMaterial();
+//        face->material = r_GetMaterial("oakfloor");
         face->polygons = ed_AllocFacePolygon();
         face->tex_coords_scale = vec2_t_c(1.0, 1.0);
         face->tex_coords_rot = 0.0;
@@ -126,9 +127,6 @@ struct ed_brush_t *ed_CreateBrush(vec3_t *position, mat3_t *orientation, vec3_t 
 
         for(uint32_t vert_index = 0; vert_index < 4; vert_index++)
         {
-//            uint32_t vert0_index = ed_cube_brush_indices[face_index][vert_index];
-//            uint32_t vert1_index = ed_cube_brush_indices[face_index][(vert_index + 1) % 4];
-
             struct ed_vert_t *vert0 = ed_GetVert(brush, ed_cube_brush_indices[face_index][vert_index]);
             struct ed_vert_t *vert1 = ed_GetVert(brush, ed_cube_brush_indices[face_index][(vert_index + 1) % 4]);
 
@@ -661,6 +659,7 @@ struct ed_vert_transform_t *ed_FindVertTransform(struct ed_brush_t *brush, uint3
             transform = ds_list_get_element(&brush->vert_transforms, index);
             transform->index = vert_index;
             transform->translation = vec3_t_c(0.0, 0.0, 0.0);
+            transform->rotation = vec3_t_c(0.0, 0.0, 0.0);
         }
     }
 
@@ -846,12 +845,6 @@ void ed_TranslateBrushFace(struct ed_brush_t *brush, uint32_t face_index, vec3_t
 
                 struct ed_vert_transform_t *transform = ed_FindVertTransform(brush, edge->verts[polygon_index].vert->index);
                 transform->translation = local_translation;
-//                if(transform->translation.x != local_translation.x || transform->translation.y != local_translation.y ||
-//                   transform->translation.z != local_translation.z)
-//                {
-//                    vec3_t_add(&transform->translation, &transform->translation, &local_translation);
-//                }
-
                 edge->polygons[!polygon_index].polygon->face->flags |= ED_FACE_FLAG_GEOMETRY_MODIFIED;
                 edge = edge->polygons[polygon_index].next;
             }
@@ -885,24 +878,18 @@ void ed_RotateBrushFace(struct ed_brush_t *brush, uint32_t face_index, mat3_t *r
             while(edge)
             {
                 uint32_t polygon_index = edge->polygons[1].polygon == polygon;
-                struct ed_vert_t *vert = edge->verts[polygon_index].vert;
-                vec3_t_sub(&vert->vert, &vert->vert, &polygon->center);
+                vec3_t vert = edge->verts[polygon_index].vert->vert;
+                vec3_t_sub(&vert, &vert, &polygon->center);
                 vec3_t translation;
 
-                mat3_t_vec3_t_mul(&translation, &vert->vert, &local_rotation);
-                vec3_t_sub(&translation, &translation, &vert->vert);
+                mat3_t_vec3_t_mul(&translation, &vert, &local_rotation);
+                vec3_t_sub(&translation, &translation, &vert);
 
                 struct ed_face_polygon_t *neighbor = edge->polygons[!polygon_index].polygon;
 //                vec3_t_mul(&translation, &polygon->normal, -vec3_t_dot(&polygon->normal, &translation));
 
                 struct ed_vert_transform_t *transform = ed_FindVertTransform(brush, edge->verts[polygon_index].vert->index);
-                transform->translation = translation;
-//                if(transform->translation.x != translation.x || transform->translation.y != translation.y ||
-//                   transform->translation.z != translation.z)
-//                {
-//                    vec3_t_add(&transform->translation, &transform->translation, &translation);
-//                }
-
+                transform->rotation = translation;
                 edge->polygons[!polygon_index].polygon->face->flags |= ED_FACE_FLAG_GEOMETRY_MODIFIED;
                 edge = edge->polygons[polygon_index].next;
             }
@@ -932,6 +919,7 @@ void ed_UpdateBrush(struct ed_brush_t *brush)
             struct ed_vert_transform_t *transform = ds_list_get_element(&brush->vert_transforms, transform_index);
             struct ed_vert_t *brush_vert = ed_GetVert(brush, transform->index);
             vec3_t_add(&brush_vert->vert, &brush_vert->vert, &transform->translation);
+            vec3_t_add(&brush_vert->vert, &brush_vert->vert, &transform->rotation);
         }
 
         /* find out how much the new brush center moved away from the old one */
@@ -993,6 +981,9 @@ void ed_UpdateBrush(struct ed_brush_t *brush)
 
                 face_polygon->tangent = edge0_vec;
                 vec3_t_normalize(&face_polygon->tangent, &face_polygon->tangent);
+
+                vec3_t bitangent;
+//                vec3_t_cross(&bitangent, &face_polygon->)
 
                 face_polygon->center = vec3_t_c(0.0, 0.0, 0.0);
 
@@ -1347,6 +1338,9 @@ struct ed_bsp_polygon_t *ed_BspPolygonFromBrushFace(struct ed_face_t *face)
         struct ds_list_t *polygon_verts = &bsp_polygon->vertices;
         struct ds_slist_t *brush_verts = &face->brush->vertices;
         struct ed_edge_t *edge = face_polygon->edges;
+
+        uint32_t polygon_index = edge->polygons[1].polygon == face_polygon;
+        struct ed_vert_t *first_vert = edge->verts[polygon_index].vert;
 
         while(edge)
         {

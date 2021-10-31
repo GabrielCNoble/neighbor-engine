@@ -1,10 +1,10 @@
 #ifndef PHYSICS_H
 #define PHYSICS_H
 
-#include "dstuff/ds_vector.h"
-#include "dstuff/ds_matrix.h"
-#include "dstuff/ds_list.h"
-#include "dstuff/ds_dbvt.h"
+#include "../lib/dstuff/ds_vector.h"
+#include "../lib/dstuff/ds_matrix.h"
+#include "../lib/dstuff/ds_list.h"
+#include "../lib/dstuff/ds_dbvt.h"
 #include <stdint.h>
 
 struct p_box_shape_t
@@ -178,7 +178,7 @@ void p_RotateColliderY(struct p_collider_t *collider, float angle);
 
 void p_RotateColliderZ(struct p_collider_t *collider, float angle);
 
-void p_UpdateColliders();
+void p_UpdateColliders(float delta_time);
 
 //void p_GenColPlanes(struct p_collider_t *collider);
 

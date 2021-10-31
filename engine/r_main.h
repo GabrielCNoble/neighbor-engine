@@ -4,7 +4,7 @@
 #include "r_com.h"
 #include "r_draw.h"
 
-#include "GL/glew.h"
+#include "../lib/GLEW/include/GL/glew.h"
 
 void r_Init();
 

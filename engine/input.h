@@ -1,7 +1,7 @@
 #ifndef INPUT_H
 #define INPUT_H
 
-#include "SDL2/SDL.h"
+#include "../lib/SDL/include/SDL2/SDL.h"
 
 enum IN_KEY_STATE
 {
@@ -10,6 +10,7 @@ enum IN_KEY_STATE
     IN_KEY_STATE_JUST_RELEASED = 1 << 2,
     IN_KEY_STATE_DOUBLE_CLICKED = 1 << 3,
     IN_KEY_STATE_DOUBLE_CLICK_FAILED = 1 << 4,
+    IN_KEY_STATE_INPUT_DROPPED = 1 << 5
 };
 
 void in_Input(float delta_time);
@@ -19,6 +20,8 @@ uint32_t in_GetKeyState(SDL_Scancode scancode);
 uint8_t *in_GetKeyStates();
 
 uint32_t in_GetMouseButtonState(uint32_t button);
+
+uint32_t *in_GetMouseButtonStates();
 
 uint32_t in_GetMouseDoubleClickState(uint32_t button, uint32_t timeout);
 

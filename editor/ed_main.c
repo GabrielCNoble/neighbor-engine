@@ -181,6 +181,8 @@ void ed_Init()
     ed_explorer_state.ext_filters = ds_list_create(sizeof(struct ed_explorer_ext_filter_t), 64);
     ed_explorer_state.drives = ds_list_create(sizeof(struct ed_explorer_drive_t), 8);
 
+    strcpy(ed_explorer_state.current_path, "C:\\Users");
+
     ed_EnumerateExplorerDrives();
     ed_SetExplorerLoadCallback(test_load_callback);
     ed_SetExplorerSaveCallback(test_save_callback);
@@ -188,6 +190,8 @@ void ed_Init()
 //    r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(0.0, 20.0, 0.0), &vec3_t_c(1.0, 1.0, 1.0), 50.0, 10.0);
 
     in_SetMouseRelative(1);
+
+    g_SetGameState(G_GAME_STATE_EDITING);
 }
 
 void ed_Shutdown()
@@ -234,12 +238,14 @@ void ed_UpdateEditor()
 
             if(igMenuItem_Bool("Save as...", NULL, 0, 1))
             {
-                ed_OpenExplorer("C:/Users/gabri/Documents/Compiler/metroid_thingy", ED_EDITOR_EXPLORER_MODE_SAVE);
+                ed_SetExplorerSaveCallback(ed_SaveLevel);
+                ed_OpenExplorer(ed_explorer_state.current_path, ED_EDITOR_EXPLORER_MODE_SAVE);
             }
 
             if(igMenuItem_Bool("Load", NULL, 0, 1))
             {
-                ed_OpenExplorer("C:/Users/gabri/Documents/Compiler/metroid_thingy", ED_EDITOR_EXPLORER_MODE_OPEN);
+                ed_SetExplorerLoadCallback(ed_LoadLevel);
+                ed_OpenExplorer(ed_explorer_state.current_path, ED_EDITOR_EXPLORER_MODE_OPEN);
             }
 
             if(igBeginMenu("Recent", 1))

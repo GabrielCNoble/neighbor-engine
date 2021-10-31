@@ -26,8 +26,6 @@ void ed_DestroyWidget(struct ed_widget_t *widget);
 
 void ed_DrawWidget(struct ed_widget_t *widget, mat4_t *widget_transform);
 
-//void ed_WidgetDefaultComputeModelViewProjectionMatrix(mat4_t *view_projection_matrix, mat4_t *widget_transform);
-
 void ed_WidgetDefaultSetupPickableDrawState(uint32_t pickable_index, struct ed_pickable_t *pickable);
 
 struct ed_pickable_range_t *ed_AllocPickableRange();
@@ -46,13 +44,13 @@ void ed_DestroyPickable(struct ed_pickable_t *pickable);
 
 struct ed_pickable_t *ed_GetPickableOnList(uint32_t index, struct ds_slist_t *pickables);
 
-struct ed_pickable_t *ed_GetPickable(uint32_t index, uint32_t type);
+struct ed_pickable_t *ed_GetPickable(uint32_t index);
 
 struct ed_pickable_t *ed_CopyPickable(struct ed_pickable_t *src_pickable);
 
 struct ed_pickable_t *ed_CreateBrushPickable(vec3_t *position, mat3_t *orientation, vec3_t *size, struct ed_brush_t *src_brush);
 
-struct ed_pickable_t *ed_CreateLightPickable(vec3_t *pos, vec3_t *color, float radius, float energy);
+struct ed_pickable_t *ed_CreateLightPickable(vec3_t *pos, vec3_t *color, float radius, float energy, struct r_light_t *src_light);
 
 struct ed_pickable_t *ed_CreateEntityPickable(mat4_t *transform, struct r_model_t *model);
 

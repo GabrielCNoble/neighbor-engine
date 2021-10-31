@@ -1,9 +1,9 @@
 #ifndef GAME_H
 #define GAME_H
 
-#include "dstuff/ds_vector.h"
-#include "dstuff/ds_matrix.h"
-#include "dstuff/ds_list.h"
+#include "../lib/dstuff/ds_vector.h"
+#include "../lib/dstuff/ds_matrix.h"
+#include "../lib/dstuff/ds_list.h"
 #include "physics.h"
 #include "anim.h"
 #include "r_draw.h"
@@ -64,6 +64,7 @@ enum G_GAME_STATE
     G_GAME_STATE_EDITING,
     G_GAME_STATE_LOADING,
     G_GAME_STATE_QUIT,
+    G_GAME_STATE_MAIN_MENU
 };
 
 struct g_projectile_t
@@ -81,6 +82,8 @@ void g_Init(uint32_t editor_active);
 void g_Shutdown();
 
 void g_SetGameState(uint32_t game_state);
+
+void g_GameMain(float delta_time);
 
 void g_MainLoop();
 

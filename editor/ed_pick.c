@@ -125,7 +125,7 @@ struct ed_pickable_t *ed_SelectPickable(int32_t mouse_x, int32_t mouse_y, struct
     {
         struct ed_pickable_t *pickable = ed_GetPickableOnList(pickable_index, pickables);
 
-        if(pickable && (!(pickable->type & ignore_types)))
+        if(pickable && !((1 << pickable->type) & ignore_types))
         {
             mat4_t model_view_projection_matrix;
             ed_PickableModelViewProjectionMatrix(pickable, parent_transform, &model_view_projection_matrix);
@@ -175,7 +175,6 @@ struct ed_widget_t *ed_CreateWidget()
     widget = ds_slist_get_element(&ed_level_state.widgets, index);
 
     widget->index = index;
-//    widget->mvp_mat_fn = ed_WidgetDefaultComputeModelViewProjectionMatrix;
     widget->setup_ds_fn = ed_WidgetDefaultSetupPickableDrawState;
 
     if(!widget->pickables.buffers)
@@ -248,19 +247,6 @@ void ed_DrawWidget(struct ed_widget_t *widget, mat4_t *widget_transform)
     r_i_SetDepth(GL_TRUE, GL_LESS);
     r_i_SetStencil(GL_FALSE, GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE);
 }
-
-//void ed_WidgetDefaultComputeModelViewProjectionMatrix(mat4_t *view_projection_matrix, mat4_t *widget_transform)
-//{
-//    mat4_t_identity(view_projection_matrix);
-//    *view_projection_matrix = r_camera_matrix;
-//
-//    vec3_t_sub(&view_projection_matrix->rows[3].xyz, &view_projection_matrix->rows[3].xyz, &widget_transform->rows[3].xyz);
-//    vec3_t_normalize(&view_projection_matrix->rows[3].xyz, &view_projection_matrix->rows[3].xyz);
-//    vec3_t_mul(&view_projection_matrix->rows[3].xyz, &view_projection_matrix->rows[3].xyz, 50.0);
-//
-//    mat4_t_invvm(view_projection_matrix, view_projection_matrix);
-//    mat4_t_mul(view_projection_matrix, view_projection_matrix, &r_projection_matrix);
-//}
 
 void ed_WidgetDefaultSetupPickableDrawState(uint32_t pickable_index, struct ed_pickable_t *pickable)
 {
@@ -397,7 +383,7 @@ struct ed_pickable_t *ed_GetPickableOnList(uint32_t index, struct ds_slist_t *pi
     return pickable;
 }
 
-struct ed_pickable_t *ed_GetPickable(uint32_t index, uint32_t type)
+struct ed_pickable_t *ed_GetPickable(uint32_t index)
 {
     return ed_GetPickableOnList(index, &ed_level_state.pickables.pickables);
 }
@@ -411,7 +397,7 @@ struct ed_pickable_t *ed_CopyPickable(struct ed_pickable_t *src_pickable)
         case ED_PICKABLE_TYPE_BRUSH:
         {
             struct ed_brush_t *src_brush = ed_GetBrush(src_pickable->primary_index);
-            copy = ed_CreateBrushPickable(NULL, NULL, NULL, src_brush);
+            copy = ed_CreateBrushPickable(NULL, NULL, NULL, ed_CopyBrush(src_brush));
         }
         break;
 
@@ -420,7 +406,7 @@ struct ed_pickable_t *ed_CopyPickable(struct ed_pickable_t *src_pickable)
             struct r_light_t *src_light = r_GetLight(src_pickable->primary_index);
             copy = ed_CreateLightPickable(&src_light->data.pos_rad.xyz,
                                           &src_light->data.color_res.xyz,
-                                          src_light->data.pos_rad.w, src_light->energy);
+                                          src_light->data.pos_rad.w, src_light->energy, NULL);
         }
         break;
     }
@@ -435,7 +421,7 @@ struct ed_pickable_t *ed_CreateBrushPickable(vec3_t *position, mat3_t *orientati
 
     if(src_brush)
     {
-        brush = ed_CopyBrush(src_brush);
+        brush = src_brush;
     }
     else
     {
@@ -501,9 +487,19 @@ struct ed_pickable_t *ed_CreateBrushPickable(vec3_t *position, mat3_t *orientati
     return pickable;
 }
 
-struct ed_pickable_t *ed_CreateLightPickable(vec3_t *pos, vec3_t *color, float radius, float energy)
+struct ed_pickable_t *ed_CreateLightPickable(vec3_t *pos, vec3_t *color, float radius, float energy, struct r_light_t *src_light)
 {
-    struct r_light_t *light = r_CreateLight(R_LIGHT_TYPE_POINT, pos, color, radius, energy);
+    struct r_light_t *light;
+
+    if(src_light)
+    {
+        light = src_light;
+    }
+    else
+    {
+        light = r_CreateLight(R_LIGHT_TYPE_POINT, pos, color, radius, energy);
+    }
+
     struct ed_pickable_t *pickable = ed_CreatePickable(ED_PICKABLE_TYPE_LIGHT);
     pickable->primary_index = light->index;
 
@@ -515,7 +511,7 @@ struct ed_pickable_t *ed_CreateLightPickable(vec3_t *pos, vec3_t *color, float r
 
     mat3_t rot;
     mat3_t_identity(&rot);
-    mat4_t_comp(&pickable->transform, &rot, pos);
+    mat4_t_comp(&pickable->transform, &rot, &light->data.pos_rad.xyz);
     pickable->draw_transform = pickable->transform;
 
     return pickable;

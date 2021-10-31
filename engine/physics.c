@@ -191,7 +191,7 @@ uint32_t p_BoxIntersect(vec3_t *box_a0, vec3_t *box_a1, vec3_t *box_b0, vec3_t *
            box_a0->z < box_b1->z && box_a1->z > box_b0->z;
 }
 
-void p_UpdateColliders()
+void p_UpdateColliders(float delta_time)
 {
     p_collisions.cursor = 0;
     p_frame++;

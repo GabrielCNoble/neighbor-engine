@@ -8,6 +8,8 @@
 #include "../engine/gui.h"
 #include "../engine/game.h"
 #include "../engine/input.h"
+#include "../engine/l_defs.h"
+#include "../engine/level.h"
 
 extern struct ed_context_t ed_contexts[];
 struct ed_level_state_t ed_level_state;
@@ -60,6 +62,10 @@ float ed_w_angular_snap_values[] =
 #define ED_GRID_QUAD_SIZE 250.0
 #define ED_W_BRUSH_BOX_CROSSHAIR_DIM 0.3
 
+#define ED_LEVEL_CAMERA_PITCH (-0.15)
+#define ED_LEVEL_CAMERA_YAW (-0.3)
+#define ED_LEVEL_CAMERA_POS (vec3_t_c(-6.0, 4.0, 4.0))
+
 vec4_t ed_selection_outline_colors[][2] =
 {
     [ED_PICKABLE_TYPE_BRUSH][0] = vec4_t_c(1.0, 0.2, 0.0, 1.0),
@@ -75,34 +81,16 @@ vec4_t ed_selection_outline_colors[][2] =
     [ED_PICKABLE_TYPE_FACE][1] = vec4_t_c(0.3, 0.4, 1.0, 1.0),
 };
 
-//struct ed_state_t ed_world_context_states[] =
-//{
-//    [ED_WORLD_CONTEXT_STATE_IDLE] = ed_w_Idle,
-//    [ED_WORLD_CONTEXT_STATE_LEFT_CLICK] = ed_w_LeftClick,
-//    [ED_WORLD_CONTEXT_STATE_RIGHT_CLICK] = ed_w_RightClick,
-//    [ED_WORLD_CONTEXT_STATE_BRUSH_BOX] = ed_w_BrushBox,
-//    [ED_WORLD_CONTEXT_STATE_TRANSFORM_SELECTIONS] = ed_w_TransformSelections,
-//    [ED_WORLD_CONTEXT_STATE_PICK_OBJECT] = ed_w_PickObject,
-//    [ED_WORLD_CONTEXT_STATE_FLY_CAMERA] = ed_w_FlyCamera
-//};
-
 void ed_w_Init()
 {
     ed_world_context = ed_contexts + ED_CONTEXT_WORLD;
     ed_world_context->update = ed_w_Update;
-//    ed_world_context->states = ed_world_context_states;
     ed_world_context->next_state = ed_w_Idle;
     ed_world_context->context_data = &ed_level_state;
 
-//    ed_level_state.pickables.edit_mode = ED_LEV_EDITOR_EDIT_MODE_OBJECT;
     ed_level_state.pickables.last_selected = NULL;
     ed_level_state.pickables.selections = ds_list_create(sizeof(struct ed_pickable_t *), 512);
     ed_level_state.pickables.pickables = ds_slist_create(sizeof(struct ed_pickable_t), 512);
-//    ed_level_state.pickables.lists[ED_LEV_EDITOR_EDIT_MODE_OBJECT].pickables = ds_slist_create(sizeof(struct ed_pickable_t), 512);
-//    ed_level_state.pickables.lists[ED_LEV_EDITOR_EDIT_MODE_OBJECT].selections = ds_list_create(sizeof(struct ed_pickable_t *), 512);
-//    ed_level_state.pickables.lists[ED_LEV_EDITOR_EDIT_MODE_BRUSH].pickables = ds_slist_create(sizeof(struct ed_pickable_t), 512);
-//    ed_level_state.pickables.lists[ED_LEV_EDITOR_EDIT_MODE_BRUSH].selections = ds_list_create(sizeof(struct ed_pickable_t *), 512);
-//    ed_level_state.pickables.active_list = ed_level_state.pickables.lists + ed_level_state.pickables.edit_mode;
     ed_level_state.pickables.modified_brushes = ds_list_create(sizeof(struct ed_brush_t *), 512);
     ed_level_state.pickables.modified_pickables = ds_list_create(sizeof(struct ed_pickable_t *), 512);
     ed_level_state.pickables.secondary_click_function = ED_LEVEL_SECONDARY_CLICK_FUNC_BRUSH;
@@ -123,9 +111,9 @@ void ed_w_Init()
     ed_level_state.brush.index_buffer = ds_buffer_create(sizeof(uint32_t), 0);
     ed_level_state.brush.batch_buffer = ds_buffer_create(sizeof(struct r_batch_t), 0);
 
-    ed_level_state.camera_pitch = -0.15;
-    ed_level_state.camera_yaw = -0.3;
-    ed_level_state.camera_pos = vec3_t_c(-6.0, 4.0, 4.0);
+    ed_level_state.camera_pitch = ED_LEVEL_CAMERA_PITCH;
+    ed_level_state.camera_yaw = ED_LEVEL_CAMERA_YAW;
+    ed_level_state.camera_pos = ED_LEVEL_CAMERA_POS;
 
     ed_center_grid_shader = r_LoadShader("shaders/ed_grid.vert", "shaders/ed_grid.frag");
     ed_picking_shader = r_LoadShader("shaders/ed_pick.vert", "shaders/ed_pick.frag");
@@ -299,6 +287,22 @@ void ed_w_Init()
     ed_grid->verts[5].pos = vec3_t_c(-ED_GRID_QUAD_SIZE, 0.0, -ED_GRID_QUAD_SIZE);
     ed_grid->verts[5].tex_coords = vec2_t_c(0.0, 0.0);
     ed_grid->verts[5].color = vec4_t_c(1.0, 0.0, 0.0, 1.0);
+
+
+    struct r_texture_t *diffuse;
+    struct r_texture_t *normal;
+//
+//    diffuse = r_LoadTexture("textures/bathroomtile2-basecolor.png", "bathroomtile2_diffuse");
+//    normal = r_LoadTexture("textures/bathroomtile2-normal.png", "bathroomtile2_normal");
+//    r_CreateMaterial("bathroomtile2", diffuse, normal, NULL);
+//
+//    diffuse = r_LoadTexture("textures/oakfloor_basecolor.png", "oakfloor_diffuse");
+//    normal = r_LoadTexture("textures/oakfloor_normal.png", "oakfloor_normal");
+//    r_CreateMaterial("oakfloor", diffuse, normal, NULL);
+//
+//    diffuse = r_LoadTexture("textures/sci-fi-panel1-albedo.png", "scifi_diffuse");
+//    normal = r_LoadTexture("textures/sci-fi-panel1-normal-ogl.png", "scifi_normal");
+//    r_CreateMaterial("scifi", diffuse, normal, NULL);
 }
 
 void ed_w_Shutdown()
@@ -502,6 +506,8 @@ void ed_w_MarkBrushModified(struct ed_brush_t *brush)
 =============================================================
 */
 
+#define ED_LEVEL_FOOTER_WINDOW_HEIGHT 40
+
 void ed_w_UpdateUI()
 {
     int32_t mouse_x;
@@ -512,25 +518,70 @@ void ed_w_UpdateUI()
     ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_AlwaysAutoResize;
     window_flags |= ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar;
 
+    struct ds_list_t *selections = &ed_level_state.pickables.selections;
+
+    if(ed_level_state.pickables.selections_window_open)
+    {
+        char node_label[32];
+        igSetNextWindowPos((ImVec2){0.0, r_height - ED_LEVEL_FOOTER_WINDOW_HEIGHT}, 0, (ImVec2){0, 1});
+        igSetNextWindowSizeConstraints((ImVec2){400, 0}, (ImVec2){400 , 400}, NULL, NULL);
+        if(igBegin("Selections", NULL, ImGuiWindowFlags_AlwaysAutoResize))
+        {
+            for(uint32_t selection_index = 0; selection_index < selections->cursor; selection_index++)
+            {
+                struct ed_pickable_t *pickable = *(struct ed_pickable_t **)ds_list_get_element(selections, selection_index);
+                static char *pickable_label[] =
+                {
+                    [ED_PICKABLE_TYPE_BRUSH] = "Brush",
+                    [ED_PICKABLE_TYPE_LIGHT] = "Light",
+                    [ED_PICKABLE_TYPE_ENTITY] = "Entity",
+                    [ED_PICKABLE_TYPE_FACE] = "Face",
+                    [ED_PICKABLE_TYPE_EDGE] = "Edge",
+                    [ED_PICKABLE_TYPE_VERT] = "Vert",
+                };
+
+                sprintf(node_label, "%s##%d", pickable_label[pickable->type], pickable->index);
+
+                if(igTreeNode_Str(node_label))
+                {
+                    igText("Pos: [%f %f %f]", pickable->transform.rows[3].x,
+                                              pickable->transform.rows[3].y,
+                                              pickable->transform.rows[3].z);
+                    switch(pickable->type)
+                    {
+                        case ED_PICKABLE_TYPE_BRUSH:
+                        {
+                            struct ed_brush_t *brush = ed_GetBrush(pickable->primary_index);
+                            igText("Verts: %d", brush->vertices.used);
+                        }
+                        break;
+
+                        case ED_PICKABLE_TYPE_FACE:
+                        {
+                            struct ed_face_t *face = ed_GetFace(pickable->secondary_index);
+                            igText("Material: %s", face->material->name);
+                        }
+                        break;
+                    }
+                    igTreePop();
+                }
+
+                if(selection_index < selections->cursor - 1)
+                {
+                    igSeparator();
+                }
+            }
+        }
+        igEnd();
+    }
+
     igSetNextWindowBgAlpha(0.5);
     igPushStyleVar_Float(ImGuiStyleVar_WindowBorderSize, 0.0);
-    igSetNextWindowPos((ImVec2){0.0, 20.0}, ImGuiCond_Always, (ImVec2){0.0, 0.0});
-    if(igBegin("Info window", NULL, window_flags))
+    igSetNextWindowSize((ImVec2){r_width, 0}, 0);
+    igSetNextWindowPos((ImVec2){0.0, r_height}, 0, (ImVec2){0, 1});
+    if(igBegin("Footer window", NULL, window_flags))
     {
-        char *edit_mode_text = NULL;
         char *transform_mode_text = NULL;
-
-//        switch(ed_level_state.pickables.edit_mode)
-//        {
-//            case ED_LEV_EDITOR_EDIT_MODE_OBJECT:
-//                edit_mode_text = "Object";
-//            break;
-//
-//            case ED_LEV_EDITOR_EDIT_MODE_BRUSH:
-//                edit_mode_text = "Brush";
-//            break;
-//        }
-
 
         switch(ed_level_state.manipulator.mode)
         {
@@ -545,19 +596,25 @@ void ed_w_UpdateUI()
 
 
         igPushStyleVar_Float(ImGuiStyleVar_Alpha, 0.5);
-        if(igBeginTable("Stats table", 6, ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_Hideable, (ImVec2){0.0, 0.0}, 0.0))
+        if(igBeginTable("Stats table", 4, ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_Hideable, (ImVec2){0.0, 0.0}, 0.0))
         {
-            struct ds_slist_t *pickables = &ed_level_state.pickables.pickables;
-            struct ds_list_t *selections = &ed_level_state.pickables.selections;
-//            struct ed_lev_editor_object_list_t *list = ed_level_state.pickables.active_list;
+//            struct ds_slist_t *pickables = &ed_level_state.pickables.pickables;
+//            struct ds_list_t *selections = &ed_level_state.pickables.selections;
 
             igTableNextRow(0, 0.0);
 //            igTableNextColumn();
-//            igText("Edit mode: %s  ", edit_mode_text);
+//            igText("Objects: %d  ", pickables->used);
+
+            char selected_label[32];
+            sprintf(selected_label, "Selected: %d  ", selections->cursor);
+
             igTableNextColumn();
-            igText("Objects: %d  ", pickables->used);
-            igTableNextColumn();
-            igText("Selected: %d  ", selections->cursor);
+            igSetNextItemWidth(100.0);
+            if(igSelectable_Bool(selected_label, ed_level_state.pickables.selections_window_open, 0, (ImVec2){0, 0}))
+            {
+                ed_level_state.pickables.selections_window_open = !ed_level_state.pickables.selections_window_open;
+            }
+
             igTableNextColumn();
             igText("Manipulator: %s  ", transform_mode_text);
             igTableNextColumn();
@@ -605,8 +662,89 @@ void ed_w_UpdateUI()
                 }
             }
 
+            igTableNextColumn();
+            if(igButton("Brush", (ImVec2){0.0, 20.0}))
+            {
+                ed_level_state.pickables.secondary_click_function = ED_LEVEL_SECONDARY_CLICK_FUNC_BRUSH;
+            }
+
+            igSameLine(0.0, -1.0);
+
+            if(igButton("Light", (ImVec2){0.0, 20.0}))
+            {
+                ed_level_state.pickables.secondary_click_function = ED_LEVEL_SECONDARY_CLICK_FUNC_LIGHT;
+            }
+
             igEndTable();
         }
+
+        igSameLine(0.0, -1.0);
+
+//        if(igButton("Brush", (ImVec2){0.0, 20.0}))
+//        {
+//            ed_level_state.pickables.secondary_click_function = ED_LEVEL_SECONDARY_CLICK_FUNC_BRUSH;
+//        }
+//
+//        igSameLine(0.0, -1.0);
+//
+//        if(igButton("Light", (ImVec2){0.0, 20.0}))
+//        {
+//            ed_level_state.pickables.secondary_click_function = ED_LEVEL_SECONDARY_CLICK_FUNC_LIGHT;
+//        }
+
+        struct ds_list_t *selections = &ed_level_state.pickables.selections;
+
+//        if(selections->cursor)
+//        {
+//            char node_label[32];
+//
+//            igSetNextWindowSizeConstraints((ImVec2){-1.0, 20.0}, (ImVec2){-1.0, 250.0}, NULL, NULL);
+//            if(igBeginChild_Str("Selections", (ImVec2){0.0, 0.0}, 0, ImGuiWindowFlags_))
+//            {
+//                for(uint32_t selection_index = 0; selection_index < selections->cursor; selection_index++)
+//                {
+//                    struct ed_pickable_t *pickable = *(struct ed_pickable_t **)ds_list_get_element(selections, selection_index);
+//                    char *pickable_label = "Object";
+//
+//                    switch(pickable->type)
+//                    {
+//                        case ED_PICKABLE_TYPE_BRUSH:
+//                            pickable_label = "Brush";
+//                        break;
+//
+//                        case ED_PICKABLE_TYPE_LIGHT:
+//                            pickable_label = "Light";
+//                        break;
+//
+//                        case ED_PICKABLE_TYPE_ENTITY:
+//                            pickable_label = "Entity";
+//                        break;
+//
+//                        case ED_PICKABLE_TYPE_FACE:
+//                            pickable_label = "Face";
+//                        break;
+//
+//                        case ED_PICKABLE_TYPE_EDGE:
+//                            pickable_label = "Edge";
+//                        break;
+//
+//                        case ED_PICKABLE_TYPE_VERT:
+//                            pickable_label = "Vertex";
+//                        break;
+//                    }
+//
+//                    sprintf(node_label, "%s##%d", pickable_label, selection_index);
+//
+//                    if(igTreeNode_Str(node_label))
+//                    {
+//                        igText("blah");
+//                        igTreePop();
+//                    }
+//                }
+//            }
+//
+//            igEndChild();
+//        }
 
         igPopStyleVar(1);
     }
@@ -614,54 +752,30 @@ void ed_w_UpdateUI()
     igPopStyleVar(1);
 
 
-    if(ed_level_state.open_delete_selections_popup)
-    {
-        igOpenPopup_Str("Delete selections", 0);
-        ed_level_state.open_delete_selections_popup = 0;
-    }
-
-    igSetNextWindowPos((ImVec2){mouse_x, mouse_y}, ImGuiCond_Once, (ImVec2){0.0, 0.0});
-
-    if(igBeginPopup("Delete selections", 0))
-    {
-        if(igMenuItem_Bool("Delete selections?", NULL, 0, 1))
-        {
-            ed_w_DeleteSelections();
-        }
-        igEndPopup();
-    }
-
-    ImGuiWindowFlags footer_flags = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
-    footer_flags |= ImGuiWindowFlags_NoCollapse;
-    footer_flags |= ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoTitleBar;
-
-    igSetNextWindowPos((ImVec2){0.0, r_height - 24}, 0, (ImVec2){0, 0});
-    igSetNextWindowSize((ImVec2){r_width, 24}, 0);
-    igPushStyleVar_Vec2(ImGuiStyleVar_WindowPadding, (ImVec2){2, 2});
-    if(igBegin("##Footer", NULL, footer_flags))
-    {
-        if(igButton("Brush", (ImVec2){0.0, 20.0}))
-        {
-            ed_level_state.pickables.secondary_click_function = ED_LEVEL_SECONDARY_CLICK_FUNC_BRUSH;
-        }
-
-//        if(igIsItemHovered(0))
+//    ImGuiWindowFlags footer_flags = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
+//    footer_flags |= ImGuiWindowFlags_NoCollapse;
+//    footer_flags |= ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoTitleBar;
+//
+//    igSetNextWindowPos((ImVec2){0.0, r_height - 24}, 0, (ImVec2){0, 0});
+//    igSetNextWindowSize((ImVec2){r_width, 24}, 0);
+//    igPushStyleVar_Vec2(ImGuiStyleVar_WindowPadding, (ImVec2){2, 2});
+//    if(igBegin("##Footer", NULL, footer_flags))
+//    {
+//        if(igButton("Brush", (ImVec2){0.0, 20.0}))
 //        {
-//            igBeginTooltip();
-//            igText("This is blah");
-//            igEndTooltip();
+//            ed_level_state.pickables.secondary_click_function = ED_LEVEL_SECONDARY_CLICK_FUNC_BRUSH;
 //        }
+//
+//        igSameLine(0.0, -1.0);
+//
+//        if(igButton("Light", (ImVec2){0.0, 20.0}))
+//        {
+//            ed_level_state.pickables.secondary_click_function = ED_LEVEL_SECONDARY_CLICK_FUNC_LIGHT;
+//        }
+//    }
+//    igEnd();
 
-        igSameLine(0.0, -1.0);
-
-        if(igButton("Light", (ImVec2){0.0, 20.0}))
-        {
-            ed_level_state.pickables.secondary_click_function = ED_LEVEL_SECONDARY_CLICK_FUNC_LIGHT;
-        }
-    }
-    igEnd();
-
-    igPopStyleVar(1);
+//    igPopStyleVar(1);
 }
 
 void ed_w_UpdateManipulator()
@@ -1258,7 +1372,27 @@ void ed_w_Idle(struct ed_context_t *context, uint32_t just_changed)
 //    igText("Tab: switch edit mode");
 //    igText("Delete: delete selections");
 
-    if(in_GetKeyState(SDL_SCANCODE_LALT) & IN_KEY_STATE_PRESSED)
+    int32_t mouse_x;
+    int32_t mouse_y;
+
+    in_GetMousePos(&mouse_x, &mouse_y);
+
+    if(ed_level_state.open_delete_selections_popup)
+    {
+        igOpenPopup_Str("Delete selections", 0);
+        ed_level_state.open_delete_selections_popup = 0;
+    }
+
+    igSetNextWindowPos((ImVec2){mouse_x, mouse_y}, ImGuiCond_Once, (ImVec2){0.0, 0.0});
+    if(igBeginPopup("Delete selections", 0))
+    {
+        if(igMenuItem_Bool("Delete selections?", NULL, 0, 1))
+        {
+            ed_w_DeleteSelections();
+        }
+        igEndPopup();
+    }
+    else if(in_GetKeyState(SDL_SCANCODE_LALT) & IN_KEY_STATE_PRESSED)
     {
         ed_SetNextContextState(context, ed_w_FlyCamera);
         in_SetMouseWarp(1);
@@ -1271,13 +1405,11 @@ void ed_w_Idle(struct ed_context_t *context, uint32_t just_changed)
     {
         ed_SetNextContextState(context, ed_w_RightClick);
     }
-
-    if(in_GetKeyState(SDL_SCANCODE_LCTRL) & IN_KEY_STATE_PRESSED)
+    else if(in_GetKeyState(SDL_SCANCODE_LCTRL) & IN_KEY_STATE_PRESSED)
     {
         ed_SetNextContextState(context, ed_w_BrushBox);
     }
-
-    if(selections->cursor)
+    else if(selections->cursor)
     {
         if(in_GetKeyState(SDL_SCANCODE_DELETE) & IN_KEY_STATE_JUST_PRESSED)
         {
@@ -1408,7 +1540,7 @@ void ed_w_BrushBox(struct ed_context_t *context, uint32_t just_changed)
 
             if(!context_data->brush.drawing)
             {
-                uint32_t ignore_types = ED_PICKABLE_OBJECT_MASK | ED_PICKABLE_TYPE_EDGE | ED_PICKABLE_TYPE_VERT;
+                uint32_t ignore_types = ED_PICKABLE_OBJECT_MASK | ED_PICKABLE_TYPE_MASK_EDGE | ED_PICKABLE_TYPE_MASK_VERT;
                 struct ds_slist_t *pickables = &context_data->pickables.pickables;
                 struct ed_pickable_t *surface = ed_SelectPickable(mouse_x, mouse_y, pickables, NULL, ignore_types);
 
@@ -1713,22 +1845,13 @@ void ed_w_PickObject(struct ed_context_t *context, uint32_t just_changed)
         uint32_t ignore_types = context_data->pickables.ignore_types;;
         struct ds_slist_t *pickables = &context_data->pickables.pickables;
 
-//        if(context_data->pickables.next_edit_mode == ED_LEV_EDITOR_EDIT_MODE_BRUSH)
-//        {
-//            ignore_types = ED_PICKABLE_TYPE_ENTITY | ED_PICKABLE_TYPE_BRUSH | ED_PICKABLE_TYPE_LIGHT;
-//        }
-//        else
-//        {
-//            ignore_types = ED_PICKABLE_TYPE_FACE | ED_PICKABLE_TYPE_EDGE;
-//        }
-
         context_data->pickables.last_selected = ed_SelectPickable(mouse_x, mouse_y, pickables, NULL, ignore_types);
 
         if(context_data->pickables.last_selected)
         {
             struct ed_pickable_t *pickable = context_data->pickables.last_selected;
 
-            if(pickable->type & ED_PICKABLE_BRUSH_PART_MASK)
+            if((1 << pickable->type) & ED_PICKABLE_BRUSH_PART_MASK)
             {
                 struct ed_brush_t *brush = ed_GetBrush(pickable->primary_index);
 
@@ -1769,7 +1892,7 @@ void ed_w_PlaceLightAtCursor(struct ed_context_t *context, uint32_t just_changed
 
     if(!(in_GetMouseButtonState(SDL_BUTTON_RIGHT) & IN_KEY_STATE_PRESSED))
     {
-        ed_CreateLightPickable(&vec3_t_c(0.0, 0.0, 0.0), &vec3_t_c(1.0, 1.0, 1.0), 6.0, 10.0);
+        ed_CreateLightPickable(&vec3_t_c(0.0, 0.0, 0.0), &vec3_t_c(1.0, 1.0, 1.0), 6.0, 10.0, NULL);
         ed_SetNextContextState(context, ed_w_Idle);
     }
 }
@@ -1929,8 +2052,192 @@ void ed_w_TransformSelections(struct ed_context_t *context, uint32_t just_change
     }
 }
 
-void ed_w_SetEditMode(struct ed_context_t *context, uint32_t just_changed)
+void ed_SerializeLevel(void **level_buffer, size_t *buffer_size)
 {
-    struct ed_level_state_t *context_data = context->context_data;
-//    context_data->pickables.edit_mode = context_data->pickables.next_edit_mode;
+    size_t out_buffer_size = sizeof(struct ed_level_section_t);
+
+    size_t brush_section_size = sizeof(struct ed_brush_section_t);
+    brush_section_size += sizeof(struct ed_brush_record_t) * ed_level_state.brush.brushes.used;
+
+    size_t light_section_size = sizeof(struct l_light_section_t);
+    light_section_size += sizeof(struct l_light_record_t) * r_lights.used;
+
+    out_buffer_size += brush_section_size + light_section_size;
+
+    char *start_out_buffer = mem_Calloc(1, out_buffer_size);
+    char *cur_out_buffer = start_out_buffer;
+    *level_buffer = start_out_buffer;
+    *buffer_size = out_buffer_size;
+
+    struct ed_level_section_t *level_section = (struct ed_level_section_t *)cur_out_buffer;
+    cur_out_buffer += sizeof(struct ed_level_section_t);
+
+    /* level editor stuff */
+    level_section->camera_pos = ed_level_state.camera_pos;
+    level_section->camera_pitch = ed_level_state.camera_pitch;
+    level_section->camera_yaw = ed_level_state.camera_yaw;
+    level_section->magic0 = ED_LEVEL_SECTION_MAGIC0;
+    level_section->magic1 = ED_LEVEL_SECTION_MAGIC1;
+
+
+    /* brush stuff */
+    level_section->brush_section_start = cur_out_buffer - start_out_buffer;
+    level_section->brush_section_size = brush_section_size;
+
+    struct ed_brush_section_t *brush_section = (struct ed_brush_section_t *)cur_out_buffer;
+    cur_out_buffer += sizeof(struct ed_brush_section_t);
+    brush_section->brush_record_start = cur_out_buffer - start_out_buffer;
+    brush_section->brush_record_count = ed_level_state.brush.brushes.used;
+
+    for(uint32_t brush_index = 0; brush_index < ed_level_state.brush.brushes.cursor; brush_index++)
+    {
+        struct ed_brush_t *brush = ed_GetBrush(brush_index);
+
+        if(brush)
+        {
+            struct ed_brush_record_t *brush_record = (struct ed_brush_record_t *)cur_out_buffer;
+            cur_out_buffer += sizeof(struct ed_brush_record_t);
+            brush_record->position = brush->position;
+            brush_record->orientation = brush->orientation;
+            brush_record->face_start = cur_out_buffer - start_out_buffer;
+            brush_record->uuid = brush->index;
+
+
+            struct ed_face_t *face = brush->faces;
+            while(face)
+            {
+                brush_record->face_count++;
+                face = face->next;
+            }
+        }
+    }
+
+
+    /* light stuff */
+    level_section->light_section_size = light_section_size;
+    level_section->light_section_start = cur_out_buffer - start_out_buffer;
+
+    struct l_light_section_t *light_section = (struct l_light_section_t *)cur_out_buffer;
+    cur_out_buffer += sizeof(struct l_light_section_t);
+    light_section->light_record_start = cur_out_buffer - start_out_buffer;
+    struct l_light_record_t *light_records = (struct l_light_record_t *)cur_out_buffer;
+    cur_out_buffer += sizeof(struct l_light_record_t) * r_lights.used;
+
+    for(uint32_t light_index = 0; light_index < r_lights.cursor; light_index++)
+    {
+        struct r_light_t *light = r_GetLight(light_index);
+
+        if(light)
+        {
+            struct l_light_record_t *light_record = light_records + light_section->light_record_count;
+            light_section->light_record_count++;
+            mat3_t_identity(&light_record->orientation);
+            light_record->position = light->data.pos_rad.xyz;
+            light_record->color = light->data.color_res.xyz;
+            light_record->energy = light->energy;
+            light_record->radius = light->data.pos_rad.w;
+            light_record->size = vec2_t_c(0.0, 0.0);
+            light_record->vert_start = 0;
+            light_record->vert_count = 0;
+            light_record->type = R_LIGHT_TYPE_POINT;
+            light_record->uuid = light->index;
+        }
+    }
 }
+
+void ed_DeserializeLevel(void *level_buffer, size_t buffer_size)
+{
+    char *cur_in_buffer = level_buffer;
+    struct ed_level_section_t *level_section = (struct ed_level_section_t *)cur_in_buffer;
+
+    if(level_section->magic0 != ED_LEVEL_SECTION_MAGIC0 || level_section->magic1 != ED_LEVEL_SECTION_MAGIC1)
+    {
+        return;
+    }
+
+    ed_level_state.camera_pitch = level_section->camera_pitch;
+    ed_level_state.camera_yaw = level_section->camera_yaw;
+    ed_level_state.camera_pos = level_section->camera_pos;
+
+    struct ed_brush_section_t *brush_section = cur_in_buffer + level_section->brush_section_start;
+    struct ed_brush_record_t *brush_records = cur_in_buffer + brush_section->brush_record_start;
+
+    l_DeserializeLevel(level_buffer, buffer_size);
+
+    for(uint32_t light_index = 0; light_index < r_lights.cursor; light_index++)
+    {
+        struct r_light_t *light = r_GetLight(light_index);
+
+        if(light)
+        {
+            ed_CreateLightPickable(NULL, NULL, 0.0, 0.0, light);
+        }
+    }
+}
+
+void ed_SaveLevel(char *path, char *file)
+{
+    void *buffer;
+    size_t buffer_size;
+    char file_name[PATH_MAX];
+
+    ed_SerializeLevel(&buffer, &buffer_size);
+    ds_path_append_end(path, file, file_name, PATH_MAX);
+    ds_path_set_ext(file_name, "nlv", file_name, PATH_MAX);
+
+    FILE *fp = fopen(file_name, "wb");
+    fwrite(buffer, buffer_size, 1, fp);
+    fclose(fp);
+}
+
+void ed_LoadLevel(char *path, char *file)
+{
+    void *buffer;
+    size_t buffer_size;
+    char file_name[PATH_MAX];
+
+    ds_path_append_end(path, file, file_name, PATH_MAX);
+    FILE *fp = fopen(file_name, "rb");
+
+    if(!fp)
+    {
+        printf("couldn't find level file %s\n", file_name);
+        return;
+    }
+
+    ed_ResetLevelEditor();
+
+    read_file(fp, &buffer, &buffer_size);
+    ed_DeserializeLevel(buffer, buffer_size);
+    mem_Free(buffer);
+}
+
+void ed_ResetLevelEditor()
+{
+    ed_level_state.camera_pitch = ED_LEVEL_CAMERA_PITCH;
+    ed_level_state.camera_yaw = ED_LEVEL_CAMERA_YAW;
+    ed_level_state.camera_pos = ED_LEVEL_CAMERA_POS;
+
+    for(uint32_t pickable_index = 0; pickable_index < ed_level_state.pickables.pickables.cursor; pickable_index++)
+    {
+        struct ed_pickable_t *pickable = ed_GetPickable(pickable_index);
+
+        if(pickable)
+        {
+            ed_DestroyPickable(pickable);
+        }
+    }
+
+    ed_level_state.pickables.pickables.cursor = 0;
+    ed_level_state.pickables.pickables.free_stack_top = 0xffffffff;
+    ed_level_state.pickables.selections.cursor = 0;
+}
+
+
+
+
+
+
+
+
+

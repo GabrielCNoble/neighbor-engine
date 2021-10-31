@@ -1,7 +1,7 @@
 #ifndef SOUND_H
 #define SOUND_H
 
-#include "dstuff/ds_vector.h"
+#include "../lib/dstuff/ds_vector.h"
 #include <stdint.h>
 
 struct s_sound_t
@@ -34,7 +34,7 @@ enum S_COMMAND_TYPE
     S_COMMAND_RESUME_SOURCE,
 };
 
-struct s_command_t 
+struct s_command_t
 {
     uint32_t type;
     struct s_source_t *source;

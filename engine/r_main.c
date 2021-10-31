@@ -771,6 +771,7 @@ struct r_material_t *r_GetMaterial(char *name)
     for(uint32_t material_index = 0; material_index < r_materials.cursor; material_index++)
     {
         struct r_material_t *material = ds_slist_get_element(&r_materials, material_index);
+
         if(material->index != 0xffffffff)
         {
             if(!strcmp(material->name, name))
@@ -1069,6 +1070,9 @@ void r_UpdateModelGeometry(struct r_model_t *model, struct r_model_geometry_t *g
     {
         ((struct r_batch_t *)model->batches.buffer)[batch_index].start += start;
     }
+
+    model->min = geometry->min;
+    model->max = geometry->max;
 }
 
 struct r_model_t *r_ShallowCopyModel(struct r_model_t *base)

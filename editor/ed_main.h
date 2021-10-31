@@ -1,10 +1,10 @@
 #ifndef ED_MAIN_H
 #define ED_MAIN_H
 
-#include "dstuff/ds_vector.h"
-#include "dstuff/ds_matrix.h"
-#include "dstuff/ds_alloc.h"
-#include "dstuff/ds_buffer.h"
+#include "../lib/dstuff/ds_vector.h"
+#include "../lib/dstuff/ds_matrix.h"
+#include "../lib/dstuff/ds_alloc.h"
+#include "../lib/dstuff/ds_buffer.h"
 #include "ed_defs.h"
 #include "ed_brush.h"
 #include "ed_pick.h"

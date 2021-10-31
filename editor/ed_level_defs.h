@@ -23,12 +23,6 @@ enum ED_LEVEL_SECONDARY_CLICK_FUNCS
     ED_LEVEL_SECONDARY_CLICK_FUNC_LIGHT
 };
 
-//struct ed_lev_editor_object_list_t
-//{
-//    struct ds_slist_t pickables;
-//    struct ds_list_t selections;
-//};
-
 struct ed_level_state_t
 {
 
@@ -45,7 +39,6 @@ struct ed_level_state_t
         struct ds_slist_t bsp_polygons;
 
         struct ds_slist_t brushes;
-//        struct ds_list_t modified_brushes;
         struct ds_slist_t brush_faces;
         struct ds_slist_t brush_face_polygons;
         struct ds_slist_t brush_edges;
@@ -62,15 +55,11 @@ struct ed_level_state_t
 
     struct
     {
-//        uint32_t edit_mode;
-//        uint32_t next_edit_mode;
-//        uint32_t mouse_first_released;
         uint32_t ignore_types;
         uint32_t secondary_click_function;
+        uint32_t selections_window_open;
         struct ds_slist_t pickables;
         struct ds_list_t selections;
-//        struct ed_lev_editor_object_list_t *active_list;
-//        struct ed_lev_editor_object_list_t lists[ED_LEV_EDITOR_EDIT_MODE_LAST];
         struct ds_list_t modified_brushes;
         struct ds_list_t modified_pickables;
         struct ed_pickable_t *last_selected;
@@ -106,4 +95,49 @@ struct ed_level_state_t
     vec3_t camera_pos;
 };
 
+//static char ed_level_section_start_label[] = "[LEVEL SECTION START]";
+//#define ED_LEVEL_SECTION_START_LABEL_LEN ((sizeof(ed_level_section_start_label) + 3) & (~3))
+
+#define ED_LEVEL_SECTION_MAGIC0 0x4749454e
+#define ED_LEVEL_SECTION_MAGIC1 0x524f4248
+
+
+struct ed_level_section_t
+{
+    uint32_t magic0;
+    uint32_t magic1;
+
+    char name[32];
+
+    vec3_t camera_pos;
+    float camera_pitch;
+    float camera_yaw;
+
+    size_t brush_section_start;
+    size_t brush_section_size;
+
+    size_t light_section_start;
+    size_t light_section_size;
+
+    size_t entity_section_start;
+    size_t entity_section_size;
+
+    size_t material_section_start;
+    size_t material_section_size;
+
+    size_t reserved[32];
+};
+
+//static char ed_level_section_end_label[] = "[LEVEL SECTION END]";
+//#define ED_LEVEL_SECTION_END_LABEL_LEN ((sizeof(ed_level_section_end_label) + 3) & (~3))
+//
+//struct ed_level_section_end_t
+//{
+//    char label[ED_LEVEL_SECTION_END_LABEL_LEN];
+//};
+
 #endif
+
+
+
+

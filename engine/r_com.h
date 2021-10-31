@@ -1,10 +1,10 @@
 #ifndef R_COM_H
 #define R_COM_H
 
-#include "dstuff/ds_vector.h"
-#include "dstuff/ds_matrix.h"
-#include "dstuff/ds_alloc.h"
-#include "dstuff/ds_buffer.h"
+#include "../lib/dstuff/ds_vector.h"
+#include "../lib/dstuff/ds_matrix.h"
+#include "../lib/dstuff/ds_alloc.h"
+#include "../lib/dstuff/ds_buffer.h"
 #include <stdint.h>
 #include <stddef.h>
 #include <stdalign.h>

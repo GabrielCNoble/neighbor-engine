@@ -1,10 +1,10 @@
 #ifndef ANIM_H
 #define ANIM_H
 
-#include "dstuff/ds_vector.h"
-#include "dstuff/ds_matrix.h"
-#include "dstuff/ds_list.h"
-#include "dstuff/ds_slist.h"
+#include "../lib/dstuff/ds_vector.h"
+#include "../lib/dstuff/ds_matrix.h"
+#include "../lib/dstuff/ds_list.h"
+#include "../lib/dstuff/ds_slist.h"
 #include <stdint.h>
 
 /* influence of a single bone. No vertex id is necessary here, because

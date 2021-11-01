@@ -62,11 +62,13 @@ struct ed_vert_t
     struct ed_vert_edge_t *edges;
     vec3_t vert;
     uint32_t index;
+    uint32_t s_index;
 };
 
 struct ed_edge_t
 {
     uint32_t index;
+    uint32_t s_index;
     struct ed_edge_t *init_next;
     struct ed_pickable_t *pickable;
 
@@ -93,6 +95,7 @@ struct ed_face_polygon_t
     struct ed_face_t *face;
     struct ed_brush_t *brush;
     uint32_t index;
+    uint32_t s_index;
 
     uint32_t edge_count;
 
@@ -162,6 +165,10 @@ struct ed_brush_t
     struct r_model_t *model;
     struct g_entity_t *entity;
 
+    uint32_t face_count;
+    uint32_t polygon_count;
+    uint32_t edge_count;
+
     uint32_t clipped_vert_count;
     uint32_t clipped_index_count;
     uint32_t clipped_polygon_count;
@@ -170,22 +177,34 @@ struct ed_brush_t
     uint32_t modified_index;
 };
 
+struct ed_vert_record_t
+{
+    vec3_t vert;
+};
+
 struct ed_edge_record_t
 {
-
+    size_t polygons[2];
+    size_t vertices[2];
 };
+
+//struct ed_polygon_edge_record_t
+//{
+//    size_t edge;
+//};
 
 struct ed_polygon_record_t
 {
-    uint32_t vert_count;
+    size_t edge_count;
+    size_t edges[];
 };
 
 struct ed_face_record_t
 {
-    uint32_t polygon_start;
-    uint32_t polygon_count;
+    size_t polygon_start;
+    size_t polygon_count;
 
-    float uv_scale;
+    vec2_t uv_scale;
     float uv_rot;
 
     char material[32];
@@ -195,14 +214,19 @@ struct ed_brush_record_t
 {
     vec3_t position;
     mat3_t orientation;
-    uint32_t face_start;
-    uint32_t face_count;
-    uint32_t uuid;
-};
 
-struct ed_verts_record_t
-{
-    vec3_t vert;
+    size_t face_start;
+    size_t face_count;
+
+    size_t edge_start;
+    size_t edge_count;
+
+    size_t vert_start;
+    size_t vert_count;
+
+//    size_t polygon_start;
+//    size_t polygon_count;
+
     uint32_t uuid;
 };
 

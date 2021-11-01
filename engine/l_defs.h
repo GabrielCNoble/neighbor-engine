@@ -26,6 +26,22 @@ struct l_light_record_t
     size_t vert_count;
 };
 
+struct l_material_section_t
+{
+    size_t material_record_start;
+    size_t material_record_count;
+    size_t reserved[32];
+};
+
+struct l_material_record_t
+{
+    char name[32];
+    char diffuse_texture[32];
+    char normal_texture[32];
+    char roughness_texture[32];
+    char height_texture[32];
+    char metalness_texture[32];
+};
 
 
 struct l_entity_section_t

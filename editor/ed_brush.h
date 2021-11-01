@@ -15,21 +15,21 @@ struct ed_brush_batch_t *ed_GetGlobalBrushBatch(struct r_material_t *material);
 
 struct ed_brush_t *ed_GetBrush(uint32_t index);
 
-struct ed_face_t *ed_AllocFace();
+struct ed_face_t *ed_AllocFace(struct ed_brush_t *brush);
 
 struct ed_face_t *ed_GetFace(uint32_t index);
 
-void ed_FreeFace(struct ed_face_t *face);
+void ed_FreeFace(struct ed_brush_t *brush, struct ed_face_t *face);
 
-struct ed_face_polygon_t *ed_AllocFacePolygon();
+struct ed_face_polygon_t *ed_AllocFacePolygon(struct ed_brush_t *brush);
 
-void ed_FreeFacePolygon(struct ed_face_polygon_t *polygon);
+void ed_FreeFacePolygon(struct ed_brush_t *brush, struct ed_face_polygon_t *polygon);
 
-struct ed_edge_t *ed_AllocEdge();
+struct ed_edge_t *ed_AllocEdge(struct ed_brush_t *brush);
 
 struct ed_edge_t *ed_GetEdge(uint32_t index);
 
-void ed_FreeEdge(struct ed_edge_t *edge);
+void ed_FreeEdge(struct ed_brush_t *brush, struct ed_edge_t *edge);
 
 struct ed_vert_t *ed_AllocVert(struct ed_brush_t *brush);
 

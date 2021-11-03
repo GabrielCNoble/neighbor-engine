@@ -76,9 +76,14 @@ struct ed_brush_t *ed_AllocBrush()
     brush->last = NULL;
     brush->main_brush = NULL;
     brush->entity = NULL;
+    brush->faces = NULL;
     brush->face_count = 0;
     brush->edge_count = 0;
     brush->polygon_count = 0;
+    brush->model = NULL;
+
+    brush->vertices = ds_slist_create(sizeof(struct ed_vert_t), 8);
+    brush->vert_transforms = ds_list_create(sizeof(struct ed_vert_transform_t), 32);
 
     return brush;
 }
@@ -90,8 +95,8 @@ struct ed_brush_t *ed_CreateBrush(vec3_t *position, mat3_t *orientation, vec3_t 
     vec3_t_fabs(&dims, size);
 
     brush = ed_AllocBrush();
-    brush->vertices = ds_slist_create(sizeof(struct ed_vert_t), 8);
-    brush->vert_transforms = ds_list_create(sizeof(struct ed_vert_transform_t), 32);
+//    brush->vertices = ds_slist_create(sizeof(struct ed_vert_t), 8);
+//    brush->vert_transforms = ds_list_create(sizeof(struct ed_vert_transform_t), 32);
     brush->main_brush = brush;
     brush->flags |= ED_BRUSH_FLAG_GEOMETRY_MODIFIED;
 
@@ -213,8 +218,8 @@ struct ed_brush_t *ed_CreateBrush(vec3_t *position, mat3_t *orientation, vec3_t 
 struct ed_brush_t *ed_CopyBrush(struct ed_brush_t *src_brush)
 {
     struct ed_brush_t *dst_brush = ed_AllocBrush();
-    dst_brush->vertices = ds_slist_create(sizeof(struct ed_vert_t), 8);
-    dst_brush->vert_transforms = ds_list_create(sizeof(struct ed_vert_transform_t), 32);
+//    dst_brush->vertices = ds_slist_create(sizeof(struct ed_vert_t), 8);
+//    dst_brush->vert_transforms = ds_list_create(sizeof(struct ed_vert_transform_t), 32);
     dst_brush->main_brush = dst_brush;
     dst_brush->flags |= ED_BRUSH_FLAG_GEOMETRY_MODIFIED;
 
@@ -549,6 +554,23 @@ struct ed_face_polygon_t *ed_AllocFacePolygon(struct ed_brush_t *brush)
     return polygon;
 }
 
+struct ed_face_polygon_t *ed_AddFacePolygon(struct ed_brush_t *brush, struct ed_face_t *face)
+{
+    struct ed_face_polygon_t *polygon = ed_AllocFacePolygon(brush);
+
+    polygon->next = face->polygons;
+    polygon->face = face;
+
+    if(face->polygons)
+    {
+        face->polygons->prev = polygon;
+    }
+
+    face->polygons = polygon;
+
+    return polygon;
+}
+
 void ed_FreeFacePolygon(struct ed_brush_t *brush, struct ed_face_polygon_t *polygon)
 {
     if(polygon && polygon->index != 0xffffffff)
@@ -556,6 +578,19 @@ void ed_FreeFacePolygon(struct ed_brush_t *brush, struct ed_face_polygon_t *poly
         ds_slist_remove_element(&ed_level_state.brush.brush_face_polygons, polygon->index);
         polygon->index = 0xffffffff;
         brush->polygon_count--;
+    }
+}
+
+void ed_RemoveFacePolygon(struct ed_brush_t *brush, struct ed_face_polygon_t *polygon)
+{
+    if(polygon && polygon->index != 0xffffffff)
+    {
+        if(!polygon->prev)
+        {
+
+        }
+
+        ed_FreeFacePolygon(brush, polygon);
     }
 }
 

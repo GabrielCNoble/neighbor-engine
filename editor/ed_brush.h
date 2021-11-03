@@ -23,7 +23,11 @@ void ed_FreeFace(struct ed_brush_t *brush, struct ed_face_t *face);
 
 struct ed_face_polygon_t *ed_AllocFacePolygon(struct ed_brush_t *brush);
 
+struct ed_face_polygon_t *ed_AddFacePolygon(struct ed_brush_t *brush, struct ed_face_t *face);
+
 void ed_FreeFacePolygon(struct ed_brush_t *brush, struct ed_face_polygon_t *polygon);
+
+void ed_RemoveFacePolygon(struct ed_brush_t *brush, struct ed_face_polygon_t *polygon);
 
 struct ed_edge_t *ed_AllocEdge(struct ed_brush_t *brush);
 

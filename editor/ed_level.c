@@ -2102,10 +2102,11 @@ void ed_SerializeLevel(void **level_buffer, size_t *buffer_size)
         if(brush)
         {
             struct ed_brush_record_t *brush_record = (struct ed_brush_record_t *)cur_out_buffer;
-            cur_out_buffer += sizeof(struct ed_brush_record_t);
+            brush_record->record_size = cur_out_buffer;
             brush_record->position = brush->position;
             brush_record->orientation = brush->orientation;
             brush_record->uuid = brush->index;
+            cur_out_buffer += sizeof(struct ed_brush_record_t);
 
             brush_record->vert_start = cur_out_buffer - start_out_buffer;
             cur_out_buffer += sizeof(struct ed_vert_record_t) * brush->vertices.used;
@@ -2149,6 +2150,7 @@ void ed_SerializeLevel(void **level_buffer, size_t *buffer_size)
 
                             edge_record->polygons[0] = 0xffffffff;
                             edge_record->polygons[1] = 0xffffffff;
+                            edge_record->d_index = 0xffffffff;
                         }
                         else
                         {
@@ -2162,6 +2164,9 @@ void ed_SerializeLevel(void **level_buffer, size_t *buffer_size)
                 }
             }
 
+            /* for serialization purposes we generate sequential polygon ids here. Those ids are generated the same
+            during deserialization, so everything is fine. Edges reference those sequential ids */
+            uint32_t polygon_id = 0;
             struct ed_face_t *face = brush->faces;
             /* serialize faces and polygons */
             while(face)
@@ -2188,14 +2193,14 @@ void ed_SerializeLevel(void **level_buffer, size_t *buffer_size)
 
                     while(edge)
                     {
-                        uint32_t polygon_index = edge->polygons[1].polygon == polygon;
+                        uint32_t polygon_side = edge->polygons[1].polygon == polygon;
                         struct ed_edge_record_t *edge_record = edge_records + edge->s_index;
 
                         /* store the serialization index of this edge in the edge list of this polygon
                         record */
                         polygon_record->edges[polygon_record->edge_count] = edge->s_index;
                         /* store on which side of this edge the polygon is */
-                        edge_record->polygons[polygon_index] = face_record->polygon_count;
+                        edge_record->polygons[polygon_side] = polygon_id;
                         polygon_record->edge_count++;
 
                         if(edge_record->polygons[0] != 0xffffffff && edge_record->polygons[1] != 0xffffffff)
@@ -2205,15 +2210,18 @@ void ed_SerializeLevel(void **level_buffer, size_t *buffer_size)
                             edge->s_index = 0xffffffff;
                         }
 
-                        edge = edge->polygons[polygon_index].next;
+                        edge = edge->polygons[polygon_side].next;
                     }
 
                     face_record->polygon_count++;
                     polygon = polygon->next;
+                    polygon_id++;
                 }
 
                 face = face->next;
             }
+
+            brush_record->record_size = cur_out_buffer - (char *)brush_record->record_size;
         }
     }
 
@@ -2252,7 +2260,8 @@ void ed_SerializeLevel(void **level_buffer, size_t *buffer_size)
 
 void ed_DeserializeLevel(void *level_buffer, size_t buffer_size)
 {
-    char *cur_in_buffer = level_buffer;
+    char *start_in_buffer = level_buffer;
+    char *cur_in_buffer = start_in_buffer;
     struct ed_level_section_t *level_section = (struct ed_level_section_t *)cur_in_buffer;
 
     if(level_section->magic0 != ED_LEVEL_SECTION_MAGIC0 || level_section->magic1 != ED_LEVEL_SECTION_MAGIC1)
@@ -2264,25 +2273,143 @@ void ed_DeserializeLevel(void *level_buffer, size_t buffer_size)
     ed_level_state.camera_yaw = level_section->camera_yaw;
     ed_level_state.camera_pos = level_section->camera_pos;
 
-    struct ed_brush_section_t *brush_section = (struct ed_brush_section_t *)(cur_in_buffer + level_section->brush_section_start);
-    struct ed_brush_record_t *brush_records = (struct ed_brush_record_t *)(cur_in_buffer + brush_section->brush_record_start);
+    struct ed_brush_section_t *brush_section = (struct ed_brush_section_t *)(start_in_buffer + level_section->brush_section_start);
+    cur_in_buffer = start_in_buffer + brush_section->brush_record_start;
 
     for(uint32_t record_index = 0; record_index < brush_section->brush_record_count; record_index++)
     {
-        struct ed_brush_record_t *brush_record = brush_records + record_index;
-        struct ed_vert_record_t *vert_records = (struct ed_vert_record_t *)(cur_in_buffer + brush_record->vert_start);
-        struct ed_edge_record_t *edge_records = (struct ed_edge_record_t *)(cur_in_buffer + brush_record->edge_start);
-        struct ed_face_record_t *face_records = (struct ed_face_record_t *)(cur_in_buffer + brush_record->face_start);
+        struct ed_brush_record_t *brush_record = (struct ed_brush_record_t *)cur_in_buffer;
+        cur_in_buffer += brush_record->record_size;
+
+        struct ed_vert_record_t *vert_records = (struct ed_vert_record_t *)(start_in_buffer + brush_record->vert_start);
+        struct ed_edge_record_t *edge_records = (struct ed_edge_record_t *)(start_in_buffer + brush_record->edge_start);
+        struct ed_face_record_t *face_records = (struct ed_face_record_t *)(start_in_buffer + brush_record->face_start);
+
+        struct ed_brush_t *brush = ed_AllocBrush();
+        brush->flags |= ED_BRUSH_FLAG_GEOMETRY_MODIFIED;
+        brush->position = brush_record->position;
+        brush->orientation = brush_record->orientation;
+        brush->main_brush = brush;
 
         for(uint32_t vert_index = 0; vert_index < brush_record->vert_count; vert_index++)
         {
             struct ed_vert_record_t *vert_record = vert_records + vert_index;
+            struct ed_vert_t *vert = ed_AllocVert(brush);
+            vert_record->d_index = vert->index;
+            vert->vert = vert_record->vert;
         }
+
+        uint32_t polygon_id = 0;
+        struct ed_face_t *last_face = NULL;
 
         for(uint32_t face_index = 0; face_index < brush_record->face_count; face_index++)
         {
             struct ed_face_record_t *face_record = face_records + face_index;
+            struct ed_face_t *face = ed_AllocFace(brush);
+
+            face->material = r_GetMaterial(face_record->material);
+            face->tex_coords_rot = face_record->uv_rot;
+            face->tex_coords_scale = face_record->uv_scale;
+            face->brush = brush;
+
+            struct ed_face_polygon_t *last_polygon = NULL;
+
+            struct ed_polygon_record_t *polygon_records = (struct ed_polygon_record_t *)(start_in_buffer + face_record->polygon_start);
+            for(uint32_t polygon_index = 0; polygon_index < face_record->polygon_count; polygon_index++)
+            {
+                struct ed_polygon_record_t *polygon_record = polygon_records + polygon_index;
+                struct ed_face_polygon_t *polygon = ed_AllocFacePolygon(brush);
+
+                polygon->face = face;
+
+                for(uint32_t edge_index = 0; edge_index < polygon_record->edge_count; edge_index++)
+                {
+                    struct ed_edge_record_t *edge_record = edge_records + polygon_record->edges[edge_index];
+                    /* find in which side of the serialized edge the serialized polygon is */
+                    uint32_t polygon_side = edge_record->polygons[1] == polygon_id;
+                    struct ed_edge_t *edge;
+
+                    if(edge_record->d_index == 0xffffffff)
+                    {
+                        edge = ed_AllocEdge(brush);
+                        /* we store the allocated index for the edge in the serialized data, so
+                        we can quickly map to the allocated edge from the serialized edge */
+                        edge_record->d_index = edge->index;
+                        struct ed_vert_record_t *vert0_record = vert_records + edge_record->vertices[0];
+                        struct ed_vert_record_t *vert1_record = vert_records + edge_record->vertices[1];
+                        struct ed_vert_t *vert0 = ed_GetVert(brush, vert0_record->d_index);
+                        struct ed_vert_t *vert1 = ed_GetVert(brush, vert1_record->d_index);
+
+                        edge->verts[0].vert = vert0;
+                        edge->verts[0].next = vert0->edges;
+                        edge->verts[0].edge = edge;
+                        if(vert0->edges)
+                        {
+                            vert0->edges->prev = &edge->verts[0];
+                        }
+                        vert0->edges = &edge->verts[0];
+
+
+                        edge->verts[1].vert = vert1;
+                        edge->verts[1].next = vert1->edges;
+                        edge->verts[1].edge = edge;
+                        if(vert1->edges)
+                        {
+                            vert1->edges->prev = &edge->verts[1];
+                        }
+                        vert1->edges = &edge->verts[1];
+                    }
+                    else
+                    {
+                        edge = ed_GetEdge(edge_record->d_index);
+                        edge_record->d_index = 0xffffffff;
+                    }
+
+                    edge->polygons[polygon_side].polygon = polygon;
+
+                    if(!polygon->edges)
+                    {
+                        polygon->edges = edge;
+                    }
+                    else
+                    {
+                        edge->polygons[polygon_side].prev = polygon->last_edge;
+                        polygon_side = polygon->last_edge->polygons[1].polygon == polygon;
+                        polygon->last_edge->polygons[polygon_side].next = edge;
+                    }
+                    polygon->edge_count++;
+                    polygon->last_edge = edge;
+                }
+
+                if(!face->polygons)
+                {
+                    face->polygons = polygon;
+                }
+                else
+                {
+                    last_polygon->next = polygon;
+                    polygon->prev = last_polygon;
+                }
+
+                last_polygon = polygon;
+                polygon_id++;
+            }
+
+            if(!brush->faces)
+            {
+                brush->faces = face;
+            }
+            else
+            {
+                last_face->next = face;
+                face->prev = last_face;
+            }
+
+            last_face = face;
         }
+
+        ed_UpdateBrush(brush);
+        ed_CreateBrushPickable(NULL, NULL, NULL, brush);
     }
 
     l_DeserializeLevel(level_buffer, buffer_size);

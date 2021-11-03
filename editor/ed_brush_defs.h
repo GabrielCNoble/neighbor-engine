@@ -180,12 +180,18 @@ struct ed_brush_t
 struct ed_vert_record_t
 {
     vec3_t vert;
+    /* used by the deserializer to map between a serialized vertex
+    and the allocated vertex */
+    uint32_t d_index;
 };
 
 struct ed_edge_record_t
 {
     size_t polygons[2];
     size_t vertices[2];
+    /* used by the deserializer to map between a serialized edge
+    and the allocated edge */
+    uint32_t d_index;
 };
 
 //struct ed_polygon_edge_record_t
@@ -215,6 +221,8 @@ struct ed_brush_record_t
     vec3_t position;
     mat3_t orientation;
 
+    size_t record_size;
+
     size_t face_start;
     size_t face_count;
 
@@ -223,9 +231,6 @@ struct ed_brush_record_t
 
     size_t vert_start;
     size_t vert_count;
-
-//    size_t polygon_start;
-//    size_t polygon_count;
 
     uint32_t uuid;
 };

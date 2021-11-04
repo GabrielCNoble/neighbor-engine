@@ -228,7 +228,7 @@ void ed_UpdateEditor()
         {
             if(igMenuItem_Bool("New", NULL, 0, 1))
             {
-
+                ed_ResetLevelEditor();
             }
 
             if(igMenuItem_Bool("Save", NULL, 0, 1))

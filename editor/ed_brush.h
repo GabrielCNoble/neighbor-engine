@@ -21,11 +21,13 @@ struct ed_face_t *ed_GetFace(uint32_t index);
 
 void ed_FreeFace(struct ed_brush_t *brush, struct ed_face_t *face);
 
-struct ed_face_polygon_t *ed_AllocFacePolygon(struct ed_brush_t *brush);
-
-struct ed_face_polygon_t *ed_AddFacePolygon(struct ed_brush_t *brush, struct ed_face_t *face);
+struct ed_face_polygon_t *ed_AllocFacePolygon(struct ed_brush_t *brush, struct ed_face_t *face);
 
 void ed_FreeFacePolygon(struct ed_brush_t *brush, struct ed_face_polygon_t *polygon);
+
+void ed_LinkFacePolygonEdge(struct ed_face_polygon_t *polygon, struct ed_edge_t *edge);
+
+void ed_UnlinkFacePolygonEdge(struct ed_face_polygon_t *polygon, struct ed_edge_t *edge);
 
 void ed_RemoveFacePolygon(struct ed_brush_t *brush, struct ed_face_polygon_t *polygon);
 
@@ -38,6 +40,8 @@ void ed_FreeEdge(struct ed_brush_t *brush, struct ed_edge_t *edge);
 struct ed_vert_t *ed_AllocVert(struct ed_brush_t *brush);
 
 struct ed_vert_t *ed_GetVert(struct ed_brush_t *brush, uint32_t index);
+
+void ed_LinkVertEdge(struct ed_vert_t *vert, struct ed_edge_t *edge);
 
 void ed_FreeVert(struct ed_brush_t *brush, uint32_t index);
 //

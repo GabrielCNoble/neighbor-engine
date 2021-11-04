@@ -102,6 +102,7 @@ struct ed_face_polygon_t
     vec3_t tangent;
     vec3_t normal;
     vec3_t center;
+    vec2_t center_uv;
 };
 
 enum ED_FACE_FLAGS
@@ -121,6 +122,7 @@ struct ed_face_t
 
     struct r_material_t *material;
     struct ed_face_polygon_t *polygons;
+    struct ed_face_polygon_t *last_polygon;
     struct ed_bsp_polygon_t *clipped_polygons;
 
     uint32_t clipped_vert_count;
@@ -160,6 +162,7 @@ struct ed_brush_t
     vec3_t position;
     uint32_t index;
     struct ed_face_t *faces;
+    struct ed_face_t *last_face;
     struct ds_slist_t vertices;
     struct ds_list_t vert_transforms;
     struct r_model_t *model;

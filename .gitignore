@@ -13,7 +13,14 @@
 *.depend
 *.layout
 *.cscope_file_list
-lib
+*.json
+lib/assimp
+lib/GLEW
+lib/SDL
+lib/OPENAL
+lib/vorbis
 models
 textures
 sounds
+!images/*
+.obsidian

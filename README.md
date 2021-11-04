@@ -58,11 +58,11 @@ Different objects display different parameters (naturally). The menu allows edit
 	- Frustum culling
 	- Occlusion culling
 	- Spotlights
-	- Area lights
-	- Soft shadows
-	- Antialising
-	- Parallax occlusion mapping
-	- Ditch OpenGL and go the Vulkan way
+	- Area lights (not really necessary for this jam)
+	- Soft shadows (not really necessary for this jam)
+	- Antialising (not really necessary for this jam)
+	- Parallax occlusion mapping (not really necessary for this jam)
+	- Ditch OpenGL and go the Vulkan way (not really necessary for this jam)
 - Physics
 	- Character controller
 	- Rigid body dynamics (not really necessary for this jam)

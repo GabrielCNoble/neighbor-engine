@@ -5,7 +5,11 @@
 #include "dstuff/ds_buffer.h"
 #include "../engine/r_main.h"
 #include "../engine/game.h"
+#include "../engine/physics.h"
 #include "ed_bsp.h"
+
+extern struct p_tmesh_shape_t *l_world_shape;
+extern struct p_collider_t *l_world_collider;
 
 uint32_t ed_cube_brush_indices[][4] =
 {
@@ -1215,8 +1219,8 @@ void ed_UpdateBrush(struct ed_brush_t *brush)
         }
         else
         {
-//            ed_level_state.brush.brush_vert_count -= brush->model->verts.buffer_size;
-//            ed_level_state.brush.brush_index_count -= brush->model->indices.buffer_size;
+            ed_level_state.brush.brush_model_vert_count -= brush->model->verts.buffer_size;
+            ed_level_state.brush.brush_model_index_count -= brush->model->indices.buffer_size;
 //
 //            for(uint32_t batch_index = 0; batch_index < brush->model->batches.buffer_size; batch_index++)
 //            {
@@ -1228,8 +1232,8 @@ void ed_UpdateBrush(struct ed_brush_t *brush)
             r_UpdateModelGeometry(brush->model, &geometry);
         }
 
-//        ed_level_state.brush.brush_vert_count += brush->model->verts.buffer_size;
-//        ed_level_state.brush.brush_index_count += brush->model->indices.buffer_size;
+        ed_level_state.brush.brush_model_vert_count += brush->model->verts.buffer_size;
+        ed_level_state.brush.brush_model_index_count += brush->model->indices.buffer_size;
 //
 //        for(uint32_t batch_index = 0; batch_index < brush->model->batches.buffer_size; batch_index++)
 //        {
@@ -1253,8 +1257,58 @@ void ed_UpdateBrush(struct ed_brush_t *brush)
 
 void ed_BuildWorldGeometry()
 {
-//    struct ds_buffer_t vertices = ds_buffer_create(sizeof(struct r_vert_t), ed_level_state.brush.brush_vert_count);
-//    struct ds_buffer_t indices = ds_buffer_create(sizeof(uint32_t), ed_level_state.brush.brush_index_count);
+    struct ds_buffer_t col_verts_buffer = ds_buffer_create(sizeof(vec3_t), ed_level_state.brush.brush_model_vert_count);
+    struct ds_buffer_t draw_verts_buffer = ds_buffer_create(sizeof(struct r_vert_t), ed_level_state.brush.brush_model_vert_count);
+    struct ds_buffer_t indices_buffer = ds_buffer_create(sizeof(uint32_t), ed_level_state.brush.brush_model_index_count);
+
+    uint32_t vert_offset = 0;
+    uint32_t index_offset = 0;
+
+    vec3_t *col_verts = col_verts_buffer.buffer;
+    uint32_t *indices = indices_buffer.buffer;
+
+    for(uint32_t brush_index = 0; brush_index < ed_level_state.brush.brushes.cursor; brush_index++)
+    {
+        struct ed_brush_t *brush = ed_GetBrush(brush_index);
+
+        if(brush)
+        {
+            struct r_vert_t *model_verts = brush->model->verts.buffer;
+            uint32_t *model_indices = brush->model->indices.buffer;
+
+            for(uint32_t index = 0; index < brush->model->indices.buffer_size; index++)
+            {
+                indices[index_offset] = model_indices[index] + vert_offset;
+                index_offset++;
+            }
+
+            for(uint32_t vert_index = 0; vert_index < brush->model->verts.buffer_size; vert_index++)
+            {
+                col_verts[vert_offset] = model_verts[vert_index].pos;
+                mat3_t_vec3_t_mul(&col_verts[vert_offset], &col_verts[vert_offset], &brush->orientation);
+                vec3_t_add(&col_verts[vert_offset], &col_verts[vert_offset], &brush->position);
+                vert_offset++;
+            }
+        }
+    }
+
+    vec3_t position = {};
+    mat3_t orientation = {};
+    mat3_t_identity(&orientation);
+
+    if(l_world_shape)
+    {
+        p_DestroyCollisionShape((struct p_col_shape_t *)l_world_shape);
+        p_DestroyCollider(l_world_collider);
+    }
+
+    l_world_shape = p_CreateTriMeshCollisionShape(col_verts, indices, index_offset);
+    l_world_collider = p_CreateCollider(P_COLLIDER_TYPE_STATIC, &position, &orientation, (struct p_col_shape_t *)l_world_shape);
+
+    ds_buffer_destroy(&col_verts_buffer);
+    ds_buffer_destroy(&draw_verts_buffer);
+    ds_buffer_destroy(&indices_buffer);
+
 //    struct ds_buffer_t batches = ds_buffer_create(sizeof(struct r_batch_t), ed_level_state.brush.brush_batches.cursor);
 //
 //    for(uint32_t global_batch_index = 0; global_batch_index < batches.buffer_size; global_batch_index++)

@@ -267,6 +267,10 @@ void ed_UpdateEditor()
             {
                 ed_show_renderer_info_window ^= 1;
             }
+            if(igMenuItem_Bool("Gen world collider", NULL, 0, 1))
+            {
+                ed_BuildWorldGeometry();
+            }
             igEndMenu();
         }
         igEndMainMenuBar();

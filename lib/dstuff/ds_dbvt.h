@@ -94,12 +94,14 @@ struct ds_dbvn_t
 {
     uint32_t parent;
     uint32_t children[2];
+    uint32_t index;
+    uint32_t ignore;
     void *contents;
     vec3_t max;
     vec3_t min;
-    vec3_t expanded_max;
-    vec3_t expanded_min;
-    void *user_data;
+//    vec3_t expanded_max;
+//    vec3_t expanded_min;
+//    void *user_data;
 };
 
 struct ds_dbvt_t
@@ -141,7 +143,7 @@ void ds_dbvt_pair_aabb(struct ds_dbvt_t *tree, uint32_t node_a, uint32_t node_b,
 
 void ds_dbvt_recompute_volumes(struct ds_dbvt_t *tree, int start_node_index);
 
-struct ds_list_t *ds_dbvt_box_contents(struct ds_dbvt_t *tree, vec3_t *aabb_max, vec3_t *aabb_min);
+void ds_dbvt_box_contents(struct ds_list_t *contents, struct ds_dbvt_t *tree, vec3_t *aabb_max, vec3_t *aabb_min);
 
 
 #ifdef DS_DBVT_IMPLEMENTATION
@@ -154,7 +156,7 @@ struct ds_dbvt_t ds_dbvt_create(uint32_t user_data_size)
     struct ds_dbvt_t tree;
 
     tree.root = INVALID_DBVH_NODE_INDEX;
-    tree.node_pool = DS_DBVT_SLIST_CREATE(sizeof(struct ds_slist_t) + user_data_size, 128);
+    tree.node_pool = DS_DBVT_SLIST_CREATE(sizeof(struct ds_dbvn_t) + user_data_size, 128);
 
     return tree;
 }
@@ -178,7 +180,8 @@ uint32_t ds_dbvt_alloc_node(struct ds_dbvt_t *tree)
     node->children[0] = INVALID_DBVH_NODE_INDEX;
     node->children[1] = INVALID_DBVH_NODE_INDEX;
     node->contents = (void*)0xdeadbeef;
-    node->user_data = (char *)node + sizeof(struct ds_dbvn_t);
+    node->index = node_index;
+//    node->user_data = (char *)node + sizeof(struct ds_dbvn_t);
 
     return node_index;
 }
@@ -188,11 +191,12 @@ void ds_dbvt_dealloc_node(struct ds_dbvt_t *tree, int node_index)
     struct ds_dbvn_t *node;
     node = ds_dbvt_get_node_pointer(tree, node_index);
 
-    if(node)
+    if(node && node->index != 0xffffffff)
     {
         node->parent = node_index;
         node->children[0] = node_index;
         node->children[1] = node_index;
+        node->index = 0xffffffff;
         DS_DBVT_SLIST_REMOVE_ELEMENT(&tree->node_pool, node_index);
     }
 }
@@ -552,9 +556,10 @@ void ds_dbvt_recompute_volumes(struct ds_dbvt_t *tree, int start_node_index)
 void ds_dbvt_box_contents_recursive(struct ds_list_t *contents, struct ds_dbvt_t *tree, uint32_t node_index, vec3_t *aabb_max, vec3_t *aabb_min)
 {
     struct ds_dbvn_t *node;
+
     node = ds_dbvt_get_node_pointer(tree, node_index);
 
-    if(node && ds_dbvt_box_overlap(aabb_max, aabb_min, &node->max, &node->min))
+    if(node && !(node->ignore) && ds_dbvt_box_overlap(aabb_max, aabb_min, &node->max, &node->min))
     {
         if(node->children[0] == node->children[1])
         {
@@ -568,16 +573,10 @@ void ds_dbvt_box_contents_recursive(struct ds_list_t *contents, struct ds_dbvt_t
     }
 }
 
-struct ds_list_t *ds_dbvt_box_contents(struct ds_dbvt_t *tree, vec3_t *aabb_max, vec3_t *aabb_min)
+void ds_dbvt_box_contents(struct ds_list_t *contents, struct ds_dbvt_t *tree, vec3_t *aabb_max, vec3_t *aabb_min)
 {
-    static struct ds_list_t contents;
-    if(contents.buffers == NULL)
-    {
-        contents = ds_list_create(sizeof(void *), 128);
-    }
-    contents.cursor = 0;
-    ds_dbvt_box_contents_recursive(&contents, tree, tree->root, aabb_max, aabb_min);
-    return &contents;
+    contents->cursor = 0;
+    ds_dbvt_box_contents_recursive(contents, tree, tree->root, aabb_max, aabb_min);
 }
 
 #endif

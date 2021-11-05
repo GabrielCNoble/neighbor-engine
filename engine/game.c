@@ -623,22 +623,10 @@ void g_SetGameState(uint32_t game_state)
 
 void g_GameMain(float delta_time)
 {
-    if(in_GetKeyState(SDL_SCANCODE_ESCAPE) & IN_KEY_STATE_PRESSED)
-    {
-        if(g_editor)
-        {
-            g_SetGameState(G_GAME_STATE_EDITING);
-        }
-        else
-        {
-            g_SetGameState(G_GAME_STATE_PAUSED);
-        }
-    }
-
-    if(g_editor)
-    {
-        ed_UpdateEditor();
-    }
+//    if(g_editor)
+//    {
+//        ed_UpdateEditor();
+//    }
 }
 
 void g_MainLoop(uint32_t editor_active)

@@ -50,8 +50,10 @@ struct ed_level_state_t
 
         uint32_t brush_vert_count;
 
-//        uint32_t brush_vert_count;
+        uint32_t brush_model_vert_count;
+        uint32_t brush_model_index_count;
 //        uint32_t brush_index_count;
+
         struct ds_list_t brush_batches;
     } brush;
 

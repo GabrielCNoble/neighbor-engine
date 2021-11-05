@@ -303,6 +303,9 @@ void ed_w_Init()
 //    diffuse = r_LoadTexture("textures/sci-fi-panel1-albedo.png", "scifi_diffuse");
 //    normal = r_LoadTexture("textures/sci-fi-panel1-normal-ogl.png", "scifi_normal");
 //    r_CreateMaterial("scifi", diffuse, normal, NULL);
+
+    struct p_capsule_shape_t *capsule_shape = p_CreateCapsuleCollisionShape(0.2, 1.0);
+    p_CreateCollider(P_COLLIDER_TYPE_MOVABLE, &vec3_t_c(0.0, 0.0, 0.0), NULL, capsule_shape);
 }
 
 void ed_w_Shutdown()

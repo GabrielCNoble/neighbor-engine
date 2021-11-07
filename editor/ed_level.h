@@ -93,13 +93,17 @@ void ed_w_PlaceLightAtCursor(struct ed_context_t *context, uint32_t just_changed
 
 void ed_w_TransformSelections(struct ed_context_t *context, uint32_t just_changed);
 
-void ed_SerializeLevel(void **level_buffer, size_t *buffer_size);
+void ed_SerializeLevel(void **level_buffer, size_t *buffer_size, uint32_t serialize_brushes);
 
 void ed_DeserializeLevel(void *level_buffer, size_t buffer_size);
 
 void ed_SaveLevel(char *path, char *file);
 
 void ed_LoadLevel(char *path, char *file);
+
+void ed_SaveGameLevelSnapshot();
+
+void ed_LoadGameLevelSnapshot();
 
 void ed_ResetLevelEditor();
 

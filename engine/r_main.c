@@ -1187,6 +1187,19 @@ void r_DestroyLight(struct r_light_t *light)
     }
 }
 
+void r_DestroyAllLighs()
+{
+    for(uint32_t light_index = 0; light_index < r_lights.cursor; light_index++)
+    {
+        struct r_light_t *light = r_GetLight(light_index);
+
+        if(light)
+        {
+            r_DestroyLight(light);
+        }
+    }
+}
+
 /*
 ============================================================================
 ============================================================================

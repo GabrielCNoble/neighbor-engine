@@ -50,8 +50,10 @@ struct ed_level_state_t
 
         uint32_t brush_vert_count;
 
-//        uint32_t brush_vert_count;
+        uint32_t brush_model_vert_count;
+        uint32_t brush_model_index_count;
 //        uint32_t brush_index_count;
+
         struct ds_list_t brush_batches;
     } brush;
 
@@ -95,6 +97,9 @@ struct ed_level_state_t
     float camera_pitch;
     float camera_yaw;
     vec3_t camera_pos;
+
+    void *game_level_buffer;
+    size_t game_level_buffer_size;
 };
 
 //static char ed_level_section_start_label[] = "[LEVEL SECTION START]";

@@ -41,21 +41,21 @@ int main(int argc, char *argv[])
 
         in_Input(delta_time);
         gui_BeginFrame(delta_time);
-        g_GameMain(delta_time);
 
         switch(g_game_state)
         {
             case G_GAME_STATE_PLAYING:
+                g_GameMain(delta_time);
                 p_UpdateColliders(delta_time);
                 a_UpdateAnimations(delta_time);
             break;
 
-            case G_GAME_STATE_MAIN_MENU:
-
+            case G_GAME_STATE_PAUSED:
+                g_GamePaused();
             break;
 
-            case G_GAME_STATE_PAUSED:
-
+            case G_GAME_STATE_MAIN_MENU:
+                g_MainMenu();
             break;
         }
 

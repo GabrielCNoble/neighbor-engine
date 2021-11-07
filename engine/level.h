@@ -25,6 +25,8 @@ void l_InitGeometry(struct r_model_geometry_t *geometry);
 
 void l_ClearGeometry();
 
+void l_ClearLevel();
+
 void l_DeserializeLevel(void *level_buffer, size_t buffer_size);
 
 #endif

@@ -621,155 +621,73 @@ void g_SetGameState(uint32_t game_state)
     g_game_state = game_state;
 }
 
+void g_BeginGame()
+{
+    g_SetGameState(G_GAME_STATE_PLAYING);
+}
+
+void g_ResumeGame()
+{
+    g_SetGameState(G_GAME_STATE_PLAYING);
+}
+
+void g_PauseGame()
+{
+    if(g_editor)
+    {
+        g_StopGame();
+    }
+    else
+    {
+        g_SetGameState(G_GAME_STATE_PAUSED);
+    }
+}
+
+void g_StopGame()
+{
+    g_SetGameState(G_GAME_STATE_MAIN_MENU);
+
+    l_ClearLevel();
+
+    if(g_editor)
+    {
+        ed_LoadGameLevelSnapshot();
+    }
+    else
+    {
+
+    }
+}
+
 void g_GameMain(float delta_time)
 {
-//    if(g_editor)
-//    {
-//        ed_UpdateEditor();
-//    }
-}
-
-void g_MainLoop(uint32_t editor_active)
-{
-//    while(1)
-//    {
-//        in_Input(0.016);
-//        gui_BeginFrame();
-//
-//        switch(g_game_state)
-//        {
-//            case G_GAME_STATE_PLAYING:
-//                if(in_GetKeyState(SDL_SCANCODE_ESCAPE) & IN_KEY_STATE_PRESSED)
-//                {
-//                    if(g_editor)
-//                    {
-//                        g_SetGameState(G_GAME_STATE_EDITING);
-//                        break;
-//                    }
-//                    else
-//                    {
-//                        g_SetGameState(G_GAME_STATE_PAUSED);
-//                    }
-//                }
-//                p_UpdateColliders();
-//                a_UpdateAnimations(0.01666);
-//            break;
-//
-//            case G_GAME_STATE_PAUSED:
-//
-//            break;
-//
-//            case G_GAME_STATE_EDITING:
-//                ed_UpdateEditor();
-//            break;
-//
-//            case G_GAME_STATE_QUIT:
-//                return;
-//            break;
-//        }
-//
-//        g_UpdateEntities();
-//        r_VisibleLights();
-//        r_VisibleEntitiesOnLights();
-//        r_VisibleEntities();
-//        r_BeginFrame();
-//        gui_EndFrame();
-//        r_DrawCmds();
-//        r_EndFrame();
-//    }
-}
-
-void g_LoadMap(char *file_name)
-{
-    FILE *file;
-
-    if(file_exists(file_name))
+    if(in_GetKeyState(SDL_SCANCODE_ESCAPE) & IN_KEY_STATE_PRESSED)
     {
-        int32_t width;
-        int32_t height;
-        int32_t components;
-        mat4_t transform;
+        g_PauseGame();
+    }
+    else
+    {
 
-        mat4_t_identity(&transform);
+    }
+}
 
-        uint32_t *pixels = (uint32_t *)stbi_load(file_name, &width, &height, &components, STBI_rgb_alpha);
+void g_GamePaused()
+{
+    if(in_GetKeyState(SDL_SCANCODE_ESCAPE) & IN_KEY_STATE_PRESSED)
+    {
+        g_ResumeGame();
+    }
+}
 
-        transform.rows[3].x = (float)width / 2;
-        transform.rows[3].y = -(float)height / 2;
-        transform.rows[3].z = -4.0;
-        transform.rows[0].x = (float)width;
-        transform.rows[1].y = (float)width;
-//        g_CreateEntity(&transform, NULL, g_cube_model);
+void g_MainMenu()
+{
+    if(g_editor)
+    {
+        ed_UpdateEditor();
+    }
+    else
+    {
 
-
-        transform.rows[0].x = 0.5;
-        transform.rows[1].y = 0.5;
-        transform.rows[2].z = 5.5;
-        transform.rows[3].z = 0.0;
-
-        for(int32_t y = 0; y < height; y++)
-        {
-            for(int32_t x = 0; x < width; x++)
-            {
-                if(pixels[x + y * width] != 0xffffffff)
-                {
-                    transform.rows[3].x = x;
-                    transform.rows[3].y = -y;
-                    struct g_entity_t *cube = g_CreateEntity(&transform, NULL, g_cube_model);
-//                    g_SetEntityCollider(cube, P_COLLIDER_TYPE_STATIC, &vec3_t_c(1.0, 1.0, 1.0));
-                }
-            }
-        }
-
-        free(pixels);
-//        file = fopen(file_name, "r");
-//        char *contents;
-//        uint32_t length;
-//        read_file(file, (void **)&contents, &length);
-//        fclose(file);
-//
-//        mat4_t cur_transform;
-//        mat4_t_identity(&cur_transform);
-//        cur_transform.rows[2].z = 16.0;
-//
-//        for(uint32_t index = 0; index < length; index++)
-//        {
-//            struct r_model_t *model = NULL;
-//            mat4_t transform = cur_transform;
-//            vec3_t size;
-//            switch(contents[index])
-//            {
-//                case '|':
-//                    transform.rows[3].y += 2.0;
-//                    model = g_wall_tile_model;
-//                    cur_transform.rows[3].x += 1.0;
-//                    size = vec3_t_c(1.0, 2.0, 2.0);
-//                break;
-//
-//                case ' ':
-//                    cur_transform.rows[3].x += 1.0;
-//                break;
-//
-//                case '_':
-//                    model = g_floor_tile_model;
-//                    cur_transform.rows[3].x += 2.0;
-//                    size = vec3_t_c(2.0, 1.0, 2.0);
-//                break;
-//
-//                case '\n':
-//                    cur_transform.rows[3].y -= 2.0;
-//                    cur_transform.rows[3].x = 0.0;
-//                break;
-//            }
-//
-//            if(model)
-//            {
-//                struct g_entity_t *entity = g_CreateEntity(&transform, NULL, model);
-//                g_SetEntityCollider(entity, P_COLLIDER_TYPE_STATIC, &size);
-//            }
-//        }
-
-//        mem_Free(contents);
     }
 }
 
@@ -1026,8 +944,8 @@ void g_ParentEntity(struct g_entity_t *parent, struct g_entity_t *entity)
 void g_SetEntityCollider(struct g_entity_t *entity, uint32_t type, vec3_t *size)
 {
     vec3_t position = vec3_t_c_vec4_t(&entity->transform.rows[3]);
-    entity->collider = p_CreateCollider(type, &position, NULL, size);
-    entity->collider->user_data = entity;
+//    entity->collider = p_CreateCollider(type, &position, NULL, size);
+//    entity->collider->user_data = entity;
 }
 
 struct g_projectile_t *g_SpawnProjectile(vec3_t *position, vec3_t *velocity, vec3_t *color, float radius, uint32_t life)
@@ -1165,10 +1083,10 @@ void g_PlayerThinker(struct g_entity_t *entity)
 //    struct a_player_t *fall_player = a_GetMixerPlayer(entity->mixer, "fall_player");
 //    struct a_player_t *shoot_player = a_GetMixerPlayer(entity->mixer, "shoot_player");
 //
-    if(in_GetKeyState(SDL_SCANCODE_ESCAPE) & IN_KEY_STATE_PRESSED)
-    {
-        g_SetGameState(G_GAME_STATE_EDITING);
-    }
+//    if(in_GetKeyState(SDL_SCANCODE_ESCAPE) & IN_KEY_STATE_PRESSED)
+//    {
+//        g_SetGameState(G_GAME_STATE_EDITING);
+//    }
 //
     player_state = g_GetProp(entity, "player_state");
     if(!player_state)

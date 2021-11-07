@@ -94,6 +94,8 @@ void r_AllocShadowMaps(struct r_light_t *light, uint32_t resolution);
 
 void r_DestroyLight(struct r_light_t *light);
 
+void r_DestroyAllLighs();
+
 /*
 ============================================================================
 ============================================================================

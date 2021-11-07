@@ -7,8 +7,8 @@
 
 struct l_light_section_t
 {
-    size_t light_record_start;
-    size_t light_record_count;
+    size_t record_start;
+    size_t record_count;
     size_t reserved[32];
 };
 
@@ -28,8 +28,8 @@ struct l_light_record_t
 
 struct l_material_section_t
 {
-    size_t material_record_start;
-    size_t material_record_count;
+    size_t record_start;
+    size_t record_count;
     size_t reserved[32];
 };
 
@@ -54,4 +54,23 @@ struct l_entity_record_t
 
 };
 
+struct l_player_section_t
+{
+//    size_t record_
+};
+
+struct l_player_record_t
+{
+    vec3_t position;
+    float pitch;
+    float yaw;
+};
+
 #endif
+
+
+
+
+
+
+

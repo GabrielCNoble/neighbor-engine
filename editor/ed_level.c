@@ -1053,6 +1053,12 @@ void ed_w_Update()
     ed_w_DrawBrushes();
     ed_w_DrawLights();
     ed_w_DrawWidgets();
+
+    if(in_GetKeyState(SDL_SCANCODE_P) & IN_KEY_STATE_JUST_PRESSED)
+    {
+        ed_SaveGameLevelSnapshot();
+        g_BeginGame();
+    }
 }
 
 /*
@@ -2059,19 +2065,22 @@ void ed_w_TransformSelections(struct ed_context_t *context, uint32_t just_change
     }
 }
 
-void ed_SerializeLevel(void **level_buffer, size_t *buffer_size)
+void ed_SerializeLevel(void **level_buffer, size_t *buffer_size, uint32_t serialize_brushes)
 {
     size_t out_buffer_size = sizeof(struct ed_level_section_t);
+    size_t brush_section_size = 0;
 
-    size_t brush_section_size = sizeof(struct ed_brush_section_t);
-    brush_section_size += sizeof(struct ed_brush_record_t) * ed_level_state.brush.brushes.used;
-    brush_section_size += sizeof(struct ed_vert_record_t) * ed_level_state.brush.brush_vert_count;
-    brush_section_size += sizeof(struct ed_edge_record_t) * ed_level_state.brush.brush_edges.used;
-    brush_section_size += sizeof(struct ed_polygon_record_t) * ed_level_state.brush.brush_face_polygons.used;
-    /* each edge is referenced by two polygons, so its index will be serialized twice */
-    brush_section_size += sizeof(size_t) * ed_level_state.brush.brush_edges.used * 2;
-    brush_section_size += sizeof(struct ed_face_t) * ed_level_state.brush.brush_faces.used;
-
+    if(serialize_brushes)
+    {
+        brush_section_size = sizeof(struct ed_brush_section_t);
+        brush_section_size += sizeof(struct ed_brush_record_t) * ed_level_state.brush.brushes.used;
+        brush_section_size += sizeof(struct ed_vert_record_t) * ed_level_state.brush.brush_vert_count;
+        brush_section_size += sizeof(struct ed_edge_record_t) * ed_level_state.brush.brush_edges.used;
+        brush_section_size += sizeof(struct ed_polygon_record_t) * ed_level_state.brush.brush_face_polygons.used;
+        /* each edge is referenced by two polygons, so its index will be serialized twice */
+        brush_section_size += sizeof(size_t) * ed_level_state.brush.brush_edges.used * 2;
+        brush_section_size += sizeof(struct ed_face_t) * ed_level_state.brush.brush_faces.used;
+    }
 
     size_t light_section_size = sizeof(struct l_light_section_t);
     light_section_size += sizeof(struct l_light_record_t) * r_lights.used;
@@ -2093,148 +2102,150 @@ void ed_SerializeLevel(void **level_buffer, size_t *buffer_size)
     level_section->magic0 = ED_LEVEL_SECTION_MAGIC0;
     level_section->magic1 = ED_LEVEL_SECTION_MAGIC1;
 
-    /* brush stuff */
-    level_section->brush_section_start = cur_out_buffer - start_out_buffer;
-    level_section->brush_section_size = brush_section_size;
-
-    struct ed_brush_section_t *brush_section = (struct ed_brush_section_t *)cur_out_buffer;
-    cur_out_buffer += sizeof(struct ed_brush_section_t);
-    brush_section->brush_record_start = cur_out_buffer - start_out_buffer;
-    brush_section->brush_record_count = ed_level_state.brush.brushes.used;
-
-    for(uint32_t brush_index = 0; brush_index < ed_level_state.brush.brushes.cursor; brush_index++)
+    if(serialize_brushes)
     {
-        struct ed_brush_t *brush = ed_GetBrush(brush_index);
+        /* brush stuff */
+        level_section->brush_section_start = cur_out_buffer - start_out_buffer;
+        level_section->brush_section_size = brush_section_size;
 
-        if(brush)
+        struct ed_brush_section_t *brush_section = (struct ed_brush_section_t *)cur_out_buffer;
+        cur_out_buffer += sizeof(struct ed_brush_section_t);
+        brush_section->brush_record_start = cur_out_buffer - start_out_buffer;
+        brush_section->brush_record_count = ed_level_state.brush.brushes.used;
+
+        for(uint32_t brush_index = 0; brush_index < ed_level_state.brush.brushes.cursor; brush_index++)
         {
-            struct ed_brush_record_t *brush_record = (struct ed_brush_record_t *)cur_out_buffer;
-            brush_record->record_size = cur_out_buffer;
-            brush_record->position = brush->position;
-            brush_record->orientation = brush->orientation;
-            brush_record->uuid = brush->index;
-            cur_out_buffer += sizeof(struct ed_brush_record_t);
+            struct ed_brush_t *brush = ed_GetBrush(brush_index);
 
-            brush_record->vert_start = cur_out_buffer - start_out_buffer;
-            cur_out_buffer += sizeof(struct ed_vert_record_t) * brush->vertices.used;
-            brush_record->edge_start = cur_out_buffer - start_out_buffer;
-            cur_out_buffer += sizeof(struct ed_edge_record_t) * brush->edge_count;
-            brush_record->face_start = cur_out_buffer - start_out_buffer;
-            cur_out_buffer += sizeof(struct ed_face_record_t) * brush->face_count;
-
-            struct ed_vert_record_t *vert_records = (struct ed_vert_record_t *)(start_out_buffer + brush_record->vert_start);
-            struct ed_edge_record_t *edge_records = (struct ed_edge_record_t *)(start_out_buffer + brush_record->edge_start);
-            struct ed_face_record_t *face_records = (struct ed_face_record_t *)(start_out_buffer + brush_record->face_start);
-
-            /* serialize vertices and edges */
-            for(uint32_t vert_index = 0; vert_index < brush->vertices.cursor; vert_index++)
+            if(brush)
             {
-                struct ed_vert_t *vert = ed_GetVert(brush, vert_index);
+                struct ed_brush_record_t *brush_record = (struct ed_brush_record_t *)cur_out_buffer;
+                brush_record->record_size = cur_out_buffer;
+                brush_record->position = brush->position;
+                brush_record->orientation = brush->orientation;
+                brush_record->uuid = brush->index;
+                cur_out_buffer += sizeof(struct ed_brush_record_t);
 
-                if(vert)
+                brush_record->vert_start = cur_out_buffer - start_out_buffer;
+                cur_out_buffer += sizeof(struct ed_vert_record_t) * brush->vertices.used;
+                brush_record->edge_start = cur_out_buffer - start_out_buffer;
+                cur_out_buffer += sizeof(struct ed_edge_record_t) * brush->edge_count;
+                brush_record->face_start = cur_out_buffer - start_out_buffer;
+                cur_out_buffer += sizeof(struct ed_face_record_t) * brush->face_count;
+
+                struct ed_vert_record_t *vert_records = (struct ed_vert_record_t *)(start_out_buffer + brush_record->vert_start);
+                struct ed_edge_record_t *edge_records = (struct ed_edge_record_t *)(start_out_buffer + brush_record->edge_start);
+                struct ed_face_record_t *face_records = (struct ed_face_record_t *)(start_out_buffer + brush_record->face_start);
+
+                /* serialize vertices and edges */
+                for(uint32_t vert_index = 0; vert_index < brush->vertices.cursor; vert_index++)
                 {
-                    struct ed_vert_record_t *vert_record = vert_records + brush_record->vert_count;
-                    vert->s_index = brush_record->vert_count;
-                    brush_record->vert_count++;
-                    vert_record->vert = vert->vert;
+                    struct ed_vert_t *vert = ed_GetVert(brush, vert_index);
 
-                    /* go over the edges of this vertex, and serialize them if they haven't been already */
-                    struct ed_vert_edge_t *vert_edge = vert->edges;
-
-                    while(vert_edge)
+                    if(vert)
                     {
-                        struct ed_edge_t *edge = vert_edge->edge;
-                        struct ed_edge_record_t *edge_record;
+                        struct ed_vert_record_t *vert_record = vert_records + brush_record->vert_count;
+                        vert->s_index = brush_record->vert_count;
+                        brush_record->vert_count++;
+                        vert_record->vert = vert->vert;
 
-                        if(edge->s_index == 0xffffffff)
+                        /* go over the edges of this vertex, and serialize them if they haven't been already */
+                        struct ed_vert_edge_t *vert_edge = vert->edges;
+
+                        while(vert_edge)
                         {
-                            /* this edge hasn't been serialized yet, so create a record */
-                            edge_record = edge_records + brush_record->edge_count;
-                            /* store the serialization index, so the record for this edge can
-                            be quickly found later */
-                            edge->s_index = brush_record->edge_count;
-                            brush_record->edge_count++;
+                            struct ed_edge_t *edge = vert_edge->edge;
+                            struct ed_edge_record_t *edge_record;
 
-                            edge_record->polygons[0] = 0xffffffff;
-                            edge_record->polygons[1] = 0xffffffff;
-                            /* This constant value is used by the deserializer to know whether an edge hasn't been
-                            "seen" already. Could be done in the deserializer before processing polygons, but we're
-                            already touching the record here, might as well fill this now. */
-                            edge_record->d_index = 0xffffffff;
-                        }
-                        else
-                        {
-                            edge_record = edge_records + edge->s_index;
-                        }
+                            if(edge->s_index == 0xffffffff)
+                            {
+                                /* this edge hasn't been serialized yet, so create a record */
+                                edge_record = edge_records + brush_record->edge_count;
+                                /* store the serialization index, so the record for this edge can
+                                be quickly found later */
+                                edge->s_index = brush_record->edge_count;
+                                brush_record->edge_count++;
 
-                        uint32_t vert_index = edge->verts[1].vert == vert;
-                        edge_record->vertices[vert_index] = vert->s_index;
-                        vert_edge = vert_edge->next;
+                                edge_record->polygons[0] = 0xffffffff;
+                                edge_record->polygons[1] = 0xffffffff;
+                                /* This constant value is used by the deserializer to know whether an edge hasn't been
+                                "seen" already. Could be done in the deserializer before processing polygons, but we're
+                                already touching the record here, might as well fill this now. */
+                                edge_record->d_index = 0xffffffff;
+                            }
+                            else
+                            {
+                                edge_record = edge_records + edge->s_index;
+                            }
+
+                            uint32_t vert_index = edge->verts[1].vert == vert;
+                            edge_record->vertices[vert_index] = vert->s_index;
+                            vert_edge = vert_edge->next;
+                        }
                     }
                 }
-            }
 
-            /* for serialization purposes we generate sequential polygon ids here. Those ids are generated the same
-            during deserialization, so everything is fine. Edges reference those sequential ids */
-            uint32_t polygon_id = 0;
-            struct ed_face_t *face = brush->faces;
-            /* serialize faces and polygons */
-            while(face)
-            {
-                struct ed_face_record_t *face_record = face_records + brush_record->face_count;
-                brush_record->face_count++;
-
-                strcpy(face_record->material, face->material->name);
-                face_record->uv_rot = face->tex_coords_rot;
-                face_record->uv_scale = face->tex_coords_scale;
-                face_record->polygon_start = cur_out_buffer - start_out_buffer;
-
-                struct ed_face_polygon_t *polygon = face->polygons;
-
-                while(polygon)
+                /* for serialization purposes we generate sequential polygon ids here. Those ids are generated the same
+                during deserialization, so everything is fine. Edges reference those sequential ids */
+                uint32_t polygon_id = 0;
+                struct ed_face_t *face = brush->faces;
+                /* serialize faces and polygons */
+                while(face)
                 {
-                    struct ed_polygon_record_t *polygon_record = (struct ed_polygon_record_t *)cur_out_buffer;
-                    cur_out_buffer += sizeof(struct ed_polygon_record_t);
-                    cur_out_buffer += sizeof(size_t) * polygon->edge_count;
+                    struct ed_face_record_t *face_record = face_records + brush_record->face_count;
+                    brush_record->face_count++;
 
-                    /* go over all the edges of this polygon and store connectivity data. The indices
-                    stored are for the serialized records */
-                    struct ed_edge_t *edge = polygon->edges;
+                    strcpy(face_record->material, face->material->name);
+                    face_record->uv_rot = face->tex_coords_rot;
+                    face_record->uv_scale = face->tex_coords_scale;
+                    face_record->polygon_start = cur_out_buffer - start_out_buffer;
 
-                    while(edge)
+                    struct ed_face_polygon_t *polygon = face->polygons;
+
+                    while(polygon)
                     {
-                        uint32_t polygon_side = edge->polygons[1].polygon == polygon;
-                        struct ed_edge_record_t *edge_record = edge_records + edge->s_index;
+                        struct ed_polygon_record_t *polygon_record = (struct ed_polygon_record_t *)cur_out_buffer;
+                        cur_out_buffer += sizeof(struct ed_polygon_record_t);
+                        cur_out_buffer += sizeof(size_t) * polygon->edge_count;
 
-                        /* store the serialization index of this edge in the edge list of this polygon
-                        record */
-                        polygon_record->edges[polygon_record->edge_count] = edge->s_index;
-                        /* store on which side of this edge the polygon is */
-                        edge_record->polygons[polygon_side] = polygon_id;
-                        polygon_record->edge_count++;
+                        /* go over all the edges of this polygon and store connectivity data. The indices
+                        stored are for the serialized records */
+                        struct ed_edge_t *edge = polygon->edges;
 
-                        if(edge_record->polygons[0] != 0xffffffff && edge_record->polygons[1] != 0xffffffff)
+                        while(edge)
                         {
-                            /* this edge has been referenced twice, so we can clear its serialization index. This
-                            is necessary for other serializations to properly happen in the future. */
-                            edge->s_index = 0xffffffff;
+                            uint32_t polygon_side = edge->polygons[1].polygon == polygon;
+                            struct ed_edge_record_t *edge_record = edge_records + edge->s_index;
+
+                            /* store the serialization index of this edge in the edge list of this polygon
+                            record */
+                            polygon_record->edges[polygon_record->edge_count] = edge->s_index;
+                            /* store on which side of this edge the polygon is */
+                            edge_record->polygons[polygon_side] = polygon_id;
+                            polygon_record->edge_count++;
+
+                            if(edge_record->polygons[0] != 0xffffffff && edge_record->polygons[1] != 0xffffffff)
+                            {
+                                /* this edge has been referenced twice, so we can clear its serialization index. This
+                                is necessary for other serializations to properly happen in the future. */
+                                edge->s_index = 0xffffffff;
+                            }
+
+                            edge = edge->polygons[polygon_side].next;
                         }
 
-                        edge = edge->polygons[polygon_side].next;
+                        face_record->polygon_count++;
+                        polygon = polygon->next;
+                        polygon_id++;
                     }
 
-                    face_record->polygon_count++;
-                    polygon = polygon->next;
-                    polygon_id++;
+                    face = face->next;
                 }
 
-                face = face->next;
+                brush_record->record_size = cur_out_buffer - (char *)brush_record->record_size;
             }
-
-            brush_record->record_size = cur_out_buffer - (char *)brush_record->record_size;
         }
     }
-
 
     /* light stuff */
     level_section->light_section_size = light_section_size;
@@ -2242,7 +2253,7 @@ void ed_SerializeLevel(void **level_buffer, size_t *buffer_size)
 
     struct l_light_section_t *light_section = (struct l_light_section_t *)cur_out_buffer;
     cur_out_buffer += sizeof(struct l_light_section_t);
-    light_section->light_record_start = cur_out_buffer - start_out_buffer;
+    light_section->record_start = cur_out_buffer - start_out_buffer;
     struct l_light_record_t *light_records = (struct l_light_record_t *)cur_out_buffer;
     cur_out_buffer += sizeof(struct l_light_record_t) * r_lights.used;
 
@@ -2252,8 +2263,8 @@ void ed_SerializeLevel(void **level_buffer, size_t *buffer_size)
 
         if(light)
         {
-            struct l_light_record_t *light_record = light_records + light_section->light_record_count;
-            light_section->light_record_count++;
+            struct l_light_record_t *light_record = light_records + light_section->record_count;
+            light_section->record_count++;
             mat3_t_identity(&light_record->orientation);
             light_record->position = light->data.pos_rad.xyz;
             light_record->color = light->data.color_res.xyz;
@@ -2396,7 +2407,7 @@ void ed_SaveLevel(char *path, char *file)
     size_t buffer_size;
     char file_name[PATH_MAX];
 
-    ed_SerializeLevel(&buffer, &buffer_size);
+    ed_SerializeLevel(&buffer, &buffer_size, 1);
     ds_path_append_end(path, file, file_name, PATH_MAX);
     ds_path_set_ext(file_name, "nlv", file_name, PATH_MAX);
 
@@ -2425,6 +2436,32 @@ void ed_LoadLevel(char *path, char *file)
     read_file(fp, &buffer, &buffer_size);
     ed_DeserializeLevel(buffer, buffer_size);
     mem_Free(buffer);
+}
+
+void ed_SaveGameLevelSnapshot()
+{
+    for(uint32_t brush_index = 0; brush_index < ed_level_state.brush.brushes.cursor; brush_index++)
+    {
+        struct ed_brush_t *brush = ed_GetBrush(brush_index);
+        /* this will essentially make this entity invisible to the serialization code up ahead and
+        to the game, and will make things faster when we reload the game level snapshot */
+        brush->entity_index = brush->entity->index;
+        brush->entity->index = 0xffffffff;
+    }
+    ed_SerializeLevel(&ed_level_state.game_level_buffer, &ed_level_state.game_level_buffer_size, 0);
+}
+
+void ed_LoadGameLevelSnapshot()
+{
+    l_DeserializeLevel(ed_level_state.game_level_buffer, ed_level_state.game_level_buffer_size);
+    mem_Free(ed_level_state.game_level_buffer);
+
+    for(uint32_t brush_index = 0; brush_index < ed_level_state.brush.brushes.cursor; brush_index++)
+    {
+        struct ed_brush_t *brush = ed_GetBrush(brush_index);
+        /* brushes are now visible again */
+        brush->entity->index = brush->entity_index;
+    }
 }
 
 void ed_ResetLevelEditor()

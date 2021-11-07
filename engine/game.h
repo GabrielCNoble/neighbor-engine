@@ -61,10 +61,9 @@ enum G_GAME_STATE
 {
     G_GAME_STATE_PLAYING = 0,
     G_GAME_STATE_PAUSED,
-    G_GAME_STATE_EDITING,
     G_GAME_STATE_LOADING,
+    G_GAME_STATE_MAIN_MENU,
     G_GAME_STATE_QUIT,
-    G_GAME_STATE_MAIN_MENU
 };
 
 struct g_projectile_t
@@ -83,11 +82,19 @@ void g_Shutdown();
 
 void g_SetGameState(uint32_t game_state);
 
+void g_BeginGame();
+
+void g_ResumeGame();
+
+void g_PauseGame();
+
+void g_StopGame();
+
 void g_GameMain(float delta_time);
 
-void g_MainLoop();
+void g_GamePaused();
 
-void g_LoadMap(char *file_name);
+void g_MainMenu();
 
 void g_UpdateEntities();
 

@@ -191,7 +191,7 @@ void ed_Init()
 
     in_SetMouseRelative(1);
 
-    g_SetGameState(G_GAME_STATE_EDITING);
+//    g_SetGameState(G_GAME_STATE_EDITING);
 }
 
 void ed_Shutdown()
@@ -201,25 +201,18 @@ void ed_Shutdown()
 
 void ed_UpdateEditor()
 {
-    if(in_GetKeyState(SDL_SCANCODE_P) & IN_KEY_STATE_JUST_PRESSED)
+    for(uint32_t context_index = 0; context_index < ED_CONTEXT_LAST; context_index++)
     {
-        g_SetGameState(G_GAME_STATE_PLAYING);
-    }
-    else
-    {
-        for(uint32_t context_index = 0; context_index < ED_CONTEXT_LAST; context_index++)
+        struct ed_context_t *context = ed_contexts + context_index;
+
+        if(context == ed_active_context)
         {
-            struct ed_context_t *context = ed_contexts + context_index;
-
-            if(context == ed_active_context)
-            {
-                uint32_t just_changed = context->current_state != context->next_state;
-                context->current_state = context->next_state;
-                context->current_state(context, just_changed);
-            }
-
-            context->update();
+            uint32_t just_changed = context->current_state != context->next_state;
+            context->current_state = context->next_state;
+            context->current_state(context, just_changed);
         }
+
+        context->update();
     }
 
     if(igBeginMainMenuBar())

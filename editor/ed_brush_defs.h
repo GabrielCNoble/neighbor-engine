@@ -167,6 +167,7 @@ struct ed_brush_t
     struct ds_list_t vert_transforms;
     struct r_model_t *model;
     struct g_entity_t *entity;
+    uint32_t entity_index;
 
     uint32_t face_count;
     uint32_t polygon_count;

@@ -42,18 +42,6 @@ int main(int argc, char *argv[])
         in_Input(delta_time);
         gui_BeginFrame(delta_time);
 
-        if(in_GetKeyState(SDL_SCANCODE_ESCAPE) & IN_KEY_STATE_PRESSED)
-        {
-            if(g_editor)
-            {
-                g_SetGameState(G_GAME_STATE_EDITING);
-            }
-            else
-            {
-                g_SetGameState(G_GAME_STATE_PAUSED);
-            }
-        }
-
         switch(g_game_state)
         {
             case G_GAME_STATE_PLAYING:
@@ -62,16 +50,12 @@ int main(int argc, char *argv[])
                 a_UpdateAnimations(delta_time);
             break;
 
-            case G_GAME_STATE_EDITING:
-                ed_UpdateEditor();
+            case G_GAME_STATE_PAUSED:
+                g_GamePaused();
             break;
 
             case G_GAME_STATE_MAIN_MENU:
-
-            break;
-
-            case G_GAME_STATE_PAUSED:
-
+                g_MainMenu();
             break;
         }
 

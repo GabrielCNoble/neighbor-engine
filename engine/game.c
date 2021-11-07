@@ -1422,10 +1422,10 @@ void g_PlayerThinker(struct g_entity_t *entity)
         collider->disp.z = -0.03;
     }
 
-    vec4_t light_pos = entity->local_transform.rows[3];
-    g_player_light->data.pos_rad.x = light_pos.x;
-    g_player_light->data.pos_rad.y = light_pos.y;
-    g_player_light->data.pos_rad.z = light_pos.z + 1.5;
+//    vec4_t light_pos = entity->local_transform.rows[3];
+//    g_player_light->data.pos_rad.x = light_pos.x;
+//    g_player_light->data.pos_rad.y = light_pos.y;
+//    g_player_light->data.pos_rad.z = light_pos.z + 1.5;
 
 //    mat4_t_vec4_t_mul_fast(&player_pos, &r_inv_view_matrix, &player_pos);
 //    player_pos.w = 0.0;

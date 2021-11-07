@@ -304,8 +304,13 @@ void ed_w_Init()
 //    normal = r_LoadTexture("textures/sci-fi-panel1-normal-ogl.png", "scifi_normal");
 //    r_CreateMaterial("scifi", diffuse, normal, NULL);
 
-    struct p_capsule_shape_t *capsule_shape = p_CreateCapsuleCollisionShape(0.2, 1.0);
-    p_CreateCollider(P_COLLIDER_TYPE_MOVABLE, &vec3_t_c(0.0, 0.0, 0.0), NULL, capsule_shape);
+//    struct p_capsule_shape_t *capsule_shape = p_CreateCapsuleCollisionShape(0.2, 1.0);
+//    p_CreateCollider(P_COLLIDER_TYPE_MOVABLE, &vec3_t_c(0.0, 0.0, 0.0), NULL, capsule_shape);
+
+    mat3_t orientation;
+    mat3_t_identity(&orientation);
+    mat3_t_rotate_x(&orientation, -0.35);
+    r_CreateSpotLight(&vec3_t_c(0.0, 2.2, 0.0), &vec3_t_c(1.0, 1.0, 1.0), &orientation, 30.0, 5.0);
 }
 
 void ed_w_Shutdown()
@@ -569,8 +574,8 @@ void ed_w_UpdateUI()
                         case ED_PICKABLE_TYPE_LIGHT:
                         {
                             struct r_light_t *light = r_GetLight(pickable->primary_index);
-                            igSliderFloat3("Color", light->data.color_res.xyz.comps, 0.0, 1.0, "%0.2f", 0);
-                            igSliderFloat("Radius", &light->data.pos_rad.w, 0.0, 100.0, "%0.2f", 0);
+                            igSliderFloat3("Color", light->color.comps, 0.0, 1.0, "%0.2f", 0);
+                            igSliderFloat("Radius", &light->range, 0.0, 100.0, "%0.2f", 0);
                             igSliderFloat("Energy", &light->energy, 0.0, 100.0, "%0.2f", 0);
                         }
                         break;
@@ -1003,11 +1008,11 @@ void ed_w_UpdatePickableObjects()
                     mat3_t rot;
                     if(pickable->transform_flags & ED_PICKABLE_TRANSFORM_FLAG_TRANSLATION)
                     {
-                        vec3_t_add(&light->data.pos_rad.xyz, &light->data.pos_rad.xyz, &pickable->translation);
+                        vec3_t_add(&light->position, &light->position, &pickable->translation);
                     }
 
                     mat3_t_identity(&rot);
-                    mat4_t_comp(&pickable->transform, &rot, &light->data.pos_rad.xyz);
+                    mat4_t_comp(&pickable->transform, &rot, &light->position);
                     pickable->draw_transform = pickable->transform;
                 }
                 break;
@@ -1129,8 +1134,11 @@ void ed_w_DrawLights()
 
         if(light)
         {
-            vec3_t position = vec3_t_c(light->data.pos_rad.x, light->data.pos_rad.y, light->data.pos_rad.z);
-            vec4_t color = vec4_t_c(light->data.color_res.x, light->data.color_res.y, light->data.color_res.z, 1.0);
+//            vec3_t position = vec3_t_c(light->data.pos_rad.x, light->data.pos_rad.y, light->data.pos_rad.z);
+
+
+            vec3_t position = light->position;
+            vec4_t color = vec4_t_c(light->color.x, light->color.y, light->color.z, 1.0);
             r_i_DrawPoint(&position, &color, 8.0);
         }
     }
@@ -2266,14 +2274,14 @@ void ed_SerializeLevel(void **level_buffer, size_t *buffer_size, uint32_t serial
             struct l_light_record_t *light_record = light_records + light_section->record_count;
             light_section->record_count++;
             mat3_t_identity(&light_record->orientation);
-            light_record->position = light->data.pos_rad.xyz;
-            light_record->color = light->data.color_res.xyz;
+            light_record->position = light->position;
+            light_record->color = light->color;
             light_record->energy = light->energy;
-            light_record->radius = light->data.pos_rad.w;
+            light_record->radius = light->range;
             light_record->size = vec2_t_c(0.0, 0.0);
             light_record->vert_start = 0;
             light_record->vert_count = 0;
-            light_record->type = R_LIGHT_TYPE_POINT;
+            light_record->type = light->type;
             light_record->uuid = light->index;
         }
     }

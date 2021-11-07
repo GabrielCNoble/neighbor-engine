@@ -1,7 +1,7 @@
 #ifndef R_VIS_H
 #define R_VIS_H
 
-#include "r_com.h"
+#include "r_defs.h"
 #include "r_draw.h"
 
 void r_VisibleLights();

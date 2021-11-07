@@ -5,7 +5,7 @@
 #include "../lib/dstuff/ds_buffer.h"
 #include "../lib/dstuff/ds_vector.h"
 #include "../lib/dstuff/ds_matrix.h"
-#include "../engine/r_com.h"
+#include "../engine/r_defs.h"
 
 
 struct ed_context_t;

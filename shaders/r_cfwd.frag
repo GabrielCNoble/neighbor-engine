@@ -13,10 +13,17 @@ void main()
     vec3 view_vec = normalize(-r_var_position);
     albedo /= 3.14159265;
 
-    for(int light_index = 0; light_index < cluster.y; light_index++)
+
+    uint point_light_start = cluster.x;
+    uint point_light_count = cluster.z & 0xffff;
+
+    uint spot_light_start = cluster.y;
+    uint spot_light_count = (cluster.z >> 16) & 0xffff;
+
+    for(uint light_index = 0; light_index < point_light_count; light_index++)
     {
-        uint index = indices[cluster.x + light_index].index;
-        r_l_data_t light = lights[index];
+        uint index = indices[point_light_start + light_index].index;
+        r_point_data_t light = point_lights[index];
 
         vec4 light_color = vec4(light.col_res.rgb, 0.0);
         vec3 light_vec = light.pos_rad.xyz - r_var_position.xyz;
@@ -32,6 +39,27 @@ void main()
         float diff = (1.0 - spec);
         float c = clamp(dot(normal, light_vec), 0.0, 1.0) * limit;
         color += ((albedo * diff * light_color + light_color * spec) * c) * shadow;
+    }
+
+    for(uint light_index = 0; light_index < spot_light_count; light_index++)
+    {
+        uint index = indices[spot_light_start + light_index].index;
+        r_spot_data_t light = spot_lights[index];
+
+        vec4 light_color = vec4(light.rot0_r.w, light.rot1_g.w, light.rot2_b.w, 0.0);
+        vec3 light_vec = light.pos_rad.xyz - r_var_position.xyz;
+        float dist = length(light_vec);
+        float limit = light.pos_rad.w - dist;
+        limit = clamp(limit, 0.0, 1.0);
+        vec3 normalized_light_vec = light_vec / dist;
+        dist *= dist;
+
+        limit *= smoothstep(0.4, 0.5, dot(normalized_light_vec, light.rot2_b.xyz));
+
+        float spec = clamp(lighting(view_vec, normalized_light_vec, normal.xyz, roughness), 0.0, 1.0);
+        float diff = (1.0 - spec);
+        float c = clamp(dot(normal, normalized_light_vec), 0.0, 1.0) * limit;
+        color += ((albedo * diff * light_color + light_color * spec) * c);
     }
 
     color.rgb = tonemap(color.rgb * 2.0);

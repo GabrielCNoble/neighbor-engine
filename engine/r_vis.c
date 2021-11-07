@@ -6,20 +6,20 @@ extern mat4_t r_camera_matrix;
 extern mat4_t r_view_matrix;
 extern mat4_t r_view_projection_matrix;
 extern mat4_t r_projection_matrix;
-extern struct ds_slist_t r_lights;
+extern struct ds_slist_t r_lights[];
 extern struct ds_slist_t r_vis_items;
 extern struct r_cluster_t *r_clusters;
 
-extern struct r_l_data_t *r_light_buffer;
-extern uint32_t r_light_buffer_cursor;
+extern struct r_point_data_t *r_point_light_buffer;
+extern uint32_t r_point_light_buffer_cursor;
+extern struct r_spot_data_t *r_spot_light_buffer;
+extern uint32_t r_spot_light_buffer_cursor;
 
 extern uint32_t *r_light_index_buffer;
 extern uint32_t r_light_index_buffer_cursor;
 
 extern uint32_t *r_shadow_index_buffer;
 extern uint32_t  r_shadow_index_buffer_cursor;
-//extern mat4_t r_point_shadow_projection_matrices[6];
-//extern mat4_t r_point_shadow_view_matrices[6];
 extern mat4_t r_point_shadow_view_projection_matrices[6];
 extern vec3_t r_point_shadow_frustum_planes[6];
 extern uint16_t r_point_shadow_frustum_masks[6];
@@ -34,17 +34,18 @@ extern struct ds_slist_t g_entities;
 
 int32_t r_CompareVisibleLights(void *a, void *b)
 {
-    struct r_light_t *light_a = *(struct r_light_t **)a;
-    struct r_light_t *light_b = *(struct r_light_t **)b;
-
-    if(light_a->data.color_res.w > light_b->data.color_res.w) return 1;
-    if(light_a->data.color_res.w < light_b->data.color_res.w) return -1;
+//    struct r_light_t *light_a = *(struct r_light_t **)a;
+//    struct r_light_t *light_b = *(struct r_light_t **)b;
+//
+//    if(light_a->data.color_res.w > light_b->data.color_res.w) return 1;
+//    if(light_a->data.color_res.w < light_b->data.color_res.w) return -1;
     return 0;
 }
 
 void r_VisibleLights()
 {
-    r_light_buffer_cursor = 0;
+    r_point_light_buffer_cursor = 0;
+    r_spot_light_buffer_cursor = 0;
     r_light_index_buffer_cursor = 0;
     r_shadow_index_buffer_cursor = 0;
 
@@ -55,28 +56,28 @@ void r_VisibleLights()
     mat4_t transform;
     mat4_t_identity(&transform);
 
-    for(uint32_t light_index = 0; light_index < r_lights.cursor; light_index++)
+    for(uint32_t light_index = 0; light_index < r_lights[R_LIGHT_TYPE_POINT].cursor; light_index++)
     {
-        struct r_light_t *light = r_GetLight(light_index);
+        struct r_point_light_t *light = (struct r_point_light_t *)r_GetLight(R_LIGHT_INDEX(R_LIGHT_TYPE_POINT, light_index));
 
         if(light)
         {
-            struct r_l_data_t *data = r_light_buffer + r_light_buffer_cursor;
-            vec4_t pos_rad = vec4_t_c(light->data.pos_rad.x, light->data.pos_rad.y, light->data.pos_rad.z, 1.0);
+            struct r_point_data_t *data = r_point_light_buffer + r_point_light_buffer_cursor;
+            vec4_t pos_rad = vec4_t_c(light->position.x, light->position.y, light->position.z, 1.0);
             mat4_t_vec4_t_mul(&pos_rad, &r_view_matrix, &pos_rad);
 
-            vec3_t light_pos = vec3_t_c(pos_rad.x, pos_rad.y, pos_rad.z);
-            float sqrd_radius = light->data.pos_rad.w * light->data.pos_rad.w;
+            vec3_t light_pos = pos_rad.xyz;
+            float sqrd_radius = light->range * light->range;
             float sol = 0.0;
 
-            if(light_pos.z - light->data.pos_rad.w > -r_z_near)
+            if(light_pos.z - light->range > -r_z_near)
             {
                 /* light completely behind the near plane */
                 continue;
             }
             else
             {
-                if(light_pos.z + light->data.pos_rad.w >= -r_z_near)
+                if(light_pos.z + light->range >= -r_z_near)
                 {
                     /* light touches near plane, so compute the intersection with it */
                     sol = sqrt(fabs(sqrd_radius - (r_z_near - light_pos.z)));
@@ -109,7 +110,7 @@ void r_VisibleLights()
                     {
                         float tangent_dist = sqrt(fabs(center_dist * center_dist - sqrd_radius));
                         float cos_theta = tangent_dist / center_dist;
-                        float sin_theta = light->data.pos_rad.w / center_dist;
+                        float sin_theta = light->range / center_dist;
 
                         t.x = (cos_theta * light_vec.x - sin_theta * light_vec.y);
                         t.y = (sin_theta * light_vec.x + cos_theta * light_vec.y);
@@ -155,49 +156,83 @@ void r_VisibleLights()
                 continue;
             }
 
-            light->min_x = (uint32_t)(R_CLUSTER_ROW_WIDTH * (extents[0].x * 0.5 + 0.5));
-            light->max_x = (uint32_t)(R_CLUSTER_ROW_WIDTH * (extents[0].y * 0.5 + 0.5));
-            if(light->max_x > R_CLUSTER_MAX_X) light->max_x = R_CLUSTER_MAX_X;
+            light->min.x = (uint32_t)(R_CLUSTER_ROW_WIDTH * (extents[0].x * 0.5 + 0.5));
+            light->max.x = (uint32_t)(R_CLUSTER_ROW_WIDTH * (extents[0].y * 0.5 + 0.5));
+            if(light->max.x > R_CLUSTER_MAX_X) light->max.x = R_CLUSTER_MAX_X;
 
-            light->min_y = (uint32_t)(R_CLUSTER_ROWS * (extents[1].x * 0.5 + 0.5));
-            light->max_y = (uint32_t)(R_CLUSTER_ROWS * (extents[1].y * 0.5 + 0.5));
-            if(light->max_y > R_CLUSTER_MAX_Y) light->max_y = R_CLUSTER_MAX_Y;
+            light->min.y = (uint32_t)(R_CLUSTER_ROWS * (extents[1].x * 0.5 + 0.5));
+            light->max.y = (uint32_t)(R_CLUSTER_ROWS * (extents[1].y * 0.5 + 0.5));
+            if(light->max.y > R_CLUSTER_MAX_Y) light->max.y = R_CLUSTER_MAX_Y;
 
-            float num = log(fmax(-light_pos.z - light->data.pos_rad.w, r_z_near) / r_z_near);
-            light->min_z = (uint32_t)floorf(R_CLUSTER_SLICES * (num / r_denom));
-            num = log(fmax(-light_pos.z + light->data.pos_rad.w, 0) / r_z_near);
-            light->max_z = (uint32_t)floorf(R_CLUSTER_SLICES * (num / r_denom));
+            float num = log(fmax(-light_pos.z - light->range, r_z_near) / r_z_near);
+            light->min.z = (uint32_t)floorf(R_CLUSTER_SLICES * (num / r_denom));
+            num = log(fmax(-light_pos.z + light->range, 0) / r_z_near);
+            light->max.z = (uint32_t)floorf(R_CLUSTER_SLICES * (num / r_denom));
 
-            if(light->min_z > R_CLUSTER_MAX_Z)
+            if(light->min.z > R_CLUSTER_MAX_Z)
             {
-                light->min_z = R_CLUSTER_MAX_Z;
+                light->min.z = R_CLUSTER_MAX_Z;
             }
 
-            if(light->max_z > R_CLUSTER_MAX_Z)
+            if(light->max.z > R_CLUSTER_MAX_Z)
             {
-                light->max_z = R_CLUSTER_MAX_Z;
+                light->max.z = R_CLUSTER_MAX_Z;
             }
 
-            light->gpu_index = r_light_buffer_cursor;
+            light->light_buffer_index = r_point_light_buffer_cursor;
             ds_list_add_element(&r_visible_lights, &light);
-            r_light_buffer_cursor++;
-            light->data.color_res.w = r_renderer_state.max_shadow_res;
+            r_point_light_buffer_cursor++;
 
-            data->color_res.x = light->data.color_res.x * light->energy;
-            data->color_res.y = light->data.color_res.y * light->energy;
-            data->color_res.z = light->data.color_res.z * light->energy;
-            data->color_res.w = light->data.color_res.w;
+            data->color_res.x = light->color.x * light->energy;
+            data->color_res.y = light->color.y * light->energy;
+            data->color_res.z = light->color.z * light->energy;
+            data->color_res.w = r_renderer_state.max_shadow_res;
 
-            data->pos_rad.x = light_pos.x;
-            data->pos_rad.y = light_pos.y;
-            data->pos_rad.z = light_pos.z;
-            data->pos_rad.w = light->data.pos_rad.w;
-
-
+            data->pos_rad.xyz = light_pos;
+            data->pos_rad.w = light->range;
         }
     }
 
-    ds_list_qsort(&r_visible_lights, r_CompareVisibleLights);
+    for(uint32_t light_index = 0; light_index < r_lights[R_LIGHT_TYPE_SPOT].cursor; light_index++)
+    {
+        struct r_spot_light_t *light = (struct r_spot_light_t *)r_GetLight(R_LIGHT_INDEX(R_LIGHT_TYPE_SPOT, light_index));
+
+        if(light)
+        {
+            light->min.x = 0;
+            light->min.y = 0;
+            light->min.z = 0;
+
+            light->max.x = R_CLUSTER_MAX_X;
+            light->max.y = R_CLUSTER_MAX_Y;
+            light->max.z = R_CLUSTER_MAX_Z;
+
+            struct r_spot_data_t *data = r_spot_light_buffer + r_spot_light_buffer_cursor;
+            light->light_buffer_index = r_spot_light_buffer_cursor;
+            ds_list_add_element(&r_visible_lights, &light);
+            r_spot_light_buffer_cursor++;
+
+            data->pos_rad = vec4_t_c(light->position.x, light->position.y, light->position.z, 1.0);
+            mat4_t_vec4_t_mul(&data->pos_rad, &r_view_matrix, &data->pos_rad);
+            data->pos_rad.w = light->range;
+
+
+            data->rot0_r.xyz = light->orientation.rows[0];
+            data->rot0_r.w = 0.0;
+            mat4_t_vec4_t_mul(&data->rot0_r, &r_view_matrix, &data->rot0_r);
+            data->rot0_r.w = light->color.x;
+
+            data->rot1_g.xyz = light->orientation.rows[1];
+            data->rot1_g.w = 0.0;
+            mat4_t_vec4_t_mul(&data->rot1_g, &r_view_matrix, &data->rot1_g);
+            data->rot1_g.w = light->color.y;
+
+            data->rot2_b.xyz = light->orientation.rows[2];
+            data->rot2_b.w = 0.0;
+            mat4_t_vec4_t_mul(&data->rot2_b, &r_view_matrix, &data->rot2_b);
+            data->rot2_b.w = light->color.z;
+        }
+    }
 
     for(uint32_t slice_index = 0; slice_index < R_CLUSTER_SLICES; slice_index++)
     {
@@ -211,8 +246,10 @@ void r_VisibleLights()
             {
                 uint32_t cluster_offset = cluster_index + row_offset + slice_offset;
                 struct r_cluster_t *cluster = r_clusters + cluster_offset;
-                cluster->start = cluster_offset * R_MAX_CLUSTER_LIGHTS;
-                cluster->count = 0;
+                cluster->point_start = cluster_offset * R_MAX_CLUSTER_LIGHTS;
+                cluster->point_count = 0;
+                cluster->spot_start = cluster->point_start + R_MAX_CLUSTER_POINT_LIGHTS;
+                cluster->spot_count = 0;
             }
         }
     }
@@ -221,44 +258,63 @@ void r_VisibleLights()
     {
         struct r_light_t *light = *(struct r_light_t **)ds_list_get_element(&r_visible_lights, visible_index);
 
-        for(uint32_t slice_index = light->min_z; slice_index <= light->max_z; slice_index++)
+        for(uint32_t slice_index = light->min.z; slice_index <= light->max.z; slice_index++)
         {
             uint32_t slice_offset = slice_index * R_CLUSTER_ROWS * R_CLUSTER_ROW_WIDTH;
 
-            for(uint32_t row_index = light->min_y; row_index <= light->max_y; row_index++)
+            for(uint32_t row_index = light->min.y; row_index <= light->max.y; row_index++)
             {
                 uint32_t row_offset = row_index * R_CLUSTER_ROW_WIDTH;
 
-                for(uint32_t cluster_index = light->min_x; cluster_index <= light->max_x; cluster_index++)
+                for(uint32_t cluster_index = light->min.x; cluster_index <= light->max.x; cluster_index++)
                 {
                     uint32_t cluster_offset = cluster_index + row_offset + slice_offset;
                     struct r_cluster_t *cluster = r_clusters + cluster_offset;
-                    r_light_index_buffer[cluster->start + cluster->count] = light->gpu_index;
-                    cluster->count++;
+                    uint32_t start;
+                    uint32_t count;
+
+                    switch(light->type)
+                    {
+                        case R_LIGHT_TYPE_POINT:
+                            start = cluster->point_start;
+                            count = cluster->point_count;
+                            cluster->point_count++;
+                        break;
+
+                        case R_LIGHT_TYPE_SPOT:
+                            start = cluster->spot_start;
+                            count = cluster->spot_count;
+                            cluster->spot_count++;
+                        break;
+                    }
+
+                    r_light_index_buffer[start + count] = light->light_buffer_index;
                 }
             }
         }
     }
 
-
     for(uint32_t visible_light_index = 0; visible_light_index < r_visible_lights.cursor; visible_light_index++)
     {
         struct r_light_t *light = *(struct r_light_t **)ds_list_get_element(&r_visible_lights, visible_light_index);
 
-        uint32_t first_index = light->gpu_index * 6;
-
-        for(uint32_t face_index = 0; face_index < 6; face_index++)
+        if(light->type == R_LIGHT_TYPE_POINT)
         {
-            uint32_t map_index = first_index + face_index;
-            uint32_t map_res = light->data.color_res.w;
-            uint32_t x_coord = (map_index % (R_SHADOW_MAP_ATLAS_WIDTH / R_SHADOW_MAP_MAX_RESOLUTION)) * map_res;
-            uint32_t y_coord = (map_index / (R_SHADOW_MAP_ATLAS_WIDTH / R_SHADOW_MAP_MAX_RESOLUTION)) * map_res;
+            uint32_t first_index = light->light_buffer_index * 6;
 
-            uint32_t shadow_map = 0;
-            shadow_map |= (x_coord << R_SHADOW_MAP_X_COORD_SHIFT);
-            shadow_map |= (y_coord << R_SHADOW_MAP_Y_COORD_SHIFT);
-            shadow_map |= (map_res << R_SHADOW_MAP_RES_SHIFT);
-            r_shadow_index_buffer[map_index] = shadow_map;
+            for(uint32_t face_index = 0; face_index < 6; face_index++)
+            {
+                uint32_t map_index = first_index + face_index;
+                uint32_t map_res = r_renderer_state.max_shadow_res;
+                uint32_t x_coord = (map_index % (R_SHADOW_MAP_ATLAS_WIDTH / R_SHADOW_MAP_MAX_RESOLUTION)) * map_res;
+                uint32_t y_coord = (map_index / (R_SHADOW_MAP_ATLAS_WIDTH / R_SHADOW_MAP_MAX_RESOLUTION)) * map_res;
+
+                uint32_t shadow_map = 0;
+                shadow_map |= (x_coord << R_SHADOW_MAP_X_COORD_SHIFT);
+                shadow_map |= (y_coord << R_SHADOW_MAP_Y_COORD_SHIFT);
+                shadow_map |= (map_res << R_SHADOW_MAP_RES_SHIFT);
+                r_shadow_index_buffer[map_index] = shadow_map;
+            }
         }
     }
 }
@@ -281,22 +337,22 @@ void r_VisibleEntitiesOnLights()
     for(uint32_t index = 0; index < r_visible_lights.cursor; index++)
     {
         struct r_light_t *light = *(struct r_light_t **)ds_list_get_element(&r_visible_lights, index);
-        uint32_t *shadow_map = r_shadow_index_buffer + light->gpu_index * 6;
+        uint32_t *shadow_map = r_shadow_index_buffer + light->light_buffer_index * 6;
 
         mat4_t light_view_projection_matrices[6];
 
         for(uint32_t face_index = 0; face_index < 6; face_index++)
         {
             mat4_t_identity(&light_view_projection_matrices[face_index]);
-            light_view_projection_matrices[face_index].rows[3].x = -light->data.pos_rad.x;
-            light_view_projection_matrices[face_index].rows[3].y = -light->data.pos_rad.y;
-            light_view_projection_matrices[face_index].rows[3].z = -light->data.pos_rad.z;
+            light_view_projection_matrices[face_index].rows[3].x = -light->position.x;
+            light_view_projection_matrices[face_index].rows[3].y = -light->position.y;
+            light_view_projection_matrices[face_index].rows[3].z = -light->position.z;
             mat4_t_mul(&light_view_projection_matrices[face_index],
                        &light_view_projection_matrices[face_index],
                        &r_point_shadow_view_projection_matrices[face_index]);
         }
 
-        float light_radius = light->data.pos_rad.w;
+        float light_radius = light->range;
         for(uint32_t entity_index = 0; entity_index < g_entities.cursor; entity_index++)
         {
             struct g_entity_t *entity = g_GetEntity(entity_index);
@@ -309,7 +365,7 @@ void r_VisibleEntitiesOnLights()
                 uint16_t dists = 0;
 
                 vec3_t_mul(&model_extents, &entity->extents, 0.5);
-                vec3_t_sub(&light_entity_vec, &entity->transform.rows[3].xyz, &light->data.pos_rad.xyz);
+                vec3_t_sub(&light_entity_vec, &entity->transform.rows[3].xyz, &light->position);
                 float light_entity_dist = vec3_t_length(&light_entity_vec);
                 vec3_t_normalize(&normalized_light_entity_vec, &light_entity_vec);
                 vec3_t_fabs(&normalized_light_entity_vec, &normalized_light_entity_vec);

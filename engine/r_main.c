@@ -35,7 +35,7 @@ struct ds_slist_t r_shaders;
 struct ds_slist_t r_textures;
 struct ds_slist_t r_materials;
 struct ds_slist_t r_models;
-struct ds_slist_t r_lights;
+struct ds_slist_t r_lights[R_LIGHT_TYPE_LAST];
 struct ds_slist_t r_vis_items;
 struct ds_list_t r_visible_lights;
 
@@ -71,9 +71,14 @@ extern mat4_t r_view_projection_matrix;
 uint32_t r_cluster_texture;
 struct r_cluster_t *r_clusters;
 
-uint32_t r_light_data_uniform_buffer;
-uint32_t r_light_buffer_cursor;
-struct r_l_data_t *r_light_buffer;
+uint32_t r_point_light_data_uniform_buffer;
+uint32_t r_point_light_buffer_cursor;
+struct r_point_data_t *r_point_light_buffer;
+
+
+uint32_t r_spot_light_data_uniform_buffer;
+uint32_t r_spot_light_buffer_cursor;
+struct r_spot_data_t *r_spot_light_buffer;
 
 uint32_t r_light_index_buffer_cursor;
 uint32_t r_light_index_uniform_buffer;
@@ -225,7 +230,8 @@ void r_Init()
     r_materials = ds_slist_create(sizeof(struct r_material_t), 32);
     r_textures = ds_slist_create(sizeof(struct r_texture_t), 128);
     r_models = ds_slist_create(sizeof(struct r_model_t), 512);
-    r_lights = ds_slist_create(sizeof(struct r_light_t), 512);
+    r_lights[R_LIGHT_TYPE_POINT] = ds_slist_create(sizeof(struct r_point_light_t), 512);
+    r_lights[R_LIGHT_TYPE_SPOT] = ds_slist_create(sizeof(struct r_spot_light_t), 512);
     r_visible_lights = ds_list_create(sizeof(struct r_light_t *), 512);
     r_vertex_heap = ds_create_heap(R_VERTEX_BUFFER_SIZE);
     r_index_heap = ds_create_heap(R_INDEX_BUFFER_SIZE);
@@ -300,7 +306,8 @@ void r_Init()
     r_default_material = r_CreateMaterial("default", NULL, NULL, NULL);
 
     r_clusters = mem_Calloc(R_CLUSTER_COUNT, sizeof(struct r_cluster_t));
-    r_light_buffer = mem_Calloc(R_MAX_LIGHTS, sizeof(struct r_l_data_t));
+    r_point_light_buffer = mem_Calloc(R_MAX_LIGHTS, sizeof(struct r_point_data_t));
+    r_spot_light_buffer = mem_Calloc(R_MAX_LIGHTS, sizeof(struct r_spot_data_t));
     r_light_index_buffer = mem_Calloc(R_CLUSTER_COUNT * R_MAX_CLUSTER_LIGHTS, sizeof(uint32_t));
     r_shadow_index_buffer = mem_Calloc(R_MAX_LIGHTS * 6, sizeof(uint32_t));
     r_free_shadow_index_buffer = mem_Calloc(R_MAX_SHADOW_MAPS, sizeof(uint32_t));
@@ -319,11 +326,16 @@ void r_Init()
     glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_BASE_LEVEL, 0);
     glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAX_LEVEL, 0);
-    glTexImage3D(GL_TEXTURE_3D, 0, GL_RG32UI, R_CLUSTER_ROW_WIDTH, R_CLUSTER_ROWS, R_CLUSTER_SLICES, 0, GL_RG_INTEGER, GL_UNSIGNED_INT, NULL);
+    glTexImage3D(GL_TEXTURE_3D, 0, GL_RGB32UI, R_CLUSTER_ROW_WIDTH, R_CLUSTER_ROWS, R_CLUSTER_SLICES, 0, GL_RGB_INTEGER, GL_UNSIGNED_INT, NULL);
 
-    glGenBuffers(1, &r_light_data_uniform_buffer);
-    glBindBuffer(GL_UNIFORM_BUFFER, r_light_data_uniform_buffer);
-    glBufferData(GL_UNIFORM_BUFFER, R_MAX_LIGHTS * sizeof(struct r_l_data_t), NULL, GL_DYNAMIC_DRAW);
+    glGenBuffers(1, &r_point_light_data_uniform_buffer);
+    glBindBuffer(GL_UNIFORM_BUFFER, r_point_light_data_uniform_buffer);
+    glBufferData(GL_UNIFORM_BUFFER, R_MAX_LIGHTS * sizeof(struct r_point_data_t), NULL, GL_DYNAMIC_DRAW);
+
+    glGenBuffers(1, &r_spot_light_data_uniform_buffer);
+    glBindBuffer(GL_UNIFORM_BUFFER, r_spot_light_data_uniform_buffer);
+    glBufferData(GL_UNIFORM_BUFFER, R_MAX_LIGHTS * sizeof(struct r_spot_data_t), NULL, GL_DYNAMIC_DRAW);
+
     glGenBuffers(1, &r_light_index_uniform_buffer);
     glBindBuffer(GL_UNIFORM_BUFFER, r_light_index_uniform_buffer);
     glBufferData(GL_UNIFORM_BUFFER, R_CLUSTER_COUNT * R_MAX_CLUSTER_LIGHTS * sizeof(uint32_t), NULL, GL_DYNAMIC_DRAW);
@@ -1145,16 +1157,32 @@ struct r_light_t *r_CreateLight(uint32_t type, vec3_t *position, vec3_t *color, 
     struct r_light_t *light;
     uint32_t index;
 
-    index = ds_slist_add_element(&r_lights, NULL);
-    light = ds_slist_get_element(&r_lights, index);
+    index = ds_slist_add_element(&r_lights[type], NULL);
+    light = ds_slist_get_element(&r_lights[type], index);
 
     light->index = index;
-    light->data.pos_rad = vec4_t_c(position->x, position->y, position->z, radius);
-    light->data.color_res = vec4_t_c(color->x, color->y, color->z, (float)type);
+    light->type = type;
+    light->position = *position;
+    light->color = *color;
+    light->range = radius;
+//    light->data.pos_rad = vec4_t_c(position->x, position->y, position->z, radius);
+//    light->data.color_res = vec4_t_c(color->x, color->y, color->z, (float)type);
 //    light->data.color = *color;
 //    light->data.type = type;
     light->energy = energy;
 
+    return light;
+}
+
+struct r_point_light_t *r_CreatePointLight(vec3_t *position, vec3_t *color, float radius, float energy)
+{
+    return r_CreateLight(R_LIGHT_TYPE_POINT, position, color, radius, energy);
+}
+
+struct r_spot_light_t *r_CreateSpotLight(vec3_t *position, vec3_t *color, mat3_t *orientation, float radius, float energy)
+{
+    struct r_spot_light_t *light = (struct r_spot_light_t *)r_CreateLight(R_LIGHT_TYPE_SPOT, position, color, radius, energy);
+    light->orientation = *orientation;
     return light;
 }
 
@@ -1168,8 +1196,9 @@ void r_AllocShadowMaps(struct r_light_t *light, uint32_t resolution)
 
 struct r_light_t *r_GetLight(uint32_t light_index)
 {
-    struct r_light_t *light;
-    light = ds_slist_get_element(&r_lights, light_index);
+    uint32_t type = (light_index >> R_LIGHT_TYPE_INDEX_SHIFT) & R_LIGHT_TYPE_INDEX_MASK;
+    struct r_light_t *light = ds_slist_get_element(&r_lights[type], light_index & R_LIGHT_INDEX_MASK);
+
     if(light && light->index == 0xffffffff)
     {
         light = NULL;
@@ -1182,16 +1211,16 @@ void r_DestroyLight(struct r_light_t *light)
 {
     if(light && light->index != 0xffffffff)
     {
-        ds_slist_remove_element(&r_lights, light->index);
+        ds_slist_remove_element(&r_lights[light->type] , light->index);
         light->index = 0xffffffff;
     }
 }
 
 void r_DestroyAllLighs()
 {
-    for(uint32_t light_index = 0; light_index < r_lights.cursor; light_index++)
+    for(uint32_t light_index = 0; light_index < r_lights[R_LIGHT_TYPE_POINT].cursor; light_index++)
     {
-        struct r_light_t *light = r_GetLight(light_index);
+        struct r_light_t *light = r_GetLight(R_LIGHT_INDEX(R_LIGHT_TYPE_POINT, light_index));
 
         if(light)
         {
@@ -1326,13 +1355,19 @@ struct r_shader_t *r_LoadShader(char *vertex_file_name, char *fragment_file_name
         shader->uniforms[uniform_index].location = glGetUniformLocation(shader_program, r_default_uniforms[uniform_index].name);
     }
 
-    uint32_t lights_uniform_block = glGetUniformBlockIndex(shader_program, "r_lights");
+    uint32_t point_light_uniform_block = glGetUniformBlockIndex(shader_program, "r_point_lights");
+    uint32_t spot_light_uniform_block = glGetUniformBlockIndex(shader_program, "r_spot_lights");
     uint32_t light_indices_uniform_block = glGetUniformBlockIndex(shader_program, "r_light_indices");
     uint32_t shadow_indices_uniform_block = glGetUniformBlockIndex(shader_program, "r_shadow_indices");
 
-    if(lights_uniform_block != 0xffffffff)
+    if(point_light_uniform_block != 0xffffffff)
     {
-        glUniformBlockBinding(shader_program, lights_uniform_block, R_LIGHTS_UNIFORM_BUFFER_BINDING);
+        glUniformBlockBinding(shader_program, point_light_uniform_block, R_POINT_LIGHT_UNIFORM_BUFFER_BINDING);
+    }
+
+    if(spot_light_uniform_block != 0xffffffff)
+    {
+        glUniformBlockBinding(shader_program, spot_light_uniform_block, R_SPOT_LIGHT_UNIFORM_BUFFER_BINDING);
     }
 
     if(light_indices_uniform_block != 0xffffffff)

@@ -1,7 +1,7 @@
 #ifndef R_MAIN_H
 #define R_MAIN_H
 
-#include "r_com.h"
+#include "r_defs.h"
 #include "r_draw.h"
 
 #include "../lib/GLEW/include/GL/glew.h"
@@ -87,6 +87,10 @@ void r_DestroyModel(struct r_model_t *model);
 */
 
 struct r_light_t *r_CreateLight(uint32_t type, vec3_t *position, vec3_t *color, float radius, float energy);
+
+struct r_point_light_t *r_CreatePointLight(vec3_t *position, vec3_t *color, float radius, float energy);
+
+struct r_spot_light_t *r_CreateSpotLight(vec3_t *position, vec3_t *color, mat3_t *orientation, float radius, float energy);
 
 struct r_light_t *r_GetLight(uint32_t light_index);
 

@@ -1,5 +1,5 @@
-#ifndef R_COM_H
-#define R_COM_H
+#ifndef R_DEFS_H
+#define R_DEFS_H
 
 #include "../lib/dstuff/ds_vector.h"
 #include "../lib/dstuff/ds_matrix.h"
@@ -248,36 +248,69 @@ enum R_LIGHT_TYPES
     R_LIGHT_TYPE_POINT = 0,
     R_LIGHT_TYPE_SPOT,
     R_LIGHT_TYPE_AREA,
+    R_LIGHT_TYPE_LAST
 };
 
-struct r_l_data_t
+struct r_point_data_t
 {
     vec4_t pos_rad;
     vec4_t color_res;
 };
 
+struct r_spot_data_t
+{
+    vec4_t pos_rad;
+    vec4_t rot0_r;
+    vec4_t rot1_g;
+    vec4_t rot2_b;
+};
+
+struct r_lcluster_t
+{
+    uint32_t x : 7;
+    uint32_t y : 7;
+    uint32_t z : 5;
+};
+
+#define R_LIGHT_FIELDS              \
+    float energy;                   \
+    float range;                    \
+    uint32_t index;                 \
+    uint32_t type;                  \
+    vec3_t color;                   \
+    vec3_t position;                \
+    uint32_t shadow_map;            \
+    struct r_lcluster_t min;        \
+    struct r_lcluster_t max;        \
+    uint32_t light_buffer_index;
+
 struct r_light_t
 {
-    struct r_l_data_t data;
-    float energy;
-
-    uint32_t min_x : 7;
-    uint32_t min_y : 7;
-    uint32_t min_z : 5;
-
-    uint32_t max_x : 7;
-    uint32_t max_y : 7;
-    uint32_t max_z : 5;
-
-    uint32_t gpu_index;
-    uint32_t first_shadow_map;
-    uint32_t index;
+    R_LIGHT_FIELDS;
 };
+
+struct r_point_light_t
+{
+    R_LIGHT_FIELDS;
+};
+
+struct r_spot_light_t
+{
+    R_LIGHT_FIELDS;
+    mat3_t orientation;
+};
+
+#define R_LIGHT_TYPE_INDEX_SHIFT 28
+#define R_LIGHT_TYPE_INDEX_MASK 0xf
+#define R_LIGHT_INDEX_MASK 0x0fffffff
+#define R_LIGHT_INDEX(type, index) (index | (type << R_LIGHT_TYPE_INDEX_SHIFT))
 
 struct r_cluster_t
 {
-    uint32_t start;
-    uint32_t count;
+    uint32_t point_start;
+    uint32_t spot_start;
+    uint16_t point_count;
+    uint16_t spot_count;
 };
 
 #define R_SHADOW_MAP_X_COORD_SHIFT 0
@@ -553,11 +586,14 @@ struct r_renderer_stats_t
 #define R_CLUSTER_WIDTH 16
 #define R_CLUSTER_HEIGHT 16
 #define R_MAX_CLUSTER_LIGHTS 64
-#define R_MAX_LIGHTS 0xffff
+#define R_MAX_CLUSTER_POINT_LIGHTS (R_MAX_CLUSTER_LIGHTS / 2)
+#define R_MAX_CLUSTER_SPOT_LIGHTS (R_MAX_CLUSTER_LIGHTS / 2)
+#define R_MAX_LIGHTS 0x2000
 
-#define R_LIGHTS_UNIFORM_BUFFER_BINDING 0
-#define R_LIGHT_INDICES_UNIFORM_BUFFER_BINDING 1
-#define R_SHADOW_INDICES_BUFFER_BINDING 2
+#define R_POINT_LIGHT_UNIFORM_BUFFER_BINDING 0
+#define R_SPOT_LIGHT_UNIFORM_BUFFER_BINDING 1
+#define R_LIGHT_INDICES_UNIFORM_BUFFER_BINDING 2
+#define R_SHADOW_INDICES_BUFFER_BINDING 3
 
 #define R_POSITION_LOCATION 0
 #define R_NORMAL_LOCATION 1

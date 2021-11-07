@@ -3,7 +3,7 @@
 
 #include "ed_pick_defs.h"
 #include "ed_brush_defs.h"
-#include "../engine/r_com.h"
+#include "../engine/r_defs.h"
 
 
 void ed_BeginPicking();

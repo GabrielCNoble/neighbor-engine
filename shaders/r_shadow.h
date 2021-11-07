@@ -31,7 +31,7 @@ uniform r_shadow_indices
 
 float shadowing(uint light_index, vec3 frag_pos, vec3 frag_normal)
 {
-    vec3 light_vec = frag_pos - lights[light_index].pos_rad.xyz;
+    vec3 light_vec = frag_pos - point_lights[light_index].pos_rad.xyz;
     uint first_tile = light_index * 6;
     vec3 frag_vec = (r_camera_matrix * vec4(light_vec.xyz, 0.0)).xyz;
 
@@ -42,7 +42,7 @@ float shadowing(uint light_index, vec3 frag_pos, vec3 frag_normal)
     float z_coord;
     float linear_depths[4];
     uvec4 face_indexes = texture(r_indirect_texture, frag_vec);
-    uint tile_size = uint(lights[light_index].col_res.w) * R_SHADOW_MAP_MIN_RESOLUTION;
+    uint tile_size = uint(point_lights[light_index].col_res.w) * R_SHADOW_MAP_MIN_RESOLUTION;
     for(int sample_index = 0; sample_index >= 0; sample_index--)
     {
         uint face_data = face_indexes[sample_index];

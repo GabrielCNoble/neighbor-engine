@@ -1,7 +1,7 @@
 #ifndef R_DRAW_H
 #define R_DRAW_H
 
-#include "r_com.h"
+#include "r_defs.h"
 #include "r_main.h"
 
 

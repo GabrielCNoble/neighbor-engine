@@ -90,7 +90,7 @@ struct r_light_t *r_CreateLight(uint32_t type, vec3_t *position, vec3_t *color, 
 
 struct r_point_light_t *r_CreatePointLight(vec3_t *position, vec3_t *color, float radius, float energy);
 
-struct r_spot_light_t *r_CreateSpotLight(vec3_t *position, vec3_t *color, mat3_t *orientation, float radius, float energy);
+struct r_spot_light_t *r_CreateSpotLight(vec3_t *position, vec3_t *color, mat3_t *orientation, float radius, float energy, uint32_t angle, float softness);
 
 struct r_light_t *r_GetLight(uint32_t light_index);
 

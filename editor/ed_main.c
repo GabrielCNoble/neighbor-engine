@@ -61,7 +61,7 @@ extern uint32_t r_height;
 extern mat4_t r_view_projection_matrix;
 extern uint32_t r_vertex_buffer;
 extern uint32_t r_index_buffer;
-extern struct ds_slist_t r_lights;
+extern struct ds_slist_t r_lights[];
 extern uint32_t r_prev_draw_call_count;
 
 extern struct r_renderer_stats_t r_renderer_stats;

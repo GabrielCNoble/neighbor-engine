@@ -27,7 +27,7 @@ struct r_model_t *ed_ball_widget_model;
 struct r_shader_t *ed_outline_shader;
 struct r_i_verts_t *ed_grid;
 
-extern struct ds_slist_t r_lights;
+extern struct ds_slist_t r_lights[];
 extern mat4_t r_projection_matrix;
 extern mat4_t r_camera_matrix;
 extern uint32_t r_width;
@@ -307,10 +307,10 @@ void ed_w_Init()
 //    struct p_capsule_shape_t *capsule_shape = p_CreateCapsuleCollisionShape(0.2, 1.0);
 //    p_CreateCollider(P_COLLIDER_TYPE_MOVABLE, &vec3_t_c(0.0, 0.0, 0.0), NULL, capsule_shape);
 
-    mat3_t orientation;
-    mat3_t_identity(&orientation);
-    mat3_t_rotate_x(&orientation, -0.35);
-    r_CreateSpotLight(&vec3_t_c(0.0, 2.2, 0.0), &vec3_t_c(1.0, 1.0, 1.0), &orientation, 30.0, 5.0);
+//    mat3_t orientation;
+//    mat3_t_identity(&orientation);
+//    mat3_t_rotate_x(&orientation, -0.35);
+//    r_CreateSpotLight(&vec3_t_c(0.0, 2.2, 0.0), &vec3_t_c(1.0, 1.0, 1.0), &orientation, 30.0, 5.0, 0.2, 0.1);
 }
 
 void ed_w_Shutdown()
@@ -574,9 +574,17 @@ void ed_w_UpdateUI()
                         case ED_PICKABLE_TYPE_LIGHT:
                         {
                             struct r_light_t *light = r_GetLight(pickable->primary_index);
+
                             igSliderFloat3("Color", light->color.comps, 0.0, 1.0, "%0.2f", 0);
                             igSliderFloat("Radius", &light->range, 0.0, 100.0, "%0.2f", 0);
                             igSliderFloat("Energy", &light->energy, 0.0, 100.0, "%0.2f", 0);
+
+                            if(light->type == R_LIGHT_TYPE_SPOT)
+                            {
+                                struct r_spot_light_t *spot_light = (struct r_spot_light_t *)light;
+                                igSliderInt("Angle", &spot_light->angle, R_SPOT_LIGHT_MIN_ANGLE, R_SPOT_LIGHT_MAX_ANGLE, "%d", 0);
+                                igSliderFloat("Softness", &spot_light->softness, 0.0, 1.0, "%0.2f", 0);
+                            }
                         }
                         break;
                     }
@@ -1006,9 +1014,16 @@ void ed_w_UpdatePickableObjects()
                 {
                     struct r_light_t *light = r_GetLight(pickable->primary_index);
                     mat3_t rot;
+
                     if(pickable->transform_flags & ED_PICKABLE_TRANSFORM_FLAG_TRANSLATION)
                     {
                         vec3_t_add(&light->position, &light->position, &pickable->translation);
+                    }
+
+                    if(light->type == R_LIGHT_TYPE_SPOT && (pickable->transform_flags & ED_PICKABLE_TRANSFORM_FLAG_ROTATION))
+                    {
+                        struct r_spot_light_t *spot_light = (struct r_spot_light_t *)light;
+                        mat3_t_mul(&spot_light->orientation, &spot_light->orientation, &pickable->rotation);
                     }
 
                     mat3_t_identity(&rot);
@@ -1128,15 +1143,25 @@ void ed_w_DrawLights()
     r_i_SetViewProjectionMatrix(NULL);
     r_i_SetShader(NULL);
 
-    for(uint32_t light_index = 0; light_index < r_lights.cursor; light_index++)
+    for(uint32_t light_index = 0; light_index < r_lights[R_LIGHT_TYPE_POINT].cursor; light_index++)
     {
-        struct r_light_t *light = r_GetLight(light_index);
+        struct r_light_t *light = r_GetLight(R_LIGHT_INDEX(R_LIGHT_TYPE_POINT, light_index));
 
         if(light)
         {
-//            vec3_t position = vec3_t_c(light->data.pos_rad.x, light->data.pos_rad.y, light->data.pos_rad.z);
+            vec3_t position = light->position;
+            vec4_t color = vec4_t_c(light->color.x, light->color.y, light->color.z, 1.0);
+            r_i_DrawPoint(&position, &color, 8.0);
+        }
+    }
 
 
+    for(uint32_t light_index = 0; light_index < r_lights[R_LIGHT_TYPE_SPOT].cursor; light_index++)
+    {
+        struct r_light_t *light = r_GetLight(R_LIGHT_INDEX(R_LIGHT_TYPE_SPOT, light_index));
+
+        if(light)
+        {
             vec3_t position = light->position;
             vec4_t color = vec4_t_c(light->color.x, light->color.y, light->color.z, 1.0);
             r_i_DrawPoint(&position, &color, 8.0);
@@ -2091,7 +2116,8 @@ void ed_SerializeLevel(void **level_buffer, size_t *buffer_size, uint32_t serial
     }
 
     size_t light_section_size = sizeof(struct l_light_section_t);
-    light_section_size += sizeof(struct l_light_record_t) * r_lights.used;
+    light_section_size += sizeof(struct l_light_record_t) * r_lights[R_LIGHT_TYPE_POINT].used;
+    light_section_size += sizeof(struct l_light_record_t) * r_lights[R_LIGHT_TYPE_SPOT].used;
 
     out_buffer_size += brush_section_size + light_section_size;
 
@@ -2263,9 +2289,10 @@ void ed_SerializeLevel(void **level_buffer, size_t *buffer_size, uint32_t serial
     cur_out_buffer += sizeof(struct l_light_section_t);
     light_section->record_start = cur_out_buffer - start_out_buffer;
     struct l_light_record_t *light_records = (struct l_light_record_t *)cur_out_buffer;
-    cur_out_buffer += sizeof(struct l_light_record_t) * r_lights.used;
+    cur_out_buffer += sizeof(struct l_light_record_t) * r_lights[R_LIGHT_TYPE_POINT].used;
+    cur_out_buffer += sizeof(struct l_light_record_t) * r_lights[R_LIGHT_TYPE_SPOT].used;
 
-    for(uint32_t light_index = 0; light_index < r_lights.cursor; light_index++)
+    for(uint32_t light_index = 0; light_index < r_lights[R_LIGHT_TYPE_POINT].cursor; light_index++)
     {
         struct r_light_t *light = r_GetLight(light_index);
 
@@ -2398,7 +2425,7 @@ void ed_DeserializeLevel(void *level_buffer, size_t buffer_size)
 
     l_DeserializeLevel(level_buffer, buffer_size);
 
-    for(uint32_t light_index = 0; light_index < r_lights.cursor; light_index++)
+    for(uint32_t light_index = 0; light_index < r_lights[R_LIGHT_TYPE_POINT].cursor; light_index++)
     {
         struct r_light_t *light = r_GetLight(light_index);
 

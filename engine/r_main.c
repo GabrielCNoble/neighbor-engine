@@ -151,59 +151,8 @@ struct r_named_uniform_t r_default_uniforms[] =
     [R_UNIFORM_HEIGHT] =                        (struct r_named_uniform_t){.type = R_UNIFORM_TYPE_INT,   .name = "r_height" },
 };
 
-//char *r_default_uniform_names[] =
-//{
-//    [R_UNIFORM_MODEL_VIEW_PROJECTION_MATRIX] = "r_model_view_projection_matrix",
-//    [R_UNIFORM_MODEL_VIEW_MATRIX] = "r_model_view_matrix",
-//    [R_UNIFORM_VIEW_MATRIX] = "r_view_matrix",
-//    [R_UNIFORM_CAMERA_MATRIX] = "r_camera_matrix",
-//    [R_UNIFORM_POINT_PROJ_PARAMS] = "r_point_proj_params",
-//    [R_UNIFORM_TEX0] = "r_tex0",
-//    [R_UNIFORM_TEX1] = "r_tex1",
-//    [R_UNIFORM_TEX2] = "r_tex2",
-//    [R_UNIFORM_TEX3] = "r_tex3",
-//    [R_UNIFORM_TEX4] = "r_tex4",
-//    [R_UNIFORM_TEX_ALBEDO] = "r_tex_albedo",
-//    [R_UNIFORM_TEX_NORMAL] = "r_tex_normal",
-//    [R_UNIFORM_TEX_METALNESS] = "r_tex_metalness",
-//    [R_UNIFORM_TEX_ROUGHNESS] = "r_tex_roughness",
-//    [R_UNIFORM_TEX_HEIGHT] = "r_tex_height",
-//    [R_UNIFORM_TEX_CLUSTERS] = "r_tex_clusters",
-//    [R_UNIFORM_TEX_SHADOW_ATLAS] = "r_tex_shadow_atlas",
-//    [R_UNIFORM_TEX_INDIRECT] = "r_tex_indirect",
-//    [R_UNIFORM_CLUSTER_DENOM] = "r_cluster_denom",
-//    [R_UNIFORM_Z_NEAR] = "r_z_near",
-//    [R_UNIFORM_Z_FAR] = "r_z_far",
-//    [R_UNIFORM_WIDTH] = "r_width",
-//    [R_UNIFORM_HEIGHT] = "r_height"
-//};
-//
-//uint32_t r_default_uniform_types[] =
-//{
-//    [R_UNIFORM_MODEL_VIEW_PROJECTION_MATRIX] = R_UNIFORM_TYPE_MAT4,
-//    [R_UNIFORM_MODEL_VIEW_MATRIX] = R_UNIFORM_TYPE_MAT4,
-//    [R_UNIFORM_VIEW_MATRIX] = R_UNIFORM_TYPE_MAT4,
-//    [R_UNIFORM_CAMERA_MATRIX] = R_UNIFORM_TYPE_MAT4,
-//    [R_UNIFORM_POINT_PROJ_PARAMS] = R_UNIFORM_TYPE_VEC2,
-//    [R_UNIFORM_TEX0] = R_UNIFORM_TYPE_UINT,
-//    [R_UNIFORM_TEX1] = R_UNIFORM_TYPE_UINT,
-//    [R_UNIFORM_TEX2] = R_UNIFORM_TYPE_UINT,
-//    [R_UNIFORM_TEX3] = R_UNIFORM_TYPE_UINT,
-//    [R_UNIFORM_TEX4] = R_UNIFORM_TYPE_UINT,
-//    [R_UNIFORM_TEX_ALBEDO] = R_UNIFORM_TYPE_UINT,
-//    [R_UNIFORM_TEX_NORMAL] = R_UNIFORM_TYPE_UINT,
-//    [R_UNIFORM_TEX_METALNESS] = R_UNIFORM_TYPE_UINT,
-//    [R_UNIFORM_TEX_ROUGHNESS] = R_UNIFORM_TYPE_UINT,
-//    [R_UNIFORM_TEX_HEIGHT] = R_UNIFORM_TYPE_UINT,
-//    [R_UNIFORM_TEX_CLUSTERS] = R_UNIFORM_TYPE_UINT,
-//    [R_UNIFORM_TEX_SHADOW_ATLAS] = R_UNIFORM_TYPE_UINT,
-//    [R_UNIFORM_TEX_INDIRECT] = R_UNIFORM_TYPE_UINT,
-//    [R_UNIFORM_CLUSTER_DENOM] = R_UNIFORM_TYPE_FLOAT,
-//    [R_UNIFORM_Z_NEAR] = R_UNIFORM_TYPE_FLOAT,
-//    [R_UNIFORM_Z_FAR] = R_UNIFORM_TYPE_FLOAT,
-//    [R_UNIFORM_WIDTH] = R_UNIFORM_TYPE_INT,
-//    [R_UNIFORM_HEIGHT] = R_UNIFORM_TYPE_INT
-//};
+float r_spot_light_tan_lut[1 + (R_SPOT_LIGHT_MAX_ANGLE - R_SPOT_LIGHT_MIN_ANGLE)];
+float r_spot_light_cos_lut[1 + (R_SPOT_LIGHT_MAX_ANGLE - R_SPOT_LIGHT_MIN_ANGLE)];
 
 uint32_t r_uniform_type_sizes[] =
 {
@@ -598,6 +547,13 @@ void r_Init()
     glGenFramebuffers(1, &r_z_prepass_framebuffer);
     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, r_z_prepass_framebuffer);
     glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, r_main_depth_attachment, 0);
+
+    for(uint32_t angle = R_SPOT_LIGHT_MIN_ANGLE; angle <= R_SPOT_LIGHT_MAX_ANGLE; angle++)
+    {
+        float rad_angle = 3.14159265 * ((float)angle / 180.0);
+        r_spot_light_tan_lut[angle - R_SPOT_LIGHT_MIN_ANGLE] = tanf(rad_angle);
+        r_spot_light_cos_lut[angle - R_SPOT_LIGHT_MIN_ANGLE] = cosf(rad_angle);
+    }
 
     r_renderer_state.use_z_prepass = 1;
     r_renderer_state.max_shadow_res = 8;
@@ -1165,10 +1121,6 @@ struct r_light_t *r_CreateLight(uint32_t type, vec3_t *position, vec3_t *color, 
     light->position = *position;
     light->color = *color;
     light->range = radius;
-//    light->data.pos_rad = vec4_t_c(position->x, position->y, position->z, radius);
-//    light->data.color_res = vec4_t_c(color->x, color->y, color->z, (float)type);
-//    light->data.color = *color;
-//    light->data.type = type;
     light->energy = energy;
 
     return light;
@@ -1179,10 +1131,30 @@ struct r_point_light_t *r_CreatePointLight(vec3_t *position, vec3_t *color, floa
     return r_CreateLight(R_LIGHT_TYPE_POINT, position, color, radius, energy);
 }
 
-struct r_spot_light_t *r_CreateSpotLight(vec3_t *position, vec3_t *color, mat3_t *orientation, float radius, float energy)
+struct r_spot_light_t *r_CreateSpotLight(vec3_t *position, vec3_t *color, mat3_t *orientation, float radius, float energy, uint32_t angle, float softness)
 {
     struct r_spot_light_t *light = (struct r_spot_light_t *)r_CreateLight(R_LIGHT_TYPE_SPOT, position, color, radius, energy);
-    light->orientation = *orientation;
+
+    if(angle > R_SPOT_LIGHT_MAX_ANGLE)
+    {
+        angle = R_SPOT_LIGHT_MAX_ANGLE;
+    }
+    else if(angle < R_SPOT_LIGHT_MIN_ANGLE)
+    {
+        angle = R_SPOT_LIGHT_MIN_ANGLE;
+    }
+
+    if(orientation)
+    {
+        light->orientation = *orientation;
+    }
+    else
+    {
+        mat3_t_identity(&light->orientation);
+    }
+
+    light->angle = angle;
+    light->softness = softness;
     return light;
 }
 

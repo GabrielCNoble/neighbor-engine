@@ -60,6 +60,8 @@ void vec3_t_mul(vec3_t *r, vec3_t *v, float s);
 
 void vec3_t_div(vec3_t *r, vec3_t *v, float s);
 
+void vec3_t_neg(vec3_t *r, vec3_t *v);
+
 float vec3_t_length(vec3_t *v);
 
 void vec3_t_normalize(vec3_t *r, vec3_t *v);
@@ -205,6 +207,13 @@ void vec3_t_div(vec3_t *r, vec3_t *v, float s)
     r->x = v->x / s;
     r->y = v->y / s;
     r->z = v->z / s;
+}
+
+void vec3_t_neg(vec3_t *r, vec3_t *v)
+{
+    r->x = -v->x;
+    r->y = -v->y;
+    r->z = -v->z;
 }
 
 float vec3_t_length(vec3_t *v)

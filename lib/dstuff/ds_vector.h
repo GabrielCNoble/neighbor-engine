@@ -119,6 +119,8 @@ void vec4_t_mul_fast(vec4_t *r, vec4_t *v, float s);
 
 void vec4_t_div(vec4_t *r, vec4_t *v, float s);
 
+void vec4_t_neg(vec4_t *r, vec4_t *v);
+
 float vec4_t_length(vec4_t *v);
 
 void vec4_t_normalize(vec4_t *r, vec4_t *v);
@@ -378,6 +380,14 @@ void vec4_t_div(vec4_t *r, vec4_t *v, float s)
     r->y = v->y / s;
     r->z = v->z / s;
     r->w = v->w / s;
+}
+
+void vec4_t_neg(vec4_t *r, vec4_t *v)
+{
+    r->x = -v->x;
+    r->y = -v->y;
+    r->z = -v->z;
+    r->w = -v->w;
 }
 
 float vec4_t_length(vec4_t *v)

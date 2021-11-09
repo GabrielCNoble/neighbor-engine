@@ -33,6 +33,8 @@ void *r_i_AllocImmediateExternData(uint32_t size);
 
 struct r_i_draw_list_t *r_i_AllocDrawList(uint32_t cmd_count);
 
+struct r_i_verts_t *r_i_AllocVerts(uint32_t vert_count);
+
 void r_i_ImmediateCmd(uint16_t type, uint16_t sub_type, void *data);
 
 struct r_i_state_t *r_i_GetCurrentState();

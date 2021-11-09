@@ -55,7 +55,7 @@ void r_VisibleLights()
 
     vec3_t axes[2] = {vec3_t_c(1.0, 0.0, 0.0), vec3_t_c(0.0, 1.0, 0.0)};
     vec2_t extents[2];
-    vec4_t spot_verts[5];
+    vec4_t spot_verts[8];
 
     for(uint32_t light_index = 0; light_index < r_lights[R_LIGHT_TYPE_POINT].cursor; light_index++)
     {
@@ -206,11 +206,9 @@ void r_VisibleLights()
 
         if(light)
         {
-            vec3_t right;
-            vec3_t top;
-            vec3_t neg_right;
-            vec3_t neg_top;
-            vec3_t forward;
+            vec3_t light_vec;
+            extents[0] = vec2_t_c(FLT_MAX, -FLT_MAX);
+            extents[1] = vec2_t_c(FLT_MAX, -FLT_MAX);
 
             /* tentative "optimization", to avoid doing a bunch of trig in a hot loop. This is
             a relatively big table, though, and depending on the angle value distribution used
@@ -220,51 +218,144 @@ void r_VisibleLights()
             float tan = r_spot_light_tan_lut[light->angle - R_SPOT_LIGHT_MIN_ANGLE];
             float base_radius = tan * light->range;
 
-            vec3_t_fmadd(&forward, &light->position, &light->orientation.rows[2], -light->range);
-            vec3_t_mul(&right, &light->orientation.rows[0], base_radius);
-            vec3_t_neg(&neg_right, &right);
-            vec3_t_mul(&top, &light->orientation.rows[1], base_radius);
-            vec3_t_neg(&neg_top, &top);
+            vec3_t_sub(&light_vec, &light->position, &r_camera_matrix.rows[3].xyz);
+            float dist = vec3_t_length(&light_vec);
+            vec3_t_div(&light_vec, &light_vec, dist);
 
-            spot_verts[0].xyz = light->position;
-            vec3_t_add(&spot_verts[1].xyz, &forward, &right);
-            vec3_t_add(&spot_verts[1].xyz, &spot_verts[1].xyz, &top);
-            vec3_t_add(&spot_verts[2].xyz, &forward, &right);
-            vec3_t_add(&spot_verts[2].xyz, &spot_verts[2].xyz, &neg_top);
-            vec3_t_add(&spot_verts[3].xyz, &forward, &top);
-            vec3_t_add(&spot_verts[3].xyz, &spot_verts[3].xyz, &neg_right);
-            vec3_t_add(&spot_verts[4].xyz, &forward, &neg_top);
-            vec3_t_add(&spot_verts[4].xyz, &spot_verts[4].xyz, &neg_right);
+            light->min.x = 0;
+                light->min.y = 0;
+                light->min.z = 0;
 
-            r_i_SetViewProjectionMatrix(NULL);
-            r_i_DrawLine(&spot_verts[0].xyz, &spot_verts[1].xyz, &vec4_t_c(1.0, 1.0, 0.0, 1.0), 1.0);
-            r_i_DrawLine(&spot_verts[0].xyz, &spot_verts[2].xyz, &vec4_t_c(1.0, 1.0, 0.0, 1.0), 1.0);
-            r_i_DrawLine(&spot_verts[0].xyz, &spot_verts[3].xyz, &vec4_t_c(1.0, 1.0, 0.0, 1.0), 1.0);
-            r_i_DrawLine(&spot_verts[0].xyz, &spot_verts[4].xyz, &vec4_t_c(1.0, 1.0, 0.0, 1.0), 1.0);
+                light->max.x = R_CLUSTER_MAX_X;
+                light->max.y = R_CLUSTER_MAX_Y;
+                light->max.z = R_CLUSTER_MAX_Z;
 
-            extents[0] = vec2_t_c(FLT_MAX, -FLT_MAX);
-            extents[1] = vec2_t_c(FLT_MAX, -FLT_MAX);
-
-            for(uint32_t vert_index = 0; vert_index < 5; vert_index++)
+            if(vec3_t_dot(&light_vec, &light->orientation.rows[2]) >= cos && dist <= light->range)
             {
-                vec4_t *spot_vert = spot_verts + vert_index;
-                spot_vert->w = 1.0;
-                mat4_t_vec4_t_mul_fast(spot_vert, &r_view_projection_matrix, spot_vert);
-                spot_vert->x /= spot_vert->w;
-                spot_vert->y /= spot_vert->w;
+                /* camera inside cone */
+                light->min.x = 0;
+                light->min.y = 0;
+                light->min.z = 0;
 
-                if(extents[0].x > spot_vert->x) extents[0].x = spot_vert->x;
-                if(extents[0].y < spot_vert->x) extents[0].y = spot_vert->x;
+                light->max.x = R_CLUSTER_MAX_X;
+                light->max.y = R_CLUSTER_MAX_Y;
+                light->max.z = R_CLUSTER_MAX_Z;
 
-                if(extents[1].x > spot_vert->y) extents[1].x = spot_vert->y;
-                if(extents[1].y < spot_vert->y) extents[1].y = spot_vert->y;
+                extents[0] = vec2_t_c(1.0, -1.0);
+                extents[1] = vec2_t_c(1.0, -1.0);
             }
+            else
+            {
+                vec4_t base = {.w = 1.0};
+                vec4_t apex = {.w = 1.0};
+                vec4_t right = {.w = 0.0};
+                vec4_t neg_right = {.w = 0.0};
+                vec4_t top = {.w = 0.0};
+                vec4_t neg_top = {.w = 0.0};
 
-            extents[0].x = fmin(fmax(extents[0].x, -1.0), 1.0);
-            extents[0].y = fmin(fmax(extents[0].y, -1.0), 1.0);
-            extents[1].x = fmin(fmax(extents[1].x, -1.0), 1.0);
-            extents[1].y = fmin(fmax(extents[1].y, -1.0), 1.0);
+                apex.xyz = light->position;
+                vec3_t_fmadd(&base.xyz, &light->position, &light->orientation.rows[2], -light->range);
+                vec3_t_mul(&right.xyz, &light->orientation.rows[0], base_radius);
+                vec3_t_mul(&top.xyz, &light->orientation.rows[1], base_radius);
 
+                mat4_t_vec4_t_mul(&apex, &r_view_matrix, &apex);
+                mat4_t_vec4_t_mul(&base, &r_view_matrix, &base);
+                mat4_t_vec4_t_mul(&right, &r_view_matrix, &right);
+                mat4_t_vec4_t_mul(&top, &r_view_matrix, &top);
+
+                vec3_t_neg(&neg_right.xyz, &right.xyz);
+                vec3_t_neg(&neg_top.xyz, &top.xyz);
+
+                spot_verts[0] = apex;
+                spot_verts[1] = apex;
+                spot_verts[2] = apex;
+                spot_verts[3] = apex;
+
+                vec3_t_add(&spot_verts[4].xyz, &base.xyz, &right.xyz);
+                vec3_t_add(&spot_verts[4].xyz, &spot_verts[4].xyz, &top.xyz);
+
+                vec3_t_add(&spot_verts[5].xyz, &base.xyz, &neg_right.xyz);
+                vec3_t_add(&spot_verts[5].xyz, &spot_verts[5].xyz, &top.xyz);
+
+                vec3_t_add(&spot_verts[6].xyz, &base.xyz, &right.xyz);
+                vec3_t_add(&spot_verts[6].xyz, &spot_verts[6].xyz, &neg_top.xyz);
+
+                vec3_t_add(&spot_verts[7].xyz, &base.xyz, &neg_right.xyz);
+                vec3_t_add(&spot_verts[7].xyz, &spot_verts[7].xyz, &neg_top.xyz);
+
+                for(uint32_t vert_index = 0; vert_index < 4; vert_index++)
+                {
+                    vec4_t *vert0 = spot_verts + vert_index;
+                    vec4_t *vert1 = spot_verts + vert_index + 4;
+                    vert1->w = 1.0;
+
+                    float dist0 = vert0->z + r_z_near;
+                    float dist1 = vert1->z + r_z_near;
+
+                    if(dist0 > 0.0)
+                    {
+                        float t = dist1 / (dist1 - dist0);
+                        vec4_t_lerp(vert0, vert1, vert0, t);
+                    }
+                    else if(dist1 > 0.0)
+                    {
+                        float t = dist0 / (dist0 - dist1);
+                        vec4_t_lerp(vert1, vert0, vert1, t);
+                    }
+
+                    mat4_t_vec4_t_mul(vert0, &r_projection_matrix, vert0);
+                    vert0->x /= vert0->w;
+                    vert0->y /= vert0->w;
+
+                    if(extents[0].x > vert0->x) extents[0].x = vert0->x;
+                    if(extents[0].y < vert0->x) extents[0].y = vert0->x;
+
+                    if(extents[1].x > vert0->y) extents[1].x = vert0->y;
+                    if(extents[1].y < vert0->y) extents[1].y = vert0->y;
+                }
+
+
+                for(uint32_t vert_index = 0; vert_index < 4; vert_index++)
+                {
+                    vec4_t *vert0 = spot_verts + vert_index + 4;
+                    vec4_t *vert1 = spot_verts + ((vert_index + 5) % 4);
+
+                    float dist0 = vert0->z + r_z_near;
+                    float dist1 = vert1->z + r_z_near;
+
+                    if(dist0 > 0.0)
+                    {
+                        float t = dist1 / (dist1 - dist0);
+                        vec4_t_lerp(vert0, vert1, vert0, t);
+                    }
+                    else if(dist1 > 0.0)
+                    {
+                        float t = dist0 / (dist0 - dist1);
+                        vec4_t_lerp(vert1, vert0, vert1, t);
+                    }
+
+                    mat4_t_vec4_t_mul(vert0, &r_projection_matrix, vert0);
+                    vert0->x /= vert0->w;
+                    vert0->y /= vert0->w;
+
+                    if(extents[0].x > vert0->x) extents[0].x = vert0->x;
+                    if(extents[0].y < vert0->x) extents[0].y = vert0->x;
+
+                    if(extents[1].x > vert0->y) extents[1].x = vert0->y;
+                    if(extents[1].y < vert0->y) extents[1].y = vert0->y;
+                }
+
+                extents[0].x = fmin(fmax(extents[0].x, -1.0), 1.0);
+                extents[0].y = fmin(fmax(extents[0].y, -1.0), 1.0);
+                extents[1].x = fmin(fmax(extents[1].x, -1.0), 1.0);
+                extents[1].y = fmin(fmax(extents[1].y, -1.0), 1.0);
+
+                if((extents[0].y - extents[0].x) * (extents[1].y - extents[1].x) == 0.0)
+                {
+                    /* light offscreen */
+                    continue;
+                }
+            }
 
             r_i_SetViewProjectionMatrix(&projection_matrix);
             r_i_DrawLine(&vec3_t_c(extents[0].y, extents[1].x, -0.5), &vec3_t_c(extents[0].y, extents[1].y, -0.5), &vec4_t_c(0.0, 1.0, 0.0, 1.0), 1.0);
@@ -272,14 +363,6 @@ void r_VisibleLights()
             r_i_DrawLine(&vec3_t_c(extents[0].x, extents[1].y, -0.5), &vec3_t_c(extents[0].x, extents[1].x, -0.5), &vec4_t_c(0.0, 1.0, 0.0, 1.0), 1.0);
             r_i_DrawLine(&vec3_t_c(extents[0].x, extents[1].x, -0.5), &vec3_t_c(extents[0].y, extents[1].x, -0.5), &vec4_t_c(0.0, 1.0, 0.0, 1.0), 1.0);
 
-
-            light->min.x = 0;
-            light->min.y = 0;
-            light->min.z = 0;
-
-            light->max.x = R_CLUSTER_MAX_X;
-            light->max.y = R_CLUSTER_MAX_Y;
-            light->max.z = R_CLUSTER_MAX_Z;
 
             struct r_spot_data_t *data = r_spot_light_buffer + r_spot_light_buffer_cursor;
             light->light_buffer_index = r_spot_light_buffer_cursor;
@@ -312,6 +395,65 @@ void r_VisibleLights()
         }
     }
 
+    if(r_renderer_state.draw_lights)
+    {
+        r_i_SetViewProjectionMatrix(NULL);
+        r_i_SetModelMatrix(NULL);
+        r_i_SetShader(NULL);
+        r_i_SetRasterizer(GL_FALSE, GL_BACK, GL_LINE);
+
+        for(uint32_t light_index = 0; light_index < r_visible_lights.cursor; light_index++)
+        {
+            struct r_light_t *light = *(struct r_light_t **)ds_list_get_element(&r_visible_lights, light_index);
+
+            switch(light->type)
+            {
+                case R_LIGHT_TYPE_SPOT:
+                {
+                    struct r_spot_light_t *spot_light = (struct r_spot_light_t *)light;
+                    float base_radius = r_spot_light_tan_lut[spot_light->angle - R_SPOT_LIGHT_MIN_ANGLE] * spot_light->range;
+                    uint32_t segment_count = 32;
+                    float increment = (3.14159265 * 2) / (float)segment_count;
+                    float cur_angle = 0.0;
+
+                    struct r_i_verts_t *verts = r_i_AllocVerts(segment_count * 3);
+
+                    mat4_t transform;
+
+                    mat4_t_comp(&transform, &spot_light->orientation, &spot_light->position);
+                    r_i_SetModelMatrix(&transform);
+
+                    float s = sin(cur_angle) * base_radius;
+                    float c = cos(cur_angle) * base_radius;
+                    struct r_vert_t *vert = verts->verts;
+
+                    for(uint32_t segment_index = 0; segment_index < segment_count; segment_index++)
+                    {
+                        vert->pos = vec3_t_c(0.0, 0.0, 0.0);
+                        vert->color = vec4_t_c(0.8, 0.8, 1.0, 1.0);
+                        vert++;
+
+                        cur_angle += increment;
+
+                        vert->pos = vec3_t_c(c, s, -spot_light->range);
+                        vert->color = vec4_t_c(0.8, 0.8, 1.0, 1.0);
+                        vert++;
+
+                        s = sin(cur_angle) * base_radius;
+                        c = cos(cur_angle) * base_radius;
+
+                        vert->pos = vec3_t_c(c, s, -spot_light->range);
+                        vert->color = vec4_t_c(0.8, 0.8, 1.0, 1.0);
+                        vert++;
+                    }
+
+                    r_i_DrawVerts(R_I_DRAW_CMD_TRIANGLE_LIST, verts, 1.0);
+                }
+                break;
+            }
+        }
+    }
+
     for(uint32_t slice_index = 0; slice_index < R_CLUSTER_SLICES; slice_index++)
     {
         uint32_t slice_offset = slice_index * R_CLUSTER_ROWS * R_CLUSTER_ROW_WIDTH;
@@ -331,6 +473,8 @@ void r_VisibleLights()
             }
         }
     }
+
+
 
     for(uint32_t visible_index = 0; visible_index < r_visible_lights.cursor; visible_index++)
     {

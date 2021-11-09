@@ -568,6 +568,7 @@ struct r_renderer_state_t
 {
     uint32_t use_z_prepass;
     uint32_t max_shadow_res;
+    uint32_t draw_lights;
 };
 
 struct r_renderer_stats_t

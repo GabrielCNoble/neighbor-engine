@@ -772,6 +772,13 @@ struct r_i_draw_list_t *r_i_AllocDrawList(uint32_t cmd_count)
     return list;
 }
 
+struct r_i_verts_t *r_i_AllocVerts(uint32_t vert_count)
+{
+    struct r_i_verts_t *verts = r_i_AllocImmediateData(sizeof(struct r_i_verts_t) + sizeof(struct r_vert_t) * vert_count);
+    verts->count = vert_count;
+    return verts;
+}
+
 struct r_i_state_t *r_i_GetCurrentState()
 {
     if(!r_i_current_state)

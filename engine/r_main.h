@@ -88,6 +88,8 @@ void r_DestroyModel(struct r_model_t *model);
 
 struct r_light_t *r_CreateLight(uint32_t type, vec3_t *position, vec3_t *color, float radius, float energy);
 
+struct r_light_t *r_CopyLight(struct r_light_t *light);
+
 struct r_point_light_t *r_CreatePointLight(vec3_t *position, vec3_t *color, float radius, float energy);
 
 struct r_spot_light_t *r_CreateSpotLight(vec3_t *position, vec3_t *color, mat3_t *orientation, float radius, float energy, uint32_t angle, float softness);

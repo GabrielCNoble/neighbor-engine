@@ -1127,6 +1127,32 @@ struct r_light_t *r_CreateLight(uint32_t type, vec3_t *position, vec3_t *color, 
     return light;
 }
 
+struct r_light_t *r_CopyLight(struct r_light_t *light)
+{
+    struct r_light_t *copy = NULL;
+    if(light && light->index != 0xffffffff)
+    {
+        switch(light->type)
+        {
+            case R_LIGHT_TYPE_SPOT:
+            {
+                struct r_spot_light_t *spot_light = (struct r_spot_light_t *)light;
+                copy = (struct r_light_t *)r_CreateSpotLight(&spot_light->position, &spot_light->color, &spot_light->orientation,
+                                                             spot_light->range, spot_light->energy, spot_light->angle, spot_light->softness);
+            }
+            break;
+
+            case R_LIGHT_TYPE_POINT:
+            {
+                struct r_point_light_t *point_light = (struct r_point_light_t *)light;
+                copy = (struct r_light_t *)r_CreatePointLight(&point_light->position, &point_light->color, point_light->range, point_light->energy);
+            }
+            break;
+        }
+    }
+    return copy;
+}
+
 struct r_point_light_t *r_CreatePointLight(vec3_t *position, vec3_t *color, float radius, float energy)
 {
     return (struct r_point_light_t *)r_CreateLight(R_LIGHT_TYPE_POINT, position, color, radius, energy);

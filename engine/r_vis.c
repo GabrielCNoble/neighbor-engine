@@ -222,27 +222,14 @@ void r_VisibleLights()
             float dist = vec3_t_length(&light_vec);
             vec3_t_div(&light_vec, &light_vec, dist);
 
-            light->min.x = 0;
-                light->min.y = 0;
-                light->min.z = 0;
-
-                light->max.x = R_CLUSTER_MAX_X;
-                light->max.y = R_CLUSTER_MAX_Y;
-                light->max.z = R_CLUSTER_MAX_Z;
+            light->min.z = 0;
+            light->max.z = R_CLUSTER_MAX_Z;
 
             if(vec3_t_dot(&light_vec, &light->orientation.rows[2]) >= cos && dist <= light->range)
             {
                 /* camera inside cone */
-                light->min.x = 0;
-                light->min.y = 0;
-                light->min.z = 0;
-
-                light->max.x = R_CLUSTER_MAX_X;
-                light->max.y = R_CLUSTER_MAX_Y;
-                light->max.z = R_CLUSTER_MAX_Z;
-
-                extents[0] = vec2_t_c(1.0, -1.0);
-                extents[1] = vec2_t_c(1.0, -1.0);
+                extents[0] = vec2_t_c(-1.0, 1.0);
+                extents[1] = vec2_t_c(-1.0, 1.0);
             }
             else
             {
@@ -357,11 +344,11 @@ void r_VisibleLights()
                 }
             }
 
-            r_i_SetViewProjectionMatrix(&projection_matrix);
-            r_i_DrawLine(&vec3_t_c(extents[0].y, extents[1].x, -0.5), &vec3_t_c(extents[0].y, extents[1].y, -0.5), &vec4_t_c(0.0, 1.0, 0.0, 1.0), 1.0);
-            r_i_DrawLine(&vec3_t_c(extents[0].y, extents[1].y, -0.5), &vec3_t_c(extents[0].x, extents[1].y, -0.5), &vec4_t_c(0.0, 1.0, 0.0, 1.0), 1.0);
-            r_i_DrawLine(&vec3_t_c(extents[0].x, extents[1].y, -0.5), &vec3_t_c(extents[0].x, extents[1].x, -0.5), &vec4_t_c(0.0, 1.0, 0.0, 1.0), 1.0);
-            r_i_DrawLine(&vec3_t_c(extents[0].x, extents[1].x, -0.5), &vec3_t_c(extents[0].y, extents[1].x, -0.5), &vec4_t_c(0.0, 1.0, 0.0, 1.0), 1.0);
+//            r_i_SetViewProjectionMatrix(&projection_matrix);
+//            r_i_DrawLine(&vec3_t_c(extents[0].y, extents[1].x, -0.5), &vec3_t_c(extents[0].y, extents[1].y, -0.5), &vec4_t_c(0.0, 1.0, 0.0, 1.0), 1.0);
+//            r_i_DrawLine(&vec3_t_c(extents[0].y, extents[1].y, -0.5), &vec3_t_c(extents[0].x, extents[1].y, -0.5), &vec4_t_c(0.0, 1.0, 0.0, 1.0), 1.0);
+//            r_i_DrawLine(&vec3_t_c(extents[0].x, extents[1].y, -0.5), &vec3_t_c(extents[0].x, extents[1].x, -0.5), &vec4_t_c(0.0, 1.0, 0.0, 1.0), 1.0);
+//            r_i_DrawLine(&vec3_t_c(extents[0].x, extents[1].x, -0.5), &vec3_t_c(extents[0].y, extents[1].x, -0.5), &vec4_t_c(0.0, 1.0, 0.0, 1.0), 1.0);
 
 
             struct r_spot_data_t *data = r_spot_light_buffer + r_spot_light_buffer_cursor;
@@ -371,6 +358,14 @@ void r_VisibleLights()
 
             vec4_t pos_rad = vec4_t_c(light->position.x, light->position.y, light->position.z, 1.0);
             mat4_t_vec4_t_mul(&pos_rad, &r_view_matrix, &pos_rad);
+
+            light->min.x = (uint32_t)(R_CLUSTER_ROW_WIDTH * (extents[0].x * 0.5 + 0.5));
+            light->max.x = (uint32_t)(R_CLUSTER_ROW_WIDTH * (extents[0].y * 0.5 + 0.5));
+            if(light->max.x > R_CLUSTER_MAX_X) light->max.x = R_CLUSTER_MAX_X;
+
+            light->min.y = (uint32_t)(R_CLUSTER_ROWS * (extents[1].x * 0.5 + 0.5));
+            light->max.y = (uint32_t)(R_CLUSTER_ROWS * (extents[1].y * 0.5 + 0.5));
+            if(light->max.y > R_CLUSTER_MAX_Y) light->max.y = R_CLUSTER_MAX_Y;
 
             data->pos_rad = pos_rad;
 

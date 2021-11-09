@@ -404,7 +404,7 @@ struct ed_pickable_t *ed_CopyPickable(struct ed_pickable_t *src_pickable)
         case ED_PICKABLE_TYPE_LIGHT:
         {
             struct r_light_t *src_light = r_GetLight(src_pickable->primary_index);
-            copy = ed_CreateLightPickable(&src_light->position, &src_light->color, src_light->range, src_light->energy, NULL);
+            copy = ed_CreateLightPickable(NULL, NULL, 0, 0, r_CopyLight(src_light));
         }
         break;
     }
@@ -508,9 +508,19 @@ struct ed_pickable_t *ed_CreateLightPickable(vec3_t *pos, vec3_t *color, float r
     pickable->ranges->start = ((struct r_batch_t *)ed_light_pickable_model->batches.buffer)[0].start;
     pickable->ranges->count = 1;
 
-    mat3_t rot;
-    mat3_t_identity(&rot);
-    mat4_t_comp(&pickable->transform, &rot, &light->position);
+    mat3_t orientation;
+
+    if(light->type == R_LIGHT_TYPE_SPOT)
+    {
+        struct r_spot_light_t *spot_light = (struct r_spot_light_t *)light;
+        orientation = spot_light->orientation;
+    }
+    else
+    {
+        mat3_t_identity(&orientation);
+    }
+
+    mat4_t_comp(&pickable->transform, &orientation, &light->position);
     pickable->draw_transform = pickable->transform;
 
     return pickable;

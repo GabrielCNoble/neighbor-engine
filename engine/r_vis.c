@@ -546,7 +546,6 @@ void r_VisibleLights()
 
         if(light->shadow_map_res != R_SHADOW_BUCKET_RESOLUTION(shadow_maps[0]))
         {
-            printf("realloc shadow map from %d to %d\n", R_SHADOW_BUCKET_RESOLUTION(shadow_maps[0]), light->shadow_map_res);
             r_FreeShadowMaps(light);
             r_AllocShadowMaps(light, light->shadow_map_res);
         }

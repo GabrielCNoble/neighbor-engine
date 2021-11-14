@@ -495,8 +495,8 @@ struct ed_pickable_t *ed_CreateLightPickable(vec3_t *pos, vec3_t *color, float r
     }
     else
     {
-//        light = r_CreateLight(R_LIGHT_TYPE_POINT, pos, color, radius, energy);
-        light = r_CreateSpotLight(pos, color, NULL, radius, energy, 0.5, 0.1);
+        light = r_CreateLight(R_LIGHT_TYPE_POINT, pos, color, radius, energy);
+//        light = r_CreateSpotLight(pos, color, NULL, radius, energy, 20, 0.1);
     }
 
     struct ed_pickable_t *pickable = ed_CreatePickable(ED_PICKABLE_TYPE_LIGHT);

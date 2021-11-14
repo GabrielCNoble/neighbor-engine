@@ -4,7 +4,7 @@
 struct r_point_data_t
 {
     vec4 pos_rad;
-    vec4 col_res;
+    vec4 col_shd;
 };
 
 struct r_spot_data_t

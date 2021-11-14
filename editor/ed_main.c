@@ -64,7 +64,7 @@ extern uint32_t r_index_buffer;
 extern struct ds_slist_t r_lights[];
 extern uint32_t r_prev_draw_call_count;
 
-extern struct r_renderer_stats_t r_renderer_stats;
+//extern struct r_renderer_stats_t r_renderer_stats;
 extern struct r_renderer_state_t r_renderer_state;
 
 
@@ -157,21 +157,8 @@ void ed_Init()
     glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, ed_picking_object_texture, 0);
     glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, ed_picking_depth_texture, 0);
 
-//    ed_contexts[ED_CONTEXT_WORLD].update = ed_WorldContextUpdate;
-//    ed_contexts[ED_CONTEXT_WORLD].states = ed_world_context_states;
-//    ed_contexts[ED_CONTEXT_WORLD].current_state = ED_WORLD_CONTEXT_STATE_IDLE;
-//    ed_contexts[ED_CONTEXT_WORLD].context_data = &ed_world_context_data;
-//    ed_world_context_data.selections = ds_list_create(sizeof(uint32_t), 512);
-//    ed_world_context_data.pickables[0] = ds_slist_create(sizeof(struct ed_pickable_t), 512);
-//    ed_world_context_data.pickables[1] = ds_slist_create(sizeof(struct ed_pickable_t), 512);
-//    ed_world_context_data.active_pickable_list = 0;
-//    ed_world_context_data.brushes = ds_slist_create(sizeof(struct ed_brush_t), 512);
-//    ed_world_context_data.global_brush_batches = ds_list_create(sizeof(struct ed_brush_batch_t), 512);
     ed_w_Init();
     ed_active_context = ed_contexts + ED_CONTEXT_WORLD;
-
-//    ed_polygons = ds_slist_create(sizeof(struct ed_polygon_t ), 1024);
-//    ed_bsp_nodes = ds_slist_create(sizeof(struct ed_bspn_t), 1024);
 
     ed_explorer_state.current_file[0] = '\0';
     ed_explorer_state.current_path[0] = '\0';
@@ -187,11 +174,7 @@ void ed_Init()
     ed_SetExplorerLoadCallback(test_load_callback);
     ed_SetExplorerSaveCallback(test_save_callback);
 
-//    r_CreateLight(R_LIGHT_TYPE_POINT, &vec3_t_c(0.0, 20.0, 0.0), &vec3_t_c(1.0, 1.0, 1.0), 50.0, 10.0);
-
     in_SetMouseRelative(1);
-
-//    g_SetGameState(G_GAME_STATE_EDITING);
 }
 
 void ed_Shutdown()
@@ -272,18 +255,14 @@ void ed_UpdateEditor()
         {
             if(igBegin("Renderer info", NULL, 0))
             {
-                igText("Draw calls: %d", r_renderer_stats.draw_call_count);
-                igText("Shader swaps: %d", r_renderer_stats.shader_swaps);
-                igText("Material swaps: %d", r_renderer_stats.material_swaps);
-                igText("Z prepass: %s", r_renderer_state.use_z_prepass ? "Enabled" : "Disabled");
+                igText("Draw calls: %d", r_renderer_state.draw_call_count);
+                igText("Shader swaps: %d", r_renderer_state.shader_swaps);
+                igText("Material swaps: %d", r_renderer_state.material_swaps);
+                igCheckbox("Z prepass", &r_renderer_state.use_z_prepass);
+                igCheckbox("Draw lights", &r_renderer_state.draw_lights);
             }
             igEnd();
         }
-
-//        igSameLine(0, -1);
-//        igText("Draw calls: %d", r_renderer_stats.draw_call_count);
-//        igText("Shader swaps: %d", r_renderer_stats.shader_swaps);
-//        igText("Material swaps: %d", r_renderer_stats.material_swaps);
     }
 
     ed_UpdateExplorer();

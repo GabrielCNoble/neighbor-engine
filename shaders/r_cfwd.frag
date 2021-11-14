@@ -25,7 +25,7 @@ void main()
         uint index = indices[point_light_start + light_index].index;
         r_point_data_t light = point_lights[index];
 
-        vec4 light_color = vec4(light.col_res.rgb, 0.0);
+        vec4 light_color = vec4(light.col_shd.rgb, 0.0);
         vec3 light_vec = light.pos_rad.xyz - r_var_position.xyz;
         vec3 orig_light_vec = light_vec;
         float dist = length(light_vec);
@@ -34,7 +34,8 @@ void main()
         light_vec = light_vec / dist;
         dist *= dist;
 
-        float shadow = shadowing(index, r_var_position.xyz, r_var_normal.xyz);
+        uint shadow_map = floatBitsToUint(light.col_shd.w);
+        float shadow = r_CubeShadow(shadow_map, -orig_light_vec);
         float spec = clamp(lighting(view_vec, light_vec, normal.xyz, roughness), 0.0, 1.0);
         float diff = (1.0 - spec);
         float c = clamp(dot(normal, light_vec), 0.0, 1.0) * limit;

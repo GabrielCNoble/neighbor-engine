@@ -61,9 +61,14 @@ extern uint32_t r_light_index_buffer_cursor;
 extern uint32_t r_light_index_uniform_buffer;
 
 
-extern uint32_t *r_shadow_index_buffer;
-extern uint32_t r_shadow_index_buffer_cursor;
-extern uint32_t r_shadow_index_uniform_buffer;
+//extern uint32_t *r_shadow_index_buffer;
+//extern uint32_t r_shadow_index_buffer_cursor;
+//extern uint32_t r_shadow_index_uniform_buffer;
+
+extern struct r_shadow_map_t *r_shadow_map_buffer;
+extern uint32_t r_shadow_map_buffer_cursor;
+extern uint32_t r_shadow_map_uniform_buffer;
+
 extern uint32_t r_shadow_atlas_texture;
 extern uint32_t r_indirect_texture;
 extern uint32_t r_shadow_map_framebuffer;
@@ -98,7 +103,6 @@ extern uint32_t r_z_prepass_framebuffer;
 //uint32_t r_prev_draw_call_count = 0;
 
 struct r_renderer_state_t r_renderer_state;
-struct r_renderer_stats_t r_renderer_stats;
 
 extern uint32_t r_uniform_type_sizes[];
 
@@ -126,8 +130,9 @@ void r_BeginFrame()
 
     glBindBuffer(GL_UNIFORM_BUFFER, r_light_index_uniform_buffer);
     glBufferSubData(GL_UNIFORM_BUFFER, 0, R_MAX_CLUSTER_LIGHTS * R_CLUSTER_COUNT * sizeof(uint32_t), r_light_index_buffer);
-    glBindBuffer(GL_UNIFORM_BUFFER, r_shadow_index_uniform_buffer);
-    glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(uint32_t) * r_visible_lights.cursor * 6, r_shadow_index_buffer);
+
+    glBindBuffer(GL_UNIFORM_BUFFER, r_shadow_map_uniform_buffer);
+    glBufferSubData(GL_UNIFORM_BUFFER, 0, r_shadow_map_buffer_cursor * sizeof(struct r_shadow_map_t), r_shadow_map_buffer);
 
     glActiveTexture(GL_TEXTURE0 + R_CLUSTERS_TEX_UNIT);
     glBindTexture(GL_TEXTURE_3D, r_cluster_texture);
@@ -135,7 +140,7 @@ void r_BeginFrame()
     glBindBufferBase(GL_UNIFORM_BUFFER, R_POINT_LIGHT_UNIFORM_BUFFER_BINDING, r_point_light_data_uniform_buffer);
     glBindBufferBase(GL_UNIFORM_BUFFER, R_SPOT_LIGHT_UNIFORM_BUFFER_BINDING, r_spot_light_data_uniform_buffer);
     glBindBufferBase(GL_UNIFORM_BUFFER, R_LIGHT_INDICES_UNIFORM_BUFFER_BINDING, r_light_index_uniform_buffer);
-    glBindBufferBase(GL_UNIFORM_BUFFER, R_SHADOW_INDICES_BUFFER_BINDING, r_shadow_index_uniform_buffer);
+    glBindBufferBase(GL_UNIFORM_BUFFER, R_SHADOW_INDICES_BUFFER_BINDING, r_shadow_map_uniform_buffer);
 
     glActiveTexture(GL_TEXTURE0 + R_SHADOW_ATLAS_TEX_UNIT);
     glBindTexture(GL_TEXTURE_2D, r_shadow_atlas_texture);
@@ -150,7 +155,13 @@ void r_BeginFrame()
     glBindBuffer(GL_ARRAY_BUFFER, r_vertex_buffer);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, r_index_buffer);
 
-    r_renderer_stats = (struct r_renderer_stats_t){};
+//    r_renderer_state = (struct r_renderer_state_t){};
+
+    r_renderer_state.draw_call_count = 0;
+    r_renderer_state.indice_count = 0;
+    r_renderer_state.material_swaps = 0;
+    r_renderer_state.shader_swaps = 0;
+    r_renderer_state.vert_count = 0;
 }
 
 void r_EndFrame()
@@ -220,8 +231,8 @@ void r_UpdateViewProjectionMatrix()
 void r_DrawElements(uint32_t mode, uint32_t count, uint32_t type, const void *indices)
 {
     glDrawElements(mode, count, type, indices);
-    r_renderer_stats.draw_call_count++;
-    r_renderer_stats.indice_count += count;
+    r_renderer_state.draw_call_count++;
+    r_renderer_state.indice_count += count;
 //    r_renderer_stats.vert_count +=
 }
 
@@ -252,7 +263,6 @@ void r_DrawShadow(mat4_t *model_view_projection_matrix, uint32_t shadow_map, uin
     shadow_cmd->start = start;
     shadow_cmd->count = count;
     shadow_cmd->shadow_map = shadow_map;
-//    shadow_cmd->shadow_res = shadow_res;
     shadow_cmd->model_view_projection_matrix = *model_view_projection_matrix;
 }
 
@@ -322,27 +332,34 @@ void r_DrawCmds()
     glPolygonOffset(1.0, 1.0);
     r_BindShader(r_shadow_shader);
 
-    uint32_t cur_shadow_map = 0xffffffff;
+//    uint32_t cur_shadow_map = 0xffffffff;
+    struct r_shadow_map_t *cur_shadow_map = NULL;
     for(uint32_t cmd_index = 0; cmd_index < r_shadow_cmds.cursor; cmd_index++)
     {
         struct r_shadow_cmd_t *cmd = ds_list_get_element(&r_shadow_cmds, cmd_index);
+        struct r_shadow_map_t *shadow_map = r_GetShadowMap(cmd->shadow_map);
 
-        if(cmd->shadow_map != cur_shadow_map)
+        if(shadow_map != cur_shadow_map)
         {
-            uint32_t shadow_x = ((cmd->shadow_map >> R_SHADOW_MAP_X_COORD_SHIFT) & 0xff) * R_SHADOW_MAP_MIN_RESOLUTION;
-            uint32_t shadow_y = ((cmd->shadow_map >> R_SHADOW_MAP_Y_COORD_SHIFT) & 0xff) * R_SHADOW_MAP_MIN_RESOLUTION;
-            uint32_t shadow_res = ((cmd->shadow_map >> R_SHADOW_MAP_RES_SHIFT) & 0xff) * R_SHADOW_MAP_MIN_RESOLUTION;
+            uint32_t x_coord = shadow_map->x_coord;
+            uint32_t y_coord = shadow_map->y_coord;
+            uint32_t resolution = R_SHADOW_BUCKET_RESOLUTION(cmd->shadow_map);
+//            uint32_t resolution = (cmd->shadow_map >> R_SHADOW_BUCKET_SHIFT) & R_SHADOW_MAP_BUCKET_MASK;
+//            resolution = R_SHADOW_MAP_BUCKET0_RES << resolution;
+//            uint32_t shadow_x = ((cmd->shadow_map >> R_SHADOW_MAP_X_COORD_SHIFT) & 0xff) * R_SHADOW_MAP_MIN_RESOLUTION;
+//            uint32_t shadow_y = ((cmd->shadow_map >> R_SHADOW_MAP_Y_COORD_SHIFT) & 0xff) * R_SHADOW_MAP_MIN_RESOLUTION;
+//            uint32_t shadow_res = ((cmd->shadow_map >> R_SHADOW_MAP_RES_SHIFT) & 0xff) * R_SHADOW_MAP_MIN_RESOLUTION;
 
-            glScissor(shadow_x, shadow_y, shadow_res, shadow_res);
-            glViewport(shadow_x, shadow_y, shadow_res, shadow_res);
+            glScissor(x_coord, y_coord, resolution, resolution);
+            glViewport(x_coord, y_coord, resolution, resolution);
             glClear(GL_DEPTH_BUFFER_BIT);
 
-            cur_shadow_map = cmd->shadow_map;
+            cur_shadow_map = shadow_map;
         }
 
         r_SetDefaultUniformMat4(R_UNIFORM_MODEL_VIEW_PROJECTION_MATRIX, &cmd->model_view_projection_matrix);
         glDrawElements(GL_TRIANGLES, cmd->count, GL_UNSIGNED_INT, (void *)(cmd->start * sizeof(uint32_t)));
-        r_renderer_stats.draw_call_count++;
+        r_renderer_state.draw_call_count++;
     }
     glDisable(GL_POLYGON_OFFSET_FILL);
     glPolygonOffset(0, 0);
@@ -363,7 +380,7 @@ void r_DrawCmds()
             mat4_t_mul(&model_view_projection_matrix, &cmd->model_view_matrix, &r_projection_matrix);
             r_SetDefaultUniformMat4(R_UNIFORM_MODEL_VIEW_PROJECTION_MATRIX, &model_view_projection_matrix);
             glDrawElements(GL_TRIANGLES, cmd->count, GL_UNSIGNED_INT, (void *)(cmd->start * sizeof(uint32_t)));
-            r_renderer_stats.draw_call_count++;
+            r_renderer_state.draw_call_count++;
         }
 
         glDepthFunc(GL_EQUAL);
@@ -392,7 +409,7 @@ void r_DrawCmds()
         r_SetDefaultUniformMat4(R_UNIFORM_MODEL_VIEW_PROJECTION_MATRIX, &model_view_projection_matrix);
         r_SetDefaultUniformMat4(R_UNIFORM_MODEL_VIEW_MATRIX, &cmd->model_view_matrix);
         glDrawElements(GL_TRIANGLES, cmd->count, GL_UNSIGNED_INT, (void *)(cmd->start * sizeof(uint32_t)));
-        r_renderer_stats.draw_call_count++;
+        r_renderer_state.draw_call_count++;
     }
 
     mat4_t view_projection_matrix;
@@ -628,6 +645,14 @@ void r_DrawCmds()
                         mode = GL_LINES;
                     break;
 
+                    case R_I_DRAW_CMD_LINE_STRIP:
+                        if(draw_list->size)
+                        {
+                            glLineWidth(draw_list->size);
+                        }
+                        mode = GL_LINE_STRIP;
+                    break;
+
                     case R_I_DRAW_CMD_POINT_LIST:
                         if(draw_list->size)
                         {
@@ -668,7 +693,7 @@ void r_DrawCmds()
                     {
                         struct r_i_draw_cmd_t *draw_cmd = draw_list->commands + cmd_index;
                         glDrawElements(mode, draw_cmd->count, GL_UNSIGNED_INT, (void *)((draw_cmd->start + cmd_index_start_offset) * sizeof(uint32_t)));
-                        r_renderer_stats.draw_call_count++;
+                        r_renderer_state.draw_call_count++;
                     }
                 }
                 else
@@ -677,7 +702,7 @@ void r_DrawCmds()
                     {
                         struct r_i_draw_cmd_t *draw_cmd = draw_list->commands + cmd_index;
                         glDrawArrays(mode, draw_cmd->start + cmd_vert_start_offset, draw_cmd->count);
-                        r_renderer_stats.draw_call_count++;
+                        r_renderer_state.draw_call_count++;
                     }
                 }
 //                }

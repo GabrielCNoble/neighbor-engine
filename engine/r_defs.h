@@ -114,19 +114,6 @@ struct r_named_uniform_t
     char *name;
 };
 
-struct r_shader_text_buffer_t
-{
-    char *buffer;
-    uint32_t cursor;
-    uint32_t line;
-    uint32_t size;
-};
-
-struct r_shader_preproc_t
-{
-    struct ds_list_t buffers;
-};
-
 struct r_shader_t
 {
     uint32_t handle;
@@ -135,7 +122,6 @@ struct r_shader_t
     struct r_uniform_t uniforms[R_UNIFORM_LAST];
     struct ds_list_t named_uniforms;
 };
-
 
 struct r_vert_t
 {
@@ -195,6 +181,8 @@ struct r_model_t
     struct ds_buffer_t weight_ranges;
     struct ds_buffer_t weights;
     struct r_model_t *base;
+    uint32_t model_start;
+    uint32_t model_count;
     vec3_t min;
     vec3_t max;
 };
@@ -254,7 +242,7 @@ enum R_LIGHT_TYPES
 struct r_point_data_t
 {
     vec4_t pos_rad;
-    vec4_t color_res;
+    vec4_t color_shd;
 };
 
 struct r_spot_data_t
@@ -273,17 +261,18 @@ struct r_lcluster_t
     uint32_t z : 5;
 };
 
-#define R_LIGHT_FIELDS              \
-    float energy;                   \
-    float range;                    \
-    uint32_t index;                 \
-    uint32_t type;                  \
-    vec3_t color;                   \
-    vec3_t position;                \
-    uint32_t shadow_map;            \
-    struct r_lcluster_t min;        \
-    struct r_lcluster_t max;        \
-    uint32_t light_buffer_index;
+#define R_LIGHT_FIELDS                  \
+    float energy;                       \
+    float range;                        \
+    uint16_t index;                     \
+    uint16_t type;                      \
+    uint16_t light_buffer_index;        \
+    uint16_t shadow_map_buffer_index;   \
+    vec3_t color;                       \
+    vec3_t position;                    \
+    struct r_lcluster_t min;            \
+    struct r_lcluster_t max;            \
+    uint32_t shadow_map_res             \
 
 struct r_light_t
 {
@@ -293,6 +282,7 @@ struct r_light_t
 struct r_point_light_t
 {
     R_LIGHT_FIELDS;
+    uint32_t shadow_maps[6];
 };
 
 struct r_spot_light_t
@@ -301,6 +291,7 @@ struct r_spot_light_t
     mat3_t orientation;
     uint32_t angle;
     float softness;
+    uint32_t shadow_map;
 };
 
 #define R_LIGHT_TYPE_INDEX_SHIFT 28
@@ -309,6 +300,8 @@ struct r_spot_light_t
 #define R_LIGHT_INDEX(type, index) (index | (type << R_LIGHT_TYPE_INDEX_SHIFT))
 #define R_SPOT_LIGHT_MIN_ANGLE 10
 #define R_SPOT_LIGHT_MAX_ANGLE 85
+#define R_SPOT_LIGHT_BASE_VERTS 16
+#define R_POINT_LIGHT_VERTS 32
 
 struct r_cluster_t
 {
@@ -318,32 +311,87 @@ struct r_cluster_t
     uint16_t spot_count;
 };
 
-#define R_SHADOW_MAP_X_COORD_SHIFT 0
-#define R_SHADOW_MAP_Y_COORD_SHIFT 8
-#define R_SHADOW_MAP_RES_SHIFT 16
+#define R_SHADOW_CUBEMAP_FACE_INDEX_SHIFT 0
+#define R_SHADOW_CUBEMAP_FACE_INDEX_MASK 0x07
+#define R_SHADOW_CUBEMAP_FACE_UV_COORD_MASK 0x03
+#define R_SHADOW_CUBEMAP_FACE_U_COORD_SHIFT 0x03
+#define R_SHADOW_CUBEMAP_FACE_V_COORD_SHIFT 0x05
+#define R_SHADOW_CUBEMAP_OFFSET_PACK_SHIFT 3
 
-#define R_SHADOW_MAP_FACE_INDEX_SHIFT 0
-#define R_SHADOW_MAP_FACE_INDEX_MASK 0x07
-#define R_SHADOW_MAP_FACE_UV_COORD_MASK 0x03
-#define R_SHADOW_MAP_FACE_U_COORD_SHIFT 0x03
-#define R_SHADOW_MAP_FACE_V_COORD_SHIFT 0x05
+#define R_POINT_LIGHT_FRUSTUM_PLANE_FRONT 0x1
+#define R_POINT_LIGHT_FRUSTUM_PLANE_BACK 0x2
+#define R_POINT_LIGHT_FRUSTUM_PLANE0_SHIFT 10
+#define R_POINT_LIGHT_FRUSTUM_PLANE1_SHIFT 8
+#define R_POINT_LIGHT_FRUSTUM_PLANE2_SHIFT 6
+#define R_POINT_LIGHT_FRUSTUM_PLANE3_SHIFT 4
+#define R_POINT_LIGHT_FRUSTUM_PLANE4_SHIFT 2
+#define R_POINT_LIGHT_FRUSTUM_PLANE5_SHIFT 0
 
-#define R_SHADOW_MAP_OFFSET_PACK_SHIFT 3
-#define R_SHADOW_MAP_PLANE_FRONT 0x1
-#define R_SHADOW_MAP_PLANE_BACK 0x2
-#define R_SHADOW_MAP_PLANE0_SHIFT 10
-#define R_SHADOW_MAP_PLANE1_SHIFT 8
-#define R_SHADOW_MAP_PLANE2_SHIFT 6
-#define R_SHADOW_MAP_PLANE3_SHIFT 4
-#define R_SHADOW_MAP_PLANE4_SHIFT 2
-#define R_SHADOW_MAP_PLANE5_SHIFT 0
-//#define R_SHADOW_MAP_COORD_OFFSET_MASK 0x03
-//#define R_SHADOW_MAP_X_COORD_OFFSET_SHIFT 4
-//#define R_SHADOW_MAP_Y_COORD_OFFSET_SHIFT 6
+#define R_SHADOW_BUCKET_COUNT 5
+#define R_SHADOW_BUCKET0 0
+#define R_SHADOW_BUCKET1 1
+#define R_SHADOW_BUCKET2 2
+#define R_SHADOW_BUCKET3 3
+#define R_SHADOW_BUCKET4 4
+
+#define R_SHADOW_BUCKET0_RES (R_SHADOW_MAP_MIN_RESOLUTION << R_SHADOW_BUCKET0)
+#define R_SHADOW_BUCKET1_RES (R_SHADOW_MAP_MIN_RESOLUTION << R_SHADOW_BUCKET1)
+#define R_SHADOW_BUCKET2_RES (R_SHADOW_MAP_MIN_RESOLUTION << R_SHADOW_BUCKET2)
+#define R_SHADOW_BUCKET3_RES (R_SHADOW_MAP_MIN_RESOLUTION << R_SHADOW_BUCKET3)
+#define R_SHADOW_BUCKET4_RES (R_SHADOW_MAP_MIN_RESOLUTION << R_SHADOW_BUCKET4)
+
+#define R_SHADOW_TILE_SHIFT 2
+#define R_SHADOW_TILE_MASK 0x00ffffff
+#define R_SHADOW_BUCKET_SHIFT 29
+#define R_SHADOW_BUCKET_MASK 0x00000007
+#define R_SHADOW_MAP_MASK 0x00000003
+#define R_SHADOW_MAP_HANDLE(bucket, tile, map) ((( (bucket) & R_SHADOW_BUCKET_MASK) << R_SHADOW_BUCKET_SHIFT) | \
+                                               (( (tile) & R_SHADOW_TILE_MASK) << R_SHADOW_TILE_SHIFT) | ((map) & R_SHADOW_MAP_MASK))
+
+#define R_SHADOW_BUCKET_INDEX(shadow_map_handle) (((shadow_map_handle) >> R_SHADOW_BUCKET_SHIFT) & R_SHADOW_BUCKET_MASK)
+#define R_SHADOW_BUCKET_RESOLUTION(shadow_map_handle) (R_SHADOW_BUCKET0_RES << R_SHADOW_BUCKET_INDEX(shadow_map_handle))
+#define R_SHADOW_TILE_INDEX(shadow_map_handle) (((shadow_map_handle) >> R_SHADOW_TILE_SHIFT) & R_SHADOW_TILE_MASK)
+#define R_SHADOW_MAP_INDEX(shadow_map_handle) ((shadow_map_handle) & R_SHADOW_MAP_MASK)
+
+
+#define R_SHADOW_MAP_GPU_INDEX_RES_SHIFT 16
+#define R_SHADOW_MAP_GPU_INDEX_RES_MASK 0xffff
+#define R_SHADOW_MAP_GPU_INDEX_
+
+
+#define R_SHADOW_MAP_COORD_MASK 0x0000ffff
+#define R_SHADOW_MAP_Y_COORD_SHIFT 16
+#define R_SHADOW_MAP_COORDS(x_coord, y_coord) (((x_coord) & R_SHADOW_MAP_COORD_MASK) | \
+                                               (((y_coord) & R_SHADOW_MAP_COORD_MASK) << R_SHADOW_MAP_Y_COORD_SHIFT))
+
+#define R_SHADOW_MAP_X_COORD(coords) ((coords) & R_SHADOW_MAP_COORD_MASK)
+#define R_SHADOW_MAP_Y_COORD(coords) (((coords) >> R_SHADOW_MAP_Y_COORD_SHIFT) & R_SHADOW_MAP_COORD_MASK)
+
+#define R_SHADOW_MAP_INDEX_PACK_MASK 0x0fffffff
+#define R_SHADOW_MAP_RESOLUTION_PACK_MASK 0x0000000f
+#define R_SHADOW_MAP_RESOLUTION_PACK_SHIFT 28
 
 struct r_shadow_map_t
 {
-    uint32_t shadow_map;
+    uint16_t x_coord;
+    uint16_t y_coord;
+//    uint32_t coords;
+};
+
+struct r_shadow_tile_t
+{
+    uint16_t parent_tile : 12;
+    uint16_t used        : 4;
+    uint16_t next;
+    uint16_t prev;
+    struct r_shadow_map_t shadow_maps[4];
+};
+
+struct r_shadow_bucket_t
+{
+    struct r_shadow_tile_t *tiles;
+    uint16_t cur_free;
+    uint16_t cur_src;
 };
 
 struct r_vis_item_t
@@ -566,20 +614,24 @@ struct r_i_state_t
 
 struct r_renderer_state_t
 {
-    uint32_t use_z_prepass;
-    uint32_t max_shadow_res;
-    uint32_t draw_lights;
-};
-
-struct r_renderer_stats_t
-{
     uint32_t vert_count;
     uint32_t indice_count;
     uint32_t draw_call_count;
     uint32_t shader_swaps;
     uint32_t material_swaps;
     uint32_t texture_swaps;
+
+    uint32_t use_z_prepass;
+    uint32_t max_shadow_res;
+    uint32_t draw_lights;
+    uint32_t draw_colliders;
+    uint32_t draw_entities;
 };
+
+//struct r_renderer_stats_t
+//{
+//
+//};
 
 #define R_CLUSTER_ROW_WIDTH 32
 #define R_CLUSTER_ROWS 16

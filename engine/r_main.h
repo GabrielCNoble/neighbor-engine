@@ -98,6 +98,10 @@ struct r_light_t *r_GetLight(uint32_t light_index);
 
 void r_AllocShadowMaps(struct r_light_t *light, uint32_t resolution);
 
+struct r_shadow_map_t *r_GetShadowMap(uint32_t shadow_map);
+
+void r_FreeShadowMaps(struct r_light_t *light);
+
 void r_DestroyLight(struct r_light_t *light);
 
 void r_DestroyAllLighs();

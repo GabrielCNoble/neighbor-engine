@@ -74,34 +74,44 @@ struct r_cluster_t *r_clusters;
 uint32_t r_point_light_data_uniform_buffer;
 uint32_t r_point_light_buffer_cursor;
 struct r_point_data_t *r_point_light_buffer;
-
+struct r_model_t *r_point_light_model;
 
 uint32_t r_spot_light_data_uniform_buffer;
 uint32_t r_spot_light_buffer_cursor;
 struct r_spot_data_t *r_spot_light_buffer;
+struct r_model_t *r_spot_light_model;
 
 uint32_t r_light_index_buffer_cursor;
 uint32_t r_light_index_uniform_buffer;
 uint32_t *r_light_index_buffer;
 
-//uint32_t r_shadow_map_uniform_buffer;
+//uint32_t *r_shadow_index_buffer;
+//uint32_t r_shadow_index_buffer_cursor;
+//uint32_t r_shadow_index_uniform_buffer;
 
-uint32_t *r_free_shadow_index_buffer;
-uint32_t r_free_shadow_index_buffer_cursor;
+struct r_shadow_map_t *r_shadow_map_buffer;
+uint32_t r_shadow_map_buffer_cursor;
+uint32_t r_shadow_map_uniform_buffer;
 
-uint32_t *r_shadow_index_buffer;
-uint32_t r_shadow_index_buffer_cursor;
-uint32_t r_shadow_index_uniform_buffer;
 uint32_t r_shadow_atlas_texture;
 uint32_t r_indirect_texture;
 uint32_t r_shadow_map_framebuffer;
+struct r_shadow_bucket_t r_shadow_buckets[R_SHADOW_BUCKET_COUNT];
+//uint16_t r_shadow_bucket_res[] =
+//{
+//    [R_SHADOW_MAP_BUCKET0] = R_SHADOW_BUCKET0_RES,
+//    [R_SHADOW_MAP_BUCKET1] = R_SHADOW_BUCKET1_RES,
+//    [R_SHADOW_MAP_BUCKET2] = R_SHADOW_BUCKET2_RES,
+//    [R_SHADOW_MAP_BUCKET3] = R_SHADOW_BUCKET3_RES,
+//    [R_SHADOW_MAP_BUCKET4] = R_SHADOW_BUCKET4_RES,
+//};
 //mat4_t r_point_shadow_projection_matrices[6];
 //mat4_t r_point_shadow_view_matrices[6];
 
 vec2_t r_point_shadow_projection_params;
 mat4_t r_point_shadow_view_projection_matrices[6];
-vec3_t r_point_shadow_frustum_planes[6];
-uint16_t r_point_shadow_frustum_masks[6];
+vec3_t r_point_light_frustum_planes[6];
+uint16_t r_point_light_frustum_masks[6];
 
 uint32_t r_main_framebuffer;
 uint32_t r_main_color_attachment;
@@ -109,7 +119,7 @@ uint32_t r_main_depth_attachment;
 uint32_t r_z_prepass_framebuffer;
 
 extern struct r_renderer_state_t r_renderer_state;
-extern struct r_renderer_stats_t r_renderer_stats;
+//extern struct r_renderer_stats_t r_renderer_stats;
 
 SDL_Window *r_window;
 SDL_GLContext *r_context;
@@ -258,12 +268,213 @@ void r_Init()
     r_point_light_buffer = mem_Calloc(R_MAX_LIGHTS, sizeof(struct r_point_data_t));
     r_spot_light_buffer = mem_Calloc(R_MAX_LIGHTS, sizeof(struct r_spot_data_t));
     r_light_index_buffer = mem_Calloc(R_CLUSTER_COUNT * R_MAX_CLUSTER_LIGHTS, sizeof(uint32_t));
-    r_shadow_index_buffer = mem_Calloc(R_MAX_LIGHTS * 6, sizeof(uint32_t));
-    r_free_shadow_index_buffer = mem_Calloc(R_MAX_SHADOW_MAPS, sizeof(uint32_t));
+    r_shadow_map_buffer = mem_Calloc(R_MAX_LIGHTS * 6, sizeof(struct r_shadow_map_t));
 
-//    r_free_shadow_index_buffer[0] = ((R_SHADOW_MAP_ATLAS_WIDTH / R_SHADOW_MAP_MIN_RESOLUTION) << R_SHADOW_MAP_WIDTH_SHIFT);
-//    r_free_shadow_index_buffer[0] |= ((R_SHADOW_MAP_ATLAS_HEIGHT / R_SHADOW_MAP_MIN_RESOLUTION) << R_SHADOW_MAP_HEIGHT_SHIFT);
-//    r_free_shadow_index_buffer_cursor = 1;
+//    r_shadow_index_buffer = mem_Calloc(R_MAX_LIGHTS * 6, sizeof(uint32_t));
+
+    uint32_t cur_resolution = R_SHADOW_MAP_MIN_RESOLUTION;
+    for(uint32_t bucket_index = 0; bucket_index < R_SHADOW_BUCKET_COUNT; bucket_index++)
+    {
+        uint32_t width = R_SHADOW_MAP_ATLAS_WIDTH / cur_resolution;
+        uint32_t height = R_SHADOW_MAP_ATLAS_HEIGHT / cur_resolution;
+        uint32_t tile_count = (width * height) / 4;
+
+        struct r_shadow_bucket_t *bucket = r_shadow_buckets + bucket_index;
+        bucket->tiles = mem_Calloc(tile_count, sizeof(struct r_shadow_tile_t));
+        bucket->cur_free = 0xffff;
+        bucket->cur_src = 0xffff;
+
+        for(uint32_t tile_index = 0; tile_index < tile_count; tile_index++)
+        {
+            struct r_shadow_tile_t *tile = bucket->tiles + tile_index;
+            tile->next = bucket->cur_free;
+            tile->prev = 0xffff;
+
+            if(bucket->cur_free != 0xffff)
+            {
+                bucket->tiles[bucket->cur_free].prev = tile_index;
+            }
+
+            bucket->cur_free = tile_index;
+        }
+
+        cur_resolution <<= 1;
+    }
+
+    uint32_t width = R_SHADOW_MAP_ATLAS_WIDTH / R_SHADOW_BUCKET4_RES;
+    uint32_t height = R_SHADOW_MAP_ATLAS_HEIGHT / R_SHADOW_BUCKET4_RES;
+    uint32_t tile_count = (width * height) / 4;
+
+    uint32_t shadow_map_x = 0;
+    uint32_t shadow_map_y = 0;
+    struct r_shadow_bucket_t *bucket = r_shadow_buckets + R_SHADOW_BUCKET4;
+    bucket->cur_free = 0xffff;
+
+    for(uint32_t tile_index = 0; tile_index < tile_count; tile_index++)
+    {
+        struct r_shadow_tile_t *shadow_tile = bucket->tiles + tile_index;
+        shadow_tile->used = 0;
+        shadow_tile->next = bucket->cur_src;
+        if(bucket->cur_src != 0xffff)
+        {
+            bucket->tiles[bucket->cur_src].prev = tile_index;
+        }
+        bucket->cur_src = tile_index;
+
+        struct r_shadow_map_t *shadow_map = shadow_tile->shadow_maps;
+
+//        shadow_map->coords = R_SHADOW_MAP_COORDS(shadow_map_x, shadow_map_y);
+        shadow_map->x_coord = shadow_map_x;
+        shadow_map->y_coord = shadow_map_y;
+        shadow_map++;
+
+//        shadow_map->coords = R_SHADOW_MAP_COORDS(shadow_map_x + R_SHADOW_BUCKET4_RES, shadow_map_y);
+        shadow_map->x_coord = shadow_map_x + R_SHADOW_BUCKET4_RES;
+        shadow_map->y_coord = shadow_map_y;
+        shadow_map++;
+
+//        shadow_map->coords = R_SHADOW_MAP_COORDS(shadow_map_x, shadow_map_y + R_SHADOW_BUCKET4_RES);
+        shadow_map->x_coord = shadow_map_x;
+        shadow_map->y_coord = shadow_map_y + R_SHADOW_BUCKET4_RES;
+        shadow_map++;
+
+//        shadow_map->coords = R_SHADOW_MAP_COORDS(shadow_map_x + R_SHADOW_BUCKET4_RES, shadow_map_y + R_SHADOW_BUCKET4_RES);
+        shadow_map->x_coord = shadow_map_x + R_SHADOW_BUCKET4_RES;
+        shadow_map->y_coord = shadow_map_y + R_SHADOW_BUCKET4_RES;
+        shadow_map++;
+
+        shadow_map_x += R_SHADOW_BUCKET4_RES * 2;
+        if(shadow_map_x >= R_SHADOW_MAP_ATLAS_WIDTH)
+        {
+            shadow_map_x = 0;
+            shadow_map_y += R_SHADOW_BUCKET4_RES * 2;
+        }
+    }
+
+
+    /****************************************************************************/
+
+    struct r_vert_t *light_model_verts;
+    uint32_t *light_model_indices;
+
+    float cur_angle = 0;
+    float angle_increment = (3.14159265 * 2.0) / (float)R_SPOT_LIGHT_BASE_VERTS;
+    uint32_t light_model_vert_count = R_SPOT_LIGHT_BASE_VERTS + 1;
+    uint32_t light_model_index_count = 0;
+    struct r_batch_t light_model_batch = {};
+    struct r_model_geometry_t light_model_geometry = {};
+    light_model_verts = mem_Calloc(light_model_vert_count, sizeof(struct r_vert_t));
+    light_model_indices = mem_Calloc(R_SPOT_LIGHT_BASE_VERTS * 3, sizeof(uint32_t));
+
+    struct r_vert_t *vert = light_model_verts;
+    vert->pos = vec3_t_c(0.0, 0.0, 0.0);
+    vert->color = vec4_t_c(0.8, 0.8, 1.0, 1.0);
+    vert++;
+
+    for(uint32_t vert_index = 0; vert_index < R_SPOT_LIGHT_BASE_VERTS;)
+    {
+        float cur_s = sin(cur_angle);
+        float cur_c = cos(cur_angle);
+        cur_angle += angle_increment;
+
+        vert->pos = vec3_t_c(cur_c, cur_s, -1.0);
+        vert->color = vec4_t_c(0.8, 0.8, 1.0, 1.0);
+        vert++;
+
+        vert_index++;
+
+        light_model_indices[light_model_index_count++] = 0;
+        light_model_indices[light_model_index_count++] = vert_index;
+        light_model_indices[light_model_index_count++] = 1 + (vert_index % R_SPOT_LIGHT_BASE_VERTS);
+    }
+
+    light_model_batch.material = NULL;
+    light_model_batch.start = 0;
+    light_model_batch.count = light_model_index_count;
+
+    light_model_geometry.batches = &light_model_batch;
+    light_model_geometry.batch_count = 1;
+    light_model_geometry.indices = light_model_indices;
+    light_model_geometry.index_count = light_model_index_count;
+    light_model_geometry.verts = light_model_verts;
+    light_model_geometry.vert_count = light_model_vert_count;
+
+    r_spot_light_model = r_CreateModel(&light_model_geometry, NULL);
+
+    mem_Free(light_model_verts);
+    mem_Free(light_model_indices);
+
+
+    light_model_vert_count = R_POINT_LIGHT_VERTS * 3;
+    light_model_verts = mem_Calloc(light_model_vert_count, sizeof(struct r_vert_t));
+
+    light_model_index_count = light_model_vert_count * 2;
+    light_model_indices = mem_Calloc(light_model_index_count, sizeof(uint32_t));
+
+    cur_angle = 0.0;
+    angle_increment = (3.14159265 * 2.0) / (float)R_POINT_LIGHT_VERTS;
+
+    struct r_vert_t *vert0 = light_model_verts;
+    struct r_vert_t *vert1 = vert0 + R_POINT_LIGHT_VERTS;
+    struct r_vert_t *vert2 = vert1 + R_POINT_LIGHT_VERTS;
+
+    uint32_t *index0 = light_model_indices;
+    uint32_t *index1 = index0 + R_POINT_LIGHT_VERTS * 2;
+    uint32_t *index2 = index1 + R_POINT_LIGHT_VERTS * 2 ;
+
+    for(uint32_t vert_index = 0; vert_index < R_POINT_LIGHT_VERTS; vert_index++)
+    {
+        float cur_s = sin(cur_angle);
+        float cur_c = cos(cur_angle);
+        cur_angle += angle_increment;
+
+        vert0->pos = vec3_t_c(cur_c, cur_s, 0.0);
+        vert0->color = vec4_t_c(0.8, 0.8, 1.0, 1.0);
+
+        vert1->pos.x = vert0->pos.x;
+        vert1->pos.y = 0.0;
+        vert1->pos.z = vert0->pos.y;
+        vert1->color = vert0->color;
+
+        vert2->pos.x = 0.0;
+        vert2->pos.y = vert0->pos.y;
+        vert2->pos.z = vert0->pos.x;
+        vert2->color = vert0->color;
+
+        vert0++;
+        vert1++;
+        vert2++;
+
+        index0[0] = vert_index;
+        index1[0] = index0[0] + R_POINT_LIGHT_VERTS;
+        index2[0] = index1[0] + R_POINT_LIGHT_VERTS;
+
+        index0[1] = (vert_index + 1) % R_POINT_LIGHT_VERTS;
+        index1[1] = index0[1] + R_POINT_LIGHT_VERTS;
+        index2[1] = index1[1] + R_POINT_LIGHT_VERTS;
+
+        index0 += 2;
+        index1 += 2;
+        index2 += 2;
+    }
+
+    light_model_batch.start = 0;
+    light_model_batch.count = light_model_vert_count;
+
+    light_model_geometry.batches = &light_model_batch;
+    light_model_geometry.batch_count = 1;
+    light_model_geometry.indices = light_model_indices;
+    light_model_geometry.index_count = light_model_index_count;
+    light_model_geometry.verts = light_model_verts;
+    light_model_geometry.vert_count = light_model_vert_count;
+
+    r_point_light_model = r_CreateModel(&light_model_geometry, NULL);
+
+    mem_Free(light_model_verts);
+    mem_Free(light_model_indices);
+
+/****************************************************************************/
+
 
     glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
     glGenTextures(1, &r_cluster_texture);
@@ -288,9 +499,10 @@ void r_Init()
     glGenBuffers(1, &r_light_index_uniform_buffer);
     glBindBuffer(GL_UNIFORM_BUFFER, r_light_index_uniform_buffer);
     glBufferData(GL_UNIFORM_BUFFER, R_CLUSTER_COUNT * R_MAX_CLUSTER_LIGHTS * sizeof(uint32_t), NULL, GL_DYNAMIC_DRAW);
-    glGenBuffers(1, &r_shadow_index_uniform_buffer);
-    glBindBuffer(GL_UNIFORM_BUFFER, r_shadow_index_uniform_buffer);
-    glBufferData(GL_UNIFORM_BUFFER, R_MAX_LIGHTS * sizeof(uint32_t) * 6, NULL, GL_DYNAMIC_DRAW);
+
+    glGenBuffers(1, &r_shadow_map_uniform_buffer);
+    glBindBuffer(GL_UNIFORM_BUFFER, r_shadow_map_uniform_buffer);
+    glBufferData(GL_UNIFORM_BUFFER, sizeof(struct r_shadow_map_t) * width * height, NULL, GL_DYNAMIC_DRAW);
 
     glGenTextures(1, &r_indirect_texture);
     glBindTexture(GL_TEXTURE_CUBE_MAP, r_indirect_texture);
@@ -326,17 +538,17 @@ void r_Init()
     uint8_t face_data[] =
     {
         /* +X */
-        (0 << R_SHADOW_MAP_FACE_INDEX_SHIFT) | (2 << R_SHADOW_MAP_FACE_U_COORD_SHIFT) | (1 << R_SHADOW_MAP_FACE_V_COORD_SHIFT),
+        (0 << R_SHADOW_CUBEMAP_FACE_INDEX_SHIFT) | (2 << R_SHADOW_CUBEMAP_FACE_U_COORD_SHIFT) | (1 << R_SHADOW_CUBEMAP_FACE_V_COORD_SHIFT),
         /* -X */
-        (1 << R_SHADOW_MAP_FACE_INDEX_SHIFT) | (1 << R_SHADOW_MAP_FACE_U_COORD_SHIFT) | (2 << R_SHADOW_MAP_FACE_V_COORD_SHIFT),
+        (1 << R_SHADOW_CUBEMAP_FACE_INDEX_SHIFT) | (1 << R_SHADOW_CUBEMAP_FACE_U_COORD_SHIFT) | (2 << R_SHADOW_CUBEMAP_FACE_V_COORD_SHIFT),
         /* +Y */
-        (2 << R_SHADOW_MAP_FACE_INDEX_SHIFT) | (0 << R_SHADOW_MAP_FACE_U_COORD_SHIFT) | (2 << R_SHADOW_MAP_FACE_V_COORD_SHIFT),
+        (2 << R_SHADOW_CUBEMAP_FACE_INDEX_SHIFT) | (0 << R_SHADOW_CUBEMAP_FACE_U_COORD_SHIFT) | (2 << R_SHADOW_CUBEMAP_FACE_V_COORD_SHIFT),
         /* -Y */
-        (3 << R_SHADOW_MAP_FACE_INDEX_SHIFT) | (2 << R_SHADOW_MAP_FACE_U_COORD_SHIFT) | (0 << R_SHADOW_MAP_FACE_V_COORD_SHIFT),
+        (3 << R_SHADOW_CUBEMAP_FACE_INDEX_SHIFT) | (2 << R_SHADOW_CUBEMAP_FACE_U_COORD_SHIFT) | (0 << R_SHADOW_CUBEMAP_FACE_V_COORD_SHIFT),
         /* +Z */
-        (4 << R_SHADOW_MAP_FACE_INDEX_SHIFT) | (1 << R_SHADOW_MAP_FACE_U_COORD_SHIFT) | (0 << R_SHADOW_MAP_FACE_V_COORD_SHIFT),
+        (4 << R_SHADOW_CUBEMAP_FACE_INDEX_SHIFT) | (1 << R_SHADOW_CUBEMAP_FACE_U_COORD_SHIFT) | (0 << R_SHADOW_CUBEMAP_FACE_V_COORD_SHIFT),
         /* -Z */
-        (5 << R_SHADOW_MAP_FACE_INDEX_SHIFT) | (0 << R_SHADOW_MAP_FACE_U_COORD_SHIFT) | (1 << R_SHADOW_MAP_FACE_V_COORD_SHIFT),
+        (5 << R_SHADOW_CUBEMAP_FACE_INDEX_SHIFT) | (0 << R_SHADOW_CUBEMAP_FACE_U_COORD_SHIFT) | (1 << R_SHADOW_CUBEMAP_FACE_V_COORD_SHIFT),
     };
 
     for(uint32_t face_index = 0; face_index < 6; face_index++)
@@ -458,64 +670,64 @@ void r_Init()
                    &point_shadow_view_matrices[face_index],
                    &point_shadow_projection_matrices[face_index]);
 
-        r_point_shadow_frustum_planes[face_index] = vec3_t_c(0.0, 0.0, 1.0);
+        r_point_light_frustum_planes[face_index] = vec3_t_c(0.0, 0.0, 1.0);
     }
 
     /* <0.707106769, 0.0, 0.707106769> */
-    vec3_t_rotate_y(&r_point_shadow_frustum_planes[0], &r_point_shadow_frustum_planes[0], 0.25);
+    vec3_t_rotate_y(&r_point_light_frustum_planes[0], &r_point_light_frustum_planes[0], 0.25);
 
     /* <-0.707106769, 0.0, 0.707106769> */
-    vec3_t_rotate_y(&r_point_shadow_frustum_planes[1], &r_point_shadow_frustum_planes[1], -0.25);
+    vec3_t_rotate_y(&r_point_light_frustum_planes[1], &r_point_light_frustum_planes[1], -0.25);
 
     /* <0.0, -0.707106769, 0.707106769> */
-    vec3_t_rotate_x(&r_point_shadow_frustum_planes[2], &r_point_shadow_frustum_planes[2], 0.25);
+    vec3_t_rotate_x(&r_point_light_frustum_planes[2], &r_point_light_frustum_planes[2], 0.25);
 
     /* <0.0, 0.707106769, 0.707106769> */
-    vec3_t_rotate_x(&r_point_shadow_frustum_planes[3], &r_point_shadow_frustum_planes[3], -0.25);
+    vec3_t_rotate_x(&r_point_light_frustum_planes[3], &r_point_light_frustum_planes[3], -0.25);
 
     /* <0.707106769, -0.707106769, 0.0> */
-    vec3_t_rotate_x(&r_point_shadow_frustum_planes[4], &r_point_shadow_frustum_planes[4], 0.25);
-    vec3_t_rotate_y(&r_point_shadow_frustum_planes[4], &r_point_shadow_frustum_planes[4], 0.5);
+    vec3_t_rotate_x(&r_point_light_frustum_planes[4], &r_point_light_frustum_planes[4], 0.25);
+    vec3_t_rotate_y(&r_point_light_frustum_planes[4], &r_point_light_frustum_planes[4], 0.5);
 
     /* <0.707106769, 0.707106769, 0.0> */
-    vec3_t_rotate_x(&r_point_shadow_frustum_planes[5], &r_point_shadow_frustum_planes[5], -0.25);
-    vec3_t_rotate_y(&r_point_shadow_frustum_planes[5], &r_point_shadow_frustum_planes[5], 0.5);
+    vec3_t_rotate_x(&r_point_light_frustum_planes[5], &r_point_light_frustum_planes[5], -0.25);
+    vec3_t_rotate_y(&r_point_light_frustum_planes[5], &r_point_light_frustum_planes[5], 0.5);
 
     /* +X */
-    r_point_shadow_frustum_masks[0] = (R_SHADOW_MAP_PLANE_FRONT << R_SHADOW_MAP_PLANE0_SHIFT) |
-                                      (R_SHADOW_MAP_PLANE_BACK << R_SHADOW_MAP_PLANE1_SHIFT) |
-                                      (R_SHADOW_MAP_PLANE_FRONT << R_SHADOW_MAP_PLANE4_SHIFT) |
-                                      (R_SHADOW_MAP_PLANE_FRONT << R_SHADOW_MAP_PLANE5_SHIFT);
+    r_point_light_frustum_masks[0] = (R_POINT_LIGHT_FRUSTUM_PLANE_FRONT << R_POINT_LIGHT_FRUSTUM_PLANE0_SHIFT) |
+                                      (R_POINT_LIGHT_FRUSTUM_PLANE_BACK << R_POINT_LIGHT_FRUSTUM_PLANE1_SHIFT) |
+                                      (R_POINT_LIGHT_FRUSTUM_PLANE_FRONT << R_POINT_LIGHT_FRUSTUM_PLANE4_SHIFT) |
+                                      (R_POINT_LIGHT_FRUSTUM_PLANE_FRONT << R_POINT_LIGHT_FRUSTUM_PLANE5_SHIFT);
 
     /* -X */
-    r_point_shadow_frustum_masks[1] = (R_SHADOW_MAP_PLANE_BACK << R_SHADOW_MAP_PLANE0_SHIFT) |
-                                      (R_SHADOW_MAP_PLANE_FRONT << R_SHADOW_MAP_PLANE1_SHIFT) |
-                                      (R_SHADOW_MAP_PLANE_BACK << R_SHADOW_MAP_PLANE4_SHIFT) |
-                                      (R_SHADOW_MAP_PLANE_BACK << R_SHADOW_MAP_PLANE5_SHIFT);
+    r_point_light_frustum_masks[1] = (R_POINT_LIGHT_FRUSTUM_PLANE_BACK << R_POINT_LIGHT_FRUSTUM_PLANE0_SHIFT) |
+                                      (R_POINT_LIGHT_FRUSTUM_PLANE_FRONT << R_POINT_LIGHT_FRUSTUM_PLANE1_SHIFT) |
+                                      (R_POINT_LIGHT_FRUSTUM_PLANE_BACK << R_POINT_LIGHT_FRUSTUM_PLANE4_SHIFT) |
+                                      (R_POINT_LIGHT_FRUSTUM_PLANE_BACK << R_POINT_LIGHT_FRUSTUM_PLANE5_SHIFT);
 
     /* +Y */
-    r_point_shadow_frustum_masks[2] = (R_SHADOW_MAP_PLANE_BACK << R_SHADOW_MAP_PLANE2_SHIFT) |
-                                      (R_SHADOW_MAP_PLANE_FRONT << R_SHADOW_MAP_PLANE3_SHIFT) |
-                                      (R_SHADOW_MAP_PLANE_BACK << R_SHADOW_MAP_PLANE4_SHIFT) |
-                                      (R_SHADOW_MAP_PLANE_FRONT << R_SHADOW_MAP_PLANE5_SHIFT);
+    r_point_light_frustum_masks[2] = (R_POINT_LIGHT_FRUSTUM_PLANE_BACK << R_POINT_LIGHT_FRUSTUM_PLANE2_SHIFT) |
+                                      (R_POINT_LIGHT_FRUSTUM_PLANE_FRONT << R_POINT_LIGHT_FRUSTUM_PLANE3_SHIFT) |
+                                      (R_POINT_LIGHT_FRUSTUM_PLANE_BACK << R_POINT_LIGHT_FRUSTUM_PLANE4_SHIFT) |
+                                      (R_POINT_LIGHT_FRUSTUM_PLANE_FRONT << R_POINT_LIGHT_FRUSTUM_PLANE5_SHIFT);
 
     /* -Y */
-    r_point_shadow_frustum_masks[3] = (R_SHADOW_MAP_PLANE_FRONT << R_SHADOW_MAP_PLANE2_SHIFT) |
-                                      (R_SHADOW_MAP_PLANE_BACK << R_SHADOW_MAP_PLANE3_SHIFT) |
-                                      (R_SHADOW_MAP_PLANE_FRONT << R_SHADOW_MAP_PLANE4_SHIFT) |
-                                      (R_SHADOW_MAP_PLANE_BACK << R_SHADOW_MAP_PLANE5_SHIFT);
+    r_point_light_frustum_masks[3] = (R_POINT_LIGHT_FRUSTUM_PLANE_FRONT << R_POINT_LIGHT_FRUSTUM_PLANE2_SHIFT) |
+                                      (R_POINT_LIGHT_FRUSTUM_PLANE_BACK << R_POINT_LIGHT_FRUSTUM_PLANE3_SHIFT) |
+                                      (R_POINT_LIGHT_FRUSTUM_PLANE_FRONT << R_POINT_LIGHT_FRUSTUM_PLANE4_SHIFT) |
+                                      (R_POINT_LIGHT_FRUSTUM_PLANE_BACK << R_POINT_LIGHT_FRUSTUM_PLANE5_SHIFT);
 
     /* +Z */
-    r_point_shadow_frustum_masks[4] = (R_SHADOW_MAP_PLANE_FRONT << R_SHADOW_MAP_PLANE0_SHIFT) |
-                                      (R_SHADOW_MAP_PLANE_FRONT << R_SHADOW_MAP_PLANE1_SHIFT) |
-                                      (R_SHADOW_MAP_PLANE_FRONT << R_SHADOW_MAP_PLANE2_SHIFT) |
-                                      (R_SHADOW_MAP_PLANE_FRONT << R_SHADOW_MAP_PLANE3_SHIFT);
+    r_point_light_frustum_masks[4] = (R_POINT_LIGHT_FRUSTUM_PLANE_FRONT << R_POINT_LIGHT_FRUSTUM_PLANE0_SHIFT) |
+                                      (R_POINT_LIGHT_FRUSTUM_PLANE_FRONT << R_POINT_LIGHT_FRUSTUM_PLANE1_SHIFT) |
+                                      (R_POINT_LIGHT_FRUSTUM_PLANE_FRONT << R_POINT_LIGHT_FRUSTUM_PLANE2_SHIFT) |
+                                      (R_POINT_LIGHT_FRUSTUM_PLANE_FRONT << R_POINT_LIGHT_FRUSTUM_PLANE3_SHIFT);
 
     /* -Z */
-    r_point_shadow_frustum_masks[5] = (R_SHADOW_MAP_PLANE_BACK << R_SHADOW_MAP_PLANE0_SHIFT) |
-                                      (R_SHADOW_MAP_PLANE_BACK << R_SHADOW_MAP_PLANE1_SHIFT) |
-                                      (R_SHADOW_MAP_PLANE_BACK << R_SHADOW_MAP_PLANE2_SHIFT) |
-                                      (R_SHADOW_MAP_PLANE_BACK << R_SHADOW_MAP_PLANE3_SHIFT);
+    r_point_light_frustum_masks[5] = (R_POINT_LIGHT_FRUSTUM_PLANE_BACK << R_POINT_LIGHT_FRUSTUM_PLANE0_SHIFT) |
+                                      (R_POINT_LIGHT_FRUSTUM_PLANE_BACK << R_POINT_LIGHT_FRUSTUM_PLANE1_SHIFT) |
+                                      (R_POINT_LIGHT_FRUSTUM_PLANE_BACK << R_POINT_LIGHT_FRUSTUM_PLANE2_SHIFT) |
+                                      (R_POINT_LIGHT_FRUSTUM_PLANE_BACK << R_POINT_LIGHT_FRUSTUM_PLANE3_SHIFT);
 
     glGenTextures(1, &r_main_color_attachment);
     glBindTexture(GL_TEXTURE_2D, r_main_color_attachment);
@@ -762,7 +974,7 @@ void r_BindMaterial(struct r_material_t *material)
 {
     if(material)
     {
-        r_renderer_stats.material_swaps++;
+        r_renderer_state.material_swaps++;
 
         glActiveTexture(GL_TEXTURE0 + R_ALBEDO_TEX_UNIT);
         glBindTexture(GL_TEXTURE_2D, material->diffuse_texture->handle);
@@ -1040,6 +1252,9 @@ void r_UpdateModelGeometry(struct r_model_t *model, struct r_model_geometry_t *g
         ((struct r_batch_t *)model->batches.buffer)[batch_index].start += start;
     }
 
+    model->model_start = start;
+    model->model_count = geometry->index_count;
+
     model->min = geometry->min;
     model->max = geometry->max;
 }
@@ -1124,6 +1339,8 @@ struct r_light_t *r_CreateLight(uint32_t type, vec3_t *position, vec3_t *color, 
     light->range = radius;
     light->energy = energy;
 
+    r_AllocShadowMaps(light, 1024);
+
     return light;
 }
 
@@ -1155,7 +1372,9 @@ struct r_light_t *r_CopyLight(struct r_light_t *light)
 
 struct r_point_light_t *r_CreatePointLight(vec3_t *position, vec3_t *color, float radius, float energy)
 {
-    return (struct r_point_light_t *)r_CreateLight(R_LIGHT_TYPE_POINT, position, color, radius, energy);
+    struct r_point_light_t *light = (struct r_point_light_t *)r_CreateLight(R_LIGHT_TYPE_POINT, position, color, radius, energy);
+//    r_AllocShadowMaps((struct r_light_t *)light, 1024);
+    return light;
 }
 
 struct r_spot_light_t *r_CreateSpotLight(vec3_t *position, vec3_t *color, mat3_t *orientation, float radius, float energy, uint32_t angle, float softness)
@@ -1187,9 +1406,287 @@ struct r_spot_light_t *r_CreateSpotLight(vec3_t *position, vec3_t *color, mat3_t
 
 void r_AllocShadowMaps(struct r_light_t *light, uint32_t resolution)
 {
-    for(uint32_t face_index = 0; face_index < 6; face_index++)
+    if(light && light->index != 0xffffffff)
     {
+        if(resolution < R_SHADOW_MAP_MIN_RESOLUTION)
+        {
+            resolution = R_SHADOW_MAP_MIN_RESOLUTION;
+        }
+        else if(resolution > R_SHADOW_MAP_MAX_RESOLUTION)
+        {
+            resolution = R_SHADOW_MAP_MAX_RESOLUTION;
+        }
 
+        uint32_t start_bucket_index = R_SHADOW_BUCKET0;
+        uint32_t test_res = R_SHADOW_BUCKET0_RES;
+
+        for(; start_bucket_index < R_SHADOW_BUCKET4; start_bucket_index++)
+        {
+            if(test_res >= resolution)
+            {
+                break;
+            }
+
+            test_res <<= 1;
+        }
+
+        uint32_t *shadow_maps;
+        uint32_t shadow_map_count;
+
+        switch(light->type)
+        {
+            case R_LIGHT_TYPE_POINT:
+            {
+                struct r_point_light_t *point_light = (struct r_point_light_t *)light;
+                shadow_maps = point_light->shadow_maps;
+                shadow_map_count = 6;
+            }
+            break;
+
+            case R_LIGHT_TYPE_SPOT:
+            {
+                struct r_spot_light_t *spot_light = (struct r_spot_light_t *)light;
+                shadow_maps = &spot_light->shadow_map;
+                shadow_map_count = 1;
+            }
+            break;
+        }
+
+        light->shadow_map_res = resolution;
+
+        for(uint32_t shadow_map_index = 0; shadow_map_index < shadow_map_count; shadow_map_index++)
+        {
+            for(uint32_t src_bucket_index = start_bucket_index; src_bucket_index <= R_SHADOW_BUCKET4; src_bucket_index++)
+            {
+                struct r_shadow_bucket_t *src_bucket = r_shadow_buckets + src_bucket_index;
+
+                if(src_bucket->cur_src != 0xffff)
+                {
+                    /* found a bucket that contains available shadow maps */
+
+                    uint32_t src_tile_index = src_bucket->cur_src;
+                    struct r_shadow_tile_t *src_tile = src_bucket->tiles + src_tile_index;
+                    uint32_t src_shadow_map_index = 0;
+                    uint32_t used_mask = 1;
+
+                    for(; src_shadow_map_index < 4; src_shadow_map_index++)
+                    {
+                        if(!(src_tile->used & used_mask))
+                        {
+                            src_tile->used |= used_mask;
+                            break;
+                        }
+
+                        used_mask <<= 1;
+                    }
+
+                    struct r_shadow_map_t *src_shadow_map = src_tile->shadow_maps + src_shadow_map_index;
+
+                    if(src_tile->used == 0xf)
+                    {
+                        /* tile exhausted, unlink it from the bucket */
+                        src_bucket->cur_src = src_tile->next;
+
+                        if(src_tile->next != 0xffff)
+                        {
+                            src_bucket->tiles[src_tile->next].prev = src_tile->prev;
+                        }
+                    }
+
+                    while(src_bucket_index > start_bucket_index)
+                    {
+                        /* we're sourcing the shadow map from a bigger bucket, so go down the bucket
+                        sizes, splitting the shadow map and filling them in the way */
+
+                        src_bucket_index--;
+                        /* child bucket will have a new tile created for it, filled with 4 shadow maps.
+                        If this child bucket isn't the bucket for the size we requested, one of the just
+                        created shadow maps will be used to create a new tile for a bucket smaller than it */
+                        struct r_shadow_bucket_t *child_bucket = r_shadow_buckets + src_bucket_index;
+                        struct r_shadow_tile_t *child_tile = child_bucket->tiles + child_bucket->cur_free;
+                        child_tile->parent_tile = src_tile_index;
+                        src_tile_index = child_bucket->cur_free;
+
+                        child_bucket->cur_free = child_tile->next;
+                        if(child_bucket->cur_free != 0xffff)
+                        {
+                            child_bucket->tiles[child_bucket->cur_free].prev = 0xffff;
+                        }
+
+                        child_tile->next = child_bucket->cur_src;
+                        if(child_bucket->cur_src != 0xffff)
+                        {
+                            child_bucket->tiles[child_bucket->cur_src].prev = src_tile_index;
+                        }
+                        child_bucket->cur_src = src_tile_index;
+
+                        /* lsb set, first shadow map used */
+                        child_tile->used = 1;
+                        src_shadow_map_index = 0;
+
+//                        uint32_t x_coord = R_SHADOW_MAP_X_COORD(src_shadow_map->coords);
+//                        uint32_t y_coord = R_SHADOW_MAP_Y_COORD(src_shadow_map->coords);
+                        uint32_t x_coord = src_shadow_map->x_coord;
+                        uint32_t y_coord = src_shadow_map->y_coord;
+                        uint32_t resolution = R_SHADOW_BUCKET0_RES << src_bucket_index;
+
+                        src_tile = child_tile;
+                        src_shadow_map = src_tile->shadow_maps + 3;
+                        src_shadow_map->x_coord = x_coord + resolution;
+                        src_shadow_map->y_coord = y_coord + resolution;
+//                        src_shadow_map->coords = R_SHADOW_MAP_COORDS(x_coord + resolution, y_coord + resolution);
+
+                        src_shadow_map = src_tile->shadow_maps + 2;
+//                        src_shadow_map->coords = R_SHADOW_MAP_COORDS(x_coord, y_coord + resolution);
+                        src_shadow_map->x_coord = x_coord;
+                        src_shadow_map->y_coord = y_coord + resolution;
+
+                        src_shadow_map = src_tile->shadow_maps + 1;
+//                        src_shadow_map->coords = R_SHADOW_MAP_COORDS(x_coord + resolution, y_coord);
+                        src_shadow_map->x_coord = x_coord + resolution;
+                        src_shadow_map->y_coord = y_coord;
+
+                        src_shadow_map = src_tile->shadow_maps;
+//                        src_shadow_map->coords = R_SHADOW_MAP_COORDS(x_coord, y_coord);
+                        src_shadow_map->x_coord = x_coord;
+                        src_shadow_map->y_coord = y_coord;
+                    }
+
+//                    uint32_t x_coord = R_SHADOW_MAP_X_COORD(src_shadow_map->coords);
+//                    uint32_t y_coord = R_SHADOW_MAP_Y_COORD(src_shadow_map->coords);
+//
+//                    printf("allocated shadow map at %d %d\n", x_coord, y_coord);
+
+                    shadow_maps[shadow_map_index] = R_SHADOW_MAP_HANDLE(src_bucket_index, src_tile_index, src_shadow_map_index);
+
+                    break;
+                }
+            }
+        }
+    }
+}
+
+struct r_shadow_map_t *r_GetShadowMap(uint32_t shadow_map)
+{
+    uint32_t bucket_index = R_SHADOW_BUCKET_INDEX(shadow_map);
+    uint32_t tile_index = R_SHADOW_TILE_INDEX(shadow_map);
+    uint32_t map_index = R_SHADOW_MAP_INDEX(shadow_map);
+    struct r_shadow_map_t *map = &r_shadow_buckets[bucket_index].tiles[tile_index].shadow_maps[map_index];
+    return map;
+}
+
+void r_FreeShadowMaps(struct r_light_t *light)
+{
+    uint32_t *shadow_maps;
+    uint32_t shadow_map_count;
+
+    if(light && light->index != 0xffffffff)
+    {
+        switch(light->type)
+        {
+            case R_LIGHT_TYPE_POINT:
+            {
+                struct r_point_light_t *point_light = (struct r_point_light_t *)light;
+                shadow_maps = point_light->shadow_maps;
+                shadow_map_count = 6;
+            }
+            break;
+
+
+            case R_LIGHT_TYPE_SPOT:
+            {
+                struct r_spot_light_t *spot_light = (struct r_spot_light_t *)light;
+                shadow_maps = &spot_light->shadow_map;
+                shadow_map_count = 1;
+            }
+            break;
+        }
+
+        for(uint32_t shadow_map_index = 0; shadow_map_index < shadow_map_count; shadow_map_index++)
+        {
+            uint32_t shadow_map_handle = shadow_maps[shadow_map_index];
+
+            uint32_t bucket_index = R_SHADOW_BUCKET_INDEX(shadow_map_handle);
+            uint32_t tile_index = R_SHADOW_TILE_INDEX(shadow_map_handle);
+            uint32_t map_index = R_SHADOW_MAP_INDEX(shadow_map_handle);
+
+            struct r_shadow_bucket_t *bucket = r_shadow_buckets + bucket_index;
+            struct r_shadow_tile_t *tile = bucket->tiles + tile_index;
+            uint32_t used_mask = 1 << map_index;
+
+            while(tile->used & used_mask)
+            {
+                uint32_t next_used = tile->used & (~used_mask);
+
+                if(tile->used == 0xf)
+                {
+                    /* tile isn't linked in the source linked list, so link it here */
+                    tile->next = bucket->cur_src;
+
+                    if(bucket->cur_src != 0xffff)
+                    {
+                        bucket->tiles[bucket->cur_src].prev = tile_index;
+                    }
+
+                    bucket->cur_src = tile_index;
+                }
+                else if(next_used == 0 && bucket_index != R_SHADOW_BUCKET4)
+                {
+                    /* this tile has all shadow maps unused, so return it to its parent
+                    tile */
+
+                    if(tile->prev == 0xffff)
+                    {
+                        bucket->cur_src = tile->next;
+                    }
+                    else
+                    {
+                        bucket->tiles[tile->prev].next = tile->next;
+                    }
+
+                    if(tile->next != 0xffff)
+                    {
+                        bucket->tiles[tile->next].prev = tile->prev;
+                    }
+
+                    tile->next = bucket->cur_free;
+                    tile->prev = 0xffff;
+
+                    if(bucket->cur_free != 0xffff)
+                    {
+                        bucket->tiles[bucket->cur_free].prev = tile_index;
+                    }
+
+                    bucket->cur_free = tile_index;
+
+                    struct r_shadow_map_t *shadow_map = tile->shadow_maps;
+
+                    bucket_index++;
+                    bucket = r_shadow_buckets + bucket_index;
+                    tile_index = tile->parent_tile;
+                    tile = bucket->tiles + tile_index;
+
+                    for(map_index = 0; map_index < 4; map_index++)
+                    {
+                        struct r_shadow_map_t *parent_shadow_map = tile->shadow_maps + map_index;
+                        if(parent_shadow_map->x_coord == shadow_map->x_coord &&
+                           parent_shadow_map->y_coord == shadow_map->y_coord)
+                        {
+                            break;
+                        }
+//                        if(parent_shadow_map->coords == shadow_map->coords)
+//                        {
+//                            break;
+//                        }
+                    }
+
+                    used_mask = 1 << map_index;
+                    continue;
+                }
+
+                tile->used = next_used;
+            }
+        }
     }
 }
 
@@ -1198,7 +1695,7 @@ struct r_light_t *r_GetLight(uint32_t light_index)
     uint32_t type = (light_index >> R_LIGHT_TYPE_INDEX_SHIFT) & R_LIGHT_TYPE_INDEX_MASK;
     struct r_light_t *light = ds_slist_get_element(&r_lights[type], light_index & R_LIGHT_INDEX_MASK);
 
-    if(light && light->index == 0xffffffff)
+    if(light && light->index == 0xffff)
     {
         light = NULL;
     }
@@ -1208,10 +1705,11 @@ struct r_light_t *r_GetLight(uint32_t light_index)
 
 void r_DestroyLight(struct r_light_t *light)
 {
-    if(light && light->index != 0xffffffff)
+    if(light && light->index != 0xffff)
     {
+        r_FreeShadowMaps(light);
         ds_slist_remove_element(&r_lights[light->type] , light->index);
-        light->index = 0xffffffff;
+        light->index = 0xffff;
     }
 }
 
@@ -1357,7 +1855,7 @@ struct r_shader_t *r_LoadShader(char *vertex_file_name, char *fragment_file_name
     uint32_t point_light_uniform_block = glGetUniformBlockIndex(shader_program, "r_point_lights");
     uint32_t spot_light_uniform_block = glGetUniformBlockIndex(shader_program, "r_spot_lights");
     uint32_t light_indices_uniform_block = glGetUniformBlockIndex(shader_program, "r_light_indices");
-    uint32_t shadow_indices_uniform_block = glGetUniformBlockIndex(shader_program, "r_shadow_indices");
+    uint32_t shadow_indices_uniform_block = glGetUniformBlockIndex(shader_program, "r_shadow_maps");
 
     if(point_light_uniform_block != 0xffffffff)
     {
@@ -1428,7 +1926,7 @@ void r_BindShader(struct r_shader_t *shader)
 {
     if(shader)
     {
-        r_renderer_stats.shader_swaps++;
+        r_renderer_state.shader_swaps++;
 
         r_current_shader = shader;
         glUseProgram(shader->handle);

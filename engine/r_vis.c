@@ -14,21 +14,27 @@ extern struct r_point_data_t *r_point_light_buffer;
 extern uint32_t r_point_light_buffer_cursor;
 extern struct r_spot_data_t *r_spot_light_buffer;
 extern uint32_t r_spot_light_buffer_cursor;
+extern struct r_model_t *r_spot_light_model;
+extern struct r_model_t *r_point_light_model;
 
 extern uint32_t *r_light_index_buffer;
 extern uint32_t r_light_index_buffer_cursor;
 
-extern uint32_t *r_shadow_index_buffer;
-extern uint32_t  r_shadow_index_buffer_cursor;
+//extern uint32_t *r_shadow_index_buffer;
+//extern uint32_t  r_shadow_index_buffer_cursor;
+extern struct r_shadow_map_t *r_shadow_map_buffer;
+extern uint32_t r_shadow_map_buffer_cursor;
 extern float r_spot_light_tan_lut[];
 extern float r_spot_light_cos_lut[];
 extern mat4_t r_point_shadow_view_projection_matrices[6];
-extern vec3_t r_point_shadow_frustum_planes[6];
-extern uint16_t r_point_shadow_frustum_masks[6];
+extern vec3_t r_point_light_frustum_planes[6];
+extern uint16_t r_point_light_frustum_masks[6];
 extern struct r_renderer_state_t r_renderer_state;
 
 extern float r_z_near;
 extern float r_z_far;
+extern uint32_t r_width;
+extern uint32_t r_height;
 extern float r_denom;
 extern float r_fov;
 
@@ -49,8 +55,7 @@ void r_VisibleLights()
     r_point_light_buffer_cursor = 0;
     r_spot_light_buffer_cursor = 0;
     r_light_index_buffer_cursor = 0;
-    r_shadow_index_buffer_cursor = 0;
-
+    r_shadow_map_buffer_cursor = 0;
     r_visible_lights.cursor = 0;
 
     vec3_t axes[2] = {vec3_t_c(1.0, 0.0, 0.0), vec3_t_c(0.0, 1.0, 0.0)};
@@ -78,6 +83,9 @@ void r_VisibleLights()
             }
             else
             {
+                extents[0] = vec2_t_c(-FLT_MAX, FLT_MAX);
+                extents[1] = vec2_t_c(-FLT_MAX, FLT_MAX);
+
                 if(light_pos.z + light->range >= -r_z_near)
                 {
                     /* light touches near plane, so compute the intersection with it */
@@ -151,11 +159,38 @@ void r_VisibleLights()
                 }
             }
 
-            if((extents[0].x - extents[0].y) * (extents[1].x - extents[1].y) == 0.0)
+            if((extents[0].y - extents[0].x) * (extents[1].y - extents[1].x) == 0.0)
             {
                 /* light offscreen */
                 continue;
             }
+
+            float light_dist = vec3_t_length(&light_pos);
+            float ratio = light->range / light_dist;
+            uint32_t shadow_resolution;
+
+            if(ratio >= 0.5)
+            {
+                shadow_resolution = R_SHADOW_BUCKET4_RES;
+            }
+            else if(ratio >= 0.25)
+            {
+                shadow_resolution = R_SHADOW_BUCKET3_RES;
+            }
+            else if(ratio >= 0.125)
+            {
+                shadow_resolution = R_SHADOW_BUCKET2_RES;
+            }
+            else if(ratio >= 0.0625)
+            {
+                shadow_resolution = R_SHADOW_BUCKET1_RES;
+            }
+            else
+            {
+                shadow_resolution = R_SHADOW_BUCKET0_RES;
+            }
+
+//            printf("%f\n", light->range / vec3_t_length(&light_pos));
 
             light->min.x = (uint32_t)(R_CLUSTER_ROW_WIDTH * (extents[0].x * 0.5 + 0.5));
             light->max.x = (uint32_t)(R_CLUSTER_ROW_WIDTH * (extents[0].y * 0.5 + 0.5));
@@ -181,13 +216,20 @@ void r_VisibleLights()
             }
 
             light->light_buffer_index = r_point_light_buffer_cursor;
+            light->shadow_map_buffer_index = r_shadow_map_buffer_cursor;
+            light->shadow_map_res = shadow_resolution;
             ds_list_add_element(&r_visible_lights, &light);
             r_point_light_buffer_cursor++;
 
-            data->color_res.x = light->color.x * light->energy;
-            data->color_res.y = light->color.y * light->energy;
-            data->color_res.z = light->color.z * light->energy;
-            data->color_res.w = r_renderer_state.max_shadow_res;
+            union { uint32_t i; float f; }i_to_f;
+
+            i_to_f.i = (shadow_resolution << 16) | (r_shadow_map_buffer_cursor & 0xffff);
+            r_shadow_map_buffer_cursor += 6;
+
+            data->color_shd.x = light->color.x * light->energy;
+            data->color_shd.y = light->color.y * light->energy;
+            data->color_shd.z = light->color.z * light->energy;
+            data->color_shd.w = i_to_f.f;
 
             data->pos_rad.xyz = light_pos;
             data->pos_rad.w = light->range;
@@ -197,8 +239,8 @@ void r_VisibleLights()
     mat4_t projection_matrix;
     mat4_t_identity(&projection_matrix);
 //    r_i_SetViewProjectionMatrix(&projection_matrix);
-    r_i_SetModelMatrix(NULL);
-    r_i_SetShader(NULL);
+//    r_i_SetModelMatrix(NULL);
+//    r_i_SetShader(NULL);
 
     for(uint32_t light_index = 0; light_index < r_lights[R_LIGHT_TYPE_SPOT].cursor; light_index++)
     {
@@ -395,11 +437,13 @@ void r_VisibleLights()
         r_i_SetViewProjectionMatrix(NULL);
         r_i_SetModelMatrix(NULL);
         r_i_SetShader(NULL);
-        r_i_SetRasterizer(GL_FALSE, GL_BACK, GL_LINE);
 
         for(uint32_t light_index = 0; light_index < r_visible_lights.cursor; light_index++)
         {
             struct r_light_t *light = *(struct r_light_t **)ds_list_get_element(&r_visible_lights, light_index);
+            struct r_i_draw_list_t *draw_list = r_i_AllocDrawList(1);
+            mat4_t light_transform;
+            uint32_t cmd_type;
 
             switch(light->type)
             {
@@ -407,45 +451,48 @@ void r_VisibleLights()
                 {
                     struct r_spot_light_t *spot_light = (struct r_spot_light_t *)light;
                     float base_radius = r_spot_light_tan_lut[spot_light->angle - R_SPOT_LIGHT_MIN_ANGLE] * spot_light->range;
-                    uint32_t segment_count = 32;
-                    float increment = (3.14159265 * 2) / (float)segment_count;
-                    float cur_angle = 0.0;
 
-                    struct r_i_verts_t *verts = r_i_AllocVerts(segment_count * 3);
+                    mat4_t model_transform;
+                    mat4_t_identity(&model_transform);
+                    model_transform.rows[0].x = base_radius;
+                    model_transform.rows[1].y = base_radius;
+                    model_transform.rows[2].z = spot_light->range;
 
-                    mat4_t transform;
+                    mat4_t_comp(&light_transform, &spot_light->orientation, &spot_light->position);
+                    mat4_t_mul(&light_transform, &model_transform, &light_transform);
 
-                    mat4_t_comp(&transform, &spot_light->orientation, &spot_light->position);
-                    r_i_SetModelMatrix(&transform);
+                    draw_list->commands[0].start = r_spot_light_model->model_start;
+                    draw_list->commands[0].count = r_spot_light_model->model_count;
+                    draw_list->size = 1.0;
+                    draw_list->indexed = 1;
 
-                    float s = sin(cur_angle) * base_radius;
-                    float c = cos(cur_angle) * base_radius;
-                    struct r_vert_t *vert = verts->verts;
+                    cmd_type = R_I_DRAW_CMD_TRIANGLE_LIST;
+                    r_i_SetRasterizer(GL_FALSE, GL_BACK, GL_LINE);
+                }
+                break;
 
-                    for(uint32_t segment_index = 0; segment_index < segment_count; segment_index++)
-                    {
-                        vert->pos = vec3_t_c(0.0, 0.0, 0.0);
-                        vert->color = vec4_t_c(0.8, 0.8, 1.0, 1.0);
-                        vert++;
+                case R_LIGHT_TYPE_POINT:
+                {
+                    mat3_t orientation;
+                    mat3_t_identity(&orientation);
+                    orientation.rows[0].x = light->range;
+                    orientation.rows[1].y = light->range;
+                    orientation.rows[2].z = light->range;
+                    mat4_t_comp(&light_transform, &orientation, &light->position);
 
-                        cur_angle += increment;
+                    draw_list->commands[0].start = r_point_light_model->model_start;
+                    draw_list->commands[0].count = r_point_light_model->model_count;
+                    draw_list->size = 1.0;
+                    draw_list->indexed = 1;
 
-                        vert->pos = vec3_t_c(c, s, -spot_light->range);
-                        vert->color = vec4_t_c(0.8, 0.8, 1.0, 1.0);
-                        vert++;
-
-                        s = sin(cur_angle) * base_radius;
-                        c = cos(cur_angle) * base_radius;
-
-                        vert->pos = vec3_t_c(c, s, -spot_light->range);
-                        vert->color = vec4_t_c(0.8, 0.8, 1.0, 1.0);
-                        vert++;
-                    }
-
-                    r_i_DrawVerts(R_I_DRAW_CMD_TRIANGLE_LIST, verts, 1.0);
+                    cmd_type = R_I_DRAW_CMD_LINE_LIST;
+                    r_i_SetRasterizer(GL_FALSE, GL_BACK, GL_FILL);
                 }
                 break;
             }
+
+            r_i_SetModelMatrix(&light_transform);
+            r_i_DrawImmediate(cmd_type, draw_list);
         }
     }
 
@@ -474,6 +521,41 @@ void r_VisibleLights()
     for(uint32_t visible_index = 0; visible_index < r_visible_lights.cursor; visible_index++)
     {
         struct r_light_t *light = *(struct r_light_t **)ds_list_get_element(&r_visible_lights, visible_index);
+
+        uint32_t shadow_map_count;
+        uint32_t *shadow_maps;
+
+        switch(light->type)
+        {
+            case R_LIGHT_TYPE_POINT:
+            {
+                struct r_point_light_t *point_light = (struct r_point_light_t *)light;
+                shadow_map_count = 6;
+                shadow_maps = point_light->shadow_maps;
+            }
+            break;
+
+            case R_LIGHT_TYPE_SPOT:
+            {
+                struct r_spot_light_t *spot_light = (struct r_spot_light_t *)light;
+                shadow_map_count = 1;
+                shadow_maps = &spot_light->shadow_map;
+            }
+            break;
+        }
+
+        if(light->shadow_map_res != R_SHADOW_BUCKET_RESOLUTION(shadow_maps[0]))
+        {
+            printf("realloc shadow map from %d to %d\n", R_SHADOW_BUCKET_RESOLUTION(shadow_maps[0]), light->shadow_map_res);
+            r_FreeShadowMaps(light);
+            r_AllocShadowMaps(light, light->shadow_map_res);
+        }
+
+        for(uint32_t shadow_map_index = 0; shadow_map_index < shadow_map_count; shadow_map_index++)
+        {
+            struct r_shadow_map_t *shadow_map = r_GetShadowMap(shadow_maps[shadow_map_index]);
+            r_shadow_map_buffer[light->shadow_map_buffer_index + shadow_map_index] = *shadow_map;
+        }
 
         for(uint32_t slice_index = light->min.z; slice_index <= light->max.z; slice_index++)
         {
@@ -511,27 +593,63 @@ void r_VisibleLights()
         }
     }
 
-    for(uint32_t visible_light_index = 0; visible_light_index < r_visible_lights.cursor; visible_light_index++)
+    mat4_t_identity(&projection_matrix);
+    r_i_SetViewProjectionMatrix(&projection_matrix);
+    r_i_SetModelMatrix(NULL);
+    r_i_SetShader(NULL);
+
+    #define GRAPH_SIZE 0.9
+    #define RATIO ((float)r_width / (float)r_height)
+
+    r_i_DrawLine(&vec3_t_c(-GRAPH_SIZE / RATIO, GRAPH_SIZE, -0.5), &vec3_t_c(-GRAPH_SIZE / RATIO, -GRAPH_SIZE, -0.5), &vec4_t_c(0.0, 1.0, 0.0, 1.0), 1.0);
+    r_i_DrawLine(&vec3_t_c(-GRAPH_SIZE / RATIO,-GRAPH_SIZE, -0.5), &vec3_t_c( GRAPH_SIZE / RATIO, -GRAPH_SIZE, -0.5), &vec4_t_c(0.0, 1.0, 0.0, 1.0), 1.0);
+    r_i_DrawLine(&vec3_t_c( GRAPH_SIZE / RATIO,-GRAPH_SIZE, -0.5), &vec3_t_c( GRAPH_SIZE / RATIO,  GRAPH_SIZE, -0.5), &vec4_t_c(0.0, 1.0, 0.0, 1.0), 1.0);
+    r_i_DrawLine(&vec3_t_c( GRAPH_SIZE / RATIO, GRAPH_SIZE, -0.5), &vec3_t_c(-GRAPH_SIZE / RATIO,  GRAPH_SIZE, -0.5), &vec4_t_c(0.0, 1.0, 0.0, 1.0), 1.0);
+
+    for(uint32_t index = 0; index < r_visible_lights.cursor; index++)
     {
-        struct r_light_t *light = *(struct r_light_t **)ds_list_get_element(&r_visible_lights, visible_light_index);
+        struct r_light_t *light = *(struct r_light_t **)ds_list_get_element(&r_visible_lights, index);
+        uint32_t shadow_map_count;
+        uint32_t *shadow_map_handles;
 
-        if(light->type == R_LIGHT_TYPE_POINT)
+        switch(light->type)
         {
-            uint32_t first_index = light->light_buffer_index * 6;
-
-            for(uint32_t face_index = 0; face_index < 6; face_index++)
+            case R_LIGHT_TYPE_POINT:
             {
-                uint32_t map_index = first_index + face_index;
-                uint32_t map_res = r_renderer_state.max_shadow_res;
-                uint32_t x_coord = (map_index % (R_SHADOW_MAP_ATLAS_WIDTH / R_SHADOW_MAP_MAX_RESOLUTION)) * map_res;
-                uint32_t y_coord = (map_index / (R_SHADOW_MAP_ATLAS_WIDTH / R_SHADOW_MAP_MAX_RESOLUTION)) * map_res;
-
-                uint32_t shadow_map = 0;
-                shadow_map |= (x_coord << R_SHADOW_MAP_X_COORD_SHIFT);
-                shadow_map |= (y_coord << R_SHADOW_MAP_Y_COORD_SHIFT);
-                shadow_map |= (map_res << R_SHADOW_MAP_RES_SHIFT);
-                r_shadow_index_buffer[map_index] = shadow_map;
+                struct r_point_light_t *point_light = (struct r_point_light_t *)light;
+                shadow_map_count = 6;
+                shadow_map_handles = point_light->shadow_maps;
             }
+            break;
+
+            case R_LIGHT_TYPE_SPOT:
+            {
+                struct r_spot_light_t *spot_light = (struct r_spot_light_t *)light;
+                shadow_map_count = 1;
+                shadow_map_handles = &spot_light->shadow_map;
+            }
+            break;
+        }
+
+        for(uint32_t shadow_map_index = 0; shadow_map_index < shadow_map_count; shadow_map_index++)
+        {
+            struct r_shadow_map_t *shadow_map = r_GetShadowMap(shadow_map_handles[shadow_map_index]);
+
+            float size = (float)light->shadow_map_res / R_SHADOW_MAP_ATLAS_WIDTH;
+            float x0 = ((float)shadow_map->x_coord / (float)R_SHADOW_MAP_ATLAS_WIDTH);
+            float y0 = ((float)shadow_map->y_coord / (float)R_SHADOW_MAP_ATLAS_HEIGHT);
+            float x1 = x0 + size;
+            float y1 = y0 + size;
+
+            x0 = (x0 * 2.0 - 1.0) * GRAPH_SIZE / RATIO;
+            y0 = (y0 * 2.0 - 1.0) * GRAPH_SIZE;
+            x1 = (x1 * 2.0 - 1.0) * GRAPH_SIZE / RATIO;
+            y1 = (y1 * 2.0 - 1.0) * GRAPH_SIZE;
+
+            r_i_DrawLine(&vec3_t_c(x0, y0, -0.5), &vec3_t_c(x0, y1, -0.5), &vec4_t_c(0.0, 0.5, 1.0, 1.0), 2.0);
+            r_i_DrawLine(&vec3_t_c(x0, y1, -0.5), &vec3_t_c(x1, y1, -0.5), &vec4_t_c(0.0, 0.5, 1.0, 1.0), 2.0);
+            r_i_DrawLine(&vec3_t_c(x1, y1, -0.5), &vec3_t_c(x1, y0, -0.5), &vec4_t_c(0.0, 0.5, 1.0, 1.0), 2.0);
+            r_i_DrawLine(&vec3_t_c(x1, y0, -0.5), &vec3_t_c(x0, y0, -0.5), &vec4_t_c(0.0, 0.5, 1.0, 1.0), 2.0);
         }
     }
 }
@@ -554,11 +672,27 @@ void r_VisibleEntitiesOnLights()
     for(uint32_t index = 0; index < r_visible_lights.cursor; index++)
     {
         struct r_light_t *light = *(struct r_light_t **)ds_list_get_element(&r_visible_lights, index);
-        uint32_t *shadow_map = r_shadow_index_buffer + light->light_buffer_index * 6;
+        uint32_t *shadow_maps;
+        uint32_t shadow_map_count;
+
+        switch(light->type)
+        {
+            case R_LIGHT_TYPE_SPOT:
+                continue;
+            break;
+
+            case R_LIGHT_TYPE_POINT:
+            {
+                struct r_point_light_t *point_light = (struct r_point_light_t *)light;
+                shadow_maps = point_light->shadow_maps;
+                shadow_map_count = 6;
+            }
+            break;
+        }
 
         mat4_t light_view_projection_matrices[6];
 
-        for(uint32_t face_index = 0; face_index < 6; face_index++)
+        for(uint32_t face_index = 0; face_index < shadow_map_count; face_index++)
         {
             mat4_t_identity(&light_view_projection_matrices[face_index]);
             light_view_projection_matrices[face_index].rows[3].x = -light->position.x;
@@ -579,7 +713,7 @@ void r_VisibleEntitiesOnLights()
                 vec3_t light_entity_vec;
                 vec3_t normalized_light_entity_vec;
                 vec3_t model_extents;
-                uint16_t dists = 0;
+                uint16_t side_mask = 0;
 
                 vec3_t_mul(&model_extents, &entity->extents, 0.5);
                 vec3_t_sub(&light_entity_vec, &entity->transform.rows[3].xyz, &light->position);
@@ -593,38 +727,38 @@ void r_VisibleEntitiesOnLights()
                 {
                     for(uint32_t plane_index = 0; plane_index < 6; plane_index++)
                     {
-                        dists <<= 2;
+                        side_mask <<= 2;
 
-                        vec3_t abs_plane_normal = r_point_shadow_frustum_planes[plane_index];
+                        vec3_t abs_plane_normal = r_point_light_frustum_planes[plane_index];
                         vec3_t_fabs(&abs_plane_normal, &abs_plane_normal);
                         box_radius = vec3_t_dot(&abs_plane_normal, &model_extents);
-                        float dist_to_plane = vec3_t_dot(&r_point_shadow_frustum_planes[plane_index], &light_entity_vec);
+                        float dist_to_plane = vec3_t_dot(&r_point_light_frustum_planes[plane_index], &light_entity_vec);
 
                         if(fabs(dist_to_plane) < box_radius)
                         {
-                            dists |= R_SHADOW_MAP_PLANE_FRONT | R_SHADOW_MAP_PLANE_BACK;
+                            side_mask |= R_POINT_LIGHT_FRUSTUM_PLANE_FRONT | R_POINT_LIGHT_FRUSTUM_PLANE_BACK;
                         }
                         else if(dist_to_plane > 0.0)
                         {
-                            dists |= R_SHADOW_MAP_PLANE_FRONT;
+                            side_mask |= R_POINT_LIGHT_FRUSTUM_PLANE_FRONT;
                         }
                         else
                         {
-                            dists |= R_SHADOW_MAP_PLANE_BACK;
+                            side_mask |= R_POINT_LIGHT_FRUSTUM_PLANE_BACK;
                         }
                     }
 
-                    for(uint32_t face_index = 0; face_index < 6; face_index++)
+                    for(uint32_t face_index = 0; face_index < shadow_map_count; face_index++)
                     {
-                        uint16_t mask = r_point_shadow_frustum_masks[face_index];
+                        uint16_t mask = r_point_light_frustum_masks[face_index];
 
-                        if((mask & dists) == mask)
+                        if((mask & side_mask) == mask)
                         {
                             struct r_batch_t *batch = (struct r_batch_t *)entity->model->batches.buffer;
                             uint32_t count = entity->model->indices.buffer_size;
                             mat4_t model_view_projection_matrix;
                             mat4_t_mul(&model_view_projection_matrix, &entity->transform, &light_view_projection_matrices[face_index]);
-                            r_DrawShadow(&model_view_projection_matrix, shadow_map[face_index], batch->start, count);
+                            r_DrawShadow(&model_view_projection_matrix, shadow_maps[face_index], batch->start, count);
                         }
                     }
                 }

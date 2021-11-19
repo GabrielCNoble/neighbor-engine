@@ -19,6 +19,7 @@ lib/GLEW
 lib/SDL
 lib/OPENAL
 lib/vorbis
+lib/bullet
 models
 textures
 sounds

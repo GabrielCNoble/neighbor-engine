@@ -5,6 +5,8 @@
 #include "../lib/dstuff/ds_vector.h"
 #include "../lib/dstuff/ds_matrix.h"
 
+#include "p_defs.h"
+
 struct l_light_section_t
 {
     size_t record_start;
@@ -64,6 +66,21 @@ struct l_player_record_t
     vec3_t position;
     float pitch;
     float yaw;
+};
+
+
+struct l_level_t
+{
+    struct
+    {
+        struct ds_slist_t entities;
+        struct ds_slist_t entity_defs;
+    }entity;
+
+    struct
+    {
+        struct ds_slist_t colliders[P_COLLIDER_TYPE_LAST];
+    }physics;
 };
 
 #endif

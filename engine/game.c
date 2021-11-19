@@ -141,11 +141,11 @@ void g_TestCallback(void *data, float delta_time)
 {
     struct g_entity_t *entity = (struct g_entity_t *)data;
     struct p_movable_collider_t *collider = (struct p_movable_collider_t *)entity->collider;
-    if(collider->flags & P_COLLIDER_FLAG_ON_GROUND)
-    {
-//        uint32_t index = rand() % 5;
-        s_PlaySound(g_footstep_sounds[0], &vec3_t_c(0.0, 0.0, 0.0), 1.0, 0);
-    }
+//    if(collider->flags & P_COLLIDER_FLAG_ON_GROUND)
+//    {
+////        uint32_t index = rand() % 5;
+//        s_PlaySound(g_footstep_sounds[0], &vec3_t_c(0.0, 0.0, 0.0), 1.0, 0);
+//    }
 }
 
 void g_Init(uint32_t editor_active)
@@ -169,7 +169,37 @@ void g_Init(uint32_t editor_active)
 //    struct a_animation_t *miracle_dance_blockout = a_LoadAnimation("models/MiracleDanceBlockout.anf");
 //    struct a_animation_t *miracle_dance_smooth = a_LoadAnimation("models/MiracleDanceSmooth.anf");
 
+//    struct p_shape_def_t shape_def;
+//    shape_def.type = P_COL_SHAPE_TYPE_BOX;
+//    shape_def.position = vec3_t_c(0.0, 0.0, 0.0);
+//    shape_def.orientation = mat3_t_c_id();
+    g_cube_model = r_LoadModel("models/Cube.mof");
+    struct p_col_def_t collider_def = {};
+    collider_def.shape_count = 1;
+    collider_def.shape[0].type = P_COL_SHAPE_TYPE_BOX;
+    collider_def.shape[0].position = vec3_t_c(0.0, 0.0, 0.0);
+    collider_def.shape[0].orientation = mat3_t_c_id();
 
+    mat3_t orientation = mat3_t_c_id();
+    struct g_entity_t *floor = g_CreateEntity(&vec3_t_c(0.0, -3.0, 0.0), &vec3_t_c(10.0, 1.0, 10.0), &orientation, NULL, g_cube_model);
+    collider_def.shape[0].box.size = floor->scale;
+    collider_def.mass = 0.0;
+    collider_def.type = P_COLLIDER_TYPE_STATIC;
+    floor->collider = p_CreateCollider(&collider_def, &floor->local_position, &orientation);
+
+    mat3_t_rotate_x(&orientation, 0.05);
+    mat3_t_rotate_y(&orientation, 0.05);
+    struct g_entity_t *box = g_CreateEntity(&vec3_t_c(0.0, 6.0, 0.0), &vec3_t_c(1.0, 1.0, 1.0), &orientation, NULL, g_cube_model);
+    collider_def.shape[0].box.size = box->scale;
+    collider_def.mass = 1.0;
+    collider_def.type = P_COLLIDER_TYPE_DYNAMIC;
+    box->collider = p_CreateCollider(&collider_def, &box->local_position, &orientation);
+
+//    box = g_CreateEntity(&vec3_t_c(0.0, 12.0, 0.0), &vec3_t_c(1.0, 1.0, 1.0), &orientation, NULL, g_cube_model);
+//    collider_def.shape[0].box.size = box->scale;
+//    collider_def.mass = 1.0;
+//    collider_def.type = P_COLLIDER_TYPE_DYNAMIC;
+//    box->collider = p_CreateCollider(&collider_def, &box->local_position, &orientation);
 
 
 //    g_gun_model = r_LoadModel("models/shocksplinter.mof");
@@ -647,11 +677,11 @@ void g_StopGame()
 {
     g_SetGameState(G_GAME_STATE_MAIN_MENU);
 
-    l_ClearLevel();
+//    l_ClearLevel();
 
     if(g_editor)
     {
-        ed_LoadGameLevelSnapshot();
+//        ed_LoadGameLevelSnapshot();
     }
     else
     {
@@ -708,9 +738,8 @@ void g_UpdateEntities()
         {
             if(entity->collider)
             {
-                entity->local_transform.rows[3].x = entity->collider->position.x;
-                entity->local_transform.rows[3].y = entity->collider->position.y;
-                entity->local_transform.rows[3].z = entity->collider->position.z;
+                entity->local_position = entity->collider->position;
+                entity->local_orientation = entity->collider->orientation;
             }
 
             if(entity->thinker)
@@ -718,13 +747,21 @@ void g_UpdateEntities()
                 entity->thinker(entity);
             }
 
+            mat3_t local_orientation = mat3_t_c_id();
+            local_orientation.rows[0].x = entity->scale.x;
+            local_orientation.rows[1].y = entity->scale.y;
+            local_orientation.rows[2].z = entity->scale.z;
+            mat3_t_mul(&local_orientation, &local_orientation, &entity->local_orientation);
+
             if(entity->parent_transform)
             {
-                mat4_t_mul(&entity->transform, &entity->local_transform, entity->parent_transform);
+                mat4_t local_transform;
+                mat4_t_comp(&local_transform, &local_orientation, &entity->local_position);
+                mat4_t_mul(&entity->transform, &local_transform, entity->parent_transform);
             }
             else
             {
-                entity->transform = entity->local_transform;
+                mat4_t_comp(&entity->transform, &local_orientation, &entity->local_position);
             }
 
             g_UpdateEntityExtents(entity);
@@ -798,7 +835,7 @@ void g_UpdateEntities()
 //    }
 }
 
-struct g_entity_t *g_CreateEntity(mat4_t *transform, thinker_t *thinker, struct r_model_t *model)
+struct g_entity_t *g_CreateEntity(vec3_t *position, vec3_t *scale, mat3_t *orientation, thinker_t *thinker, struct r_model_t *model)
 {
     uint32_t entity_index;
     struct g_entity_t *entity;
@@ -807,8 +844,11 @@ struct g_entity_t *g_CreateEntity(mat4_t *transform, thinker_t *thinker, struct 
     entity = ds_slist_get_element(&g_entities, entity_index);
 
     entity->index = entity_index;
-    entity->local_transform = *transform;
-    entity->transform = *transform;
+//    entity->local_transform = *transform;
+
+    entity->local_orientation = *orientation;
+    entity->local_position = *position;
+    entity->scale = *scale;
     entity->model = model;
     entity->thinker = thinker;
 //    entity->item = r_AllocateVisItem(&entity->transform, entity->model);
@@ -1390,36 +1430,36 @@ void g_PlayerThinker(struct g_entity_t *entity)
 //        upper_shoot_player->weight = 0.0;
 //    }
 
-    collider->disp.x = 0.0;
-    collider->disp.y = 0.0;
-    collider->disp.z = 0.0;
+//    collider->disp.x = 0.0;
+//    collider->disp.y = 0.0;
+//    collider->disp.z = 0.0;
 
     if(in_GetKeyState(SDL_SCANCODE_A) & IN_KEY_STATE_PRESSED)
     {
-        collider->disp.x = -0.03;
+//        collider->disp.x = -0.03;
     }
     else if(in_GetKeyState(SDL_SCANCODE_D) & IN_KEY_STATE_PRESSED)
     {
-        collider->disp.x = 0.03;
+//        collider->disp.x = 0.03;
     }
 
 
     if(in_GetKeyState(SDL_SCANCODE_W) & IN_KEY_STATE_PRESSED)
     {
-        collider->disp.y = 0.03;
+//        collider->disp.y = 0.03;
     }
     else if(in_GetKeyState(SDL_SCANCODE_S) & IN_KEY_STATE_PRESSED)
     {
-        collider->disp.y = -0.03;
+//        collider->disp.y = -0.03;
     }
 
     if(in_GetKeyState(SDL_SCANCODE_E) & IN_KEY_STATE_PRESSED)
     {
-        collider->disp.z = 0.03;
+//        collider->disp.z = 0.03;
     }
     else if(in_GetKeyState(SDL_SCANCODE_R) & IN_KEY_STATE_PRESSED)
     {
-        collider->disp.z = -0.03;
+//        collider->disp.z = -0.03;
     }
 
 //    vec4_t light_pos = entity->local_transform.rows[3];

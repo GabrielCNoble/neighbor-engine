@@ -592,65 +592,65 @@ void r_VisibleLights()
         }
     }
 
-    mat4_t_identity(&projection_matrix);
-    r_i_SetViewProjectionMatrix(&projection_matrix);
-    r_i_SetModelMatrix(NULL);
-    r_i_SetShader(NULL);
-
-    #define GRAPH_SIZE 0.9
-    #define RATIO ((float)r_width / (float)r_height)
-
-    r_i_DrawLine(&vec3_t_c(-GRAPH_SIZE / RATIO, GRAPH_SIZE, -0.5), &vec3_t_c(-GRAPH_SIZE / RATIO, -GRAPH_SIZE, -0.5), &vec4_t_c(0.0, 1.0, 0.0, 1.0), 1.0);
-    r_i_DrawLine(&vec3_t_c(-GRAPH_SIZE / RATIO,-GRAPH_SIZE, -0.5), &vec3_t_c( GRAPH_SIZE / RATIO, -GRAPH_SIZE, -0.5), &vec4_t_c(0.0, 1.0, 0.0, 1.0), 1.0);
-    r_i_DrawLine(&vec3_t_c( GRAPH_SIZE / RATIO,-GRAPH_SIZE, -0.5), &vec3_t_c( GRAPH_SIZE / RATIO,  GRAPH_SIZE, -0.5), &vec4_t_c(0.0, 1.0, 0.0, 1.0), 1.0);
-    r_i_DrawLine(&vec3_t_c( GRAPH_SIZE / RATIO, GRAPH_SIZE, -0.5), &vec3_t_c(-GRAPH_SIZE / RATIO,  GRAPH_SIZE, -0.5), &vec4_t_c(0.0, 1.0, 0.0, 1.0), 1.0);
-
-    for(uint32_t index = 0; index < r_visible_lights.cursor; index++)
-    {
-        struct r_light_t *light = *(struct r_light_t **)ds_list_get_element(&r_visible_lights, index);
-        uint32_t shadow_map_count;
-        uint32_t *shadow_map_handles;
-
-        switch(light->type)
-        {
-            case R_LIGHT_TYPE_POINT:
-            {
-                struct r_point_light_t *point_light = (struct r_point_light_t *)light;
-                shadow_map_count = 6;
-                shadow_map_handles = point_light->shadow_maps;
-            }
-            break;
-
-            case R_LIGHT_TYPE_SPOT:
-            {
-                struct r_spot_light_t *spot_light = (struct r_spot_light_t *)light;
-                shadow_map_count = 1;
-                shadow_map_handles = &spot_light->shadow_map;
-            }
-            break;
-        }
-
-        for(uint32_t shadow_map_index = 0; shadow_map_index < shadow_map_count; shadow_map_index++)
-        {
-            struct r_shadow_map_t *shadow_map = r_GetShadowMap(shadow_map_handles[shadow_map_index]);
-
-            float size = (float)light->shadow_map_res / R_SHADOW_MAP_ATLAS_WIDTH;
-            float x0 = ((float)shadow_map->x_coord / (float)R_SHADOW_MAP_ATLAS_WIDTH);
-            float y0 = ((float)shadow_map->y_coord / (float)R_SHADOW_MAP_ATLAS_HEIGHT);
-            float x1 = x0 + size;
-            float y1 = y0 + size;
-
-            x0 = (x0 * 2.0 - 1.0) * GRAPH_SIZE / RATIO;
-            y0 = (y0 * 2.0 - 1.0) * GRAPH_SIZE;
-            x1 = (x1 * 2.0 - 1.0) * GRAPH_SIZE / RATIO;
-            y1 = (y1 * 2.0 - 1.0) * GRAPH_SIZE;
-
-            r_i_DrawLine(&vec3_t_c(x0, y0, -0.5), &vec3_t_c(x0, y1, -0.5), &vec4_t_c(0.0, 0.5, 1.0, 1.0), 2.0);
-            r_i_DrawLine(&vec3_t_c(x0, y1, -0.5), &vec3_t_c(x1, y1, -0.5), &vec4_t_c(0.0, 0.5, 1.0, 1.0), 2.0);
-            r_i_DrawLine(&vec3_t_c(x1, y1, -0.5), &vec3_t_c(x1, y0, -0.5), &vec4_t_c(0.0, 0.5, 1.0, 1.0), 2.0);
-            r_i_DrawLine(&vec3_t_c(x1, y0, -0.5), &vec3_t_c(x0, y0, -0.5), &vec4_t_c(0.0, 0.5, 1.0, 1.0), 2.0);
-        }
-    }
+//    mat4_t_identity(&projection_matrix);
+//    r_i_SetViewProjectionMatrix(&projection_matrix);
+//    r_i_SetModelMatrix(NULL);
+//    r_i_SetShader(NULL);
+//
+//    #define GRAPH_SIZE 0.9
+//    #define RATIO ((float)r_width / (float)r_height)
+//
+//    r_i_DrawLine(&vec3_t_c(-GRAPH_SIZE / RATIO, GRAPH_SIZE, -0.5), &vec3_t_c(-GRAPH_SIZE / RATIO, -GRAPH_SIZE, -0.5), &vec4_t_c(0.0, 1.0, 0.0, 1.0), 1.0);
+//    r_i_DrawLine(&vec3_t_c(-GRAPH_SIZE / RATIO,-GRAPH_SIZE, -0.5), &vec3_t_c( GRAPH_SIZE / RATIO, -GRAPH_SIZE, -0.5), &vec4_t_c(0.0, 1.0, 0.0, 1.0), 1.0);
+//    r_i_DrawLine(&vec3_t_c( GRAPH_SIZE / RATIO,-GRAPH_SIZE, -0.5), &vec3_t_c( GRAPH_SIZE / RATIO,  GRAPH_SIZE, -0.5), &vec4_t_c(0.0, 1.0, 0.0, 1.0), 1.0);
+//    r_i_DrawLine(&vec3_t_c( GRAPH_SIZE / RATIO, GRAPH_SIZE, -0.5), &vec3_t_c(-GRAPH_SIZE / RATIO,  GRAPH_SIZE, -0.5), &vec4_t_c(0.0, 1.0, 0.0, 1.0), 1.0);
+//
+//    for(uint32_t index = 0; index < r_visible_lights.cursor; index++)
+//    {
+//        struct r_light_t *light = *(struct r_light_t **)ds_list_get_element(&r_visible_lights, index);
+//        uint32_t shadow_map_count;
+//        uint32_t *shadow_map_handles;
+//
+//        switch(light->type)
+//        {
+//            case R_LIGHT_TYPE_POINT:
+//            {
+//                struct r_point_light_t *point_light = (struct r_point_light_t *)light;
+//                shadow_map_count = 6;
+//                shadow_map_handles = point_light->shadow_maps;
+//            }
+//            break;
+//
+//            case R_LIGHT_TYPE_SPOT:
+//            {
+//                struct r_spot_light_t *spot_light = (struct r_spot_light_t *)light;
+//                shadow_map_count = 1;
+//                shadow_map_handles = &spot_light->shadow_map;
+//            }
+//            break;
+//        }
+//
+//        for(uint32_t shadow_map_index = 0; shadow_map_index < shadow_map_count; shadow_map_index++)
+//        {
+//            struct r_shadow_map_t *shadow_map = r_GetShadowMap(shadow_map_handles[shadow_map_index]);
+//
+//            float size = (float)light->shadow_map_res / R_SHADOW_MAP_ATLAS_WIDTH;
+//            float x0 = ((float)shadow_map->x_coord / (float)R_SHADOW_MAP_ATLAS_WIDTH);
+//            float y0 = ((float)shadow_map->y_coord / (float)R_SHADOW_MAP_ATLAS_HEIGHT);
+//            float x1 = x0 + size;
+//            float y1 = y0 + size;
+//
+//            x0 = (x0 * 2.0 - 1.0) * GRAPH_SIZE / RATIO;
+//            y0 = (y0 * 2.0 - 1.0) * GRAPH_SIZE;
+//            x1 = (x1 * 2.0 - 1.0) * GRAPH_SIZE / RATIO;
+//            y1 = (y1 * 2.0 - 1.0) * GRAPH_SIZE;
+//
+//            r_i_DrawLine(&vec3_t_c(x0, y0, -0.5), &vec3_t_c(x0, y1, -0.5), &vec4_t_c(0.0, 0.5, 1.0, 1.0), 2.0);
+//            r_i_DrawLine(&vec3_t_c(x0, y1, -0.5), &vec3_t_c(x1, y1, -0.5), &vec4_t_c(0.0, 0.5, 1.0, 1.0), 2.0);
+//            r_i_DrawLine(&vec3_t_c(x1, y1, -0.5), &vec3_t_c(x1, y0, -0.5), &vec4_t_c(0.0, 0.5, 1.0, 1.0), 2.0);
+//            r_i_DrawLine(&vec3_t_c(x1, y0, -0.5), &vec3_t_c(x0, y0, -0.5), &vec4_t_c(0.0, 0.5, 1.0, 1.0), 2.0);
+//        }
+//    }
 }
 
 void r_VisibleEntities()

@@ -1076,7 +1076,7 @@ void ed_w_Update()
 
     if(in_GetKeyState(SDL_SCANCODE_P) & IN_KEY_STATE_JUST_PRESSED)
     {
-        ed_SaveGameLevelSnapshot();
+//        ed_SaveGameLevelSnapshot();
         g_BeginGame();
     }
 }

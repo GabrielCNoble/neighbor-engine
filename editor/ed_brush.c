@@ -1243,15 +1243,17 @@ void ed_UpdateBrush(struct ed_brush_t *brush)
 //        }
     }
 
-    mat4_t transform;
-    mat4_t_comp(&transform, &brush->orientation, &brush->position);
+//    mat4_t transform;
+//    mat4_t_comp(&transform, &brush->orientation, &brush->position);
 
     if(!brush->entity)
     {
-        brush->entity = g_CreateEntity(&transform, NULL, brush->model);
+        brush->entity = g_CreateEntity(&brush->position, &vec3_t_c(1.0, 1.0, 1.0), &brush->orientation, NULL, brush->model);
     }
 
-    brush->entity->local_transform = transform;
+    brush->entity->local_position = brush->position;
+    brush->entity->local_orientation = brush->orientation;
+//    brush->entity->local_transform = transform;
     brush->flags = 0;
 }
 
@@ -1301,9 +1303,9 @@ void ed_BuildWorldGeometry()
         p_DestroyCollisionShape((struct p_col_shape_t *)l_world_shape);
         p_DestroyCollider(l_world_collider);
     }
-
-    l_world_shape = p_CreateTriMeshCollisionShape(col_verts, indices, index_offset);
-    l_world_collider = p_CreateCollider(P_COLLIDER_TYPE_STATIC, &position, &orientation, (struct p_col_shape_t *)l_world_shape);
+//
+//    l_world_shape = p_CreateTriMeshCollisionShape(col_verts, indices, index_offset);
+//    l_world_collider = p_CreateCollider(P_COLLIDER_TYPE_STATIC, &position, &orientation, (struct p_col_shape_t *)l_world_shape);
 
     ds_buffer_destroy(&col_verts_buffer);
     ds_buffer_destroy(&draw_verts_buffer);

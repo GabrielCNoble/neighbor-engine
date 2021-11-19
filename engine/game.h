@@ -25,7 +25,9 @@ struct g_entity_t
 {
     uint32_t index;
     mat4_t transform;
-    mat4_t local_transform;
+    mat3_t local_orientation;
+    vec3_t local_position;
+    vec3_t scale;
     mat4_t *parent_transform; /* can be either other entity or skeleton attachment point */
     struct ds_list_t props;
     thinker_t *thinker;
@@ -98,7 +100,7 @@ void g_MainMenu();
 
 void g_UpdateEntities();
 
-struct g_entity_t *g_CreateEntity(mat4_t *transform, thinker_t *thinker, struct r_model_t *model);
+struct g_entity_t *g_CreateEntity(vec3_t *position, vec3_t *scale, mat3_t *orientation, thinker_t *thinker, struct r_model_t *model);
 
 struct g_entity_t *g_GetEntity(uint32_t index);
 

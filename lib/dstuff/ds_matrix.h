@@ -40,6 +40,13 @@ typedef struct
 
 }mat3_t;
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
+#define mat3_t_c_id() ((mat3_t){1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0});
+
 void mat3_t_mul(mat3_t *r, mat3_t *a, mat3_t *b);
 
 void mat3_t_identity(mat3_t *m);
@@ -53,6 +60,10 @@ void mat3_t_rotate_y(mat3_t *m, float angle);
 void mat3_t_rotate_z(mat3_t *m, float angle);
 
 void mat3_t_vec3_t_mul(vec3_t *r, vec3_t *v, mat3_t *m);
+
+#ifdef __cplusplus
+}
+#endif
 
 /*
 =====================================================================
@@ -78,6 +89,11 @@ typedef struct mat4_t
     };
 
 }mat4_t;
+
+#ifdef __cplusplus
+extern "C"
+{
+#endif
 
 void mat4_t_comp(mat4_t *r, mat3_t *rot, vec3_t *pos);
 
@@ -111,6 +127,10 @@ void mat4_t_vec4_t_mul(vec4_t *r, mat4_t *m, vec4_t *v);
 
 void mat4_t_vec4_t_mul_fast(vec4_t *r, mat4_t *m, vec4_t *v);
 
+#ifdef __cplusplus
+}
+#endif
+
 /*
 =====================================================================
 =====================================================================
@@ -118,6 +138,11 @@ void mat4_t_vec4_t_mul_fast(vec4_t *r, mat4_t *m, vec4_t *v);
 */
 
 #ifdef DS_MATRIX_IMPLEMENTATION
+
+#ifdef __cplusplus
+extern "C"
+{
+#endif
 
 void mat4_t_comp(mat4_t *r, mat3_t *rot, vec3_t *pos)
 {
@@ -413,6 +438,10 @@ void mat4_t_vec4_t_mul_fast(vec4_t *r, mat4_t *m, vec4_t *v)
     accum = _mm_add_ps(accum, _mm_mul_ps(_mm_shuffle_ps(v->m128, v->m128, 0xaa), m->rows[2].m128));
     r->m128 = _mm_add_ps(accum, _mm_mul_ps(_mm_shuffle_ps(v->m128, v->m128, 0xff), m->rows[3].m128));
 }
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
 

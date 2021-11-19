@@ -21,6 +21,11 @@ typedef struct vec2_t
 
 #define vec2_t_c(x, y) (vec2_t){{{x, y}}}
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
 void vec2_t_add(vec2_t *r, vec2_t *a, vec2_t *b);
 
 void vec2_t_sub(vec2_t *r, vec2_t *a, vec2_t *b);
@@ -32,6 +37,10 @@ void vec2_t_mul(vec2_t *r, vec2_t *a, float s);
 void vec2_t_normalize(vec2_t *r, vec2_t *v);
 
 float vec2_t_length(vec2_t *v);
+
+#ifdef __cplusplus
+}
+#endif
 
 /*
 =====================================================================
@@ -51,6 +60,11 @@ typedef struct vec3_t
 
 #define vec3_t_c(x, y, z) (vec3_t){{{x, y, z}}}
 #define vec3_t_c_vec4_t(v) (vec3_t){{{(v)->x, (v)->y, (v)->z}}}
+
+#ifdef __cplusplus
+extern "C"
+{
+#endif
 
 void vec3_t_add(vec3_t *r, vec3_t *a, vec3_t *b);
 
@@ -86,6 +100,10 @@ void vec3_t_rotate_y(vec3_t *r, vec3_t *v, float angle);
 
 void vec3_t_rotate_z(vec3_t *r, vec3_t *v, float angle);
 
+#ifdef __cplusplus
+}
+#endif
+
 /*
 =====================================================================
 =====================================================================
@@ -106,6 +124,11 @@ typedef struct vec4_t
 }vec4_t;
 
 #define vec4_t_c(x, y, z, w) (vec4_t){{{x, y, z, w}}}
+
+#ifdef __cplusplus
+extern "C"
+{
+#endif
 
 void vec4_t_add(vec4_t *r, vec4_t *a, vec4_t *b);
 
@@ -135,6 +158,10 @@ void vec4_t_lerp(vec4_t *r, vec4_t *a, vec4_t *b, float t);
 
 void quat_slerp(vec4_t *r, vec4_t *a, vec4_t *b, float t);
 
+#ifdef __cplusplus
+}
+#endif
+
 /*
 =====================================================================
 =====================================================================
@@ -142,6 +169,11 @@ void quat_slerp(vec4_t *r, vec4_t *a, vec4_t *b, float t);
 */
 
 #ifdef DS_VECTOR_IMPLEMENTATION
+
+#ifdef __cplusplus
+extern "C"
+{
+#endif
 
 void vec2_t_add(vec2_t *r, vec2_t *a, vec2_t *b)
 {
@@ -495,14 +527,11 @@ void quat_slerp(vec4_t *r, vec4_t *a, vec4_t *b, float t)
     return;
 }
 
+#ifdef __cplusplus
+}
 #endif
 
-
-
-
-
-
-
+#endif
 
 #endif // VECTOR_H
 

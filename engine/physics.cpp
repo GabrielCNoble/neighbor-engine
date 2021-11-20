@@ -179,8 +179,9 @@ struct p_collider_t *p_CreateCollider(struct p_col_def_t *col_def, vec3_t *posit
     collision_shape->calculateLocalInertia(col_def->mass, inertia_tensor);
     btRigidBody::btRigidBodyConstructionInfo info(col_def->mass, motion_state, collision_shape, inertia_tensor);
     btRigidBody *rigid_body = new btRigidBody(info);
-    p_dynamics_world->addRigidBody(rigid_body);
     collider->rigid_body = rigid_body;
+
+    p_dynamics_world->addRigidBody(rigid_body);
 
     if(col_def->type == P_COLLIDER_TYPE_DYNAMIC)
     {
@@ -195,6 +196,31 @@ struct p_collider_t *p_CreateCollider(struct p_col_def_t *col_def, vec3_t *posit
     }
 
     return collider;
+}
+
+void p_SetColliderPosition(struct p_collider_t *collider, vec3_t *position)
+{
+    p_SetColliderTransform(collider, position, &collider->orientation);
+}
+
+void p_SetColliderOrientation(struct p_collider_t *collider, mat3_t *orientation)
+{
+    p_SetColliderTransform(collider, &collider->position, orientation);
+}
+
+void p_SetColliderTransform(struct p_collider_t *collider, vec3_t *position, mat3_t *orientation)
+{
+    if(collider && collider->index != 0xffffffff)
+    {
+        btRigidBody *rigid_body = (btRigidBody *)collider->rigid_body;
+        const btTransform &src_transform = rigid_body->getWorldTransform();
+        btTransform dst_transform = src_transform;
+        dst_transform.setOrigin(btVector3(position->x, position->y, position->z));
+        dst_transform.setBasis(btMatrix3x3(orientation->x0, orientation->x1, orientation->x2,
+                                           orientation->y0, orientation->y1, orientation->y2,
+                                           orientation->z0, orientation->z1, orientation->z2));
+        rigid_body->setWorldTransform(dst_transform);
+    }
 }
 
 void p_DestroyCollider(struct p_collider_t *collider)

@@ -2,6 +2,7 @@
 #define ED_BRUSH_DEFS_H
 
 #include "ed_defs.h"
+#include "../engine/e_defs.h"
 
 struct ed_bsp_polygon_t
 {
@@ -166,7 +167,7 @@ struct ed_brush_t
     struct ds_slist_t vertices;
     struct ds_list_t vert_transforms;
     struct r_model_t *model;
-    struct g_entity_t *entity;
+    struct e_entity_t *entity;
     uint32_t entity_index;
 
     uint32_t face_count;

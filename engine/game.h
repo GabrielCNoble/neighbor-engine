@@ -10,34 +10,34 @@
 #include "r_vis.h"
 #include <stdint.h>
 
-struct g_prop_t
-{
-    char *name;
-    uint32_t size;
-    void *data;
-};
-
-struct g_entity_t;
-
-typedef void (thinker_t)(struct g_entity_t *this);
-
-struct g_entity_t
-{
-    uint32_t index;
-    mat4_t transform;
-    mat3_t local_orientation;
-    vec3_t local_position;
-    vec3_t scale;
-    mat4_t *parent_transform; /* can be either other entity or skeleton attachment point */
-    struct ds_list_t props;
-    thinker_t *thinker;
-    struct p_collider_t *collider;
-    struct r_model_t *model;
-    struct a_mixer_t *mixer;
-    struct r_vis_item_t *item;
-    vec3_t extents;
-};
-
+//struct g_prop_t
+//{
+//    char *name;
+//    uint32_t size;
+//    void *data;
+//};
+//
+//struct g_entity_t;
+//
+//typedef void (thinker_t)(struct g_entity_t *this);
+//
+//struct g_entity_t
+//{
+//    uint32_t index;
+//    mat4_t transform;
+//    mat3_t local_orientation;
+//    vec3_t local_position;
+//    vec3_t scale;
+//    mat4_t *parent_transform; /* can be either other entity or skeleton attachment point */
+//    struct ds_list_t props;
+//    thinker_t *thinker;
+//    struct p_collider_t *collider;
+//    struct r_model_t *model;
+//    struct a_mixer_t *mixer;
+//    struct r_vis_item_t *item;
+//    vec3_t extents;
+//};
+//
 enum G_PLAYER_FLAGS
 {
     G_PlAYER_FLAG_JUMPING = 1,
@@ -100,7 +100,7 @@ void g_MainMenu();
 
 void g_UpdateEntities();
 
-struct g_entity_t *g_CreateEntity(vec3_t *position, vec3_t *scale, mat3_t *orientation, thinker_t *thinker, struct r_model_t *model);
+//struct g_entity_t *g_CreateEntity(vec3_t *position, vec3_t *scale, mat3_t *orientation, thinker_t *thinker, struct r_model_t *model);
 
 struct g_entity_t *g_GetEntity(uint32_t index);
 

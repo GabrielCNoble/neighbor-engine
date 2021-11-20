@@ -26,6 +26,12 @@ void p_DestroyCollisionShape(void *collision_shape);
 
 struct p_collider_t *p_CreateCollider(struct p_col_def_t *col_def, vec3_t *position, mat3_t *orientation);
 
+void p_SetColliderPosition(struct p_collider_t *collider, vec3_t *position);
+
+void p_SetColliderOrientation(struct p_collider_t *collider, mat3_t *orientation);
+
+void p_SetColliderTransform(struct p_collider_t *collider, vec3_t *position, mat3_t *orientation);
+
 void p_DestroyCollider(struct p_collider_t *collider);
 
 struct p_collider_t *p_GetCollider(uint32_t type, uint32_t index);

@@ -1,4 +1,5 @@
 #include "r_vis.h"
+#include "ent.h"
 #include "game.h"
 
 extern struct ds_list_t r_visible_lights;
@@ -38,7 +39,9 @@ extern uint32_t r_height;
 extern float r_denom;
 extern float r_fov;
 
-extern struct ds_slist_t g_entities;
+//extern struct ds_slist_t g_entities;
+
+extern struct ds_slist_t e_components[];
 
 int32_t r_CompareVisibleLights(void *a, void *b)
 {
@@ -655,13 +658,13 @@ void r_VisibleLights()
 
 void r_VisibleEntities()
 {
-    for(uint32_t entity_index = 0; entity_index < g_entities.cursor; entity_index++)
+    for(uint32_t transform_index = 0; transform_index < e_components[E_COMPONENT_TYPE_TRANSFORM].cursor; transform_index++)
     {
-        struct g_entity_t *entity = g_GetEntity(entity_index);
+        struct e_transform_component_t *transform = e_GetComponent(E_COMPONENT_TYPE_TRANSFORM, transform_index);
 
-        if(entity)
+        if(transform)
         {
-            r_DrawEntity(&entity->transform, entity->model);
+            r_DrawEntity(&transform->transform, transform->entity->model_component->model);
         }
     }
 }
@@ -703,19 +706,21 @@ void r_VisibleEntitiesOnLights()
         }
 
         float light_radius = light->range;
-        for(uint32_t entity_index = 0; entity_index < g_entities.cursor; entity_index++)
+        for(uint32_t transform_index = 0; transform_index < e_components[E_COMPONENT_TYPE_TRANSFORM].cursor; transform_index++)
         {
-            struct g_entity_t *entity = g_GetEntity(entity_index);
+//            struct g_entity_t *entity = g_GetEntity(entity_index);
+            struct e_transform_component_t *transform = e_GetComponent(E_COMPONENT_TYPE_TRANSFORM, transform_index);
+            struct e_model_component_t *model = transform->entity->model_component;
 
-            if(entity && entity->model)
+            if(transform && model)
             {
                 vec3_t light_entity_vec;
                 vec3_t normalized_light_entity_vec;
                 vec3_t model_extents;
                 uint16_t side_mask = 0;
 
-                vec3_t_mul(&model_extents, &entity->extents, 0.5);
-                vec3_t_sub(&light_entity_vec, &entity->transform.rows[3].xyz, &light->position);
+                vec3_t_mul(&model_extents, &transform->extents, 0.5);
+                vec3_t_sub(&light_entity_vec, &transform->transform.rows[3].xyz, &light->position);
                 float light_entity_dist = vec3_t_length(&light_entity_vec);
                 vec3_t_normalize(&normalized_light_entity_vec, &light_entity_vec);
                 vec3_t_fabs(&normalized_light_entity_vec, &normalized_light_entity_vec);
@@ -753,10 +758,10 @@ void r_VisibleEntitiesOnLights()
 
                         if((mask & side_mask) == mask)
                         {
-                            struct r_batch_t *batch = (struct r_batch_t *)entity->model->batches.buffer;
-                            uint32_t count = entity->model->indices.buffer_size;
+                            struct r_batch_t *batch = (struct r_batch_t *)model->model->batches.buffer;
+                            uint32_t count = model->model->indices.buffer_size;
                             mat4_t model_view_projection_matrix;
-                            mat4_t_mul(&model_view_projection_matrix, &entity->transform, &light_view_projection_matrices[face_index]);
+                            mat4_t_mul(&model_view_projection_matrix, &transform->transform, &light_view_projection_matrices[face_index]);
                             r_DrawShadow(&model_view_projection_matrix, shadow_maps[face_index], batch->start, count);
                         }
                     }

@@ -6,6 +6,7 @@
 #include "../engine/r_main.h"
 #include "../engine/game.h"
 #include "../engine/physics.h"
+#include "../engine/ent.h"
 #include "ed_bsp.h"
 
 extern struct p_tmesh_shape_t *l_world_shape;
@@ -340,7 +341,7 @@ void ed_DestroyBrush(struct ed_brush_t *brush)
         ds_slist_destroy(&brush->vertices);
         ds_list_destroy(&brush->vert_transforms);
         r_DestroyModel(brush->model);
-        g_DestroyEntity(brush->entity);
+        e_DestroyEntity(brush->entity);
 
         ds_slist_remove_element(&ed_level_state.brush.brushes, brush->index);
         brush->index = 0xffffffff;
@@ -1248,12 +1249,18 @@ void ed_UpdateBrush(struct ed_brush_t *brush)
 
     if(!brush->entity)
     {
-        brush->entity = g_CreateEntity(&brush->position, &vec3_t_c(1.0, 1.0, 1.0), &brush->orientation, NULL, brush->model);
+        struct e_ent_def_t ent_def = {};
+        ent_def.model = brush->model;
+        brush->entity = e_SpawnEntity(&ent_def, &brush->position, &vec3_t_c(1.0, 1.0, 1.0), &brush->orientation);
+    }
+    else
+    {
+        struct e_local_transform_component_t *transform = brush->entity->local_transform_component;
+
+        transform->local_position = brush->position;
+        transform->local_orientation = brush->orientation;
     }
 
-    brush->entity->local_position = brush->position;
-    brush->entity->local_orientation = brush->orientation;
-//    brush->entity->local_transform = transform;
     brush->flags = 0;
 }
 

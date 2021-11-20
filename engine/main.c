@@ -33,6 +33,7 @@ int main(int argc, char *argv[])
     l_Init();
     s_Init();
     gui_Init();
+    e_Init();
     g_Init(editor);
 
     while(g_game_state != G_GAME_STATE_QUIT)
@@ -59,7 +60,7 @@ int main(int argc, char *argv[])
             break;
         }
 
-        g_UpdateEntities();
+        e_UpdateEntities();
         r_VisibleLights();
         r_VisibleEntitiesOnLights();
         r_VisibleEntities();

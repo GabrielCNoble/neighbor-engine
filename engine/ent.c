@@ -68,19 +68,41 @@ void e_DeallocComponent(struct e_component_t *component)
                     child = next_child;
                 }
 
-                if(transform->prev)
+                if(transform->parent)
                 {
-                    transform->prev->next = transform->next;
+                    if(transform->prev)
+                    {
+                        transform->prev->next = transform->next;
+                    }
+                    else
+                    {
+                        transform->parent->children = transform->next;
+                    }
+
+                    if(transform->next)
+                    {
+                        transform->next->prev = transform->prev;
+                    }
                 }
                 else
                 {
-                    transform->parent->children = transform->next;
-                }
+                    uint32_t root_index = transform->root_index;
+                    ds_list_remove_element(&e_root_transforms, root_index);
 
-                if(transform->next)
-                {
-                    transform->next->prev = transform->prev;
+                    if(root_index < e_root_transforms.cursor)
+                    {
+                        struct e_local_transform_component_t *moved_transform;
+                        moved_transform = *(struct e_local_transform_component_t **)ds_list_get_element(&e_root_transforms, root_index);
+                        moved_transform->root_index = root_index;
+                    }
                 }
+            }
+            break;
+
+            case E_COMPONENT_TYPE_PHYSICS:
+            {
+                struct e_physics_component_t *collider = (struct e_physics_component_t *)component;
+                p_DestroyCollider(collider->collider);
             }
             break;
         }
@@ -103,30 +125,34 @@ void e_DeallocComponent(struct e_component_t *component)
                 to make it point to the new component */
                 struct e_local_transform_component_t *transform = (struct e_local_transform_component_t *)component;
                 struct e_local_transform_component_t *parent = transform->parent;
-                struct e_local_transform_component_t *child_transform = parent->children;
 
-                while(child_transform)
+                if(parent)
                 {
-                    if(child_transform->index == transform->index)
+                    struct e_local_transform_component_t *child_transform = parent->children;
+
+                    while(child_transform)
                     {
-                        if(child_transform->prev)
+                        if(child_transform->index == transform->index)
                         {
-                            child_transform->prev->next = transform;
-                        }
-                        else
-                        {
-                            parent->children = transform;
+                            if(child_transform->prev)
+                            {
+                                child_transform->prev->next = transform;
+                            }
+                            else
+                            {
+                                parent->children = transform;
+                            }
+
+                            if(child_transform->next)
+                            {
+                                child_transform->next->prev = transform;
+                            }
+
+                            break;
                         }
 
-                        if(child_transform->next)
-                        {
-                            child_transform->next->prev = transform;
-                        }
-
-                        break;
+                        child_transform = child_transform->next;
                     }
-
-                    child_transform = child_transform->next;
                 }
             }
 
@@ -193,6 +219,7 @@ struct e_entity_t *e_SpawnEntityRecursive(struct e_ent_def_t *ent_def, vec3_t *p
 
     entity->local_transform_component = e_AllocLocalTransformComponent(position, scale, orientation, entity);
     entity->transform_component = e_AllocTransformComponent(entity);
+    entity->index = index;
 
     if(ent_def->model)
     {
@@ -249,9 +276,16 @@ struct e_entity_t *e_GetEntity(uint32_t index)
 
 void e_DestroyEntity(struct e_entity_t *entity)
 {
-    if(entity)
+    if(entity && entity->index != 0xffffffff)
     {
+        for(uint32_t component = 0; component < E_COMPONENT_TYPE_LAST; component++)
+        {
+            e_DeallocComponent(entity->components[component]);
+            entity->components[component] = NULL;
+        }
 
+        ds_slist_remove_element(&e_entities, entity->index);
+        entity->index = 0xffffffff;
     }
 }
 

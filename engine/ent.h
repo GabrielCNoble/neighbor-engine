@@ -25,6 +25,9 @@ struct e_entity_t *e_GetEntity(uint32_t index);
 
 void e_DestroyEntity(struct e_entity_t *entity);
 
+
+
+
 void e_UpdateEntityLocalTransform(struct e_local_transform_component_t *local_transform, mat4_t *parent_transform);
 
 void e_UpdateEntities();

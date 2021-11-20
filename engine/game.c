@@ -198,10 +198,11 @@ void g_Init(uint32_t editor_active)
     struct e_entity_t *box = e_SpawnEntity(&ent_def, &vec3_t_c(0.0, 6.0, 0.0), &vec3_t_c(1.0, 1.0, 1.0), &orientation);
 
 
-//    e_SpawnEntity(&ent_def, &vec3_t_c(1.0, 9.0, 0.0), &vec3_t_c(1.0, 1.0, 1.0), &orientation);
-//    e_SpawnEntity(&ent_def, &vec3_t_c(0.4, 12.0, 0.3), &vec3_t_c(1.0, 1.0, 1.0), &orientation);
-//    e_SpawnEntity(&ent_def, &vec3_t_c(0.2, 16.0, -0.2), &vec3_t_c(1.0, 1.0, 1.0), &orientation);
-//    e_SpawnEntity(&ent_def, &vec3_t_c(0.0, 25.0, 0.0), &vec3_t_c(1.0, 1.0, 1.0), &orientation);
+    e_SpawnEntity(&ent_def, &vec3_t_c(1.0, 9.0, 0.0), &vec3_t_c(1.0, 1.0, 1.0), &orientation);
+    e_SpawnEntity(&ent_def, &vec3_t_c(0.4, 12.0, 0.3), &vec3_t_c(1.0, 1.0, 1.0), &orientation);
+    e_SpawnEntity(&ent_def, &vec3_t_c(0.2, 16.0, -0.2), &vec3_t_c(1.0, 1.0, 1.0), &orientation);
+    e_SpawnEntity(&ent_def, &vec3_t_c(0.0, 25.0, 0.0), &vec3_t_c(1.0, 1.0, 1.0), &orientation);
+    e_SpawnEntity(&ent_def, &vec3_t_c(0.3, 31.0, 0.0), &vec3_t_c(1.0, 1.0, 1.0), &orientation);
 //    collider_def.mass = 1.0;
 //    collider_def.type = P_COLLIDER_TYPE_DYNAMIC;
 //    box->collider = p_CreateCollider(&collider_def, &box->local_position, &orientation);

@@ -917,6 +917,22 @@ void ed_RotateBrushFace(struct ed_brush_t *brush, uint32_t face_index, mat3_t *r
     }
 }
 
+void ed_UpdateBrushEntity(struct ed_brush_t *brush)
+{
+    if(!brush->entity)
+    {
+        struct e_ent_def_t ent_def = {.index = 0xffffffff};
+        ent_def.model = brush->model;
+        brush->entity = e_SpawnEntity(&ent_def, &brush->position, &vec3_t_c(1.0, 1.0, 1.0), &brush->orientation);
+    }
+    else
+    {
+        struct e_local_transform_component_t *transform = brush->entity->local_transform_component;
+        transform->local_position = brush->position;
+        transform->local_orientation = brush->orientation;
+    }
+}
+
 void ed_UpdateBrush(struct ed_brush_t *brush)
 {
     struct r_model_geometry_t geometry = {};
@@ -1247,19 +1263,20 @@ void ed_UpdateBrush(struct ed_brush_t *brush)
 //    mat4_t transform;
 //    mat4_t_comp(&transform, &brush->orientation, &brush->position);
 
-    if(!brush->entity)
-    {
-        struct e_ent_def_t ent_def = {};
-        ent_def.model = brush->model;
-        brush->entity = e_SpawnEntity(&ent_def, &brush->position, &vec3_t_c(1.0, 1.0, 1.0), &brush->orientation);
-    }
-    else
-    {
-        struct e_local_transform_component_t *transform = brush->entity->local_transform_component;
-
-        transform->local_position = brush->position;
-        transform->local_orientation = brush->orientation;
-    }
+//    if(!brush->entity)
+//    {
+//        struct e_ent_def_t ent_def = {.index = 0xffffffff};
+//        ent_def.model = brush->model;
+//        brush->entity = e_SpawnEntity(&ent_def, &brush->position, &vec3_t_c(1.0, 1.0, 1.0), &brush->orientation);
+//    }
+//    else
+//    {
+//        struct e_local_transform_component_t *transform = brush->entity->local_transform_component;
+//
+//        transform->local_position = brush->position;
+//        transform->local_orientation = brush->orientation;
+//    }
+    ed_UpdateBrushEntity(brush);
 
     brush->flags = 0;
 }

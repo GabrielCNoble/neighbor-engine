@@ -13,6 +13,10 @@ void ed_Init();
 
 void ed_Shutdown();
 
+struct ed_editor_t *ed_RegisterEditor(struct ed_editor_t *editor);
+
+void ed_SwitchToEditor(struct ed_editor_t *editor);
+
 void ed_UpdateEditor();
 
 void ed_SetNextContextState(struct ed_context_t *context, void (*state_fn)(struct ed_context_t *context, uint32_t just_changed));

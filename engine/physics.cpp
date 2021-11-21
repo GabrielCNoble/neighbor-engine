@@ -29,7 +29,7 @@ btCollisionDispatcher *p_collision_dispatcher;
 btSequentialImpulseConstraintSolver *p_constraint_solver;
 btBroadphaseInterface *p_broadphase;
 struct ds_slist_t p_colliders[P_COLLIDER_TYPE_LAST];
-
+struct ds_slist_t p_shape_defs;
 uint32_t p_col_shape_count;
 
 
@@ -42,6 +42,7 @@ void p_Init()
 {
     p_colliders[P_COLLIDER_TYPE_DYNAMIC] = ds_slist_create(sizeof(struct p_dynamic_collider_t), 512);
     p_colliders[P_COLLIDER_TYPE_STATIC] = ds_slist_create(sizeof(struct p_static_collider_t), 512);
+    p_shape_defs = ds_slist_create(sizeof(struct p_shape_def_t), 512);
 
     p_broadphase = new btDbvtBroadphase();
     p_collision_configuration = new btDefaultCollisionConfiguration();
@@ -53,6 +54,31 @@ void p_Init()
 void p_Shutdown()
 {
 
+}
+
+struct p_shape_def_t *p_AllocShapeDef()
+{
+    uint32_t index;
+    struct p_shape_def_t *shape_def;
+
+    index = ds_slist_add_element(&p_shape_defs, NULL);
+    shape_def = (struct p_shape_def_t *)ds_slist_get_element(&p_shape_defs, index);
+
+    shape_def->index = index;
+    shape_def->type = P_COL_SHAPE_TYPE_LAST;
+    shape_def->next = NULL;
+//    shape_def->prev = NULL;
+
+    return shape_def;
+}
+
+void p_FreeShapeDef(struct p_shape_def_t *shape_def)
+{
+    if(shape_def && shape_def->index != 0xffffffff)
+    {
+        ds_slist_remove_element(&p_shape_defs, shape_def->index);
+        shape_def->index = 0xffffffff;
+    }
 }
 
 void *p_CreateCollisionShape(struct p_shape_def_t *shape_def)
@@ -85,24 +111,25 @@ void *p_CreateColliderCollisionShape(struct p_col_def_t *collider_def)
     if(collider_def->shape_count > 1)
     {
         btCompoundShape *compound_shape = new btCompoundShape(true, collider_def->shape_count);
-
-        for(uint32_t shape_index = 0; shape_index < collider_def->shape_count; shape_index++)
+        struct p_shape_def_t *shape_def = collider_def->shape;
+        while(shape_def)
         {
-            struct p_shape_def_t *shape_def = collider_def->shape + shape_index;
             btCollisionShape *child_shape = (btCollisionShape *)p_CreateCollisionShape(shape_def);
             btTransform child_transform;
             child_transform.setOrigin(btVector3(shape_def->position.x, shape_def->position.y, shape_def->position.z));
             child_transform.setBasis(btMatrix3x3(shape_def->orientation.x0, shape_def->orientation.x1, shape_def->orientation.x2,
                                                  shape_def->orientation.y0, shape_def->orientation.y1, shape_def->orientation.y2,
                                                  shape_def->orientation.z0, shape_def->orientation.z1, shape_def->orientation.z2));
+
             compound_shape->addChildShape(child_transform, child_shape);
+            shape_def = shape_def->next;
         }
 
         shape = compound_shape;
     }
     else
     {
-        shape = (btCollisionShape *)p_CreateCollisionShape(&collider_def->shape[0]);
+        shape = (btCollisionShape *)p_CreateCollisionShape(collider_def->shape);
     }
 
     return shape;

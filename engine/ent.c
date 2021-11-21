@@ -24,6 +24,69 @@ void e_Shutdown()
 
 }
 
+struct e_ent_def_t *e_AllocEntDef()
+{
+    uint32_t index;
+    struct e_ent_def_t *ent_def;
+
+    index = ds_slist_add_element(&e_ent_defs, NULL);
+    ent_def = ds_slist_get_element(&e_ent_defs, index);
+
+    ent_def->index = index;
+    ent_def->collider.shape_count = 0;
+    ent_def->children = NULL;
+    ent_def->next = NULL;
+    ent_def->prev = NULL;
+    ent_def->model = NULL;
+
+
+    return ent_def;
+}
+
+struct e_ent_def_t *e_GetEntDef(uint32_t index)
+{
+    struct e_ent_def_t *ent_def = ds_slist_get_element(&e_ent_defs, index);
+    if(ent_def && ent_def->index == 0xffffffff)
+    {
+        ent_def = NULL;
+    }
+
+    return ent_def;
+}
+
+struct e_ent_def_t *e_FindEntDef(char *name)
+{
+    for(uint32_t index = 0; index < e_ent_defs.cursor; index++)
+    {
+        struct e_ent_def_t *ent_def = e_GetEntDef(index);
+
+        if(!strcmp(name, ent_def->name))
+        {
+            return ent_def;
+        }
+    }
+
+    return NULL;
+}
+
+void e_DeallocEntDef(struct e_ent_def_t *ent_def)
+{
+    if(ent_def && ent_def->index != 0xffffffff)
+    {
+        struct e_ent_def_t *child = ent_def->children;
+
+        while(child)
+        {
+            struct e_ent_def_t *next_child = child->next;
+            e_DeallocEntDef(child);
+            child = next_child;
+        }
+
+        ds_slist_remove_element(&e_ent_defs, ent_def->index);
+        ent_def->index = 0xffffffff;
+    }
+}
+
 struct e_component_t *e_AllocComponent(uint32_t type, struct e_entity_t *entity)
 {
     uint32_t index;
@@ -216,8 +279,25 @@ struct e_entity_t *e_SpawnEntityRecursive(struct e_ent_def_t *ent_def, vec3_t *p
 
     index = ds_slist_add_element(&e_entities, NULL);
     entity = ds_slist_get_element(&e_entities, index);
+    vec3_t local_scale = *scale;
 
-    entity->local_transform_component = e_AllocLocalTransformComponent(position, scale, orientation, entity);
+    if(ent_def->index != 0xffffffff)
+    {
+        entity->def = ent_def;
+    }
+    else
+    {
+        entity->def = NULL;
+    }
+
+    if(!parent)
+    {
+        local_scale.x *= ent_def->local_scale.x;
+        local_scale.y *= ent_def->local_scale.y;
+        local_scale.z *= ent_def->local_scale.z;
+    }
+
+    entity->local_transform_component = e_AllocLocalTransformComponent(position, &local_scale, orientation, entity);
     entity->transform_component = e_AllocTransformComponent(entity);
     entity->index = index;
 
@@ -226,9 +306,9 @@ struct e_entity_t *e_SpawnEntityRecursive(struct e_ent_def_t *ent_def, vec3_t *p
         entity->model_component = e_AllocModelComponent(ent_def->model, entity);
     }
 
-    if(ent_def->collider)
+    if(ent_def->collider.shape_count)
     {
-        entity->physics_component = e_AllocPhysicsComponent(ent_def->collider, entity);
+        entity->physics_component = e_AllocPhysicsComponent(&ent_def->collider, entity);
     }
 
     if(ent_def->children)
@@ -286,6 +366,19 @@ void e_DestroyEntity(struct e_entity_t *entity)
 
         ds_slist_remove_element(&e_entities, entity->index);
         entity->index = 0xffffffff;
+    }
+}
+
+void e_DestroyAllEntities()
+{
+    for(uint32_t entity_index = 0; entity_index < e_entities.cursor; entity_index++)
+    {
+        struct e_entity_t *entity = e_GetEntity(entity_index);
+
+        if(entity)
+        {
+            e_DestroyEntity(entity);
+        }
     }
 }
 

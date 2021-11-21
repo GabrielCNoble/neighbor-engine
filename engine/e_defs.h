@@ -13,25 +13,29 @@ struct e_prop_t
     void *data;
 };
 
-struct e_entity_t;
+//struct e_entity_t;
 
-typedef void (thinker_t)(struct g_entity_t *this);
+//typedef void (thinker_t)(struct g_entity_t *this);
 
 struct e_ent_def_t
 {
     uint32_t index;
+    uint32_t s_index;
     char name[32];
+    char file[32];
 
     struct e_ent_def_t *next;
     struct e_ent_def_t *prev;
     struct e_ent_def_t *children;
 
     struct r_model_t *model;
-    struct p_col_def_t *collider;
+    struct p_col_def_t collider;
 
     mat3_t local_orientation;
     vec3_t local_position;
     vec3_t local_scale;
+
+    struct ds_list_t props;
 };
 
 enum E_COMPONENT_TYPES
@@ -90,7 +94,7 @@ struct e_model_component_t
 struct e_entity_t
 {
     uint32_t index;
-
+    struct e_ent_def_t *def;
     union
     {
         struct
@@ -104,29 +108,6 @@ struct e_entity_t
         struct e_component_t *components[E_COMPONENT_TYPE_LAST];
     };
 };
-
-//struct e_entity_t
-//{
-//    uint32_t index;
-//    mat4_t transform;
-//    mat3_t local_orientation;
-//    vec3_t local_position;
-//    vec3_t scale;
-//    mat4_t *parent_transform; /* can be either other entity or skeleton attachment point */
-//    struct ds_list_t props;
-//    thinker_t *thinker;
-//    struct p_collider_t *collider;
-//    struct r_model_t *model;
-//    struct a_mixer_t *mixer;
-//    struct r_vis_item_t *item;
-//    vec3_t extents;
-//};
-
-//struct e_handle_t
-//{
-//    uint32_t def   : 1;
-//    uint32_t index : 31;
-//};
 
 
 #endif // E_DEFS_H

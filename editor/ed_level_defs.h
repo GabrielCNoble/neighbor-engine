@@ -102,9 +102,6 @@ struct ed_level_state_t
     size_t game_level_buffer_size;
 };
 
-//static char ed_level_section_start_label[] = "[LEVEL SECTION START]";
-//#define ED_LEVEL_SECTION_START_LABEL_LEN ((sizeof(ed_level_section_start_label) + 3) & (~3))
-
 #define ED_LEVEL_SECTION_MAGIC0 0x4749454e
 #define ED_LEVEL_SECTION_MAGIC1 0x524f4248
 
@@ -129,19 +126,14 @@ struct ed_level_section_t
     size_t entity_section_start;
     size_t entity_section_size;
 
+    size_t ent_def_section_start;
+    size_t ent_def_section_size;
+
     size_t material_section_start;
     size_t material_section_size;
 
     size_t reserved[32];
 };
-
-//static char ed_level_section_end_label[] = "[LEVEL SECTION END]";
-//#define ED_LEVEL_SECTION_END_LABEL_LEN ((sizeof(ed_level_section_end_label) + 3) & (~3))
-//
-//struct ed_level_section_end_t
-//{
-//    char label[ED_LEVEL_SECTION_END_LABEL_LEN];
-//};
 
 #endif
 

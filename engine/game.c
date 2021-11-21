@@ -8,6 +8,8 @@
 #include "anim.h"
 #include "physics.h"
 #include "../editor/ed_main.h"
+#include "ent.h"
+#include "physics.h"
 #include "level.h"
 #include "sound.h"
 #include "gui.h"
@@ -169,40 +171,55 @@ void g_Init(uint32_t editor_active)
 //    struct a_animation_t *miracle_dance_blockout = a_LoadAnimation("models/MiracleDanceBlockout.anf");
 //    struct a_animation_t *miracle_dance_smooth = a_LoadAnimation("models/MiracleDanceSmooth.anf");
 
-    struct p_shape_def_t shape_def;
-    shape_def.type = P_COL_SHAPE_TYPE_BOX;
-    shape_def.position = vec3_t_c(0.0, 0.0, 0.0);
-    shape_def.orientation = mat3_t_c_id();
     g_cube_model = r_LoadModel("models/Cube.mof");
-    struct p_col_def_t collider_def = {};
-    collider_def.shape_count = 1;
-    collider_def.shape[0].type = P_COL_SHAPE_TYPE_BOX;
-    collider_def.shape[0].position = vec3_t_c(0.0, 0.0, 0.0);
-    collider_def.shape[0].orientation = mat3_t_c_id();
-
-    struct e_ent_def_t ent_def = {};
-    ent_def.model = g_cube_model;
-    ent_def.collider = &collider_def;
-//
-    collider_def.shape[0].box.size = vec3_t_c(10.0, 1.0, 10.0);
-    collider_def.mass = 0.0;
-    collider_def.type = P_COLLIDER_TYPE_STATIC;
+    struct e_ent_def_t *floor_ent_def = e_AllocEntDef();
+    struct p_shape_def_t *floor_shape_def = p_AllocShapeDef();
     mat3_t orientation = mat3_t_c_id();
-    struct e_entity_t *floor = e_SpawnEntity(&ent_def, &vec3_t_c(0.0, -3.0, 0.0), &vec3_t_c(10.0, 1.0, 10.0), &orientation);
+
+    strcpy(floor_ent_def->name, "floor");
+    floor_ent_def->model = g_cube_model;
+    floor_ent_def->local_scale = vec3_t_c(1.0, 1.0, 1.0);
+    floor_ent_def->collider.shape = floor_shape_def;
+    floor_ent_def->collider.shape_count = 1;
+    floor_ent_def->collider.mass = 0.0;
+    floor_ent_def->collider.type = P_COLLIDER_TYPE_STATIC;
+
+    floor_shape_def->type = P_COL_SHAPE_TYPE_BOX;
+    floor_shape_def->position = vec3_t_c(0.0, 0.0, 0.0);
+    floor_shape_def->orientation = mat3_t_c_id();
+    floor_shape_def->box.size = vec3_t_c(10.0, 1.0, 10.0);
+
+//    e_SpawnEntity(floor_ent_def, &vec3_t_c(0.0, -3.0, 0.0), &vec3_t_c(10.0, 1.0, 10.0), &orientation);
+
+
+
+
+    struct e_ent_def_t *box_ent_def = e_AllocEntDef();
+    struct p_shape_def_t *box_shape_def = p_AllocShapeDef();
+
+    strcpy(box_ent_def->name, "box");
+    box_ent_def->model = g_cube_model;
+    box_ent_def->local_scale = vec3_t_c(1.0, 1.0, 1.0);
+    box_ent_def->collider.shape = box_shape_def;
+    box_ent_def->collider.shape_count = 1;
+    box_ent_def->collider.mass = 1.0;
+    box_ent_def->collider.type = P_COLLIDER_TYPE_DYNAMIC;
+
+    box_shape_def->type = P_COL_SHAPE_TYPE_BOX;
+    box_shape_def->position = vec3_t_c(0.0, 0.0, 0.0);
+    box_shape_def->orientation = mat3_t_c_id();
+    box_shape_def->box.size = vec3_t_c(1.0, 1.0, 1.0);
 
     mat3_t_rotate_x(&orientation, 0.05);
     mat3_t_rotate_y(&orientation, 0.05);
-    collider_def.shape[0].box.size = vec3_t_c(1.0, 1.0, 1.0);
-    collider_def.mass = 1.0;
-    collider_def.type = P_COLLIDER_TYPE_DYNAMIC;
-    struct e_entity_t *box = e_SpawnEntity(&ent_def, &vec3_t_c(0.0, 6.0, 0.0), &vec3_t_c(1.0, 1.0, 1.0), &orientation);
 
-
-    e_SpawnEntity(&ent_def, &vec3_t_c(1.0, 9.0, 0.0), &vec3_t_c(1.0, 1.0, 1.0), &orientation);
-    e_SpawnEntity(&ent_def, &vec3_t_c(0.4, 12.0, 0.3), &vec3_t_c(1.0, 1.0, 1.0), &orientation);
-    e_SpawnEntity(&ent_def, &vec3_t_c(0.2, 16.0, -0.2), &vec3_t_c(1.0, 1.0, 1.0), &orientation);
-    e_SpawnEntity(&ent_def, &vec3_t_c(0.0, 25.0, 0.0), &vec3_t_c(1.0, 1.0, 1.0), &orientation);
-    e_SpawnEntity(&ent_def, &vec3_t_c(0.3, 31.0, 0.0), &vec3_t_c(1.0, 1.0, 1.0), &orientation);
+//    e_SpawnEntity(box_ent_def, &vec3_t_c(0.0, 6.0, 0.0), &vec3_t_c(1.0, 1.0, 1.0), &orientation);
+//
+//    e_SpawnEntity(box_ent_def, &vec3_t_c(1.0, 9.0, 0.0), &vec3_t_c(1.0, 1.0, 1.0), &orientation);
+//    e_SpawnEntity(box_ent_def, &vec3_t_c(0.4, 12.0, 0.3), &vec3_t_c(1.0, 1.0, 1.0), &orientation);
+//    e_SpawnEntity(box_ent_def, &vec3_t_c(0.2, 16.0, -0.2), &vec3_t_c(1.0, 1.0, 1.0), &orientation);
+//    e_SpawnEntity(box_ent_def, &vec3_t_c(0.0, 25.0, 0.0), &vec3_t_c(1.0, 1.0, 1.0), &orientation);
+//    e_SpawnEntity(box_ent_def, &vec3_t_c(0.3, 31.0, 0.0), &vec3_t_c(1.0, 1.0, 1.0), &orientation);
 //    collider_def.mass = 1.0;
 //    collider_def.type = P_COLLIDER_TYPE_DYNAMIC;
 //    box->collider = p_CreateCollider(&collider_def, &box->local_position, &orientation);
@@ -689,11 +706,11 @@ void g_StopGame()
 {
     g_SetGameState(G_GAME_STATE_MAIN_MENU);
 
-//    l_ClearLevel();
+    l_ClearLevel();
 
     if(g_editor)
     {
-//        ed_LoadGameLevelSnapshot();
+        ed_LoadGameLevelSnapshot();
     }
     else
     {
@@ -847,28 +864,28 @@ void g_UpdateEntities()
 //    }
 }
 
-struct g_entity_t *g_CreateEntity(vec3_t *position, vec3_t *scale, mat3_t *orientation, thinker_t *thinker, struct r_model_t *model)
-{
-//    uint32_t entity_index;
-//    struct g_entity_t *entity;
-//
-//    entity_index = ds_slist_add_element(&g_entities, NULL);
-//    entity = ds_slist_get_element(&g_entities, entity_index);
-//
-//    entity->index = entity_index;
-////    entity->local_transform = *transform;
-//
-//    entity->local_orientation = *orientation;
-//    entity->local_position = *position;
-//    entity->scale = *scale;
-//    entity->model = model;
-//    entity->thinker = thinker;
-////    entity->item = r_AllocateVisItem(&entity->transform, entity->model);
-//
-//    g_UpdateEntityExtents(entity);
-//
-//    return entity;
-}
+//struct g_entity_t *g_CreateEntity(vec3_t *position, vec3_t *scale, mat3_t *orientation, thinker_t *thinker, struct r_model_t *model)
+//{
+////    uint32_t entity_index;
+////    struct g_entity_t *entity;
+////
+////    entity_index = ds_slist_add_element(&g_entities, NULL);
+////    entity = ds_slist_get_element(&g_entities, entity_index);
+////
+////    entity->index = entity_index;
+//////    entity->local_transform = *transform;
+////
+////    entity->local_orientation = *orientation;
+////    entity->local_position = *position;
+////    entity->scale = *scale;
+////    entity->model = model;
+////    entity->thinker = thinker;
+//////    entity->item = r_AllocateVisItem(&entity->transform, entity->model);
+////
+////    g_UpdateEntityExtents(entity);
+////
+////    return entity;
+//}
 
 struct g_entity_t *g_GetEntity(uint32_t index)
 {

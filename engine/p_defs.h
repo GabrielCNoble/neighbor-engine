@@ -20,6 +20,10 @@ enum P_COL_SHAPE_TYPES
 struct p_shape_def_t
 {
     uint32_t type;
+    uint32_t index;
+
+    struct p_shape_def_t *next;
+
     vec3_t position;
     mat3_t orientation;
 
@@ -29,6 +33,14 @@ struct p_shape_def_t
         struct { float height; float radius; } capsule;
         struct { vec3_t *verts; uint32_t count; }tri_mesh;
     };
+};
+
+struct p_col_def_t
+{
+    float mass;
+    uint32_t type;
+    uint32_t shape_count;
+    struct p_shape_def_t *shape;
 };
 
 enum P_COLLIDER_TYPE
@@ -64,25 +76,18 @@ struct p_dynamic_collider_t
     float mass;
 };
 
-struct p_col_def_t
-{
-    float mass;
-    uint32_t type;
-    uint32_t shape_count;
-    struct p_shape_def_t shape[1];
-};
 
-struct p_col_section_t
-{
-    size_t record_start;
-    size_t record_count;
-};
-
-struct p_col_record_t
-{
-    mat3_t orientation;
-    vec3_t position;
-    struct p_col_def_t def;
-};
+//struct p_col_section_t
+//{
+//    size_t record_start;
+//    size_t record_count;
+//};
+//
+//struct p_col_record_t
+//{
+//    mat3_t orientation;
+//    vec3_t position;
+//    struct p_col_def_t def;
+//};
 
 #endif

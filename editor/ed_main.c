@@ -26,6 +26,8 @@
 
 struct ed_context_t *ed_active_context;
 struct ed_context_t ed_contexts[ED_CONTEXT_LAST];
+struct ed_editor_t ed_editors[ED_EDITOR_LAST];
+struct ed_editor_t *ed_active_editor;
 //uint32_t ed_grid_vert_count;
 //struct r_vert_t *ed_grid;
 //struct r_i_verts_t *ed_grid;
@@ -130,6 +132,8 @@ void ed_Init()
 {
     SDL_DisplayMode desktop_display_mode;
 
+//    ed_editors = ds_slist_create(sizeof(struct ed_editor_t), 8);
+
     SDL_GetDesktopDisplayMode(0, &desktop_display_mode);
 
     glGenFramebuffers(1, &ed_picking_framebuffer);
@@ -180,6 +184,29 @@ void ed_Init()
 void ed_Shutdown()
 {
 
+}
+
+struct ed_editor_t *ed_RegisterEditor(struct ed_editor_t *editor)
+{
+//    uint32_t index;
+//    struct ed_editor_t *new_editor;
+//
+//    index = ds_slist_add_element(&ed_editors, editor);
+//    new_editpr = ds_slist_get_element(&ed_editors, index);
+//    new_editor->index = index;
+//    new_editor->init();
+//    return new_editor;
+}
+
+void ed_SwitchToEditor(struct ed_editor_t *editor)
+{
+    if(ed_active_editor)
+    {
+        ed_active_editor->suspend();
+    }
+
+    ed_active_editor = editor;
+    ed_active_editor->resume();
 }
 
 void ed_UpdateEditor()

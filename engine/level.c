@@ -3,6 +3,7 @@
 #include "dstuff/ds_alloc.h"
 #include "../editor/ed_level_defs.h"
 #include "r_draw.h"
+#include "ent.h"
 #include "physics.h"
 
 struct r_model_t *l_world_model;
@@ -38,6 +39,7 @@ void l_ClearGeometry()
 void l_ClearLevel()
 {
     r_DestroyAllLighs();
+    e_DestroyAllEntities();
 }
 
 void l_DeserializeLevel(void *level_buffer, size_t buffer_size)
@@ -52,4 +54,36 @@ void l_DeserializeLevel(void *level_buffer, size_t buffer_size)
         struct l_light_record_t *record = light_records + record_index;
         r_CreateLight(record->type, &record->position, &record->color, record->radius, record->energy);
     }
+
+
+
+    struct l_ent_def_section_t *ent_def_section = (struct l_ent_def_section_t *)(in_buffer + level_section->ent_def_section_start);
+    struct l_ent_def_record_t *ent_def_records = (struct l_ent_def_record_t *)(in_buffer + ent_def_section->record_start);
+
+    for(uint32_t record_index = 0; record_index < ent_def_section->record_count; record_index++)
+    {
+        struct l_ent_def_record_t *record = ent_def_records + record_index;
+        record->def = e_FindEntDef(record->name);
+    }
+
+
+
+    struct l_entity_section_t *entity_section = (struct l_entity_section_t *)(in_buffer + level_section->entity_section_start);
+    struct l_entity_record_t *entity_records = (struct l_entity_record_t *)(in_buffer + entity_section->record_start);
+
+    for(uint32_t record_index = 0; record_index < entity_section->record_count; record_index++)
+    {
+        struct l_entity_record_t *record = entity_records + record_index;
+        struct e_ent_def_t *ent_def = ent_def_records[record->ent_def].def;
+        e_SpawnEntity(ent_def, &record->position, &record->scale, &record->orientation);
+    }
 }
+
+
+
+
+
+
+
+
+

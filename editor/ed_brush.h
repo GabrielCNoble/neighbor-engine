@@ -63,6 +63,8 @@ void ed_TranslateBrushFace(struct ed_brush_t *brush, uint32_t face_index, vec3_t
 
 void ed_RotateBrushFace(struct ed_brush_t *brush, uint32_t face_index, mat3_t *rotation);
 
+void ed_UpdateBrushEntity(struct ed_brush_t *brush);
+
 void ed_UpdateBrush(struct ed_brush_t *brush);
 
 void ed_BuildWorldGeometry();

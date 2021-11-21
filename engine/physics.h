@@ -12,6 +12,10 @@ void p_Init();
 
 void p_Shutdown();
 
+struct p_shape_def_t *p_AllocShapeDef();
+
+void p_FreeShapeDef(struct p_shape_def_t *shape_def);
+
 void *p_CreateCollisionShape(struct p_shape_def_t *shape_def);
 
 void *p_CreateColliderCollisionShape(struct p_col_def_t *collider_def);
@@ -19,10 +23,6 @@ void *p_CreateColliderCollisionShape(struct p_col_def_t *collider_def);
 void p_DestroyCollisionShape(void *collision_shape);
 
 
-
-//struct p_dynamic_collider_t *p_CreateDynamicCollider(vec3_t *position, mat3_t *orientation, struct p_col_shape_def_t *shape_def, float mass);
-//
-//struct p_static_collider_t *p_CreateStaticCollider(vec3_t *position, mat3_t *orientation, struct p_col_shape_def_t *shape_def);
 
 struct p_collider_t *p_CreateCollider(struct p_col_def_t *col_def, vec3_t *position, mat3_t *orientation);
 

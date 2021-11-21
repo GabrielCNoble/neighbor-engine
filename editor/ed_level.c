@@ -9,6 +9,7 @@
 #include "../engine/game.h"
 #include "../engine/input.h"
 #include "../engine/l_defs.h"
+#include "../engine/ent.h"
 #include "../engine/level.h"
 
 extern struct ed_context_t ed_contexts[];
@@ -28,6 +29,11 @@ struct r_shader_t *ed_outline_shader;
 struct r_i_verts_t *ed_grid;
 
 extern struct ds_slist_t r_lights[];
+extern struct ds_slist_t e_entities;
+extern struct ds_slist_t e_ent_defs;
+extern struct ds_list_t e_components[];
+extern struct ds_list_t e_root_transforms;
+
 extern mat4_t r_projection_matrix;
 extern mat4_t r_camera_matrix;
 extern uint32_t r_width;
@@ -121,7 +127,6 @@ void ed_w_Init()
     ed_translation_widget_model = r_LoadModel("models/twidget.mof");
     ed_rotation_widget_model = r_LoadModel("models/rwidget.mof");
     ed_ball_widget_model = r_LoadModel("models/bwidget.mof");
-
 
     mat4_t_identity(&ed_level_state.manipulator.transform);
     ed_level_state.manipulator.linear_snap = 0.25;
@@ -1076,7 +1081,7 @@ void ed_w_Update()
 
     if(in_GetKeyState(SDL_SCANCODE_P) & IN_KEY_STATE_JUST_PRESSED)
     {
-//        ed_SaveGameLevelSnapshot();
+        ed_SaveGameLevelSnapshot();
         g_BeginGame();
     }
 }
@@ -2119,7 +2124,17 @@ void ed_SerializeLevel(void **level_buffer, size_t *buffer_size, uint32_t serial
     light_section_size += sizeof(struct l_light_record_t) * r_lights[R_LIGHT_TYPE_POINT].used;
     light_section_size += sizeof(struct l_light_record_t) * r_lights[R_LIGHT_TYPE_SPOT].used;
 
-    out_buffer_size += brush_section_size + light_section_size;
+    size_t entity_section_size = sizeof(struct l_entity_section_t);
+    /* the reason we use the amount of root transforms here instead of the total amount of entities
+    is that an entity gets spawned from an entity def, which defines the hierarchical structure of
+    an entity. Child entities shouldn't have an entity record because they'll get spawned from the
+    ent def. Only one record is necessary for the root entity. */
+    entity_section_size += sizeof(struct l_entity_record_t) * e_root_transforms.cursor;
+
+    size_t ent_def_section_size = sizeof(struct l_ent_def_section_t);
+    ent_def_section_size += sizeof(struct l_ent_def_record_t) * e_ent_defs.used;
+
+    out_buffer_size += brush_section_size + light_section_size + entity_section_size + ent_def_section_size;
 
     char *start_out_buffer = mem_Calloc(1, out_buffer_size);
     char *cur_out_buffer = start_out_buffer;
@@ -2312,6 +2327,55 @@ void ed_SerializeLevel(void **level_buffer, size_t *buffer_size, uint32_t serial
             light_record->uuid = light->index;
         }
     }
+
+    level_section->ent_def_section_size = ent_def_section_size;
+    level_section->ent_def_section_start = cur_out_buffer - start_out_buffer;
+
+    struct l_ent_def_section_t *ent_def_section = (struct l_ent_def_section_t *)cur_out_buffer;
+    cur_out_buffer += sizeof(struct l_ent_def_section_t);
+
+    ent_def_section->record_start = cur_out_buffer - start_out_buffer;
+    struct l_ent_def_record_t *ent_def_records = (struct l_ent_def_record_t *)cur_out_buffer;
+    cur_out_buffer += sizeof(struct l_ent_def_record_t) * e_ent_defs.used;
+
+    for(uint32_t ent_def_index = 0; ent_def_index < e_ent_defs.cursor; ent_def_index++)
+    {
+        struct e_ent_def_t *ent_def = e_GetEntDef(ent_def_index);
+
+        if(ent_def)
+        {
+            struct l_ent_def_record_t *ent_def_record = ent_def_records + ent_def_section->record_count;
+            ent_def->s_index = ent_def_section->record_count;
+            ent_def_section->record_count++;
+            strcpy(ent_def_record->name, ent_def->name);
+        }
+    }
+
+
+    level_section->entity_section_size = entity_section_size;
+    level_section->entity_section_start = cur_out_buffer - start_out_buffer;
+
+    struct l_entity_section_t *entity_section = (struct l_entity_section_t *)cur_out_buffer;
+    cur_out_buffer += sizeof(struct l_entity_section_t);
+    entity_section->record_start = cur_out_buffer - start_out_buffer;
+    struct l_entity_record_t *entity_records = (struct l_entity_record_t *)cur_out_buffer;
+    cur_out_buffer += sizeof(struct l_entity_record_t) * e_root_transforms.cursor;
+
+    for(uint32_t entity_index = 0; entity_index < e_root_transforms.cursor; entity_index++)
+    {
+        struct e_local_transform_component_t *transform;
+        transform = *(struct e_local_transform_component_t **)ds_list_get_element(&e_root_transforms, entity_index);
+
+        struct l_entity_record_t *entity_record = entity_records + entity_section->record_count;
+        entity_section->record_count++;
+
+        entity_record->child_start = 0;
+        entity_record->child_count = 0;
+        entity_record->ent_def = transform->entity->def->s_index;
+        entity_record->position = transform->local_position;
+        entity_record->orientation = transform->local_orientation;
+        entity_record->scale = transform->local_scale;
+    }
 }
 
 void ed_DeserializeLevel(void *level_buffer, size_t buffer_size)
@@ -2478,10 +2542,12 @@ void ed_SaveGameLevelSnapshot()
     for(uint32_t brush_index = 0; brush_index < ed_level_state.brush.brushes.cursor; brush_index++)
     {
         struct ed_brush_t *brush = ed_GetBrush(brush_index);
+        e_DestroyEntity(brush->entity);
+        brush->entity = NULL;
         /* this will essentially make this entity invisible to the serialization code up ahead and
         to the game, and will make things faster when we reload the game level snapshot */
-        brush->entity_index = brush->entity->index;
-        brush->entity->index = 0xffffffff;
+//        brush->entity_index = brush->entity->index;
+//        brush->entity->index = 0xffffffff;
     }
     ed_SerializeLevel(&ed_level_state.game_level_buffer, &ed_level_state.game_level_buffer_size, 0);
 }
@@ -2494,8 +2560,9 @@ void ed_LoadGameLevelSnapshot()
     for(uint32_t brush_index = 0; brush_index < ed_level_state.brush.brushes.cursor; brush_index++)
     {
         struct ed_brush_t *brush = ed_GetBrush(brush_index);
+        ed_UpdateBrushEntity(brush);
         /* brushes are now visible again */
-        brush->entity->index = brush->entity_index;
+//        brush->entity->index = brush->entity_index;
     }
 }
 

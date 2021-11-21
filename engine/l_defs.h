@@ -6,6 +6,7 @@
 #include "../lib/dstuff/ds_matrix.h"
 
 #include "p_defs.h"
+#include "e_defs.h"
 
 struct l_light_section_t
 {
@@ -45,20 +46,46 @@ struct l_material_record_t
     char metalness_texture[32];
 };
 
+struct l_ent_def_section_t
+{
+    size_t record_start;
+    size_t record_count;
+};
+
+struct l_ent_def_record_t
+{
+    char name[32];
+    char file[32];
+    struct e_ent_def_t *def;
+};
 
 struct l_entity_section_t
 {
-
+    size_t record_start;
+    size_t record_count;
+    size_t reserved[32];
 };
 
 struct l_entity_record_t
 {
+    mat3_t orientation;
+    vec3_t position;
+    vec3_t scale;
 
+    size_t ent_def;
+
+    size_t child_start;
+    size_t child_count;
 };
+
+
+
+
+
 
 struct l_player_section_t
 {
-//    size_t record_
+
 };
 
 struct l_player_record_t

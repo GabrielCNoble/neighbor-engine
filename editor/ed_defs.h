@@ -7,7 +7,6 @@
 #include "../lib/dstuff/ds_matrix.h"
 #include "../engine/r_defs.h"
 
-
 struct ed_context_t;
 
 struct ed_state_t
@@ -21,13 +20,31 @@ enum ED_CONTEXTS
     ED_CONTEXT_LAST,
 };
 
+enum ED_EDITORS
+{
+    ED_EDITOR_LEVEL,
+    ED_EDITOR_ENTITY,
+    ED_EDITOR_LAST
+};
+
 struct ed_context_t
 {
     void (*update)();
     void (*current_state)(struct ed_context_t *context, uint32_t just_changed);
     void (*next_state)(struct ed_context_t *context, uint32_t just_changed);
-//    struct ed_state_t *states;
     void *context_data;
+};
+
+struct ed_editor_t
+{
+    uint32_t index;
+    void (*init)();
+    void (*suspend)();
+    void (*resume)();
+    void (*update)();
+
+    void (*current_state)(uint32_t just_changed);
+    void (*next_state)(uint32_t just_changed);
 };
 
 

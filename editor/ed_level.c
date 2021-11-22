@@ -30,7 +30,7 @@ struct r_i_verts_t *ed_grid;
 
 extern struct ds_slist_t r_lights[];
 extern struct ds_slist_t e_entities;
-extern struct ds_slist_t e_ent_defs;
+extern struct ds_slist_t e_ent_defs[];
 extern struct ds_list_t e_components[];
 extern struct ds_list_t e_root_transforms;
 
@@ -261,7 +261,7 @@ void ed_w_Init()
     geometry.indices = index_buffer.buffer;
     geometry.index_count = 1;
 
-    ed_light_pickable_model = r_CreateModel(&geometry, NULL);
+    ed_light_pickable_model = r_CreateModel(&geometry, NULL, "light_pickable");
     ds_buffer_destroy(&vert_buffer);
     ds_buffer_destroy(&index_buffer);
     ds_buffer_destroy(&batch_buffer);
@@ -2132,7 +2132,7 @@ void ed_SerializeLevel(void **level_buffer, size_t *buffer_size, uint32_t serial
     entity_section_size += sizeof(struct l_entity_record_t) * e_root_transforms.cursor;
 
     size_t ent_def_section_size = sizeof(struct l_ent_def_section_t);
-    ent_def_section_size += sizeof(struct l_ent_def_record_t) * e_ent_defs.used;
+    ent_def_section_size += sizeof(struct l_ent_def_record_t) * e_ent_defs[E_ENT_DEF_TYPE_ROOT].used;
 
     out_buffer_size += brush_section_size + light_section_size + entity_section_size + ent_def_section_size;
 
@@ -2324,7 +2324,7 @@ void ed_SerializeLevel(void **level_buffer, size_t *buffer_size, uint32_t serial
             light_record->vert_start = 0;
             light_record->vert_count = 0;
             light_record->type = light->type;
-            light_record->uuid = light->index;
+            light_record->s_index = light->index;
         }
     }
 
@@ -2336,11 +2336,11 @@ void ed_SerializeLevel(void **level_buffer, size_t *buffer_size, uint32_t serial
 
     ent_def_section->record_start = cur_out_buffer - start_out_buffer;
     struct l_ent_def_record_t *ent_def_records = (struct l_ent_def_record_t *)cur_out_buffer;
-    cur_out_buffer += sizeof(struct l_ent_def_record_t) * e_ent_defs.used;
+    cur_out_buffer += sizeof(struct l_ent_def_record_t) * e_ent_defs[E_ENT_DEF_TYPE_ROOT].cursor;
 
-    for(uint32_t ent_def_index = 0; ent_def_index < e_ent_defs.cursor; ent_def_index++)
+    for(uint32_t ent_def_index = 0; ent_def_index < e_ent_defs[E_ENT_DEF_TYPE_ROOT].cursor; ent_def_index++)
     {
-        struct e_ent_def_t *ent_def = e_GetEntDef(ent_def_index);
+        struct e_ent_def_t *ent_def = e_GetEntDef(E_ENT_DEF_TYPE_ROOT, ent_def_index);
 
         if(ent_def)
         {
@@ -2372,9 +2372,10 @@ void ed_SerializeLevel(void **level_buffer, size_t *buffer_size, uint32_t serial
         entity_record->child_start = 0;
         entity_record->child_count = 0;
         entity_record->ent_def = transform->entity->def->s_index;
-        entity_record->position = transform->local_position;
-        entity_record->orientation = transform->local_orientation;
-        entity_record->scale = transform->local_scale;
+        entity_record->position = transform->position;
+        entity_record->orientation = transform->orientation;
+        entity_record->scale = transform->scale;
+        entity_record->s_index = transform->entity->index;
     }
 }
 
@@ -2544,26 +2545,76 @@ void ed_SaveGameLevelSnapshot()
         struct ed_brush_t *brush = ed_GetBrush(brush_index);
         e_DestroyEntity(brush->entity);
         brush->entity = NULL;
-        /* this will essentially make this entity invisible to the serialization code up ahead and
-        to the game, and will make things faster when we reload the game level snapshot */
-//        brush->entity_index = brush->entity->index;
-//        brush->entity->index = 0xffffffff;
     }
+
     ed_SerializeLevel(&ed_level_state.game_level_buffer, &ed_level_state.game_level_buffer_size, 0);
 }
 
 void ed_LoadGameLevelSnapshot()
 {
     l_DeserializeLevel(ed_level_state.game_level_buffer, ed_level_state.game_level_buffer_size);
-    mem_Free(ed_level_state.game_level_buffer);
 
     for(uint32_t brush_index = 0; brush_index < ed_level_state.brush.brushes.cursor; brush_index++)
     {
         struct ed_brush_t *brush = ed_GetBrush(brush_index);
         ed_UpdateBrushEntity(brush);
-        /* brushes are now visible again */
-//        brush->entity->index = brush->entity_index;
     }
+
+    char *level_buffer = ed_level_state.game_level_buffer;
+    struct ed_level_section_t *level_section = (struct ed_level_section_t *)level_buffer;
+    struct l_light_section_t *light_section = (struct l_light_section_t *)(level_buffer + level_section->light_section_start);
+    struct l_light_record_t *light_records = (struct l_light_record_t *)(level_buffer + light_section->record_start);
+    struct l_entity_section_t *entity_section = (struct l_entity_section_t *)(level_buffer + level_section->entity_section_start);
+    struct l_entity_record_t *entity_records = (struct l_entity_record_t *)(level_buffer + entity_section->record_start);
+
+    for(uint32_t pickable_index = 0; pickable_index < ed_level_state.pickables.pickables.cursor; pickable_index++)
+    {
+        struct ed_pickable_t *pickable = ed_GetPickable(pickable_index);
+
+        switch(pickable->type)
+        {
+            case ED_PICKABLE_TYPE_LIGHT:
+                for(uint32_t record_index = 0; record_index < light_section->record_count; record_index++)
+                {
+                    struct l_light_record_t *record = light_records + record_index;
+                    if(pickable->primary_index == record->s_index)
+                    {
+                        pickable->primary_index = record->d_index;
+
+                        if(record_index < light_section->record_count - 1)
+                        {
+                            *record = light_records[light_section->record_count - 1];
+                        }
+                        light_section->record_count--;
+                        break;
+                    }
+                }
+            break;
+
+            case ED_PICKABLE_TYPE_ENTITY:
+                for(uint32_t record_index = 0; record_index < entity_section->record_count; record_index++)
+                {
+                    struct l_entity_record_t *record = entity_records + record_index;
+
+                    if(pickable->primary_index == record->s_index)
+                    {
+                        pickable->primary_index = record->d_index;
+                        /* FIXME: this will break once the level format allows to store
+                        child entities in entity records that were parented in the level
+                        editor */
+                        if(record_index < entity_section->record_count - 1)
+                        {
+                            *record = entity_records[entity_section->record_count - 1];
+                        }
+                        entity_section->record_count--;
+                        break;
+                    }
+                }
+            break;
+        }
+    }
+
+    mem_Free(ed_level_state.game_level_buffer);
 }
 
 void ed_ResetLevelEditor()

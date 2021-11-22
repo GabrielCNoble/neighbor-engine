@@ -1,5 +1,5 @@
 #include <float.h>
-#include "physics.h"
+#include "phys.h"
 #include "dstuff/ds_slist.h"
 #include "dstuff/ds_list.h"
 #include "dstuff/ds_mem.h"
@@ -42,6 +42,7 @@ void p_Init()
 {
     p_colliders[P_COLLIDER_TYPE_DYNAMIC] = ds_slist_create(sizeof(struct p_dynamic_collider_t), 512);
     p_colliders[P_COLLIDER_TYPE_STATIC] = ds_slist_create(sizeof(struct p_static_collider_t), 512);
+    p_colliders[P_COLLIDER_TYPE_CHILD] = ds_slist_create(sizeof(struct p_child_collider_t), 512);
     p_shape_defs = ds_slist_create(sizeof(struct p_shape_def_t), 512);
 
     p_broadphase = new btDbvtBroadphase();
@@ -194,33 +195,44 @@ struct p_collider_t *p_CreateCollider(struct p_col_def_t *col_def, vec3_t *posit
     collider->orientation = *orientation;
 
     btCollisionShape *collision_shape = (btCollisionShape *)p_CreateColliderCollisionShape(col_def);
-    btTransform collider_transform;
 
-    collider_transform.setOrigin(btVector3(position->x, position->y, position->z));
-    collider_transform.setBasis(btMatrix3x3(orientation->x0, orientation->x1, orientation->x2,
-                                            orientation->y0, orientation->y1, orientation->y2,
-                                            orientation->z0, orientation->z1, orientation->z2));
+//    if(collider->type != P_COLLIDER_TYPE_CHILD)
+//    {
+//        struct p_child_collider_t *child_collider = (struct p_child_collider_t *)collider;
+//        child_collider->collision_shape = collision_shape;
+//        child_collider->next = NULL;
+//        child_collider->next = NULL;
+//        child_collider->parent = NULL;
+//    }
+//    else
+//    {
+        btTransform collider_transform;
+        collider_transform.setOrigin(btVector3(position->x, position->y, position->z));
+        collider_transform.setBasis(btMatrix3x3(orientation->x0, orientation->x1, orientation->x2,
+                                                orientation->y0, orientation->y1, orientation->y2,
+                                                orientation->z0, orientation->z1, orientation->z2));
 
-    btDefaultMotionState *motion_state = new btDefaultMotionState(collider_transform);
-    btVector3 inertia_tensor = btVector3(0, 0, 0);
-    collision_shape->calculateLocalInertia(col_def->mass, inertia_tensor);
-    btRigidBody::btRigidBodyConstructionInfo info(col_def->mass, motion_state, collision_shape, inertia_tensor);
-    btRigidBody *rigid_body = new btRigidBody(info);
-    collider->rigid_body = rigid_body;
+        btDefaultMotionState *motion_state = new btDefaultMotionState(collider_transform);
+        btVector3 inertia_tensor = btVector3(0, 0, 0);
+        collision_shape->calculateLocalInertia(col_def->mass, inertia_tensor);
+        btRigidBody::btRigidBodyConstructionInfo info(col_def->mass, motion_state, collision_shape, inertia_tensor);
+        btRigidBody *rigid_body = new btRigidBody(info);
+        collider->rigid_body = rigid_body;
 
-    p_dynamics_world->addRigidBody(rigid_body);
+        p_dynamics_world->addRigidBody(rigid_body);
 
-    if(col_def->type == P_COLLIDER_TYPE_DYNAMIC)
-    {
-        struct p_dynamic_collider_t *dynamic_collider = (struct p_dynamic_collider_t *)collider;
-        dynamic_collider->mass = col_def->mass;
-
-        if(col_def->mass == 0.0)
+        if(col_def->type == P_COLLIDER_TYPE_DYNAMIC)
         {
-            rigid_body->setCollisionFlags(rigid_body->getCollisionFlags() | btCollisionObject::CF_KINEMATIC_OBJECT);
-            rigid_body->setActivationState(DISABLE_DEACTIVATION);
+            struct p_dynamic_collider_t *dynamic_collider = (struct p_dynamic_collider_t *)collider;
+            dynamic_collider->mass = col_def->mass;
+
+            if(col_def->mass == 0.0)
+            {
+                rigid_body->setCollisionFlags(rigid_body->getCollisionFlags() | btCollisionObject::CF_KINEMATIC_OBJECT);
+                rigid_body->setActivationState(DISABLE_DEACTIVATION);
+            }
         }
-    }
+//    }
 
     return collider;
 }

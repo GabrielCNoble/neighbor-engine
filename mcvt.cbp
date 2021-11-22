@@ -27,7 +27,7 @@
 			<Add library="assimp.dll" />
 			<Add directory="lib/assimp/lib" />
 		</Linker>
-		<Unit filename="impl.c">
+		<Unit filename="engine/impl.c">
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="mcvt.c">

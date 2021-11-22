@@ -1,5 +1,5 @@
-#ifndef PHYSICS_H
-#define PHYSICS_H
+#ifndef PHYS_H
+#define PHYS_H
 
 #include "p_col.h"
 

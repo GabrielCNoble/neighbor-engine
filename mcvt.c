@@ -5,8 +5,8 @@
 #include "dstuff/ds_file.h"
 #include "dstuff/ds_mem.h"
 #include "dstuff/ds_path.h"
-#include "anim.h"
-#include "r_com.h"
+#include "engine/anim.h"
+#include "engine/r_defs.h"
 #include <stdint.h>
 #include <stdio.h>
 #include <float.h>
@@ -17,6 +17,7 @@ enum ARG
     ARG_PREPEND,
     ARG_PREPEND_ANIM,
     ARG_PREPEND_MODEL,
+    ARG_MODEL_NAME,
     ARG_ANIM_ONLY,
     ARG_NO_ARG
 };
@@ -96,6 +97,7 @@ int main(int argc, char *argv[])
     char prepend_anim[PATH_MAX] = "./";
     char prepend_model[PATH_MAX] = "./";
     char output_name[PATH_MAX] = "";
+    char model_name[PATH_MAX] = "";
     uint32_t no_anim = 0;
     uint32_t no_model = 0;
     uint32_t overwrite = 0;
@@ -129,6 +131,10 @@ int main(int argc, char *argv[])
                 else if(!strcmp(argv[arg_index], "-nomodel"))
                 {
                     no_model = 1;
+                }
+                else if(!strcmp(argv[arg_index], "-mname"))
+                {
+                    cur_arg = ARG_MODEL_NAME;
                 }
                 else if(!strcmp(argv[arg_index], "-f"))
                 {
@@ -181,6 +187,10 @@ int main(int argc, char *argv[])
 
                     case ARG_PREPEND_MODEL:
                         ds_path_format_path(argv[arg_index], prepend_model, PATH_MAX);
+                    break;
+
+                    case ARG_MODEL_NAME:
+                        strncpy(model_name, argv[arg_index], sizeof(model_name));
                     break;
                 }
 

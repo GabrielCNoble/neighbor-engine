@@ -139,6 +139,7 @@ struct r_vert_section_t
 {
     vec3_t min;
     vec3_t max;
+//    char name[32];
     uint32_t vert_count;
     struct r_vert_t verts[];
 };
@@ -172,6 +173,7 @@ struct r_index_section_t
 struct r_model_t
 {
     uint32_t index;
+    char *name;
     struct ds_chunk_h vert_chunk;
     struct ds_chunk_h index_chunk;
     struct ds_buffer_t verts;

@@ -5,11 +5,13 @@ void e_Init();
 
 void e_Shutdown();
 
-struct e_ent_def_t *e_AllocEntDef();
+struct e_ent_def_t *e_AllocEntDef(uint32_t type);
 
-struct e_ent_def_t *e_GetEntDef(uint32_t index);
+struct e_ent_def_t *e_LoadEntDef(char *file_name);
 
-struct e_ent_def_t *e_FindEntDef(char *name);
+struct e_ent_def_t *e_GetEntDef(uint32_t type, uint32_t index);
+
+struct e_ent_def_t *e_FindEntDef(uint32_t type, char *name);
 
 void e_DeallocEntDef(struct e_ent_def_t *ent_def);
 

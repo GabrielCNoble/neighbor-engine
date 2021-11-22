@@ -5,7 +5,7 @@
 #include "dstuff/ds_buffer.h"
 #include "../engine/r_main.h"
 #include "../engine/game.h"
-#include "../engine/physics.h"
+#include "../engine/phys.h"
 #include "../engine/ent.h"
 #include "ed_bsp.h"
 
@@ -921,15 +921,16 @@ void ed_UpdateBrushEntity(struct ed_brush_t *brush)
 {
     if(!brush->entity)
     {
-        struct e_ent_def_t ent_def = {.index = 0xffffffff};
+        struct e_ent_def_t ent_def = {};
         ent_def.model = brush->model;
+        ent_def.scale = vec3_t_c(1.0, 1.0, 1.0);
         brush->entity = e_SpawnEntity(&ent_def, &brush->position, &vec3_t_c(1.0, 1.0, 1.0), &brush->orientation);
     }
     else
     {
         struct e_local_transform_component_t *transform = brush->entity->local_transform_component;
-        transform->local_position = brush->position;
-        transform->local_orientation = brush->orientation;
+        transform->position = brush->position;
+        transform->orientation = brush->orientation;
     }
 }
 
@@ -1232,7 +1233,7 @@ void ed_UpdateBrush(struct ed_brush_t *brush)
 
         if(!brush->model)
         {
-            brush->model = r_CreateModel(&geometry, NULL);
+            brush->model = r_CreateModel(&geometry, NULL, "brush_model");
         }
         else
         {

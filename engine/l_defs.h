@@ -24,7 +24,8 @@ struct l_light_record_t
     float energy;
     float radius;
     uint32_t type;
-    uint32_t uuid;
+    uint32_t s_index;
+    uint32_t d_index;
     size_t vert_start;
     size_t vert_count;
 };
@@ -56,6 +57,8 @@ struct l_ent_def_record_t
 {
     char name[32];
     char file[32];
+    /* ent def loaded from this record, to speed up entity spawning
+    during deserialization */
     struct e_ent_def_t *def;
 };
 
@@ -73,6 +76,8 @@ struct l_entity_record_t
     vec3_t scale;
 
     size_t ent_def;
+    uint32_t s_index;
+    uint32_t d_index;
 
     size_t child_start;
     size_t child_count;

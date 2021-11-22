@@ -399,7 +399,7 @@ void r_Init()
     light_model_geometry.verts = light_model_verts;
     light_model_geometry.vert_count = light_model_vert_count;
 
-    r_spot_light_model = r_CreateModel(&light_model_geometry, NULL);
+    r_spot_light_model = r_CreateModel(&light_model_geometry, NULL, "spot_light_model");
 
     mem_Free(light_model_verts);
     mem_Free(light_model_indices);
@@ -468,7 +468,7 @@ void r_Init()
     light_model_geometry.verts = light_model_verts;
     light_model_geometry.vert_count = light_model_vert_count;
 
-    r_point_light_model = r_CreateModel(&light_model_geometry, NULL);
+    r_point_light_model = r_CreateModel(&light_model_geometry, NULL, "point_light_model");
 
     mem_Free(light_model_verts);
     mem_Free(light_model_indices);
@@ -1160,11 +1160,11 @@ struct r_model_t *r_LoadModel(char *file_name)
             skeleton_data.weight_range_count = weight_range_count;
             skeleton_data.weight_ranges = weight_ranges;
 
-            model = r_CreateModel(&geometry_data, &skeleton_data);
+            model = r_CreateModel(&geometry_data, &skeleton_data, file_name);
         }
         else
         {
-            model = r_CreateModel(&geometry_data, NULL);
+            model = r_CreateModel(&geometry_data, NULL, file_name);
         }
 
         mem_Free(batches);
@@ -1174,7 +1174,7 @@ struct r_model_t *r_LoadModel(char *file_name)
     return model;
 }
 
-struct r_model_t *r_CreateModel(struct r_model_geometry_t *geometry, struct r_model_skeleton_t *skeleton)
+struct r_model_t *r_CreateModel(struct r_model_geometry_t *geometry, struct r_model_skeleton_t *skeleton, char *name)
 {
     struct r_model_t *model;
     uint32_t index;
@@ -1188,6 +1188,7 @@ struct r_model_t *r_CreateModel(struct r_model_geometry_t *geometry, struct r_mo
     model->batches = ds_buffer_create(sizeof(struct r_batch_t), 0);
     model->index_chunk = DS_INVALID_CHUNK_HANDLE;
     model->vert_chunk = DS_INVALID_CHUNK_HANDLE;
+    model->name = strdup(name);
 
     r_UpdateModelGeometry(model, geometry);
 

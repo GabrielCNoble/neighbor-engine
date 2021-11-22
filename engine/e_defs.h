@@ -13,16 +13,43 @@ struct e_prop_t
     void *data;
 };
 
-//struct e_entity_t;
+struct e_ent_def_section_t
+{
+    uint32_t record_start;
+    uint32_t record_count;
+};
 
-//typedef void (thinker_t)(struct g_entity_t *this);
+struct e_ent_def_record_t
+{
+    uint32_t child_start;
+    uint32_t child_count;
+    uint32_t collider_start;
+    char model[128];
+
+    mat3_t orientation;
+    vec3_t position;
+    vec3_t scale;
+
+//    struct p_col_def_record_t collider;
+};
+
+enum E_ENT_DEF_TYPES
+{
+    E_ENT_DEF_TYPE_CHILD = 0,
+    E_ENT_DEF_TYPE_ROOT,
+    E_ENT_DEF_TYPE_LAST,
+};
 
 struct e_ent_def_t
 {
     uint32_t index;
+    uint32_t type;
+    /* index used during level serialization to map an
+    entity def to its record in the level data */
     uint32_t s_index;
-    char name[32];
-    char file[32];
+
+    char name[128];
+    char file[128];
 
     struct e_ent_def_t *next;
     struct e_ent_def_t *prev;
@@ -31,9 +58,9 @@ struct e_ent_def_t
     struct r_model_t *model;
     struct p_col_def_t collider;
 
-    mat3_t local_orientation;
-    vec3_t local_position;
-    vec3_t local_scale;
+    mat3_t orientation;
+    vec3_t position;
+    vec3_t scale;
 
     struct ds_list_t props;
 };
@@ -66,9 +93,9 @@ struct e_local_transform_component_t
     struct e_local_transform_component_t *next;
     struct e_local_transform_component_t *prev;
 
-    mat3_t local_orientation;
-    vec3_t local_position;
-    vec3_t local_scale;
+    mat3_t orientation;
+    vec3_t position;
+    vec3_t scale;
     uint32_t root_index;
 };
 

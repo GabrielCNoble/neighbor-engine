@@ -72,7 +72,7 @@ struct ds_chunk_t *r_GetIndicesChunk(struct ds_chunk_h chunk);
 
 struct r_model_t *r_LoadModel(char *file_name);
 
-struct r_model_t *r_CreateModel(struct r_model_geometry_t *geometry, struct r_model_skeleton_t *skeleton);
+struct r_model_t *r_CreateModel(struct r_model_geometry_t *geometry, struct r_model_skeleton_t *skeleton, char *name);
 
 void r_UpdateModelGeometry(struct r_model_t *model, struct r_model_geometry_t *geometry);
 

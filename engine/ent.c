@@ -1,9 +1,9 @@
 #include "ent.h"
-#include "physics.h"
+#include "phys.h"
 #include "../lib/dstuff/ds_slist.h"
 
 struct ds_list_t e_components[E_COMPONENT_TYPE_LAST];
-struct ds_slist_t e_ent_defs;
+struct ds_slist_t e_ent_defs[E_ENT_DEF_TYPE_LAST];
 struct ds_slist_t e_entities;
 struct ds_list_t e_root_transforms;
 
@@ -14,8 +14,11 @@ void e_Init()
     e_components[E_COMPONENT_TYPE_TRANSFORM] = ds_list_create(sizeof(struct e_transform_component_t), 512);
     e_components[E_COMPONENT_TYPE_PHYSICS] = ds_list_create(sizeof(struct e_physics_component_t), 512);
     e_components[E_COMPONENT_TYPE_MODEL] = ds_list_create(sizeof(struct e_model_component_t), 512);
+
+    e_ent_defs[E_ENT_DEF_TYPE_ROOT] = ds_slist_create(sizeof(struct e_ent_def_t), 512);
+    e_ent_defs[E_ENT_DEF_TYPE_CHILD] = ds_slist_create(sizeof(struct e_ent_def_t), 512);
+
     e_entities = ds_slist_create(sizeof(struct e_entity_t), 512);
-    e_ent_defs = ds_slist_create(sizeof(struct e_ent_def_t), 512);
     e_root_transforms = ds_list_create(sizeof(struct e_local_transform_component_t *), 512);
 }
 
@@ -24,15 +27,16 @@ void e_Shutdown()
 
 }
 
-struct e_ent_def_t *e_AllocEntDef()
+struct e_ent_def_t *e_AllocEntDef(uint32_t type)
 {
     uint32_t index;
     struct e_ent_def_t *ent_def;
 
-    index = ds_slist_add_element(&e_ent_defs, NULL);
-    ent_def = ds_slist_get_element(&e_ent_defs, index);
+    index = ds_slist_add_element(&e_ent_defs[type], NULL);
+    ent_def = ds_slist_get_element(&e_ent_defs[type], index);
 
     ent_def->index = index;
+    ent_def->type = type;
     ent_def->collider.shape_count = 0;
     ent_def->children = NULL;
     ent_def->next = NULL;
@@ -43,9 +47,14 @@ struct e_ent_def_t *e_AllocEntDef()
     return ent_def;
 }
 
-struct e_ent_def_t *e_GetEntDef(uint32_t index)
+struct e_ent_def_t *e_LoadEntDef(char *file_name)
 {
-    struct e_ent_def_t *ent_def = ds_slist_get_element(&e_ent_defs, index);
+
+}
+
+struct e_ent_def_t *e_GetEntDef(uint32_t type, uint32_t index)
+{
+    struct e_ent_def_t *ent_def = ds_slist_get_element(&e_ent_defs[type], index);
     if(ent_def && ent_def->index == 0xffffffff)
     {
         ent_def = NULL;
@@ -54,11 +63,11 @@ struct e_ent_def_t *e_GetEntDef(uint32_t index)
     return ent_def;
 }
 
-struct e_ent_def_t *e_FindEntDef(char *name)
+struct e_ent_def_t *e_FindEntDef(uint32_t type, char *name)
 {
-    for(uint32_t index = 0; index < e_ent_defs.cursor; index++)
+    for(uint32_t index = 0; index < e_ent_defs[type].cursor; index++)
     {
-        struct e_ent_def_t *ent_def = e_GetEntDef(index);
+        struct e_ent_def_t *ent_def = e_GetEntDef(type, index);
 
         if(!strcmp(name, ent_def->name))
         {
@@ -82,7 +91,7 @@ void e_DeallocEntDef(struct e_ent_def_t *ent_def)
             child = next_child;
         }
 
-        ds_slist_remove_element(&e_ent_defs, ent_def->index);
+        ds_slist_remove_element(&e_ent_defs[ent_def->type], ent_def->index);
         ent_def->index = 0xffffffff;
     }
 }
@@ -233,9 +242,9 @@ struct e_local_transform_component_t *e_AllocLocalTransformComponent(vec3_t *pos
     component->children = NULL;
     component->next = NULL;
     component->prev = NULL;
-    component->local_position = *position;
-    component->local_orientation = *orientation;
-    component->local_scale = *scale;
+    component->position = *position;
+    component->orientation = *orientation;
+    component->scale = *scale;
     component->root_index = 0xffffffff;
 
     return component;
@@ -255,7 +264,7 @@ struct e_physics_component_t *e_AllocPhysicsComponent(struct p_col_def_t *col_de
     if(entity)
     {
         struct e_local_transform_component_t *transform = entity->local_transform_component;
-        component->collider = p_CreateCollider(col_def, &transform->local_position, &transform->local_orientation);
+        component->collider = p_CreateCollider(col_def, &transform->position, &transform->orientation);
     }
     else
     {
@@ -279,36 +288,15 @@ struct e_entity_t *e_SpawnEntityRecursive(struct e_ent_def_t *ent_def, vec3_t *p
 
     index = ds_slist_add_element(&e_entities, NULL);
     entity = ds_slist_get_element(&e_entities, index);
-    vec3_t local_scale = *scale;
 
-    if(ent_def->index != 0xffffffff)
-    {
-        entity->def = ent_def;
-    }
-    else
-    {
-        entity->def = NULL;
-    }
-
-    if(!parent)
-    {
-        local_scale.x *= ent_def->local_scale.x;
-        local_scale.y *= ent_def->local_scale.y;
-        local_scale.z *= ent_def->local_scale.z;
-    }
-
-    entity->local_transform_component = e_AllocLocalTransformComponent(position, &local_scale, orientation, entity);
+    entity->local_transform_component = e_AllocLocalTransformComponent(position, scale, orientation, entity);
     entity->transform_component = e_AllocTransformComponent(entity);
     entity->index = index;
+    entity->def = NULL;
 
     if(ent_def->model)
     {
         entity->model_component = e_AllocModelComponent(ent_def->model, entity);
-    }
-
-    if(ent_def->collider.shape_count)
-    {
-        entity->physics_component = e_AllocPhysicsComponent(&ent_def->collider, entity);
     }
 
     if(ent_def->children)
@@ -317,7 +305,7 @@ struct e_entity_t *e_SpawnEntityRecursive(struct e_ent_def_t *ent_def, vec3_t *p
 
         while(child_def)
         {
-            struct e_entity_t *child_entity = e_SpawnEntityRecursive(child_def, &child_def->local_position, &child_def->local_scale, &child_def->local_orientation, entity);
+            struct e_entity_t *child_entity = e_SpawnEntityRecursive(child_def, &child_def->position, &child_def->scale, &child_def->orientation, entity);
             struct e_local_transform_component_t *child_transform = child_entity->local_transform_component;
             child_transform->parent = entity->local_transform_component;
 
@@ -339,6 +327,21 @@ struct e_entity_t *e_SpawnEntity(struct e_ent_def_t *ent_def, vec3_t *position, 
 {
     struct e_entity_t *entity = e_SpawnEntityRecursive(ent_def, position, scale, orientation, NULL);
     entity->local_transform_component->root_index = ds_list_add_element(&e_root_transforms, &entity->local_transform_component);
+
+    entity->local_transform_component->scale.x *= ent_def->scale.x;
+    entity->local_transform_component->scale.y *= ent_def->scale.y;
+    entity->local_transform_component->scale.z *= ent_def->scale.z;
+
+    if(ent_def->type == E_ENT_DEF_TYPE_ROOT)
+    {
+        entity->def = ent_def;
+    }
+
+    if(ent_def->collider.shape_count)
+    {
+        entity->physics_component = e_AllocPhysicsComponent(&ent_def->collider, entity);
+    }
+
     return entity;
 }
 
@@ -358,6 +361,20 @@ void e_DestroyEntity(struct e_entity_t *entity)
 {
     if(entity && entity->index != 0xffffffff)
     {
+        struct e_local_transform_component_t *transform = entity->local_transform_component;
+
+        if(transform->children)
+        {
+            struct e_local_transform_component_t *child_transfom = transform->children;
+
+            while(child_transfom)
+            {
+                struct e_local_transform_component_t *next_child_transform = child_transfom->next;
+                e_DestroyEntity(child_transfom->entity);
+                child_transfom = next_child_transform;
+            }
+        }
+
         for(uint32_t component = 0; component < E_COMPONENT_TYPE_LAST; component++)
         {
             e_DeallocComponent(entity->components[component]);
@@ -387,11 +404,11 @@ void e_UpdateEntityLocalTransform(struct e_local_transform_component_t *local_tr
     struct e_transform_component_t *transform = local_transform->entity->transform_component;
     mat3_t local_orientation = mat3_t_c_id();
 
-    local_orientation.rows[0].x = local_transform->local_scale.x;
-    local_orientation.rows[1].y = local_transform->local_scale.y;
-    local_orientation.rows[2].z = local_transform->local_scale.z;
-    mat3_t_mul(&local_orientation, &local_orientation, &local_transform->local_orientation);
-    mat4_t_comp(&transform->transform, &local_orientation, &local_transform->local_position);
+    local_orientation.rows[0].x = local_transform->scale.x;
+    local_orientation.rows[1].y = local_transform->scale.y;
+    local_orientation.rows[2].z = local_transform->scale.z;
+    mat3_t_mul(&local_orientation, &local_orientation, &local_transform->orientation);
+    mat4_t_comp(&transform->transform, &local_orientation, &local_transform->position);
     mat4_t_mul(&transform->transform, &transform->transform, parent_transform);
 
     struct e_local_transform_component_t *child = local_transform->children;
@@ -412,8 +429,8 @@ void e_UpdateEntities()
         if(collider)
         {
             struct e_local_transform_component_t *transform = collider->entity->local_transform_component;
-            transform->local_orientation = collider->collider->orientation;
-            transform->local_position = collider->collider->position;
+            transform->orientation = collider->collider->orientation;
+            transform->position = collider->collider->position;
         }
     }
 

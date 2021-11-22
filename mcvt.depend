@@ -15,11 +15,11 @@
 	"dstuff/ds_obj.h"
 	"stb/stb_image.h"
 
-1628352296 c:\users\gabri\documents\compiler\metroid_thingy\lib\dstuff\ds_vector.h
+1637370392 c:\users\gabri\documents\compiler\metroid_thingy\lib\dstuff\ds_vector.h
 	<math.h>
 	<intrin.h>
 
-1608357058 c:\users\gabri\documents\compiler\metroid_thingy\lib\dstuff\ds_mem.h
+1637358837 c:\users\gabri\documents\compiler\metroid_thingy\lib\dstuff\ds_mem.h
 	<stdint.h>
 	<string.h>
 	<stdlib.h>
@@ -34,7 +34,7 @@
 	<stdio.h>
 	"ds_mem.h"
 
-1630227476 c:\users\gabri\documents\compiler\metroid_thingy\lib\dstuff\ds_list.h
+1637358837 c:\users\gabri\documents\compiler\metroid_thingy\lib\dstuff\ds_list.h
 	"ds_list.h"
 	<stdint.h>
 	<string.h>
@@ -50,23 +50,23 @@
 	<stdio.h>
 	<float.h>
 
-1612551104 c:\users\gabri\documents\compiler\metroid_thingy\lib\dstuff\ds_file.h
+1637358837 c:\users\gabri\documents\compiler\metroid_thingy\lib\dstuff\ds_file.h
 	<stdio.h>
 	<stdint.h>
 	<stdlib.h>
 	"ds_mem.h"
 	<stdarg.h>
 
-1629563610 c:\users\gabri\documents\compiler\metroid_thingy\lib\dstuff\ds_matrix.h
+1637379740 c:\users\gabri\documents\compiler\metroid_thingy\lib\dstuff\ds_matrix.h
 	"ds_vector.h"
 	<intrin.h>
 
-1627685081 c:\users\gabri\documents\compiler\metroid_thingy\lib\dstuff\ds_alloc.h
+1637358837 c:\users\gabri\documents\compiler\metroid_thingy\lib\dstuff\ds_alloc.h
 	"ds_slist.h"
 	"ds_list.h"
 	<stdint.h>
 
-1628911951 c:\users\gabri\documents\compiler\metroid_thingy\lib\dstuff\ds_path.h
+1637358837 c:\users\gabri\documents\compiler\metroid_thingy\lib\dstuff\ds_path.h
 	"ds_path.h"
 	<string.h>
 	<limits.h>
@@ -102,7 +102,7 @@
 	<intrin.h>
 	<arm_neon.h>
 
-1630279460 source:c:\users\gabri\documents\compiler\metroid_thingy\mcvt.c
+1637562814 source:c:\users\gabri\documents\compiler\metroid_thingy\mcvt.c
 	"assimp/cimport.h"
 	"assimp/scene.h"
 	"assimp/postprocess.h"
@@ -110,8 +110,8 @@
 	"dstuff/ds_file.h"
 	"dstuff/ds_mem.h"
 	"dstuff/ds_path.h"
-	"anim.h"
-	"r_com.h"
+	"engine/anim.h"
+	"engine/r_defs.h"
 	<stdint.h>
 	<stdio.h>
 	<float.h>
@@ -301,10 +301,10 @@
 	<stdio.h>
 	"ds_mem.h"
 
-1629029243 c:\users\gabri\documents\compiler\metroid_thingy\lib\dstuff\ds_buffer.h
+1637358837 c:\users\gabri\documents\compiler\metroid_thingy\lib\dstuff\ds_buffer.h
 	"ds_mem.h"
 
-1627673563 c:\users\gabri\documents\compiler\metroid_thingy\lib\dstuff\ds_slist.h
+1637358837 c:\users\gabri\documents\compiler\metroid_thingy\lib\dstuff\ds_slist.h
 	"ds_slist.h"
 	<stdint.h>
 	<string.h>
@@ -335,4 +335,20 @@
 	"ds_slist.h"
 	<stdio.h>
 	<float.h>
+
+1637358837 c:\users\gabri\documents\compiler\metroid_thingy\engine\anim.h
+	"../lib/dstuff/ds_vector.h"
+	"../lib/dstuff/ds_matrix.h"
+	"../lib/dstuff/ds_list.h"
+	"../lib/dstuff/ds_slist.h"
+	<stdint.h>
+
+1637562416 c:\users\gabri\documents\compiler\metroid_thingy\engine\r_defs.h
+	"../lib/dstuff/ds_vector.h"
+	"../lib/dstuff/ds_matrix.h"
+	"../lib/dstuff/ds_alloc.h"
+	"../lib/dstuff/ds_buffer.h"
+	<stdint.h>
+	<stddef.h>
+	<stdalign.h>
 

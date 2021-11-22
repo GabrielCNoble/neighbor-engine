@@ -6,10 +6,9 @@
 #include "game.h"
 #include "input.h"
 #include "anim.h"
-#include "physics.h"
+#include "phys.h"
 #include "../editor/ed_main.h"
 #include "ent.h"
-#include "physics.h"
 #include "level.h"
 #include "sound.h"
 #include "gui.h"
@@ -165,20 +164,14 @@ void g_Init(uint32_t editor_active)
         ed_Init();
     }
 
-//    g_boy_model = r_LoadModel("models/Boy.mof");
-//    g_sponza_model = r_LoadModel("models/sponza2.mof");
-//    struct a_animation_t *dance_step_maybe = a_LoadAnimation("models/DanceStepMaybe.anf");
-//    struct a_animation_t *miracle_dance_blockout = a_LoadAnimation("models/MiracleDanceBlockout.anf");
-//    struct a_animation_t *miracle_dance_smooth = a_LoadAnimation("models/MiracleDanceSmooth.anf");
-
     g_cube_model = r_LoadModel("models/Cube.mof");
-    struct e_ent_def_t *floor_ent_def = e_AllocEntDef();
+    struct e_ent_def_t *floor_ent_def = e_AllocEntDef(E_ENT_DEF_TYPE_ROOT);
     struct p_shape_def_t *floor_shape_def = p_AllocShapeDef();
     mat3_t orientation = mat3_t_c_id();
 
     strcpy(floor_ent_def->name, "floor");
     floor_ent_def->model = g_cube_model;
-    floor_ent_def->local_scale = vec3_t_c(1.0, 1.0, 1.0);
+    floor_ent_def->scale = vec3_t_c(1.0, 1.0, 1.0);
     floor_ent_def->collider.shape = floor_shape_def;
     floor_ent_def->collider.shape_count = 1;
     floor_ent_def->collider.mass = 0.0;
@@ -189,17 +182,12 @@ void g_Init(uint32_t editor_active)
     floor_shape_def->orientation = mat3_t_c_id();
     floor_shape_def->box.size = vec3_t_c(10.0, 1.0, 10.0);
 
-//    e_SpawnEntity(floor_ent_def, &vec3_t_c(0.0, -3.0, 0.0), &vec3_t_c(10.0, 1.0, 10.0), &orientation);
-
-
-
-
-    struct e_ent_def_t *box_ent_def = e_AllocEntDef();
-    struct p_shape_def_t *box_shape_def = p_AllocShapeDef();
+    struct e_ent_def_t *box_ent_def = e_AllocEntDef(E_ENT_DEF_TYPE_ROOT);
+    struct p_shape_def_t *box_shape_def = p_AllocShapeDef(E_ENT_DEF_TYPE_ROOT);
 
     strcpy(box_ent_def->name, "box");
     box_ent_def->model = g_cube_model;
-    box_ent_def->local_scale = vec3_t_c(1.0, 1.0, 1.0);
+    box_ent_def->scale = vec3_t_c(1.0, 1.0, 1.0);
     box_ent_def->collider.shape = box_shape_def;
     box_ent_def->collider.shape_count = 1;
     box_ent_def->collider.mass = 1.0;

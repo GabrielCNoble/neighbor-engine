@@ -17,22 +17,35 @@ enum P_COL_SHAPE_TYPES
     P_COL_SHAPE_TYPE_LAST,
 };
 
+#define P_SHAPE_DEF_DATA                                    \
+    uint32_t type;                                          \
+    vec3_t position;                                        \
+    mat3_t orientation;                                     \
+    union                                                   \
+    {                                                       \
+        struct { vec3_t size; } box;                        \
+        struct { float height; float radius; } capsule;     \
+        struct { vec3_t *verts; uint32_t count; }tri_mesh;  \
+    }
+
+struct p_shape_data_t
+{
+    P_SHAPE_DEF_DATA;
+};
+
+struct p_col_def_record_t
+{
+    float mass;
+    uint32_t type;
+    uint32_t shape_count;
+    struct p_shape_data_t shape[];
+};
+
 struct p_shape_def_t
 {
-    uint32_t type;
     uint32_t index;
-
     struct p_shape_def_t *next;
-
-    vec3_t position;
-    mat3_t orientation;
-
-    union
-    {
-        struct { vec3_t size; } box;
-        struct { float height; float radius; } capsule;
-        struct { vec3_t *verts; uint32_t count; }tri_mesh;
-    };
+    P_SHAPE_DEF_DATA;
 };
 
 struct p_col_def_t
@@ -49,6 +62,7 @@ enum P_COLLIDER_TYPE
     P_COLLIDER_TYPE_KINEMATIC,
     P_COLLIDER_TYPE_DYNAMIC,
     P_COLLIDER_TYPE_TRIGGER,
+    P_COLLIDER_TYPE_CHILD,
     P_COLLIDER_TYPE_LAST
 };
 
@@ -76,18 +90,13 @@ struct p_dynamic_collider_t
     float mass;
 };
 
-
-//struct p_col_section_t
-//{
-//    size_t record_start;
-//    size_t record_count;
-//};
-//
-//struct p_col_record_t
-//{
-//    mat3_t orientation;
-//    vec3_t position;
-//    struct p_col_def_t def;
-//};
+struct p_child_collider_t
+{
+    P_BASE_COLLIDER_FIELDS;
+    struct p_collider_t *parent;
+    struct p_collider_t *children;
+    struct p_collider_t *next;
+    void *collision_shape;
+};
 
 #endif

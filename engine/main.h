@@ -5,7 +5,7 @@
 #include "r_main.h"
 #include "sound.h"
 #include "level.h"
-#include "physics.h"
+#include "phys.h"
 #include "anim.h"
 #include "input.h"
 #include "gui.h"

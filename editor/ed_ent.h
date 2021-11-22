@@ -6,7 +6,9 @@
 #include "../engine/e_defs.h"
 
 
-//struct e_ent_def_t *ed_EntDefFromEntity(struct e_entity_t *entity);
+void ed_SerializeEntDef(void **buffer, size_t *buffer_size, struct e_ent_def_t *ent_def);
+
+void ed_SaveEntDef(char *file_name, struct e_ent_def_t *ent_def);
 
 
 #endif // ED_ENT_H

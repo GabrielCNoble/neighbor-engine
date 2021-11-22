@@ -4,7 +4,7 @@
 #include "../lib/dstuff/ds_vector.h"
 #include "../lib/dstuff/ds_matrix.h"
 #include "../lib/dstuff/ds_list.h"
-#include "physics.h"
+#include "phys.h"
 #include "anim.h"
 #include "r_draw.h"
 #include "r_vis.h"

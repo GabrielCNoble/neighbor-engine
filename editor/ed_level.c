@@ -2140,16 +2140,18 @@ void ed_SerializeLevel(void **level_buffer, size_t *buffer_size, uint32_t serial
     ent_def_section_size += sizeof(struct l_ent_def_record_t) * e_ent_defs[E_ENT_DEF_TYPE_ROOT].used;
 
 
-    size_t world_section_size = sizeof(struct l_world_section_t);
+    size_t world_section_size = 0;
 
     if(l_world_collider)
     {
-//        world
+        world_section_size = sizeof(struct l_world_section_t);
+        world_section_size += sizeof(struct r_material_record_t) * l_world_model->batches.buffer_size;
+//        world_section_size += sizeof(struct r_)
     }
 
 
 
-    out_buffer_size += brush_section_size + light_section_size + entity_section_size + ent_def_section_size;
+    out_buffer_size += brush_section_size + light_section_size + entity_section_size + ent_def_section_size + world_section_size;
 
     char *start_out_buffer = mem_Calloc(1, out_buffer_size);
     char *cur_out_buffer = start_out_buffer;

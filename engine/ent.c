@@ -1,11 +1,15 @@
 #include "ent.h"
 #include "phys.h"
+#include "r_defs.h"
+#include "r_draw.h"
 #include "../lib/dstuff/ds_slist.h"
 
 struct ds_list_t e_components[E_COMPONENT_TYPE_LAST];
 struct ds_slist_t e_ent_defs[E_ENT_DEF_TYPE_LAST];
 struct ds_slist_t e_entities;
 struct ds_list_t e_root_transforms;
+
+extern struct r_renderer_state_t r_renderer_state;
 
 
 void e_Init()
@@ -430,13 +434,9 @@ void e_UpdateEntities()
     for(uint32_t collider_index = 0; collider_index < e_components[E_COMPONENT_TYPE_PHYSICS].cursor; collider_index++)
     {
         struct e_physics_component_t *collider = (struct e_physics_component_t *)e_GetComponent(E_COMPONENT_TYPE_PHYSICS, collider_index);
-
-        if(collider)
-        {
-            struct e_local_transform_component_t *transform = collider->entity->local_transform_component;
-            transform->orientation = collider->collider->orientation;
-            transform->position = collider->collider->position;
-        }
+        struct e_local_transform_component_t *transform = collider->entity->local_transform_component;
+        transform->orientation = collider->collider->orientation;
+        transform->position = collider->collider->position;
     }
 
     for(uint32_t root_index = 0; root_index < e_root_transforms.cursor; root_index++)
@@ -449,71 +449,108 @@ void e_UpdateEntities()
     {
         struct e_model_component_t *model = (struct e_model_component_t *)e_GetComponent(E_COMPONENT_TYPE_MODEL, model_index);
 
-        if(model)
-        {
-            vec3_t corners[8];
-            vec3_t min;
-            vec3_t max;
+        vec3_t corners[8];
+        vec3_t min;
+        vec3_t max;
 
+        struct e_transform_component_t *transform = model->entity->transform_component;
+
+        max = model->model->max;
+        min = model->model->min;
+
+        corners[0] = max;
+
+        corners[1].x = max.x;
+        corners[1].y = min.y;
+        corners[1].z = max.z;
+
+        corners[2].x = min.x;
+        corners[2].y = min.y;
+        corners[2].z = max.z;
+
+        corners[3].x = min.x;
+        corners[3].y = max.y;
+        corners[3].z = max.z;
+
+        corners[4].x = max.x;
+        corners[4].y = max.y;
+        corners[4].z = min.z;
+
+        corners[5].x = max.x;
+        corners[5].y = min.y;
+        corners[5].z = min.z;
+
+        corners[6].x = min.x;
+        corners[6].y = min.y;
+        corners[6].z = min.z;
+
+        corners[7] = min;
+
+        mat3_t rot_scale;
+
+        rot_scale.rows[0] = transform->transform.rows[0].xyz;
+        rot_scale.rows[1] = transform->transform.rows[1].xyz;
+        rot_scale.rows[2] = transform->transform.rows[2].xyz;
+
+        max = vec3_t_c(-FLT_MAX, -FLT_MAX, -FLT_MAX);
+        min = vec3_t_c(FLT_MAX, FLT_MAX, FLT_MAX);
+
+        for(uint32_t corner_index = 0; corner_index < 8; corner_index++)
+        {
+            vec3_t *corner = corners + corner_index;
+            mat3_t_vec3_t_mul(corner, corner, &rot_scale);
+
+            if(max.x < corner->x) max.x = corner->x;
+            if(max.y < corner->y) max.y = corner->y;
+            if(max.z < corner->z) max.z = corner->z;
+
+            if(min.x > corner->x) min.x = corner->x;
+            if(min.y > corner->y) min.y = corner->y;
+            if(min.z > corner->z) min.z = corner->z;
+        }
+
+        transform->extents.x = max.x - min.x;
+        transform->extents.y = max.y - min.y;
+        transform->extents.z = max.z - min.z;
+    }
+
+    if(r_renderer_state.draw_entities)
+    {
+        r_i_SetViewProjectionMatrix(NULL);
+        r_i_SetModelMatrix(NULL);
+        r_i_SetShader(NULL);
+
+        vec3_t min;
+        vec3_t max;
+
+        for(uint32_t model_index = 0; model_index < e_components[E_COMPONENT_TYPE_MODEL].cursor; model_index++)
+        {
+            struct e_model_component_t *model = (struct e_model_component_t *)e_GetComponent(E_COMPONENT_TYPE_MODEL, model_index);
             struct e_transform_component_t *transform = model->entity->transform_component;
 
-            max = model->model->max;
-            min = model->model->min;
+            vec3_t_mul(&max, &transform->extents, 0.5);
+            vec3_t_mul(&min, &transform->extents, -0.5);
 
-            corners[0] = max;
+            vec3_t_add(&max, &max, &transform->transform.rows[3].xyz);
+            vec3_t_add(&min, &min, &transform->transform.rows[3].xyz);
 
-            corners[1].x = max.x;
-            corners[1].y = min.y;
-            corners[1].z = max.z;
+            vec4_t color = vec4_t_c(0.0, 1.0, 0.0, 1.0);
 
-            corners[2].x = min.x;
-            corners[2].y = min.y;
-            corners[2].z = max.z;
+            r_i_DrawLine(&vec3_t_c(min.x, max.y, max.z), &vec3_t_c(min.x, min.y, max.z), &color, 1.0);
+            r_i_DrawLine(&vec3_t_c(max.x, max.y, max.z), &vec3_t_c(max.x, min.y, max.z), &color, 1.0);
+            r_i_DrawLine(&vec3_t_c(min.x, max.y, max.z), &vec3_t_c(max.x, max.y, max.z), &color, 1.0);
+            r_i_DrawLine(&vec3_t_c(min.x, min.y, max.z), &vec3_t_c(max.x, min.y, max.z), &color, 1.0);
 
-            corners[3].x = min.x;
-            corners[3].y = max.y;
-            corners[3].z = max.z;
+            r_i_DrawLine(&vec3_t_c(min.x, max.y, min.z), &vec3_t_c(min.x, min.y, min.z), &color, 1.0);
+            r_i_DrawLine(&vec3_t_c(max.x, max.y, min.z), &vec3_t_c(max.x, min.y, min.z), &color, 1.0);
+            r_i_DrawLine(&vec3_t_c(min.x, max.y, min.z), &vec3_t_c(max.x, max.y, min.z), &color, 1.0);
+            r_i_DrawLine(&vec3_t_c(min.x, min.y, min.z), &vec3_t_c(max.x, min.y, min.z), &color, 1.0);
 
-            corners[4].x = max.x;
-            corners[4].y = max.y;
-            corners[4].z = min.z;
 
-            corners[5].x = max.x;
-            corners[5].y = min.y;
-            corners[5].z = min.z;
-
-            corners[6].x = min.x;
-            corners[6].y = min.y;
-            corners[6].z = min.z;
-
-            corners[7] = min;
-
-            mat3_t rot_scale;
-
-            rot_scale.rows[0] = transform->transform.rows[0].xyz;
-            rot_scale.rows[1] = transform->transform.rows[1].xyz;
-            rot_scale.rows[2] = transform->transform.rows[2].xyz;
-
-            max = vec3_t_c(-FLT_MAX, -FLT_MAX, -FLT_MAX);
-            min = vec3_t_c(FLT_MAX, FLT_MAX, FLT_MAX);
-
-            for(uint32_t corner_index = 0; corner_index < 8; corner_index++)
-            {
-                vec3_t *corner = corners + corner_index;
-                mat3_t_vec3_t_mul(corner, corner, &rot_scale);
-
-                if(max.x < corner->x) max.x = corner->x;
-                if(max.y < corner->y) max.y = corner->y;
-                if(max.z < corner->z) max.z = corner->z;
-
-                if(min.x > corner->x) min.x = corner->x;
-                if(min.y > corner->y) min.y = corner->y;
-                if(min.z > corner->z) min.z = corner->z;
-            }
-
-            transform->extents.x = max.x - min.x;
-            transform->extents.y = max.y - min.y;
-            transform->extents.z = max.z - min.z;
+            r_i_DrawLine(&vec3_t_c(min.x, max.y, min.z), &vec3_t_c(min.x, max.y, max.z), &color, 1.0);
+            r_i_DrawLine(&vec3_t_c(min.x, min.y, min.z), &vec3_t_c(min.x, min.y, max.z), &color, 1.0);
+            r_i_DrawLine(&vec3_t_c(max.x, max.y, min.z), &vec3_t_c(max.x, max.y, max.z), &color, 1.0);
+            r_i_DrawLine(&vec3_t_c(max.x, min.y, min.z), &vec3_t_c(max.x, min.y, max.z), &color, 1.0);
         }
     }
 }

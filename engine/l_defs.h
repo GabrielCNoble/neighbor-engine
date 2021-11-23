@@ -122,20 +122,6 @@ struct l_player_record_t
 };
 
 
-struct l_level_t
-{
-    struct
-    {
-//        struct ds_slist_t entities;
-//        struct ds_slist_t entity_defs;
-    }entity;
-
-    struct
-    {
-//        struct ds_slist_t colliders[P_COLLIDER_TYPE_LAST];
-    }physics;
-};
-
 #endif
 
 

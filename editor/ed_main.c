@@ -287,6 +287,7 @@ void ed_UpdateEditor()
                 igText("Material swaps: %d", r_renderer_state.material_swaps);
                 igCheckbox("Z prepass", &r_renderer_state.use_z_prepass);
                 igCheckbox("Draw lights", &r_renderer_state.draw_lights);
+                igCheckbox("Draw entity AABBs", &r_renderer_state.draw_entities);
             }
             igEnd();
         }

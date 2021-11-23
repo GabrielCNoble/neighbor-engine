@@ -106,6 +106,11 @@ struct r_renderer_state_t r_renderer_state;
 
 extern uint32_t r_uniform_type_sizes[];
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
 void r_BeginFrame()
 {
     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, r_main_framebuffer);
@@ -1110,7 +1115,9 @@ void r_i_DrawLine(vec3_t *start, vec3_t *end, vec4_t *color, float width)
     r_i_DrawVerts(R_I_DRAW_CMD_LINE_LIST, verts, width);
 }
 
-
+#ifdef __cplusplus
+}
+#endif
 
 
 

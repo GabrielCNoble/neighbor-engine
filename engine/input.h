@@ -29,6 +29,8 @@ void in_SetMouseRelative(uint32_t enable);
 
 void in_SetMouseWarp(uint32_t enable);
 
+void in_SetMouseLock(uint32_t enable);
+
 void in_GetMouseDelta(float *dx, float *dy);
 
 void in_GetNormalizedMousePos(float *x, float *y);

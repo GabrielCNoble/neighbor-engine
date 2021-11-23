@@ -26,6 +26,7 @@ float in_normalized_dy;
 uint32_t in_relative_mouse = 0;
 uint32_t in_warp_mouse = 0;
 uint32_t in_warp_frame = 0;
+uint32_t in_mouse_lock = 0;
 uint32_t in_text_input = 0;
 uint32_t in_mouse_input_dropped = 0;
 uint32_t in_keybord_input_dropped = 0;
@@ -108,11 +109,15 @@ void in_Input(float delta_time)
         }
     }
 
-    in_mouse_dx = in_mouse_x - in_prev_mouse_x;
-    in_mouse_dy = in_mouse_y - in_prev_mouse_y;
-
     if(in_relative_mouse)
     {
+        SDL_GetRelativeMouseState(&in_mouse_dx, &in_mouse_dy);
+    }
+    else
+    {
+        in_mouse_dx = in_mouse_x - in_prev_mouse_x;
+        in_mouse_dy = in_mouse_y - in_prev_mouse_y;
+
         if(in_warp_mouse)
         {
             in_warp_frame = 0;
@@ -213,13 +218,19 @@ uint32_t in_GetMouseDoubleClickState(uint32_t button, uint32_t timeout)
 void in_SetMouseRelative(uint32_t enable)
 {
     in_relative_mouse = enable;
-//    SDL_SetRelativeMouseMode(enable);
+    SDL_SetRelativeMouseMode(enable);
 }
 
 void in_SetMouseWarp(uint32_t enable)
 {
     in_warp_mouse = enable;
     SDL_CaptureMouse(enable);
+}
+
+void in_SetMouseLock(uint32_t enable)
+{
+    in_mouse_lock = enable;
+    SDL_ShowCursor(!enable);
 }
 
 void in_GetMouseDelta(float *dx, float *dy)

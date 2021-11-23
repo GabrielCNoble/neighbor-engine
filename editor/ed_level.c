@@ -1431,6 +1431,8 @@ void ed_w_Idle(struct ed_context_t *context, uint32_t just_changed)
     int32_t mouse_x;
     int32_t mouse_y;
 
+    in_SetMouseRelative(0);
+
     in_GetMousePos(&mouse_x, &mouse_y);
 
     if(ed_level_state.open_delete_selections_popup)
@@ -2369,31 +2371,37 @@ void ed_SerializeLevel(void **level_buffer, size_t *buffer_size, uint32_t serial
     }
 
 
-    level_section->entity_section_size = entity_section_size;
+//    level_section->entity_section_size = entity_section_size;
     level_section->entity_section_start = cur_out_buffer - start_out_buffer;
 
     struct l_entity_section_t *entity_section = (struct l_entity_section_t *)cur_out_buffer;
     cur_out_buffer += sizeof(struct l_entity_section_t);
     entity_section->record_start = cur_out_buffer - start_out_buffer;
     struct l_entity_record_t *entity_records = (struct l_entity_record_t *)cur_out_buffer;
-    cur_out_buffer += sizeof(struct l_entity_record_t) * e_root_transforms.cursor;
 
     for(uint32_t entity_index = 0; entity_index < e_root_transforms.cursor; entity_index++)
     {
         struct e_local_transform_component_t *transform;
         transform = *(struct e_local_transform_component_t **)ds_list_get_element(&e_root_transforms, entity_index);
 
-        struct l_entity_record_t *entity_record = entity_records + entity_section->record_count;
-        entity_section->record_count++;
+        /* don't serialize entities without a valid ent def (mostly brush entities) */
+        if(transform->entity->def)
+        {
+            struct l_entity_record_t *entity_record = entity_records + entity_section->record_count;
+            entity_section->record_count++;
 
-        entity_record->child_start = 0;
-        entity_record->child_count = 0;
-        entity_record->ent_def = transform->entity->def->s_index;
-        entity_record->position = transform->position;
-        entity_record->orientation = transform->orientation;
-        entity_record->scale = transform->scale;
-        entity_record->s_index = transform->entity->index;
+            entity_record->child_start = 0;
+            entity_record->child_count = 0;
+            entity_record->ent_def = transform->entity->def->s_index;
+            entity_record->position = transform->position;
+            entity_record->orientation = transform->orientation;
+            entity_record->scale = transform->scale;
+            entity_record->s_index = transform->entity->index;
+        }
     }
+
+    cur_out_buffer += sizeof(struct l_entity_record_t) * entity_section->record_count;
+    level_section->entity_section_size = (cur_out_buffer - start_out_buffer) - level_section->entity_section_start;
 }
 
 void ed_DeserializeLevel(void *level_buffer, size_t buffer_size)
@@ -2524,7 +2532,9 @@ void ed_SaveLevel(char *path, char *file)
     size_t buffer_size;
     char file_name[PATH_MAX];
 
+    ed_BuildWorldData();
     ed_SerializeLevel(&buffer, &buffer_size, 1);
+    l_DestroyWorld();
     ds_path_append_end(path, file, file_name, PATH_MAX);
     ds_path_set_ext(file_name, "nlv", file_name, PATH_MAX);
 

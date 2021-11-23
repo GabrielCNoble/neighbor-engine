@@ -372,6 +372,8 @@ struct r_cluster_t
 #define R_SHADOW_MAP_RESOLUTION_PACK_MASK 0x0000000f
 #define R_SHADOW_MAP_RESOLUTION_PACK_SHIFT 28
 
+#define R_INVALID_SHADOW_MAP_HANDLE 0xffffffff
+
 struct r_shadow_map_t
 {
     uint16_t x_coord;

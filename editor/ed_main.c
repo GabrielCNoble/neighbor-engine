@@ -172,7 +172,7 @@ void ed_Init()
     ed_explorer_state.ext_filters = ds_list_create(sizeof(struct ed_explorer_ext_filter_t), 64);
     ed_explorer_state.drives = ds_list_create(sizeof(struct ed_explorer_drive_t), 8);
 
-    strcpy(ed_explorer_state.current_path, "C:\\Users");
+    strcpy(ed_explorer_state.current_path, "C:\\Users\\gabri\\Documents");
 
     ed_EnumerateExplorerDrives();
     ed_SetExplorerLoadCallback(test_load_callback);
@@ -288,6 +288,7 @@ void ed_UpdateEditor()
                 igCheckbox("Z prepass", &r_renderer_state.use_z_prepass);
                 igCheckbox("Draw lights", &r_renderer_state.draw_lights);
                 igCheckbox("Draw entity AABBs", &r_renderer_state.draw_entities);
+                igCheckbox("Draw physics", &r_renderer_state.draw_colliders);
             }
             igEnd();
         }

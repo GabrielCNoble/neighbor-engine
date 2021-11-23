@@ -355,7 +355,7 @@ void ed_DestroyPickable(struct ed_pickable_t *pickable)
             break;
 
             case ED_PICKABLE_TYPE_ENTITY:
-                g_DestroyEntity(g_GetEntity(pickable->primary_index));
+                e_DestroyEntity(e_GetEntity(pickable->primary_index));
             break;
         }
 

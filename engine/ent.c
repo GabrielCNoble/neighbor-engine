@@ -8,6 +8,7 @@ struct ds_list_t e_components[E_COMPONENT_TYPE_LAST];
 struct ds_slist_t e_ent_defs[E_ENT_DEF_TYPE_LAST];
 struct ds_slist_t e_entities;
 struct ds_list_t e_root_transforms;
+uint32_t e_valid_def_ents;
 
 extern struct r_renderer_state_t r_renderer_state;
 

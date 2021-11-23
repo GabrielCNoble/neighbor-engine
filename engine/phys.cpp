@@ -22,6 +22,45 @@
 #include "LinearMath/btDefaultMotionState.h"
 #include "LinearMath/btTransform.h"
 #include "LinearMath/btVector3.h"
+#include "LinearMath/btIDebugDraw.h"
+
+class p_DebugDraw : public btIDebugDraw
+{
+    int debug_mode;
+
+    virtual void drawLine(const btVector3 &from, const btVector3 &to, const btVector3 &fromColor)
+    {
+        vec3_t start = vec3_t_c(from[0], from[1], from[2]);
+        vec3_t end = vec3_t_c(to[0], to[1], to[2]);
+        vec4_t color = vec4_t_c(fromColor[0], fromColor[1], fromColor[2], 1.0);
+        r_i_DrawLine(&start, &end, &color, 1.0);
+    }
+
+    virtual void drawContactPoint(const btVector3& PointOnB, const btVector3& normalOnB, btScalar distance, int lifeTime, const btVector3& color)
+    {
+
+    }
+
+    virtual void reportErrorWarning(const char* warningString)
+    {
+
+    }
+
+    virtual void draw3dText(const btVector3& location, const char* textString)
+    {
+
+    }
+
+    virtual void setDebugMode(int debugMode)
+    {
+        debug_mode = debugMode;
+    }
+
+    virtual int getDebugMode() const
+    {
+        return debug_mode;
+    }
+};
 
 
 btDiscreteDynamicsWorld *p_dynamics_world;
@@ -31,7 +70,11 @@ btSequentialImpulseConstraintSolver *p_constraint_solver;
 btBroadphaseInterface *p_broadphase;
 struct ds_slist_t p_colliders[P_COLLIDER_TYPE_LAST];
 struct ds_slist_t p_shape_defs;
-uint32_t p_col_shape_count;
+p_DebugDraw *p_debug_drawer;
+
+extern struct r_renderer_state_t r_renderer_state;
+
+
 
 
 #ifdef __cplusplus
@@ -43,7 +86,8 @@ void p_Init()
 {
     p_colliders[P_COLLIDER_TYPE_DYNAMIC] = ds_slist_create(sizeof(struct p_dynamic_collider_t), 512);
     p_colliders[P_COLLIDER_TYPE_STATIC] = ds_slist_create(sizeof(struct p_static_collider_t), 512);
-    p_colliders[P_COLLIDER_TYPE_CHILD] = ds_slist_create(sizeof(struct p_child_collider_t), 512);
+    p_colliders[P_COLLIDER_TYPE_CHARACTER] = ds_slist_create(sizeof(struct p_character_collider_t), 512);
+//    p_colliders[P_COLLIDER_TYPE_CHILD] = ds_slist_create(sizeof(struct p_child_collider_t), 512);
     p_shape_defs = ds_slist_create(sizeof(struct p_shape_def_t), 512);
 
     p_broadphase = new btDbvtBroadphase();
@@ -51,6 +95,9 @@ void p_Init()
     p_collision_dispatcher = new btCollisionDispatcher(p_collision_configuration);
     p_constraint_solver = new btSequentialImpulseConstraintSolver();
     p_dynamics_world = new btDiscreteDynamicsWorld(p_collision_dispatcher, p_broadphase, p_constraint_solver, p_collision_configuration);
+    p_debug_drawer = new p_DebugDraw();
+    p_dynamics_world->setDebugDrawer(p_debug_drawer);
+    p_dynamics_world->getDebugDrawer()->setDebugMode(btIDebugDraw::DBG_DrawWireframe);
 }
 
 void p_Shutdown()
@@ -112,7 +159,7 @@ void *p_CreateCollisionShape(struct p_shape_def_t *shape_def)
         break;
     }
 
-    p_col_shape_count++;
+//    p_col_shape_count++;
 
     return shape;
 }
@@ -163,8 +210,8 @@ void p_DestroyCollisionShape(void *collision_shape)
                 btCollisionShape *child_shape = compound_shape->getChildShape(shape_index);
                 delete child_shape;
             }
-
-            p_col_shape_count -= shape_count;
+//
+//            p_col_shape_count -= shape_count;
         }
 
         delete shape;
@@ -247,6 +294,52 @@ struct p_collider_t *p_CreateCollider(struct p_col_def_t *col_def, vec3_t *posit
 //    }
 
     return collider;
+}
+
+struct p_character_collider_t *p_CreateCharacterCollider(vec3_t *position, float step_height, float height, float radius, float crouch_height)
+{
+    struct p_shape_def_t shape_def = {};
+    struct p_col_def_t col_def = {};
+
+    shape_def.type = P_COL_SHAPE_TYPE_CAPSULE;
+    shape_def.capsule.height = (height - 2.0 * radius) - step_height;
+    shape_def.capsule.radius = radius;
+
+    col_def.mass = 1.0;
+    col_def.shape = &shape_def;
+    col_def.shape_count = 1;
+    col_def.type = P_COLLIDER_TYPE_CHARACTER;
+
+    mat3_t orientation = mat3_t_c_id();
+    struct p_character_collider_t *collider = (struct p_character_collider_t *)p_CreateCollider(&col_def, position, &orientation);
+    collider->crouch_height = crouch_height;
+    collider->height = height;
+    collider->step_height = step_height;
+    collider->radius = radius;
+
+    btRigidBody *rigid_body = (btRigidBody *)collider->rigid_body;
+    rigid_body->setAngularFactor(0.0);
+    rigid_body->setCcdMotionThreshold(0.0);
+    rigid_body->setActivationState(DISABLE_DEACTIVATION);
+//    rigid_body->setCollisionFlags(rigid_body->getCollisionFlags() | btRigidBody::CF_KINEMATIC_OBJECT)
+
+    return collider;
+}
+
+void p_UpdateColliderTransform(struct p_collider_t *collider)
+{
+    btRigidBody *rigid_body = (btRigidBody *)collider->rigid_body;
+//    const btMotionState *motion_state = rigid_body->getMotionState();
+//    btTransform body_transform;
+    mat4_t collider_transform;
+    const btTransform &body_transform = rigid_body->getCenterOfMassTransform();
+//    motion_state->getWorldTransform(body_transform);
+    body_transform.getOpenGLMatrix((btScalar *)collider_transform.comps);
+
+    collider->orientation.rows[0] = collider_transform.rows[0].xyz;
+    collider->orientation.rows[1] = collider_transform.rows[1].xyz;
+    collider->orientation.rows[2] = collider_transform.rows[2].xyz;
+    collider->position = collider_transform.rows[3].xyz;
 }
 
 void p_SetColliderPosition(struct p_collider_t *collider, vec3_t *position)
@@ -347,6 +440,32 @@ void p_RotateCollider(struct p_collider_t *collider, mat3_t *rot)
 //    p_UpdateColliderNode(collider);
 }
 
+void p_MoveCharacterCollider(struct p_character_collider_t *collider, vec3_t *direction)
+{
+    if(collider && collider->index != 0xffffffff && collider->type == P_COLLIDER_TYPE_CHARACTER)
+    {
+        btRigidBody *rigid_body = (btRigidBody *)collider->rigid_body;
+        rigid_body->applyCentralImpulse(btVector3(direction->x, direction->y, direction->z));
+    }
+}
+
+void p_JumpCharacterCollider(struct p_character_collider_t *collider)
+{
+    if(collider && collider->index != 0xffffffff && collider->type == P_COLLIDER_TYPE_CHARACTER)
+    {
+        if(collider->flags & P_CHARACTER_COLLIDER_FLAG_ON_GROUND)
+        {
+            collider->flags &= ~P_CHARACTER_COLLIDER_FLAG_ON_GROUND;
+            collider->flags |= P_CHARACTER_COLLIDER_FLAG_JUMPED;
+            btRigidBody *rigid_body = (btRigidBody *)collider->rigid_body;
+            rigid_body->clearGravity();
+            btVector3 linear_velocity = rigid_body->getLinearVelocity();
+            linear_velocity[1] = 5.0;
+            rigid_body->setLinearVelocity(linear_velocity);
+        }
+    }
+}
+
 //void p_RotateColliderX(struct p_collider_t *collider, float angle)
 //{
 //    mat3_t_rotate_x(&collider->orientation, angle);
@@ -381,22 +500,53 @@ void p_UpdateColliders(float delta_time)
 
     for(uint32_t collider_index = 0; collider_index < p_colliders[P_COLLIDER_TYPE_DYNAMIC].cursor; collider_index++)
     {
-        struct p_dynamic_collider_t *collider = p_GetDynamicCollider(collider_index);
+        struct p_collider_t *collider = p_GetCollider(P_COLLIDER_TYPE_DYNAMIC, collider_index);
 
         if(collider)
         {
-            btRigidBody *rigid_body = (btRigidBody *)collider->rigid_body;
-            const btMotionState *motion_state = rigid_body->getMotionState();
-            btTransform body_transform;
-            mat4_t collider_transform;
-            motion_state->getWorldTransform(body_transform);
-            body_transform.getOpenGLMatrix((btScalar *)collider_transform.comps);
-
-            collider->orientation.rows[0] = collider_transform.rows[0].xyz;
-            collider->orientation.rows[1] = collider_transform.rows[1].xyz;
-            collider->orientation.rows[2] = collider_transform.rows[2].xyz;
-            collider->position = collider_transform.rows[3].xyz;
+            p_UpdateColliderTransform(collider);
         }
+    }
+
+    r_i_SetViewProjectionMatrix(NULL);
+    r_i_SetModelMatrix(NULL);
+    r_i_SetShader(NULL);
+
+    for(uint32_t collider_index = 0; collider_index < p_colliders[P_COLLIDER_TYPE_CHARACTER].cursor; collider_index++)
+    {
+        struct p_character_collider_t *collider = (struct p_character_collider_t *)p_GetCollider(P_COLLIDER_TYPE_CHARACTER, collider_index);
+        p_UpdateColliderTransform((struct p_collider_t *)collider);
+
+        btVector3 from(collider->position.x, collider->position.y - (collider->height * 0.5 - collider->radius), collider->position.z);
+        btVector3 to = from;
+        to[1] -= collider->step_height * 2.0;
+        btCollisionWorld::ClosestRayResultCallback raycast_result(from, to);
+        p_dynamics_world->rayTest(from, to, raycast_result);
+        btRigidBody *rigid_body = (btRigidBody *)collider->rigid_body;
+        btVector3 linear_velocity = rigid_body->getLinearVelocity();
+        collider->flags &= ~P_CHARACTER_COLLIDER_FLAG_ON_GROUND;
+
+        if(raycast_result.m_closestHitFraction < 1.0)
+        {
+            uint32_t jump_flag = collider->flags & P_CHARACTER_COLLIDER_FLAG_JUMPED;
+            if((raycast_result.m_closestHitFraction < 0.5 && jump_flag) || !(jump_flag))
+            {
+                float adjust = (0.5 - raycast_result.m_closestHitFraction);
+                linear_velocity[1] = collider->step_height * adjust * 70.0;
+                rigid_body->clearGravity();
+                collider->flags |= P_CHARACTER_COLLIDER_FLAG_ON_GROUND;
+                collider->flags &= ~P_CHARACTER_COLLIDER_FLAG_JUMPED;
+            }
+        }
+
+        linear_velocity[0] *= 0.95;
+        linear_velocity[2] *= 0.95;
+        rigid_body->setLinearVelocity(linear_velocity);
+    }
+
+    if(r_renderer_state.draw_colliders)
+    {
+        p_dynamics_world->debugDrawWorld();
     }
 }
 

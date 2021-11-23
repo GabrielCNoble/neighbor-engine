@@ -26,8 +26,8 @@ enum P_COL_SHAPE_TYPES
     {                                                                                                              \
         struct { vec3_t size; } box;                                                                               \
         struct { float height; float radius; } capsule;                                                            \
-        struct { vec3_t *verts; uint32_t count; }tri_mesh;                                                         \
-        struct { vec3_t *verts; uint32_t vert_count; uint32_t *indices; uint32_t index_count; }itri_mesh;          \
+        struct { vec3_t *verts; uint32_t count; } tri_mesh;                                                        \
+        struct { vec3_t *verts; uint32_t vert_count; uint32_t *indices; uint32_t index_count; } itri_mesh;         \
     }
 
 struct p_shape_data_t
@@ -64,6 +64,7 @@ enum P_COLLIDER_TYPE
     P_COLLIDER_TYPE_KINEMATIC,
     P_COLLIDER_TYPE_DYNAMIC,
     P_COLLIDER_TYPE_TRIGGER,
+    P_COLLIDER_TYPE_CHARACTER,
     P_COLLIDER_TYPE_CHILD,
     P_COLLIDER_TYPE_LAST
 };
@@ -90,6 +91,22 @@ struct p_dynamic_collider_t
 {
     P_BASE_COLLIDER_FIELDS;
     float mass;
+};
+
+enum P_CHARACTER_COLLIDER_FLAGS
+{
+    P_CHARACTER_COLLIDER_FLAG_ON_GROUND = 1,
+    P_CHARACTER_COLLIDER_FLAG_JUMPED = 1 << 1
+};
+
+struct p_character_collider_t
+{
+    P_BASE_COLLIDER_FIELDS;
+    float radius;
+    float step_height;
+    float height;
+    float crouch_height;
+    uint32_t flags;
 };
 
 struct p_child_collider_t

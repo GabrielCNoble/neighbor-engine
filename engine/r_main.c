@@ -500,9 +500,11 @@ void r_Init()
     glBindBuffer(GL_UNIFORM_BUFFER, r_light_index_uniform_buffer);
     glBufferData(GL_UNIFORM_BUFFER, R_CLUSTER_COUNT * R_MAX_CLUSTER_LIGHTS * sizeof(uint32_t), NULL, GL_DYNAMIC_DRAW);
 
+    width = R_SHADOW_MAP_ATLAS_WIDTH / R_SHADOW_BUCKET0_RES;
+    height = R_SHADOW_MAP_ATLAS_HEIGHT / R_SHADOW_BUCKET0_RES;
     glGenBuffers(1, &r_shadow_map_uniform_buffer);
     glBindBuffer(GL_UNIFORM_BUFFER, r_shadow_map_uniform_buffer);
-    glBufferData(GL_UNIFORM_BUFFER, sizeof(struct r_shadow_map_t) * width * height, NULL, GL_DYNAMIC_DRAW);
+    glBufferData(GL_UNIFORM_BUFFER, sizeof(struct r_shadow_map_t) * R_MAX_LIGHTS * 6, NULL, GL_DYNAMIC_DRAW);
 
     glGenTextures(1, &r_indirect_texture);
     glBindTexture(GL_TEXTURE_CUBE_MAP, r_indirect_texture);
@@ -1340,7 +1342,22 @@ struct r_light_t *r_CreateLight(uint32_t type, vec3_t *position, vec3_t *color, 
     light->range = radius;
     light->energy = energy;
 
-    r_AllocShadowMaps(light, 1024);
+//    switch(light->type)
+//    {
+//        case R_LIGHT_TYPE_POINT:
+//        {
+//            struct r_point_light_t *point_light = (struct r_point_light_t *)light;
+//            point_light->shadow_maps[0] = R_INVALID_SHADOW_MAP_HANDLE;
+//            point_light->shadow_maps[0] = R_INVALID_SHADOW_MAP_HANDLE;
+//            point_light->shadow_maps[0] = R_INVALID_SHADOW_MAP_HANDLE;
+//            point_light->shadow_maps[0] = R_INVALID_SHADOW_MAP_HANDLE;
+//            point_light->shadow_maps[0] = R_INVALID_SHADOW_MAP_HANDLE;
+//            point_light->shadow_maps[0] = R_INVALID_SHADOW_MAP_HANDLE;
+//        }
+//        break;
+//    }
+
+    r_AllocShadowMaps(light, 64);
 
     return light;
 }

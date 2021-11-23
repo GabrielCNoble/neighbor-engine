@@ -67,6 +67,9 @@ void r_VisibleLights()
     vec2_t extents[2];
     vec4_t spot_verts[8];
 
+    r_i_SetShader(NULL);
+    r_i_SetModelMatrix(NULL);
+
     for(uint32_t light_index = 0; light_index < r_lights[R_LIGHT_TYPE_POINT].cursor; light_index++)
     {
         struct r_point_light_t *light = (struct r_point_light_t *)r_GetLight(R_LIGHT_INDEX(R_LIGHT_TYPE_POINT, light_index));
@@ -170,9 +173,16 @@ void r_VisibleLights()
                 continue;
             }
 
+//            mat4_t projection_matrix = mat4_t_c_id();
+//            r_i_SetViewProjectionMatrix(&projection_matrix);
+//            r_i_DrawLine(&vec3_t_c(extents[0].y, extents[1].x, -0.5), &vec3_t_c(extents[0].y, extents[1].y, -0.5), &vec4_t_c(0.0, 1.0, 0.0, 1.0), 1.0);
+//            r_i_DrawLine(&vec3_t_c(extents[0].y, extents[1].y, -0.5), &vec3_t_c(extents[0].x, extents[1].y, -0.5), &vec4_t_c(0.0, 1.0, 0.0, 1.0), 1.0);
+//            r_i_DrawLine(&vec3_t_c(extents[0].x, extents[1].y, -0.5), &vec3_t_c(extents[0].x, extents[1].x, -0.5), &vec4_t_c(0.0, 1.0, 0.0, 1.0), 1.0);
+//            r_i_DrawLine(&vec3_t_c(extents[0].x, extents[1].x, -0.5), &vec3_t_c(extents[0].y, extents[1].x, -0.5), &vec4_t_c(0.0, 1.0, 0.0, 1.0), 1.0);
+
             float light_dist = vec3_t_length(&light_pos);
             float ratio = light->range / light_dist;
-            uint32_t shadow_resolution;
+            uint32_t shadow_resolution = R_SHADOW_BUCKET0_RES;
 
             if(ratio >= 0.5)
             {
@@ -195,7 +205,6 @@ void r_VisibleLights()
                 shadow_resolution = R_SHADOW_BUCKET0_RES;
             }
 
-//            printf("%f\n", light->range / vec3_t_length(&light_pos));
 
             light->min.x = (uint32_t)(R_CLUSTER_ROW_WIDTH * (extents[0].x * 0.5 + 0.5));
             light->max.x = (uint32_t)(R_CLUSTER_ROW_WIDTH * (extents[0].y * 0.5 + 0.5));
@@ -521,7 +530,7 @@ void r_VisibleLights()
         }
     }
 
-
+//    printf("%d\n", r_visible_lights.cursor);
 
     for(uint32_t visible_index = 0; visible_index < r_visible_lights.cursor; visible_index++)
     {

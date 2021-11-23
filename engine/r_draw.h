@@ -4,6 +4,10 @@
 #include "r_defs.h"
 #include "r_main.h"
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
 
 void r_BeginFrame();
 
@@ -113,5 +117,9 @@ void r_i_DrawLine(vec3_t *start, vec3_t *end, vec4_t *color, float width);
 //void r_DrawLine(vec3_t *from, vec3_t *to, vec3_t *color);
 
 //void r_DrawLines(struct r_vert_t *verts, uint32_t count);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // R_DRAW_H

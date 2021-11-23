@@ -17,6 +17,7 @@
 #include "BulletCollision/CollisionShapes/btCapsuleShape.h"
 #include "BulletCollision/CollisionShapes/btBvhTriangleMeshShape.h"
 #include "BulletCollision/CollisionShapes/btCompoundShape.h"
+#include "BulletCollision/CollisionShapes/btTriangleIndexVertexArray.h"
 #include "BulletDynamics/Dynamics/btRigidBody.h"
 #include "LinearMath/btDefaultMotionState.h"
 #include "LinearMath/btTransform.h"
@@ -97,6 +98,17 @@ void *p_CreateCollisionShape(struct p_shape_def_t *shape_def)
 
         case P_COL_SHAPE_TYPE_CAPSULE:
             shape = new btCapsuleShape(shape_def->capsule.radius, shape_def->capsule.radius);
+        break;
+
+        case P_COL_SHAPE_TYPE_ITRI_MESH:
+        {
+            btTriangleIndexVertexArray *indexed_mesh;
+            indexed_mesh = new btTriangleIndexVertexArray(shape_def->itri_mesh.index_count / 3, (int *)shape_def->itri_mesh.indices,
+                                                          sizeof(uint32_t) * 3, shape_def->itri_mesh.vert_count,
+                                                          shape_def->itri_mesh.verts->comps, sizeof(vec3_t));
+
+            shape = new btBvhTriangleMeshShape(indexed_mesh, false);
+        }
         break;
     }
 

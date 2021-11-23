@@ -11,6 +11,8 @@ extern struct ds_slist_t r_lights[];
 extern struct ds_slist_t r_vis_items;
 extern struct r_cluster_t *r_clusters;
 
+extern struct r_model_t *l_world_model;
+
 extern struct r_point_data_t *r_point_light_buffer;
 extern uint32_t r_point_light_buffer_cursor;
 extern struct r_spot_data_t *r_spot_light_buffer;
@@ -775,7 +777,16 @@ void r_VisibleEntitiesOnLights()
 
 void r_VisibleWorld()
 {
+    if(l_world_model)
+    {
+        struct r_batch_t *world_batches = l_world_model->batches.buffer;
 
+        for(uint32_t batch_index = 0; batch_index < l_world_model->batches.buffer_size; batch_index++)
+        {
+            struct r_batch_t *world_batch = world_batches + batch_index;
+            r_DrawWorld(world_batch->material, world_batch->start, world_batch->count);
+        }
+    }
 }
 
 void r_VisibleVisItems()

@@ -132,6 +132,9 @@ struct ed_level_section_t
     size_t material_section_start;
     size_t material_section_size;
 
+    size_t world_section_start;
+    size_t world_section_size;
+
     size_t reserved[32];
 };
 

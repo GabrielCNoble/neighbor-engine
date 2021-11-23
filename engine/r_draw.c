@@ -278,6 +278,22 @@ void r_DrawWorld(struct r_material_t *material, uint32_t start, uint32_t count)
     }
 }
 
+int32_t r_CompareWorldCmds(void *a, void *b)
+{
+    struct r_world_cmd_t *cmd_a = (struct r_world_cmd_t *)a;
+    struct r_world_cmd_t *cmd_b = (struct r_world_cmd_t *)b;
+    if(cmd_a->material < cmd_b->material)
+    {
+        return -1;
+    }
+    else if(cmd_a->material > cmd_b->material)
+    {
+        return 1;
+    }
+
+    return 0;
+}
+
 int32_t r_CompareEntityCmds(void *a, void *b)
 {
     struct r_entity_cmd_t *cmd_a = (struct r_entity_cmd_t *)a;
@@ -312,10 +328,10 @@ int32_t r_CompareShadowCmds(void *a, void *b)
 
 void r_DrawCmds()
 {
-    struct r_material_t *current_material = NULL;
     mat4_t model_view_projection_matrix;
     mat4_t model_view_matrix;
 
+    ds_list_qsort(&r_world_cmds, r_CompareWorldCmds);
     ds_list_qsort(&r_entity_cmds, r_CompareEntityCmds);
     ds_list_qsort(&r_shadow_cmds, r_CompareShadowCmds);
 
@@ -344,11 +360,6 @@ void r_DrawCmds()
             uint32_t x_coord = shadow_map->x_coord;
             uint32_t y_coord = shadow_map->y_coord;
             uint32_t resolution = R_SHADOW_BUCKET_RESOLUTION(cmd->shadow_map);
-//            uint32_t resolution = (cmd->shadow_map >> R_SHADOW_BUCKET_SHIFT) & R_SHADOW_MAP_BUCKET_MASK;
-//            resolution = R_SHADOW_MAP_BUCKET0_RES << resolution;
-//            uint32_t shadow_x = ((cmd->shadow_map >> R_SHADOW_MAP_X_COORD_SHIFT) & 0xff) * R_SHADOW_MAP_MIN_RESOLUTION;
-//            uint32_t shadow_y = ((cmd->shadow_map >> R_SHADOW_MAP_Y_COORD_SHIFT) & 0xff) * R_SHADOW_MAP_MIN_RESOLUTION;
-//            uint32_t shadow_res = ((cmd->shadow_map >> R_SHADOW_MAP_RES_SHIFT) & 0xff) * R_SHADOW_MAP_MIN_RESOLUTION;
 
             glScissor(x_coord, y_coord, resolution, resolution);
             glViewport(x_coord, y_coord, resolution, resolution);
@@ -374,6 +385,14 @@ void r_DrawCmds()
         r_BindShader(r_z_prepass_shader);
         glDepthFunc(GL_LESS);
 
+        r_SetDefaultUniformMat4(R_UNIFORM_MODEL_VIEW_PROJECTION_MATRIX, &r_view_projection_matrix);
+        for(uint32_t cmd_index = 0; cmd_index < r_world_cmds.cursor; cmd_index++)
+        {
+            struct r_world_cmd_t *cmd = ds_list_get_element(&r_world_cmds, cmd_index);
+            glDrawElements(GL_TRIANGLES, cmd->count, GL_UNSIGNED_INT, (void *)(cmd->start * sizeof(uint32_t)));
+            r_renderer_state.draw_call_count++;
+        }
+
         for(uint32_t cmd_index = 0; cmd_index < r_entity_cmds.cursor; cmd_index++)
         {
             struct r_entity_cmd_t *cmd = ds_list_get_element(&r_entity_cmds, cmd_index);
@@ -387,6 +406,8 @@ void r_DrawCmds()
         glDepthMask(GL_FALSE);
     }
 
+    struct r_material_t *current_material = NULL;
+
     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, r_main_framebuffer);
     r_BindShader(r_lit_shader);
     r_SetDefaultUniformI(R_UNIFORM_TEX_CLUSTERS, R_CLUSTERS_TEX_UNIT);
@@ -394,6 +415,24 @@ void r_DrawCmds()
     r_SetDefaultUniformI(R_UNIFORM_TEX_INDIRECT, R_INDIRECT_TEX_UNIT);
     r_SetDefaultUniformMat4(R_UNIFORM_CAMERA_MATRIX, &r_camera_matrix);
     r_SetDefaultUniformVec2(R_UNIFORM_POINT_PROJ_PARAMS, &r_point_shadow_projection_params);
+
+    r_SetDefaultUniformMat4(R_UNIFORM_MODEL_VIEW_PROJECTION_MATRIX, &r_view_projection_matrix);
+    r_SetDefaultUniformMat4(R_UNIFORM_MODEL_VIEW_MATRIX, &r_view_matrix);
+    for(uint32_t cmd_index = 0; cmd_index < r_world_cmds.cursor; cmd_index++)
+    {
+        struct r_world_cmd_t *cmd = ds_list_get_element(&r_world_cmds, cmd_index);
+
+        if(cmd->material != current_material)
+        {
+            current_material = cmd->material;
+            r_BindMaterial(current_material);
+        }
+
+        glDrawElements(GL_TRIANGLES, cmd->count, GL_UNSIGNED_INT, (void *)(cmd->start * sizeof(uint32_t)));
+        r_renderer_state.draw_call_count++;
+    }
+
+    current_material = NULL;
 
     for(uint32_t cmd_index = 0; cmd_index < r_entity_cmds.cursor; cmd_index++)
     {

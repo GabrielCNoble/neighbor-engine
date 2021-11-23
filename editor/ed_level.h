@@ -107,5 +107,7 @@ void ed_LoadGameLevelSnapshot();
 
 void ed_ResetLevelEditor();
 
+void ed_BuildWorldData();
+
 
 #endif // ED_W_CTX_H

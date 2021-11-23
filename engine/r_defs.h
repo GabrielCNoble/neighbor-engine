@@ -139,7 +139,6 @@ struct r_vert_section_t
 {
     vec3_t min;
     vec3_t max;
-//    char name[32];
     uint32_t vert_count;
     struct r_vert_t verts[];
 };

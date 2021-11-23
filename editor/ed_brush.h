@@ -67,7 +67,7 @@ void ed_UpdateBrushEntity(struct ed_brush_t *brush);
 
 void ed_UpdateBrush(struct ed_brush_t *brush);
 
-void ed_BuildWorldGeometry();
+//void ed_BuildWorldGeometry();
 
 /*
 =============================================================

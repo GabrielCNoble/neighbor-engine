@@ -61,6 +61,7 @@ int main(int argc, char *argv[])
         }
 
         e_UpdateEntities();
+        r_VisibleWorld();
         r_VisibleLights();
         r_VisibleEntitiesOnLights();
         r_VisibleEntities();

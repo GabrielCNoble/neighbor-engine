@@ -226,6 +226,11 @@ void e_DeallocComponent(struct e_component_t *component)
                         child_transform = child_transform->next;
                     }
                 }
+                else
+                {
+                    struct e_local_transform_component_t **transform_ptr = ds_list_get_element(&e_root_transforms, transform->root_index);
+                    *transform_ptr = transform;
+                }
             }
 
             component->index = index;

@@ -201,7 +201,7 @@ void g_Init(uint32_t editor_active)
     mat3_t_rotate_x(&orientation, 0.05);
     mat3_t_rotate_y(&orientation, 0.05);
 
-//    e_SpawnEntity(box_ent_def, &vec3_t_c(0.0, 6.0, 0.0), &vec3_t_c(1.0, 1.0, 1.0), &orientation);
+    e_SpawnEntity(box_ent_def, &vec3_t_c(0.0, 6.0, 0.0), &vec3_t_c(1.0, 1.0, 1.0), &orientation);
 //
 //    e_SpawnEntity(box_ent_def, &vec3_t_c(1.0, 9.0, 0.0), &vec3_t_c(1.0, 1.0, 1.0), &orientation);
 //    e_SpawnEntity(box_ent_def, &vec3_t_c(0.4, 12.0, 0.3), &vec3_t_c(1.0, 1.0, 1.0), &orientation);

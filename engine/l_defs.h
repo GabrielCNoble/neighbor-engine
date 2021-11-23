@@ -8,6 +8,18 @@
 #include "p_defs.h"
 #include "e_defs.h"
 
+enum L_LEVEL_DATAS
+{
+    L_LEVEL_DATA_LIGHTS = 1,
+    L_LEVEL_DATA_ENTITIES = 1 << 1,
+    L_LEVEL_DATA_WORLD = 1 << 2,
+    L_LEVEL_DATA_WAYPOINTS = 1 << 3,
+    L_LEVEL_DATA_ALL = L_LEVEL_DATA_LIGHTS |
+                       L_LEVEL_DATA_ENTITIES |
+                       L_LEVEL_DATA_WORLD |
+                       L_LEVEL_DATA_WAYPOINTS
+};
+
 struct l_light_section_t
 {
     size_t record_start;
@@ -84,6 +96,15 @@ struct l_entity_record_t
 };
 
 
+struct l_world_section_t
+{
+    size_t vert_start;
+    size_t vert_size;
+    size_t index_start;
+    size_t index_size;
+    size_t batch_start;
+    size_t batch_size;
+};
 
 
 

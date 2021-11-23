@@ -13,19 +13,21 @@ enum P_COL_SHAPE_TYPES
     P_COL_SHAPE_TYPE_CAPSULE = 0,
     P_COL_SHAPE_TYPE_CYLINDER,
     P_COL_SHAPE_TYPE_TRI_MESH,
+    P_COL_SHAPE_TYPE_ITRI_MESH,
     P_COL_SHAPE_TYPE_BOX,
     P_COL_SHAPE_TYPE_LAST,
 };
 
-#define P_SHAPE_DEF_DATA                                    \
-    uint32_t type;                                          \
-    vec3_t position;                                        \
-    mat3_t orientation;                                     \
-    union                                                   \
-    {                                                       \
-        struct { vec3_t size; } box;                        \
-        struct { float height; float radius; } capsule;     \
-        struct { vec3_t *verts; uint32_t count; }tri_mesh;  \
+#define P_SHAPE_DEF_DATA                                                                                           \
+    uint32_t type;                                                                                                 \
+    vec3_t position;                                                                                               \
+    mat3_t orientation;                                                                                            \
+    union                                                                                                          \
+    {                                                                                                              \
+        struct { vec3_t size; } box;                                                                               \
+        struct { float height; float radius; } capsule;                                                            \
+        struct { vec3_t *verts; uint32_t count; }tri_mesh;                                                         \
+        struct { vec3_t *verts; uint32_t vert_count; uint32_t *indices; uint32_t index_count; }itri_mesh;          \
     }
 
 struct p_shape_data_t

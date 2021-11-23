@@ -18,6 +18,11 @@ struct ed_context_t *ed_world_context;
 extern mat4_t r_camera_matrix;
 extern mat4_t r_view_projection_matrix;
 
+extern struct p_shape_def_t *l_world_shape;
+extern struct p_col_def_t l_world_col_def;
+extern struct p_collider_t *l_world_collider;
+extern struct r_model_t *l_world_model;
+
 struct r_shader_t *ed_center_grid_shader;
 struct r_shader_t *ed_picking_shader;
 struct r_model_t *ed_translation_widget_model;
@@ -2134,6 +2139,16 @@ void ed_SerializeLevel(void **level_buffer, size_t *buffer_size, uint32_t serial
     size_t ent_def_section_size = sizeof(struct l_ent_def_section_t);
     ent_def_section_size += sizeof(struct l_ent_def_record_t) * e_ent_defs[E_ENT_DEF_TYPE_ROOT].used;
 
+
+    size_t world_section_size = sizeof(struct l_world_section_t);
+
+    if(l_world_collider)
+    {
+//        world
+    }
+
+
+
     out_buffer_size += brush_section_size + light_section_size + entity_section_size + ent_def_section_size;
 
     char *start_out_buffer = mem_Calloc(1, out_buffer_size);
@@ -2488,7 +2503,7 @@ void ed_DeserializeLevel(void *level_buffer, size_t buffer_size)
         ed_CreateBrushPickable(NULL, NULL, NULL, brush);
     }
 
-    l_DeserializeLevel(level_buffer, buffer_size);
+    l_DeserializeLevel(level_buffer, buffer_size, L_LEVEL_DATA_ALL & (~L_LEVEL_DATA_WORLD));
 
     for(uint32_t light_index = 0; light_index < r_lights[R_LIGHT_TYPE_POINT].cursor; light_index++)
     {
@@ -2543,21 +2558,30 @@ void ed_SaveGameLevelSnapshot()
     for(uint32_t brush_index = 0; brush_index < ed_level_state.brush.brushes.cursor; brush_index++)
     {
         struct ed_brush_t *brush = ed_GetBrush(brush_index);
-        e_DestroyEntity(brush->entity);
-        brush->entity = NULL;
+
+        if(brush)
+        {
+            e_DestroyEntity(brush->entity);
+            brush->entity = NULL;
+        }
     }
 
+    ed_BuildWorldData();
     ed_SerializeLevel(&ed_level_state.game_level_buffer, &ed_level_state.game_level_buffer_size, 0);
 }
 
 void ed_LoadGameLevelSnapshot()
 {
-    l_DeserializeLevel(ed_level_state.game_level_buffer, ed_level_state.game_level_buffer_size);
+    l_DeserializeLevel(ed_level_state.game_level_buffer, ed_level_state.game_level_buffer_size, L_LEVEL_DATA_ALL & (~L_LEVEL_DATA_WORLD));
 
     for(uint32_t brush_index = 0; brush_index < ed_level_state.brush.brushes.cursor; brush_index++)
     {
         struct ed_brush_t *brush = ed_GetBrush(brush_index);
-        ed_UpdateBrushEntity(brush);
+
+        if(brush)
+        {
+            ed_UpdateBrushEntity(brush);
+        }
     }
 
     char *level_buffer = ed_level_state.game_level_buffer;
@@ -2571,46 +2595,49 @@ void ed_LoadGameLevelSnapshot()
     {
         struct ed_pickable_t *pickable = ed_GetPickable(pickable_index);
 
-        switch(pickable->type)
+        if(pickable)
         {
-            case ED_PICKABLE_TYPE_LIGHT:
-                for(uint32_t record_index = 0; record_index < light_section->record_count; record_index++)
-                {
-                    struct l_light_record_t *record = light_records + record_index;
-                    if(pickable->primary_index == record->s_index)
+            switch(pickable->type)
+            {
+                case ED_PICKABLE_TYPE_LIGHT:
+                    for(uint32_t record_index = 0; record_index < light_section->record_count; record_index++)
                     {
-                        pickable->primary_index = record->d_index;
-
-                        if(record_index < light_section->record_count - 1)
+                        struct l_light_record_t *record = light_records + record_index;
+                        if(pickable->primary_index == record->s_index)
                         {
-                            *record = light_records[light_section->record_count - 1];
+                            pickable->primary_index = record->d_index;
+
+                            if(record_index < light_section->record_count - 1)
+                            {
+                                *record = light_records[light_section->record_count - 1];
+                            }
+                            light_section->record_count--;
+                            break;
                         }
-                        light_section->record_count--;
-                        break;
                     }
-                }
-            break;
+                break;
 
-            case ED_PICKABLE_TYPE_ENTITY:
-                for(uint32_t record_index = 0; record_index < entity_section->record_count; record_index++)
-                {
-                    struct l_entity_record_t *record = entity_records + record_index;
-
-                    if(pickable->primary_index == record->s_index)
+                case ED_PICKABLE_TYPE_ENTITY:
+                    for(uint32_t record_index = 0; record_index < entity_section->record_count; record_index++)
                     {
-                        pickable->primary_index = record->d_index;
-                        /* FIXME: this will break once the level format allows to store
-                        child entities in entity records that were parented in the level
-                        editor */
-                        if(record_index < entity_section->record_count - 1)
+                        struct l_entity_record_t *record = entity_records + record_index;
+
+                        if(pickable->primary_index == record->s_index)
                         {
-                            *record = entity_records[entity_section->record_count - 1];
+                            pickable->primary_index = record->d_index;
+                            /* FIXME: this will break once the level format allows to store
+                            child entities in entity records that were parented in the level
+                            editor */
+                            if(record_index < entity_section->record_count - 1)
+                            {
+                                *record = entity_records[entity_section->record_count - 1];
+                            }
+                            entity_section->record_count--;
+                            break;
                         }
-                        entity_section->record_count--;
-                        break;
                     }
-                }
-            break;
+                break;
+            }
         }
     }
 
@@ -2622,6 +2649,8 @@ void ed_ResetLevelEditor()
     ed_level_state.camera_pitch = ED_LEVEL_CAMERA_PITCH;
     ed_level_state.camera_yaw = ED_LEVEL_CAMERA_YAW;
     ed_level_state.camera_pos = ED_LEVEL_CAMERA_POS;
+
+    l_DestroyWorld();
 
     for(uint32_t pickable_index = 0; pickable_index < ed_level_state.pickables.pickables.cursor; pickable_index++)
     {
@@ -2636,6 +2665,144 @@ void ed_ResetLevelEditor()
     ed_level_state.pickables.pickables.cursor = 0;
     ed_level_state.pickables.pickables.free_stack_top = 0xffffffff;
     ed_level_state.pickables.selections.cursor = 0;
+}
+
+void ed_BuildWorldData()
+{
+    if(!l_world_collider && ed_level_state.brush.brushes.used)
+    {
+        struct ds_buffer_t world_col_verts_buffer = ds_buffer_create(sizeof(vec3_t), ed_level_state.brush.brush_model_vert_count);
+        struct ds_buffer_t world_draw_verts_buffer = ds_buffer_create(sizeof(struct r_vert_t), ed_level_state.brush.brush_model_vert_count);
+        struct ds_buffer_t world_indices_buffer = ds_buffer_create(sizeof(uint32_t), ed_level_state.brush.brush_model_index_count);
+
+        uint32_t vert_offset = 0;
+        uint32_t index_offset = 0;
+
+        vec3_t *world_col_verts = world_col_verts_buffer.buffer;
+        struct r_vert_t *world_draw_verts = world_draw_verts_buffer.buffer;
+        uint32_t *world_indices = world_indices_buffer.buffer;
+
+        struct ds_buffer_t world_batches_buffer = ds_buffer_create(sizeof(struct r_batch_t), ed_level_state.brush.brush_batches.cursor);
+        struct r_batch_t *world_batches = world_batches_buffer.buffer;
+        struct ds_list_t *global_batches = &ed_level_state.brush.brush_batches;
+
+        for(uint32_t global_batch_index = 0; global_batch_index < global_batches->cursor; global_batch_index++)
+        {
+            struct r_batch_t *world_batch = world_batches + global_batch_index;
+            struct ed_brush_batch_t *global_batch = ds_list_get_element(global_batches, global_batch_index);
+
+            world_batch->start = 0;
+            world_batch->count = global_batch->batch.count;
+            world_batch->material = global_batch->batch.material;
+
+            if(global_batch_index)
+            {
+                struct r_batch_t *prev_batch = world_batches + (global_batch_index - 1);
+                world_batch->start = prev_batch->start + prev_batch->count;
+                prev_batch->count = 0;
+            }
+        }
+
+        world_batches[global_batches->cursor - 1].count = 0;
+
+        for(uint32_t brush_index = 0; brush_index < ed_level_state.brush.brushes.cursor; brush_index++)
+        {
+            struct ed_brush_t *brush = ed_GetBrush(brush_index);
+
+            if(brush)
+            {
+                struct r_batch_t *brush_batches = brush->model->batches.buffer;
+                struct r_vert_t *brush_verts = brush->model->verts.buffer;
+                uint32_t *brush_indices = brush->model->indices.buffer;
+
+                for(uint32_t vert_index = 0; vert_index < brush->model->verts.buffer_size; vert_index++)
+                {
+                    struct r_vert_t *brush_vert = brush_verts + vert_index;
+                    struct r_vert_t *draw_vert = world_draw_verts + vert_offset + vert_index;
+                    *draw_vert = *brush_vert;
+
+                    mat3_t_vec3_t_mul(&draw_vert->pos, &draw_vert->pos, &brush->orientation);
+                    mat3_t_vec3_t_mul(&draw_vert->normal.xyz, &draw_vert->normal.xyz, &brush->orientation);
+                    mat3_t_vec3_t_mul(&draw_vert->tangent, &draw_vert->tangent, &brush->orientation);
+                    vec3_t_add(&draw_vert->pos, &draw_vert->pos, &brush->position);
+
+                    world_col_verts[vert_offset + vert_index] = draw_vert->pos;
+                }
+
+                for(uint32_t brush_batch_index = 0; brush_batch_index < brush->model->batches.buffer_size; brush_batch_index++)
+                {
+                    struct r_batch_t *brush_batch = brush_batches + brush_batch_index;
+
+                    for(uint32_t world_batch_index = 0; world_batch_index < world_batches_buffer.buffer_size; world_batch_index++)
+                    {
+                        struct r_batch_t *world_batch = world_batches + world_batch_index;
+
+                        if(brush_batch->material == world_batch->material)
+                        {
+                            for(uint32_t index = 0; index < brush_batch->count; index++)
+                            {
+                                uint32_t world_indice_index = world_batch->start + world_batch->count;
+                                uint32_t brush_indice_index = brush_batch->start - brush->model->model_start + index;
+                                world_indices[world_indice_index] = brush_indices[brush_indice_index];
+                                world_indices[world_indice_index] += vert_offset;
+                                world_batch->count++;
+                            }
+                        }
+                    }
+                }
+
+                vert_offset += brush->model->verts.buffer_size;
+            }
+        }
+
+//        for(uint32_t brush_index = 0; brush_index < ed_level_state.brush.brushes.cursor; brush_index++)
+//        {
+//            struct ed_brush_t *brush = ed_GetBrush(brush_index);
+//
+//            if(brush)
+//            {
+//                struct r_vert_t *model_verts = brush->model->verts.buffer;
+//                uint32_t *model_indices = brush->model->indices.buffer;
+//
+//                for(uint32_t index = 0; index < brush->model->indices.buffer_size; index++)
+//                {
+//                    indices[index_offset] = model_indices[index] + vert_offset;
+//                    index_offset++;
+//                }
+//
+//                for(uint32_t vert_index = 0; vert_index < brush->model->verts.buffer_size; vert_index++)
+//                {
+//                    col_verts[vert_offset] = model_verts[vert_index].pos;
+//                    mat3_t_vec3_t_mul(&col_verts[vert_offset], &col_verts[vert_offset], &brush->orientation);
+//                    vec3_t_add(&col_verts[vert_offset], &col_verts[vert_offset], &brush->position);
+//                    vert_offset++;
+//                }
+//            }
+//        }
+
+        if(vert_offset)
+        {
+            l_world_shape->itri_mesh.verts = world_col_verts;
+            l_world_shape->itri_mesh.vert_count = vert_offset;
+            l_world_shape->itri_mesh.indices = world_indices;
+            l_world_shape->itri_mesh.index_count = world_indices_buffer.buffer_size;
+            l_world_collider = p_CreateCollider(&l_world_col_def, &vec3_t_c(0.0, 0.0, 0.0), &mat3_t_c_id());
+
+            struct r_model_geometry_t model_geometry = {};
+
+            model_geometry.batches = world_batches;
+            model_geometry.batch_count = world_batches_buffer.buffer_size;
+            model_geometry.verts = world_draw_verts;
+            model_geometry.vert_count = world_draw_verts_buffer.buffer_size;
+            model_geometry.indices = world_indices;
+            model_geometry.index_count = world_indices_buffer.buffer_size;
+            l_world_model = r_CreateModel(&model_geometry, NULL, "world_model");
+        }
+    }
+
+//    struct ds_buffer_t batches = ds_buffer_create(sizeof(struct r_batch_t), ed_level_state.brush.brush_batches.cursor);
+//
+
 }
 
 

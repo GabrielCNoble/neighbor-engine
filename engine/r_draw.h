@@ -13,6 +13,8 @@ void r_BeginFrame();
 
 void r_EndFrame();
 
+void r_SetClearColor(float r, float g, float b, float a);
+
 void r_SetViewPos(vec3_t *pos);
 
 void r_TranslateView(vec3_t *disp);

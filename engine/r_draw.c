@@ -94,6 +94,7 @@ extern int32_t r_width;
 extern int32_t r_height;
 extern uint32_t r_cluster_row_width;
 extern uint32_t r_cluster_rows;
+extern vec4_t r_clear_color;
 
 extern uint32_t r_main_framebuffer;
 extern uint32_t r_z_prepass_framebuffer;
@@ -117,7 +118,7 @@ void r_BeginFrame()
     glViewport(0, 0, r_width, r_height);
     glDisable(GL_SCISSOR_TEST);
     glDepthMask(GL_TRUE);
-    glClearColor(0.01, 0.01, 0.01, 1.0);
+    glClearColor(r_clear_color.x, r_clear_color.y, r_clear_color.z, r_clear_color.w);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
     glBindVertexArray(r_vao);
 
@@ -167,6 +168,14 @@ void r_BeginFrame()
     r_renderer_state.material_swaps = 0;
     r_renderer_state.shader_swaps = 0;
     r_renderer_state.vert_count = 0;
+}
+
+void r_SetClearColor(float r, float g, float b, float a)
+{
+    r_clear_color.x = r;
+    r_clear_color.y = g;
+    r_clear_color.z = b;
+    r_clear_color.w = a;
 }
 
 void r_EndFrame()

@@ -113,6 +113,8 @@ mat4_t r_point_shadow_view_projection_matrices[6];
 vec3_t r_point_light_frustum_planes[6];
 uint16_t r_point_light_frustum_masks[6];
 
+vec4_t r_clear_color;
+
 uint32_t r_main_framebuffer;
 uint32_t r_main_color_attachment;
 uint32_t r_main_depth_attachment;
@@ -214,7 +216,10 @@ void r_Init()
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
 
-    glClearColor(0.01, 0.01, 0.01, 1.0);
+//    glClearColor(0.01, 0.01, 0.01, 1.0);
+
+    r_SetClearColor(0.0, 0.0, 0.0, 1.0);
+
     glClearDepth(1.0);
     glClearStencil(0x00);
 //    glClipControl(GL_LOWER_LEFT, GL_ZERO_TO_ONE);

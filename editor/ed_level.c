@@ -338,7 +338,7 @@ void ed_LevelEditorSuspend()
 
 void ed_LevelEditorResume()
 {
-
+    r_SetClearColor(0.05, 0.05, 0.05, 1.0);
 }
 
 void ed_w_ManipulatorWidgetSetupPickableDrawState(uint32_t pickable_index, struct ed_pickable_t *pickable)

@@ -3,7 +3,43 @@
 #include "../lib/dstuff/ds_vector.h"
 #include "../lib/dstuff/ds_matrix.h"
 #include "../lib/dstuff/ds_mem.h"
+#include "../engine/r_draw.h"
 #include <stddef.h>
+
+void ed_EntityEditorInit(struct ed_editor_t *editor)
+{
+    editor->next_state = ed_EntityEditorIdle;
+}
+
+void ed_EntityEditorShutdown()
+{
+
+}
+
+void ed_EntityEditorSuspend()
+{
+
+}
+
+void ed_EntityEditorResume()
+{
+    r_SetClearColor(0.4, 0.4, 0.8, 1.0);
+}
+
+void ed_EntityEditorUpdate()
+{
+
+}
+
+void ed_EntityEditorReset()
+{
+
+}
+
+void ed_EntityEditorIdle(uint32_t just_changed)
+{
+
+}
 
 uint32_t ed_EntDefRecordCount(struct e_ent_def_t *ent_def)
 {

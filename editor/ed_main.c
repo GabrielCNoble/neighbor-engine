@@ -1,6 +1,7 @@
 #include "ed_main.h"
 #include "ed_bsp.h"
 #include "ed_level.h"
+#include "ed_ent.h"
 #include "dstuff/ds_slist.h"
 #include "dstuff/ds_list.h"
 #include "dstuff/ds_mem.h"
@@ -149,7 +150,16 @@ void ed_Init()
         .explorer_new = ed_LevelEditorReset
     };
 
-    ed_active_editor = ed_editors + ED_EDITOR_LEVEL;
+    ed_editors[ED_EDITOR_ENTITY] = (struct ed_editor_t){
+        .init = ed_EntityEditorInit,
+        .shutdown = ed_EntityEditorShutdown,
+        .update = ed_EntityEditorUpdate,
+        .suspend = ed_EntityEditorSuspend,
+        .resume = ed_EntityEditorResume,
+        .explorer_new = ed_EntityEditorReset
+    };
+
+//    ed_active_editor = ed_editors + ED_EDITOR_LEVEL;
 
     for(uint32_t editor_index = ED_EDITOR_LEVEL; editor_index < ED_EDITOR_LAST; editor_index++)
     {
@@ -172,6 +182,9 @@ void ed_Init()
     ed_SetExplorerSaveCallback(test_save_callback);
 
     in_SetMouseRelative(1);
+
+
+    ed_SwitchToEditor(ed_editors + ED_EDITOR_LEVEL);
 }
 
 void ed_Shutdown()
@@ -184,13 +197,16 @@ void ed_Shutdown()
 
 void ed_SwitchToEditor(struct ed_editor_t *editor)
 {
-    if(ed_active_editor)
+    if(editor != ed_active_editor)
     {
-        ed_active_editor->suspend();
-    }
+        if(ed_active_editor)
+        {
+            ed_active_editor->suspend();
+        }
 
-    ed_active_editor = editor;
-    ed_active_editor->resume();
+        ed_active_editor = editor;
+        ed_active_editor->resume();
+    }
 }
 
 void ed_UpdateEditor()
@@ -206,8 +222,10 @@ void ed_UpdateEditor()
         {
             if(igMenuItem_Bool("New", NULL, 0, 1))
             {
-//                ed_ResetLevelEditor();
-                ed_active_editor->explorer_new();
+                if(ed_active_editor->explorer_new)
+                {
+                    ed_active_editor->explorer_new();
+                }
             }
 
             if(igMenuItem_Bool("Save", NULL, 0, 1))
@@ -217,14 +235,20 @@ void ed_UpdateEditor()
 
             if(igMenuItem_Bool("Save as...", NULL, 0, 1))
             {
-                ed_SetExplorerSaveCallback(ed_active_editor->explorer_save);
-                ed_OpenExplorer(ed_explorer_state.current_path, ED_EDITOR_EXPLORER_MODE_SAVE);
+                if(ed_active_editor->explorer_save)
+                {
+                    ed_SetExplorerSaveCallback(ed_active_editor->explorer_save);
+                    ed_OpenExplorer(ed_explorer_state.current_path, ED_EDITOR_EXPLORER_MODE_SAVE);
+                }
             }
 
             if(igMenuItem_Bool("Load", NULL, 0, 1))
             {
-                ed_SetExplorerLoadCallback(ed_active_editor->explorer_load);
-                ed_OpenExplorer(ed_explorer_state.current_path, ED_EDITOR_EXPLORER_MODE_OPEN);
+                if(ed_active_editor->explorer_load)
+                {
+                    ed_SetExplorerLoadCallback(ed_active_editor->explorer_load);
+                    ed_OpenExplorer(ed_explorer_state.current_path, ED_EDITOR_EXPLORER_MODE_OPEN);
+                }
             }
 
             if(igBeginMenu("Recent", 1))
@@ -235,6 +259,21 @@ void ed_UpdateEditor()
             if(igMenuItem_Bool("Exit", NULL, 0, 1))
             {
                 g_SetGameState(G_GAME_STATE_QUIT);
+            }
+
+            igEndMenu();
+        }
+
+        if(igBeginMenu("Editors", 1))
+        {
+            if(igMenuItem_Bool("Level", NULL, 0, 1))
+            {
+                ed_SwitchToEditor(ed_editors + ED_EDITOR_LEVEL);
+            }
+
+            if(igMenuItem_Bool("Entity", NULL, 0, 1))
+            {
+                ed_SwitchToEditor(ed_editors + ED_EDITOR_ENTITY);
             }
 
             igEndMenu();

@@ -147,7 +147,7 @@ void ed_Init()
         .update = ed_LevelEditorUpdate,
         .suspend = ed_LevelEditorSuspend,
         .resume = ed_LevelEditorResume,
-        .explorer_load = ed_LevelEditorLoadLevel,
+        .explorer_load = ed_LevelEditorLoadFile,
         .explorer_save = ed_LevelEditorSaveLevel,
         .explorer_new = ed_LevelEditorReset
     };

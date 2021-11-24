@@ -105,7 +105,7 @@ void ed_DeserializeLevel(void *level_buffer, size_t buffer_size);
 
 void ed_LevelEditorSaveLevel(char *path, char *file);
 
-void ed_LevelEditorLoadLevel(char *path, char *file);
+void ed_LevelEditorLoadFile(char *path, char *file);
 
 void ed_SaveGameLevelSnapshot();
 

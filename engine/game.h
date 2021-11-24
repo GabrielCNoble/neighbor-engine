@@ -88,9 +88,11 @@ void g_MainMenu();
 
 void g_SetBasePath(char *path);
 
-struct g_projectile_t *g_SpawnProjectile(vec3_t *position, vec3_t *velocity, vec3_t *color, float radius, uint32_t life);
+void g_ResourcePath(char *path, char *out_path, uint32_t out_size);
 
-void g_DestroyProjectile(struct g_projectile_t *projectile);
+//struct g_projectile_t *g_SpawnProjectile(vec3_t *position, vec3_t *velocity, vec3_t *color, float radius, uint32_t life);
+
+//void g_DestroyProjectile(struct g_projectile_t *projectile);
 
 //void g_PlayAnimation(struct g_entity_t *entity, struct a_animation_t *animation, char *player_name);
 

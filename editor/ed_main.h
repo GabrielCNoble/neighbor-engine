@@ -8,6 +8,7 @@
 #include "ed_defs.h"
 #include "ed_brush.h"
 #include "ed_pick.h"
+#include "ed_level.h"
 
 void ed_Init();
 

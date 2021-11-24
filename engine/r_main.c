@@ -121,7 +121,7 @@ uint32_t r_main_color_attachment;
 uint32_t r_main_depth_attachment;
 uint32_t r_z_prepass_framebuffer;
 
-extern char g_base_path[];
+//extern char g_base_path[];
 
 extern struct r_renderer_state_t r_renderer_state;
 //extern struct r_renderer_stats_t r_renderer_stats;
@@ -823,7 +823,9 @@ struct r_texture_t *r_LoadTexture(char *file_name, char *name)
 {
     struct r_texture_t *texture = NULL;
     char full_path[PATH_MAX];
-    ds_path_append_end(g_base_path, file_name, full_path, PATH_MAX);
+
+    g_ResourcePath(file_name, full_path, PATH_MAX);
+
     if(file_exists(full_path))
     {
         int32_t width;
@@ -832,6 +834,8 @@ struct r_texture_t *r_LoadTexture(char *file_name, char *name)
         unsigned char *pixels = stbi_load(full_path, &width, &height, &channels, STBI_rgb_alpha);
         texture = r_CreateTexture(name, width, height, GL_RGBA8, pixels);
         mem_Free(pixels);
+
+        printf("r_LoadTexture: texture %s loaded\n", full_path);
     }
 
     return texture;
@@ -904,21 +908,38 @@ struct r_texture_t *r_CreateTexture(char *name, uint32_t width, uint32_t height,
     return texture;
 }
 
-struct r_texture_t *r_GetTexture(char *name)
+struct r_texture_t *r_GetTexture(uint32_t index)
+{
+    struct r_texture_t *texture = NULL;
+
+    texture = ds_slist_get_element(&r_textures, index);
+
+    if(texture && texture->index == 0xffffffff)
+    {
+        texture = NULL;
+    }
+
+    return texture;
+}
+
+struct r_texture_t *r_FindTexture(char *name)
 {
     for(uint32_t texture_index = 0; texture_index < r_textures.cursor; texture_index++)
     {
-        struct r_texture_t *texture = ds_slist_get_element(&r_textures, texture_index);
-        if(texture->index != 0xffffffff)
+        struct r_texture_t *texture = r_GetTexture(texture_index);
+
+        if(texture && !strcmp(texture->name, name))
         {
-            if(!strcmp(texture->name, name))
-            {
-                return texture;
-            }
+            return texture;
         }
     }
 
     return NULL;
+}
+
+void r_DestroyTexture(struct r_texture_t *texture)
+{
+
 }
 
 /*
@@ -980,6 +1001,11 @@ struct r_material_t *r_GetMaterial(char *name)
 struct r_material_t *r_GetDefaultMaterial()
 {
     return r_default_material;
+}
+
+void r_DestroyMaterial(struct r_material_t *material)
+{
+
 }
 
 void r_BindMaterial(struct r_material_t *material)
@@ -1060,12 +1086,14 @@ struct ds_chunk_t *r_GetIndicesChunk(struct ds_chunk_h chunk)
     return ds_get_chunk_pointer(&r_index_heap, chunk);
 }
 
-struct r_model_t *r_LoadModel(char *file_name)
+struct r_model_t *r_LoadModel(char *file_name, char *name)
 {
     struct r_model_t *model = NULL;
     char full_path[PATH_MAX];
 
-    ds_path_append_end(g_base_path, file_name, full_path, PATH_MAX);
+//    ds_path_append_end(g_base_path, file_name, full_path, PATH_MAX);
+
+    g_ResourcePath(file_name, full_path, PATH_MAX);
 
     if(file_exists(full_path))
     {
@@ -1176,15 +1204,35 @@ struct r_model_t *r_LoadModel(char *file_name)
             skeleton_data.weight_range_count = weight_range_count;
             skeleton_data.weight_ranges = weight_ranges;
 
-            model = r_CreateModel(&geometry_data, &skeleton_data, file_name);
+            model = r_CreateModel(&geometry_data, &skeleton_data, name);
         }
         else
         {
-            model = r_CreateModel(&geometry_data, NULL, file_name);
+            model = r_CreateModel(&geometry_data, NULL, name);
         }
 
         mem_Free(batches);
         mem_Free(file_buffer);
+
+        printf("r_LoadModel: model %s (%s) loaded\n", full_path, name);
+    }
+    else
+    {
+        printf("r_LoadModel: couldn't load model %s (%s)\n", full_path, name);
+    }
+
+    return model;
+}
+
+struct r_model_t *r_GetModel(uint32_t index)
+{
+    struct r_model_t *model = NULL;
+
+    model = ds_slist_get_element(&r_models, index);
+
+    if(model && model->index == 0xffffffff)
+    {
+        model = NULL;
     }
 
     return model;
@@ -1204,7 +1252,10 @@ struct r_model_t *r_CreateModel(struct r_model_geometry_t *geometry, struct r_mo
     model->batches = ds_buffer_create(sizeof(struct r_batch_t), 0);
     model->index_chunk = DS_INVALID_CHUNK_HANDLE;
     model->vert_chunk = DS_INVALID_CHUNK_HANDLE;
-    model->name = strdup(name);
+
+    size_t len = strlen(name) + 1;
+    model->name = mem_Calloc(len, 1);
+    strcpy(model->name, name);
 
     r_UpdateModelGeometry(model, geometry);
 
@@ -1226,6 +1277,21 @@ struct r_model_t *r_CreateModel(struct r_model_geometry_t *geometry, struct r_mo
     model->max = geometry->max;
 
     return model;
+}
+
+struct r_model_t *r_FindModel(char *name)
+{
+    for(uint32_t model_index = 0; model_index < r_models.cursor; model_index++)
+    {
+        struct r_model_t *model = r_GetModel(model_index);
+
+        if(model && !strcmp(model->name, name))
+        {
+            return model;
+        }
+    }
+
+    return NULL;
 }
 
 void r_UpdateModelGeometry(struct r_model_t *model, struct r_model_geometry_t *geometry)
@@ -1779,18 +1845,21 @@ struct r_shader_t *r_LoadShader(char *vertex_file_name, char *fragment_file_name
     char vertex_full_path[PATH_MAX];
     char fragment_full_path[PATH_MAX];
 
-    ds_path_append_end(g_base_path, vertex_file_name, vertex_full_path, PATH_MAX);
-    ds_path_append_end(g_base_path, fragment_file_name, fragment_full_path, PATH_MAX);
+//    ds_path_append_end(g_base_path, vertex_file_name, vertex_full_path, PATH_MAX);
+//    ds_path_append_end(g_base_path, fragment_file_name, fragment_full_path, PATH_MAX);
+
+    g_ResourcePath(vertex_file_name, vertex_full_path, PATH_MAX);
+    g_ResourcePath(fragment_file_name, fragment_full_path, PATH_MAX);
 
     if(!file_exists(vertex_full_path))
     {
-        printf("couldn't load vertex shader %s\n", vertex_full_path);
+        printf("r_LoadShader: couldn't load vertex shader %s\n", vertex_full_path);
         return NULL;
     }
 
     if(!file_exists(fragment_full_path))
     {
-        printf("couldn't load fragment shader %s\n", fragment_full_path);
+        printf("r_LoadShader: couldn't load fragment shader %s\n", fragment_full_path);
         return NULL;
     }
 
@@ -1803,7 +1872,7 @@ struct r_shader_t *r_LoadShader(char *vertex_file_name, char *fragment_file_name
 
     if(!preprocessed_shader_source)
     {
-        printf("preprocessor error: %s\n", include_error);
+        printf("r_LoadShader: preprocessor error: %s\n", include_error);
         mem_Free(shader_source);
         return NULL;
     }
@@ -1820,7 +1889,7 @@ struct r_shader_t *r_LoadShader(char *vertex_file_name, char *fragment_file_name
         glGetShaderiv(vertex_shader, GL_INFO_LOG_LENGTH, &info_log_length);
         info_log = mem_Calloc(1, info_log_length);
         glGetShaderInfoLog(vertex_shader, info_log_length, NULL, info_log);
-        printf("vertex shader compilation for shader %s failed!\n", vertex_full_path);
+        printf("r_LoadShader: vertex shader compilation for shader %s failed!\n", vertex_full_path);
         printf("info log:\n %s\n", info_log);
         mem_Free(info_log);
         glDeleteShader(vertex_shader);
@@ -1834,7 +1903,7 @@ struct r_shader_t *r_LoadShader(char *vertex_file_name, char *fragment_file_name
 
     if(!preprocessed_shader_source)
     {
-        printf("preprocessor error: %s\n", include_error);
+        printf("r_LoadShader: preprocessor error: %s\n", include_error);
         glDeleteShader(vertex_shader);
         mem_Free(shader_source);
     }
@@ -1851,7 +1920,7 @@ struct r_shader_t *r_LoadShader(char *vertex_file_name, char *fragment_file_name
         glGetShaderiv(fragment_shader, GL_INFO_LOG_LENGTH, &info_log_length);
         info_log = mem_Calloc(1, info_log_length);
         glGetShaderInfoLog(fragment_shader, info_log_length, NULL, info_log);
-        printf("fragment shader compilation for shader %s failed!\n", fragment_full_path);
+        printf("r_LoadShader: fragment shader compilation for shader %s failed!\n", fragment_full_path);
         printf("info log:\n %s\n", info_log);
         mem_Free(info_log);
         glDeleteShader(vertex_shader);
@@ -1872,7 +1941,7 @@ struct r_shader_t *r_LoadShader(char *vertex_file_name, char *fragment_file_name
         glGetProgramiv(shader_program, GL_INFO_LOG_LENGTH, &info_log_length);
         info_log = mem_Calloc(1, info_log_length);
         glGetProgramInfoLog(shader_program, info_log_length, NULL, info_log);
-        printf("program linking failed for shaders %s and %s!\n", vertex_full_path, fragment_full_path);
+        printf("r_LoadShader: program linking failed for shaders %s and %s!\n", vertex_full_path, fragment_full_path);
         printf("info log:\n %s\n", info_log);
         mem_Free(info_log);
         glDeleteProgram(shader_program);
@@ -1945,6 +2014,8 @@ struct r_shader_t *r_LoadShader(char *vertex_file_name, char *fragment_file_name
         shader->attribs |= R_ATTRIB_COLOR;
         glBindAttribLocation(shader_program, R_COLOR_LOCATION, "r_color");
     }
+
+    printf("r_LoadShader: shaders %s and %s loaded\n", vertex_full_path, fragment_full_path);
 
     return shader;
 }

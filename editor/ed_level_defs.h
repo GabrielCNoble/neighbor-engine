@@ -105,7 +105,26 @@ struct ed_level_state_t
     {
         char folder[PATH_MAX];
         char level_name[PATH_MAX];
+
     } project;
+};
+
+enum ED_LEVEL_RESOURCE_TYPES
+{
+    ED_LEVEL_RESOURCE_TYPE_TEXTURE = 0,
+    ED_LEVEL_RESOURCE_TYPE_MODEL,
+    ED_LEVEL_RESOURCE_TYPE_ENT_DEF,
+    ED_LEVEL_RESOURCE_TYPE_SOUND,
+    ED_LEVEL_RESOURCE_TYPE_MATERIAL,
+    ED_LEVEL_RESOURCE_TYPE_LAST,
+};
+
+struct ed_level_resource_t
+{
+    uint32_t type;
+    uint32_t index;
+    void *resource;
+    char *src_path;
 };
 
 #define ED_LEVEL_SECTION_MAGIC0 0x4749454e

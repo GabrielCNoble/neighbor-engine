@@ -197,6 +197,9 @@ size_t ds_path_append_ext(char *path, char *ext, char *out, size_t out_size);
 */
 size_t ds_path_format_path(char *path, char *out, size_t out_size);
 
+
+int ds_path_is_absolute(char *path);
+
 #ifdef __cplusplus
 }
 #endif
@@ -455,6 +458,31 @@ size_t ds_path_format_path(char *path, char *out, size_t out_size)
 
     out[0] = '\0';
     strncat(out, formatted_path, out_size);
+
+    return 0;
+}
+
+int ds_path_is_absolute(char *path)
+{
+    char formatted_path[PATH_MAX];
+    ds_path_format_path(path, formatted_path, PATH_MAX);
+    size_t len = strlen(formatted_path) + 1;
+
+    size_t index;
+    for(index = 0; index < len; index++)
+    {
+        if(formatted_path[index] == ':')
+        {
+            index++;
+
+            if(formatted_path[index] == '/' || formatted_path[index] == '\0')
+            {
+                return 1;
+            }
+
+            break;
+        }
+    }
 
     return 0;
 }

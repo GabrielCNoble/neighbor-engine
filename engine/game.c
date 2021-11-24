@@ -2,6 +2,7 @@
 #include "dstuff/ds_mem.h"
 #include "dstuff/ds_file.h"
 #include "dstuff/ds_vector.h"
+#include "dstuff/ds_path.h"
 #include "stb/stb_image.h"
 #include "game.h"
 #include "input.h"
@@ -169,7 +170,7 @@ void g_Init(uint32_t editor_active)
         ed_Init();
     }
 
-    g_cube_model = r_LoadModel("models/Cube.mof");
+    g_cube_model = r_LoadModel("models/Cube.mof", "cube");
     struct e_ent_def_t *floor_ent_def = e_AllocEntDef(E_ENT_DEF_TYPE_ROOT);
     struct p_shape_def_t *floor_shape_def = p_AllocShapeDef();
     mat3_t orientation = mat3_t_c_id();
@@ -756,27 +757,37 @@ void g_SetBasePath(char *path)
     printf("base path set to %s\n", g_base_path);
 }
 
-struct g_projectile_t *g_SpawnProjectile(vec3_t *position, vec3_t *velocity, vec3_t *color, float radius, uint32_t life)
+void g_ResourcePath(char *path, char *out_path, uint32_t out_size)
 {
-    uint32_t index;
-    struct g_projectile_t *projectile;
+    ds_path_format_path(path, out_path, out_size);
 
-    index = ds_list_add_element(&g_projectiles, NULL);
-    projectile = ds_list_get_element(&g_projectiles, index);
-
-    projectile->position = *position;
-    projectile->velocity = *velocity;
-    projectile->life = life;
-    projectile->light = r_CreateLight(R_LIGHT_TYPE_POINT, position, color, radius, 20.0);
-    projectile->bouces = 0;
-
-    return projectile;
+    if(!ds_path_is_absolute(out_path))
+    {
+        ds_path_append_end(g_base_path, out_path, out_path, out_size);
+    }
 }
 
-void g_DestroyProjectile(struct g_projectile_t *projectile)
-{
-
-}
+//struct g_projectile_t *g_SpawnProjectile(vec3_t *position, vec3_t *velocity, vec3_t *color, float radius, uint32_t life)
+//{
+//    uint32_t index;
+//    struct g_projectile_t *projectile;
+//
+//    index = ds_list_add_element(&g_projectiles, NULL);
+//    projectile = ds_list_get_element(&g_projectiles, index);
+//
+//    projectile->position = *position;
+//    projectile->velocity = *velocity;
+//    projectile->life = life;
+//    projectile->light = r_CreateLight(R_LIGHT_TYPE_POINT, position, color, radius, 20.0);
+//    projectile->bouces = 0;
+//
+//    return projectile;
+//}
+//
+//void g_DestroyProjectile(struct g_projectile_t *projectile)
+//{
+//
+//}
 
 //void g_PlayAnimation(struct g_entity_t *entity, struct a_animation_t *animation, char *player_name)
 //{

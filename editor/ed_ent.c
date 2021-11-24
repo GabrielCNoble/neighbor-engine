@@ -4,11 +4,22 @@
 #include "../lib/dstuff/ds_matrix.h"
 #include "../lib/dstuff/ds_mem.h"
 #include "../engine/r_draw.h"
+#include "../engine/input.h"
+#include "ed_level.h"
 #include <stddef.h>
+#include <math.h>
+
+struct ed_entity_state_t ed_entity_state;
+extern mat4_t r_camera_matrix;
 
 void ed_EntityEditorInit(struct ed_editor_t *editor)
 {
     editor->next_state = ed_EntityEditorIdle;
+
+    ed_entity_state.camera_pitch = -0.1;
+    ed_entity_state.camera_yaw = 0.2;
+    ed_entity_state.camera_zoom = 15.0;
+    ed_entity_state.camera_offset = vec3_t_c(0.0, 0.0, 0.0);
 }
 
 void ed_EntityEditorShutdown()
@@ -28,7 +39,12 @@ void ed_EntityEditorResume()
 
 void ed_EntityEditorUpdate()
 {
-
+    r_SetViewPitchYaw(ed_entity_state.camera_pitch, ed_entity_state.camera_yaw);
+    vec3_t forward_vec = r_camera_matrix.rows[2].xyz;
+    vec3_t_mul(&forward_vec, &forward_vec, ed_entity_state.camera_zoom);
+    vec3_t_add(&forward_vec, &forward_vec, &ed_entity_state.camera_offset);
+    r_SetViewPos(&forward_vec);
+    ed_w_DrawGrid();
 }
 
 void ed_EntityEditorReset()
@@ -38,8 +54,62 @@ void ed_EntityEditorReset()
 
 void ed_EntityEditorIdle(uint32_t just_changed)
 {
-
+    if(in_GetMouseButtonState(SDL_BUTTON_RIGHT) & IN_KEY_STATE_PRESSED)
+    {
+        ed_SetNextState(ed_EntityEditorFlyCamera);
+    }
 }
+
+void ed_EntityEditorFlyCamera(uint32_t just_changed)
+{
+    if(!(in_GetMouseButtonState(SDL_BUTTON_RIGHT) & IN_KEY_STATE_PRESSED))
+    {
+        in_SetMouseWarp(0);
+        ed_SetNextState(ed_EntityEditorIdle);
+    }
+    else
+    {
+        in_SetMouseWarp(1);
+        float dx;
+        float dy;
+        in_GetMouseDelta(&dx, &dy);
+
+        if(in_GetKeyState(SDL_SCANCODE_LCTRL) & IN_KEY_STATE_PRESSED)
+        {
+            if(ed_entity_state.camera_zoom)
+            {
+                ed_entity_state.camera_zoom -= dy * ed_entity_state.camera_zoom;
+            }
+            else
+            {
+                ed_entity_state.camera_zoom -= dy;
+            }
+
+            if(ed_entity_state.camera_zoom < 0.05)
+            {
+                ed_entity_state.camera_zoom = 0.05;
+            }
+        }
+        else if(in_GetKeyState(SDL_SCANCODE_LSHIFT) & IN_KEY_STATE_PRESSED)
+        {
+            float zoom = ed_entity_state.camera_zoom;
+            vec3_t_fmadd(&ed_entity_state.camera_offset, &ed_entity_state.camera_offset, &r_camera_matrix.rows[0].xyz, -dx * zoom);
+            vec3_t_fmadd(&ed_entity_state.camera_offset, &ed_entity_state.camera_offset, &r_camera_matrix.rows[1].xyz, -dy * zoom);
+        }
+        else
+        {
+            ed_entity_state.camera_yaw -= dx;
+            ed_entity_state.camera_pitch += dy;
+
+            ed_entity_state.camera_pitch = fminf(fmaxf(ed_entity_state.camera_pitch, -0.5), 0.5);
+        }
+    }
+}
+
+
+
+
+
 
 uint32_t ed_EntDefRecordCount(struct e_ent_def_t *ent_def)
 {

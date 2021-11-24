@@ -132,9 +132,9 @@ void ed_LevelEditorInit(struct ed_editor_t *editor)
     ed_center_grid_shader = r_LoadShader("shaders/ed_grid.vert", "shaders/ed_grid.frag");
     ed_picking_shader = r_LoadShader("shaders/ed_pick.vert", "shaders/ed_pick.frag");
     ed_outline_shader = r_LoadShader("shaders/ed_outline.vert", "shaders/ed_outline.frag");
-    ed_translation_widget_model = r_LoadModel("models/twidget.mof");
-    ed_rotation_widget_model = r_LoadModel("models/rwidget.mof");
-    ed_ball_widget_model = r_LoadModel("models/bwidget.mof");
+    ed_translation_widget_model = r_LoadModel("models/twidget.mof", "twidget");
+    ed_rotation_widget_model = r_LoadModel("models/rwidget.mof", "rwidget");
+    ed_ball_widget_model = r_LoadModel("models/bwidget.mof", "bwidget");
 
     mat4_t_identity(&ed_level_state.manipulator.transform);
     ed_level_state.manipulator.linear_snap = 0.25;
@@ -2580,33 +2580,56 @@ void ed_LevelEditorSaveLevel(char *path, char *file)
     fclose(fp);
 }
 
-void ed_LevelEditorLoadLevel(char *path, char *file)
+void ed_LevelEditorLoadFile(char *path, char *file)
 {
     void *buffer;
+    void *resource = NULL;
+    uint32_t resource_type = ED_LEVEL_RESOURCE_TYPE_LAST;
     size_t buffer_size;
     char file_name[PATH_MAX];
 
     ds_path_append_end(path, file, file_name, PATH_MAX);
-    FILE *fp = fopen(file_name, "rb");
 
-    if(!fp)
+    if(strstr(file, ".mof"))
     {
-        printf("couldn't find level file %s\n", file_name);
-        return;
+        if(!r_FindModel(file))
+        {
+            r_LoadModel(file_name, file);
+        }
     }
+    else if(strstr(file, ".ent"))
+    {
+        e_LoadEntDef(file_name);
+    }
+    else if(strstr(file, ".png") || strstr(file, ".jpg") ||
+            strstr(file, ".jpeg") || strstr(file, ".tga"))
+    {
+        if(!r_FindTexture(file))
+        {
+            r_LoadTexture(file_name, file);
+        }
+    }
+    else
+    {
+        FILE *fp = fopen(file_name, "rb");
 
-    ed_LevelEditorReset();
+        if(!fp)
+        {
+            printf("couldn't find level file %s\n", file_name);
+            return;
+        }
 
-//    ds_path_drop_ext(file, ed_level_state.project.level_name, PATH_MAX);
-    strcpy(ed_level_state.project.level_name, file);
-    ds_path_drop_end(path, ed_level_state.project.folder, PATH_MAX);
-    g_SetBasePath(ed_level_state.project.folder);
+        ed_LevelEditorReset();
 
-//    printf("loaded level %s, at %s\n", ed_level_state.project.level_name, ed_level_state.project.folder);
+        strcpy(ed_level_state.project.level_name, file);
+        ds_path_drop_end(path, ed_level_state.project.folder, PATH_MAX);
+        g_SetBasePath(ed_level_state.project.folder);
 
-    read_file(fp, &buffer, &buffer_size);
-    ed_DeserializeLevel(buffer, buffer_size);
-    mem_Free(buffer);
+        read_file(fp, &buffer, &buffer_size);
+        fclose(fp);
+        ed_DeserializeLevel(buffer, buffer_size);
+        mem_Free(buffer);
+    }
 }
 
 void ed_SaveGameLevelSnapshot()

@@ -30,9 +30,11 @@ struct r_texture_t *r_LoadTexture(char *file_name, char *name);
 
 struct r_texture_t *r_CreateTexture(char *name, uint32_t width, uint32_t height, uint32_t internal_format, void *data);
 
-struct r_texture_t *r_GetTexture(char *name);
+struct r_texture_t *r_GetTexture(uint32_t index);
 
-void r_FreeTexture(struct r_texture_t *texture);
+struct r_texture_t *r_FindTexture(char *name);
+
+void r_DestroyTexture(struct r_texture_t *texture);
 
 /*
 ============================================================================
@@ -45,6 +47,8 @@ struct r_material_t *r_CreateMaterial(char *name, struct r_texture_t *diffuse_te
 struct r_material_t *r_GetMaterial(char *name);
 
 struct r_material_t *r_GetDefaultMaterial();
+
+void r_DestroyMaterial(struct r_material_t *material);
 
 void r_BindMaterial(struct r_material_t *material);
 
@@ -70,9 +74,13 @@ void r_FillIndices(struct ds_chunk_h chunk, uint32_t *indices, uint32_t count, u
 
 struct ds_chunk_t *r_GetIndicesChunk(struct ds_chunk_h chunk);
 
-struct r_model_t *r_LoadModel(char *file_name);
+struct r_model_t *r_LoadModel(char *file_name, char *name);
+
+struct r_model_t *r_GetModel(uint32_t index);
 
 struct r_model_t *r_CreateModel(struct r_model_geometry_t *geometry, struct r_model_skeleton_t *skeleton, char *name);
+
+struct r_model_t *r_FindModel(char *name);
 
 void r_UpdateModelGeometry(struct r_model_t *model, struct r_model_geometry_t *geometry);
 

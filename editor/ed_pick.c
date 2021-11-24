@@ -15,8 +15,44 @@ extern int32_t r_width;
 extern int32_t r_height;
 extern uint32_t r_vertex_buffer;
 extern uint32_t r_index_buffer;
-extern uint32_t ed_picking_framebuffer;
+uint32_t ed_picking_framebuffer;
+uint32_t ed_picking_depth_texture;
+uint32_t ed_picking_object_texture;
+//uint32_t ed_show_renderer_info_window;
 extern struct r_model_t *ed_light_pickable_model;
+
+void ed_PickingInit()
+{
+    glGenFramebuffers(1, &ed_picking_framebuffer);
+    glGenTextures(1, &ed_picking_object_texture);
+    glBindTexture(GL_TEXTURE_2D, ed_picking_object_texture);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RG32UI, r_width, r_height, 0, GL_RG_INTEGER, GL_INT, NULL);
+
+    glGenTextures(1, &ed_picking_depth_texture);
+    glBindTexture(GL_TEXTURE_2D, ed_picking_depth_texture);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32F, r_width, r_height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, ed_picking_framebuffer);
+    glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, ed_picking_object_texture, 0);
+    glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, ed_picking_depth_texture, 0);
+}
+
+void ed_PickingShutdown()
+{
+
+}
 
 void ed_BeginPicking()
 {

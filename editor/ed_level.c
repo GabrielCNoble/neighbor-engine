@@ -12,9 +12,10 @@
 #include "../engine/ent.h"
 #include "../engine/level.h"
 
-extern struct ed_context_t ed_contexts[];
+//extern struct ed_context_t ed_contexts[];
+extern struct ed_editor_t ed_editors[];
 struct ed_level_state_t ed_level_state;
-struct ed_context_t *ed_world_context;
+//struct ed_context_t *ed_world_context;
 extern mat4_t r_camera_matrix;
 extern mat4_t r_view_projection_matrix;
 
@@ -92,12 +93,14 @@ vec4_t ed_selection_outline_colors[][2] =
     [ED_PICKABLE_TYPE_FACE][1] = vec4_t_c(0.3, 0.4, 1.0, 1.0),
 };
 
-void ed_w_Init()
+void ed_LevelEditorInit(struct ed_editor_t *editor)
 {
-    ed_world_context = ed_contexts + ED_CONTEXT_WORLD;
-    ed_world_context->update = ed_w_Update;
-    ed_world_context->next_state = ed_w_Idle;
-    ed_world_context->context_data = &ed_level_state;
+//    ed_world_context = ed_contexts + ED_CONTEXT_WORLD;
+//    ed_world_context->update = ed_w_Update;
+//    ed_world_context->next_state = ed_w_Idle;
+//    ed_world_context->context_data = &ed_level_state;
+
+    editor->next_state = ed_w_Idle;
 
     ed_level_state.pickables.last_selected = NULL;
     ed_level_state.pickables.selections = ds_list_create(sizeof(struct ed_pickable_t *), 512);
@@ -323,7 +326,17 @@ void ed_w_Init()
 //    r_CreateSpotLight(&vec3_t_c(0.0, 2.2, 0.0), &vec3_t_c(1.0, 1.0, 1.0), &orientation, 30.0, 5.0, 0.2, 0.1);
 }
 
-void ed_w_Shutdown()
+void ed_LevelEditorShutdown()
+{
+
+}
+
+void ed_LevelEditorSuspend()
+{
+
+}
+
+void ed_LevelEditorResume()
 {
 
 }
@@ -1069,7 +1082,7 @@ void ed_w_UpdatePickableObjects()
     pickables->cursor = 0;
 }
 
-void ed_w_Update()
+void ed_LevelEditorUpdate()
 {
     r_SetViewPos(&ed_level_state.camera_pos);
     r_SetViewPitchYaw(ed_level_state.camera_pitch, ed_level_state.camera_yaw);
@@ -1418,9 +1431,9 @@ void ed_w_PointPixelCoords(int32_t *x, int32_t *y, vec3_t *point)
     *y = r_height * (1.0 - ((result.y / result.w) * 0.5 + 0.5));
 }
 
-void ed_w_Idle(struct ed_context_t *context, uint32_t just_changed)
+void ed_w_Idle(uint32_t just_changed)
 {
-    struct ed_level_state_t *context_data = context->context_data;
+//    struct ed_level_state_t *context_data = &ed_level_state;
     struct ds_list_t *selections = &ed_level_state.pickables.selections;
 
 //    igText("R Mouse down: fly camera");
@@ -1452,20 +1465,20 @@ void ed_w_Idle(struct ed_context_t *context, uint32_t just_changed)
     }
     else if(in_GetKeyState(SDL_SCANCODE_LALT) & IN_KEY_STATE_PRESSED)
     {
-        ed_SetNextContextState(context, ed_w_FlyCamera);
+        ed_SetNextState(ed_w_FlyCamera);
         in_SetMouseWarp(1);
     }
     else if(in_GetMouseButtonState(SDL_BUTTON_LEFT) & IN_KEY_STATE_JUST_PRESSED)
     {
-        ed_SetNextContextState(context, ed_w_LeftClick);
+        ed_SetNextState(ed_w_LeftClick);
     }
     else if(in_GetMouseButtonState(SDL_BUTTON_RIGHT) & IN_KEY_STATE_JUST_PRESSED)
     {
-        ed_SetNextContextState(context, ed_w_RightClick);
+        ed_SetNextState(ed_w_RightClick);
     }
     else if(in_GetKeyState(SDL_SCANCODE_LCTRL) & IN_KEY_STATE_PRESSED)
     {
-        ed_SetNextContextState(context, ed_w_BrushBox);
+        ed_SetNextState(ed_w_BrushBox);
     }
     else if(selections->cursor)
     {
@@ -1493,14 +1506,14 @@ void ed_w_Idle(struct ed_context_t *context, uint32_t just_changed)
     }
 }
 
-void ed_w_FlyCamera(struct ed_context_t *context, uint32_t just_changed)
+void ed_w_FlyCamera(uint32_t just_changed)
 {
     float dx;
     float dy;
 
     if(!(in_GetKeyState(SDL_SCANCODE_LALT) & IN_KEY_STATE_PRESSED))
     {
-        ed_SetNextContextState(context, ed_w_Idle);
+        ed_SetNextState(ed_w_Idle);
         in_SetMouseWarp(0);
         return;
     }
@@ -1543,33 +1556,33 @@ void ed_w_FlyCamera(struct ed_context_t *context, uint32_t just_changed)
     vec3_t_add(&ed_level_state.camera_pos, &ed_level_state.camera_pos, &vec3_t_c(translation.x, translation.y, translation.z));
 }
 
-void ed_w_RightClick(struct ed_context_t *context, uint32_t just_changed)
+void ed_w_RightClick(uint32_t just_changed)
 {
-    struct ed_level_state_t *context_data = (struct ed_level_state_t *)context->context_data;
+    struct ed_level_state_t *context_data = &ed_level_state;
 
     switch(context_data->pickables.secondary_click_function)
     {
         case ED_LEVEL_SECONDARY_CLICK_FUNC_BRUSH:
             context_data->pickables.ignore_types = ED_PICKABLE_OBJECT_MASK;
-            ed_w_PickObjectOrWidget(context, just_changed);
+            ed_w_PickObjectOrWidget(just_changed);
         break;
 
         case ED_LEVEL_SECONDARY_CLICK_FUNC_LIGHT:
-            ed_SetNextContextState(context, ed_w_PlaceLightAtCursor);
+            ed_SetNextState(ed_w_PlaceLightAtCursor);
         break;
     }
 }
 
-void ed_w_LeftClick(struct ed_context_t *context, uint32_t just_changed)
+void ed_w_LeftClick(uint32_t just_changed)
 {
-    struct ed_level_state_t *context_data = (struct ed_level_state_t *)context->context_data;
+    struct ed_level_state_t *context_data = &ed_level_state;
     context_data->pickables.ignore_types = ED_PICKABLE_BRUSH_PART_MASK;
-    ed_w_PickObjectOrWidget(context, just_changed);
+    ed_w_PickObjectOrWidget(just_changed);
 }
 
-void ed_w_BrushBox(struct ed_context_t *context, uint32_t just_changed)
+void ed_w_BrushBox(uint32_t just_changed)
 {
-    struct ed_level_state_t *context_data = (struct ed_level_state_t *)context->context_data;
+    struct ed_level_state_t *context_data = &ed_level_state;
     uint32_t right_button_down = in_GetMouseButtonState(SDL_BUTTON_RIGHT) & IN_KEY_STATE_PRESSED;
     uint32_t ctrl_down = in_GetKeyState(SDL_SCANCODE_LCTRL) & IN_KEY_STATE_PRESSED;
 
@@ -1582,7 +1595,7 @@ void ed_w_BrushBox(struct ed_context_t *context, uint32_t just_changed)
     {
         if(in_GetKeyState(SDL_SCANCODE_ESCAPE) & IN_KEY_STATE_PRESSED)
         {
-            ed_SetNextContextState(context, ed_w_Idle);
+            ed_SetNextState(ed_w_Idle);
         }
         else
         {
@@ -1831,7 +1844,7 @@ void ed_w_BrushBox(struct ed_context_t *context, uint32_t just_changed)
 
         if(!context_data->brush.drawing)
         {
-            ed_SetNextContextState(context, ed_w_Idle);
+            ed_SetNextState(ed_w_Idle);
         }
         else
         {
@@ -1847,14 +1860,14 @@ void ed_w_BrushBox(struct ed_context_t *context, uint32_t just_changed)
             vec3_t_fmadd(&position, &position, &context_data->brush.plane_orientation.rows[1], size.y * 0.5);
 
             ed_CreateBrushPickable(&position, &context_data->brush.plane_orientation, &size, NULL);
-            ed_SetNextContextState(context, ed_w_Idle);
+            ed_SetNextState(ed_w_Idle);
         }
     }
 }
 
-void ed_w_PickObjectOrWidget(struct ed_context_t *context, uint32_t just_changed)
+void ed_w_PickObjectOrWidget(uint32_t just_changed)
 {
-    struct ed_level_state_t *context_data = (struct ed_level_state_t *)context->context_data;
+    struct ed_level_state_t *context_data = &ed_level_state;
     int32_t mouse_x;
     int32_t mouse_y;
 
@@ -1875,7 +1888,7 @@ void ed_w_PickObjectOrWidget(struct ed_context_t *context, uint32_t just_changed
     {
         if(context_data->pickables.last_selected->type == ED_PICKABLE_TYPE_WIDGET)
         {
-            ed_SetNextContextState(context, ed_w_TransformSelections);
+            ed_SetNextState(ed_w_TransformSelections);
         }
         else
         {
@@ -1884,13 +1897,13 @@ void ed_w_PickObjectOrWidget(struct ed_context_t *context, uint32_t just_changed
     }
     else
     {
-        ed_SetNextContextState(context, ed_w_PickObject);
+        ed_SetNextState(ed_w_PickObject);
     }
 }
 
-void ed_w_PickObject(struct ed_context_t *context, uint32_t just_changed)
+void ed_w_PickObject(uint32_t just_changed)
 {
-    struct ed_level_state_t *context_data = (struct ed_level_state_t *)context->context_data;
+    struct ed_level_state_t *context_data = &ed_level_state;
     uint32_t button_state = in_GetMouseButtonState(SDL_BUTTON_LEFT) | in_GetMouseButtonState(SDL_BUTTON_RIGHT);
     int32_t mouse_x;
     int32_t mouse_y;
@@ -1940,24 +1953,24 @@ void ed_w_PickObject(struct ed_context_t *context, uint32_t just_changed)
 
         context_data->pickables.last_selected = NULL;
 
-        ed_SetNextContextState(context, ed_w_Idle);
+        ed_SetNextState(ed_w_Idle);
     }
 }
 
-void ed_w_PlaceLightAtCursor(struct ed_context_t *context, uint32_t just_changed)
+void ed_w_PlaceLightAtCursor(uint32_t just_changed)
 {
-    struct ed_level_state_t *context_data = (struct ed_level_state_t *)context->context_data;
+    struct ed_level_state_t *context_data = &ed_level_state;
 
     if(!(in_GetMouseButtonState(SDL_BUTTON_RIGHT) & IN_KEY_STATE_PRESSED))
     {
         ed_CreateLightPickable(&vec3_t_c(0.0, 0.0, 0.0), &vec3_t_c(1.0, 1.0, 1.0), 6.0, 10.0, NULL);
-        ed_SetNextContextState(context, ed_w_Idle);
+        ed_SetNextState(ed_w_Idle);
     }
 }
 
-void ed_w_TransformSelections(struct ed_context_t *context, uint32_t just_changed)
+void ed_w_TransformSelections(uint32_t just_changed)
 {
-    struct ed_level_state_t *context_data = (struct ed_level_state_t *)context->context_data;
+    struct ed_level_state_t *context_data = &ed_level_state;
     uint32_t mouse_state = in_GetMouseButtonState(SDL_BUTTON_LEFT);
 
     if(mouse_state & IN_KEY_STATE_PRESSED)
@@ -2105,7 +2118,7 @@ void ed_w_TransformSelections(struct ed_context_t *context, uint32_t just_change
     }
     else
     {
-        ed_SetNextContextState(context, ed_w_Idle);
+        ed_SetNextState(ed_w_Idle);
         context_data->pickables.last_selected = NULL;
     }
 }
@@ -2526,7 +2539,7 @@ void ed_DeserializeLevel(void *level_buffer, size_t buffer_size)
     }
 }
 
-void ed_SaveLevel(char *path, char *file)
+void ed_LevelEditorSaveLevel(char *path, char *file)
 {
     void *buffer;
     size_t buffer_size;
@@ -2543,7 +2556,7 @@ void ed_SaveLevel(char *path, char *file)
     fclose(fp);
 }
 
-void ed_LoadLevel(char *path, char *file)
+void ed_LevelEditorLoadLevel(char *path, char *file)
 {
     void *buffer;
     size_t buffer_size;
@@ -2558,7 +2571,7 @@ void ed_LoadLevel(char *path, char *file)
         return;
     }
 
-    ed_ResetLevelEditor();
+    ed_LevelEditorReset();
 
     read_file(fp, &buffer, &buffer_size);
     ed_DeserializeLevel(buffer, buffer_size);
@@ -2656,7 +2669,7 @@ void ed_LoadGameLevelSnapshot()
     mem_Free(ed_level_state.game_level_buffer);
 }
 
-void ed_ResetLevelEditor()
+void ed_LevelEditorReset()
 {
     ed_level_state.camera_pitch = ED_LEVEL_CAMERA_PITCH;
     ed_level_state.camera_yaw = ED_LEVEL_CAMERA_YAW;

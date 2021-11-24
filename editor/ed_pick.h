@@ -5,6 +5,9 @@
 #include "ed_brush_defs.h"
 #include "../engine/r_defs.h"
 
+void ed_PickingInit();
+
+void ed_PickingShutdown();
 
 void ed_BeginPicking();
 

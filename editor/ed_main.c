@@ -25,7 +25,7 @@
 //struct ds_slist_t ed_objects;
 
 struct ed_context_t *ed_active_context;
-struct ed_context_t ed_contexts[ED_CONTEXT_LAST];
+//struct ed_context_t ed_contexts[ED_CONTEXT_LAST];
 struct ed_editor_t ed_editors[ED_EDITOR_LAST];
 struct ed_editor_t *ed_active_editor;
 //uint32_t ed_grid_vert_count;
@@ -47,9 +47,9 @@ struct ds_slist_t ed_bsp_nodes;
 //float ed_camera_pitch;
 //float ed_camera_yaw;
 //vec3_t ed_camera_pos;
-uint32_t ed_picking_framebuffer;
-uint32_t ed_picking_depth_texture;
-uint32_t ed_picking_object_texture;
+//uint32_t ed_picking_framebuffer;
+//uint32_t ed_picking_depth_texture;
+//uint32_t ed_picking_object_texture;
 uint32_t ed_show_renderer_info_window;
 
 //struct r_model_t *ed_translation_widget_model;
@@ -130,39 +130,32 @@ void test_save_callback(char *path, char *file)
 
 void ed_Init()
 {
-    SDL_DisplayMode desktop_display_mode;
+//    SDL_DisplayMode desktop_display_mode;
 
 //    ed_editors = ds_slist_create(sizeof(struct ed_editor_t), 8);
 
-    SDL_GetDesktopDisplayMode(0, &desktop_display_mode);
+//    SDL_GetDesktopDisplayMode(0, &desktop_display_mode);
 
-    glGenFramebuffers(1, &ed_picking_framebuffer);
-    glGenTextures(1, &ed_picking_object_texture);
-    glBindTexture(GL_TEXTURE_2D, ed_picking_object_texture);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RG32UI, r_width, r_height, 0, GL_RG_INTEGER, GL_INT, NULL);
+    ed_PickingInit();
 
-    glGenTextures(1, &ed_picking_depth_texture);
-    glBindTexture(GL_TEXTURE_2D, ed_picking_depth_texture);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32F, r_width, r_height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+    ed_editors[ED_EDITOR_LEVEL] = (struct ed_editor_t ){
+        .init = ed_LevelEditorInit,
+        .shutdown = ed_LevelEditorShutdown,
+        .update = ed_LevelEditorUpdate,
+        .suspend = ed_LevelEditorSuspend,
+        .resume = ed_LevelEditorResume,
+        .explorer_load = ed_LevelEditorLoadLevel,
+        .explorer_save = ed_LevelEditorSaveLevel,
+        .explorer_new = ed_LevelEditorReset
+    };
 
-    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, ed_picking_framebuffer);
-    glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, ed_picking_object_texture, 0);
-    glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, ed_picking_depth_texture, 0);
+    ed_active_editor = ed_editors + ED_EDITOR_LEVEL;
 
-    ed_w_Init();
-    ed_active_context = ed_contexts + ED_CONTEXT_WORLD;
+    for(uint32_t editor_index = ED_EDITOR_LEVEL; editor_index < ED_EDITOR_LAST; editor_index++)
+    {
+        struct ed_editor_t *editor = ed_editors + editor_index;
+        editor->init(editor);
+    }
 
     ed_explorer_state.current_file[0] = '\0';
     ed_explorer_state.current_path[0] = '\0';
@@ -183,19 +176,10 @@ void ed_Init()
 
 void ed_Shutdown()
 {
-
-}
-
-struct ed_editor_t *ed_RegisterEditor(struct ed_editor_t *editor)
-{
-//    uint32_t index;
-//    struct ed_editor_t *new_editor;
-//
-//    index = ds_slist_add_element(&ed_editors, editor);
-//    new_editpr = ds_slist_get_element(&ed_editors, index);
-//    new_editor->index = index;
-//    new_editor->init();
-//    return new_editor;
+    for(uint32_t editor_index = ED_EDITOR_LEVEL; editor_index < ED_EDITOR_LAST; editor_index++)
+    {
+        ed_editors[editor_index].shutdown();
+    }
 }
 
 void ed_SwitchToEditor(struct ed_editor_t *editor)
@@ -211,19 +195,10 @@ void ed_SwitchToEditor(struct ed_editor_t *editor)
 
 void ed_UpdateEditor()
 {
-    for(uint32_t context_index = 0; context_index < ED_CONTEXT_LAST; context_index++)
-    {
-        struct ed_context_t *context = ed_contexts + context_index;
-
-        if(context == ed_active_context)
-        {
-            uint32_t just_changed = context->current_state != context->next_state;
-            context->current_state = context->next_state;
-            context->current_state(context, just_changed);
-        }
-
-        context->update();
-    }
+    uint32_t just_changed = ed_active_editor->current_state != ed_active_editor->next_state;
+    ed_active_editor->current_state = ed_active_editor->next_state;
+    ed_active_editor->current_state(just_changed);
+    ed_active_editor->update();
 
     if(igBeginMainMenuBar())
     {
@@ -231,7 +206,8 @@ void ed_UpdateEditor()
         {
             if(igMenuItem_Bool("New", NULL, 0, 1))
             {
-                ed_ResetLevelEditor();
+//                ed_ResetLevelEditor();
+                ed_active_editor->explorer_new();
             }
 
             if(igMenuItem_Bool("Save", NULL, 0, 1))
@@ -241,13 +217,13 @@ void ed_UpdateEditor()
 
             if(igMenuItem_Bool("Save as...", NULL, 0, 1))
             {
-                ed_SetExplorerSaveCallback(ed_SaveLevel);
+                ed_SetExplorerSaveCallback(ed_active_editor->explorer_save);
                 ed_OpenExplorer(ed_explorer_state.current_path, ED_EDITOR_EXPLORER_MODE_SAVE);
             }
 
             if(igMenuItem_Bool("Load", NULL, 0, 1))
             {
-                ed_SetExplorerLoadCallback(ed_LoadLevel);
+                ed_SetExplorerLoadCallback(ed_active_editor->explorer_load);
                 ed_OpenExplorer(ed_explorer_state.current_path, ED_EDITOR_EXPLORER_MODE_OPEN);
             }
 
@@ -297,9 +273,14 @@ void ed_UpdateEditor()
     ed_UpdateExplorer();
 }
 
-void ed_SetNextContextState(struct ed_context_t *context, void (*state_fn)(struct ed_context_t *context, uint32_t just_changed))
+//void ed_SetNextContextState(struct ed_context_t *context, void (*state_fn)(struct ed_context_t *context, uint32_t just_changed))
+//{
+//    context->next_state = state_fn;
+//}
+
+void ed_SetNextState(void (*state_fn)(uint32_t just_changed))
 {
-    context->next_state = state_fn;
+    ed_active_editor->next_state = state_fn;
 }
 
 /*

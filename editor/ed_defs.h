@@ -23,25 +23,29 @@ enum ED_CONTEXTS
 enum ED_EDITORS
 {
     ED_EDITOR_LEVEL,
-    ED_EDITOR_ENTITY,
+//    ED_EDITOR_ENTITY,
     ED_EDITOR_LAST
 };
 
-struct ed_context_t
-{
-    void (*update)();
-    void (*current_state)(struct ed_context_t *context, uint32_t just_changed);
-    void (*next_state)(struct ed_context_t *context, uint32_t just_changed);
-    void *context_data;
-};
+//struct ed_context_t
+//{
+//    void (*update)();
+//    void (*current_state)(struct ed_context_t *context, uint32_t just_changed);
+//    void (*next_state)(struct ed_context_t *context, uint32_t just_changed);
+//    void *context_data;
+//};
 
 struct ed_editor_t
 {
     uint32_t index;
-    void (*init)();
+    void (*init)(struct ed_editor_t *editor);
+    void (*shutdown)();
     void (*suspend)();
     void (*resume)();
     void (*update)();
+    void (*explorer_load)(char *path, char *file);
+    void (*explorer_save)(char *path, char *file);
+    void (*explorer_new)();
 
     void (*current_state)(uint32_t just_changed);
     void (*next_state)(uint32_t just_changed);

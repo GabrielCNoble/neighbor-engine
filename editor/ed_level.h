@@ -7,9 +7,13 @@
 
 
 
-void ed_w_Init();
+void ed_LevelEditorInit(struct ed_editor_t *editor);
 
-void ed_w_Shutdown();
+void ed_LevelEditorShutdown();
+
+void ed_LevelEditorSuspend();
+
+void ed_LevelEditorResume();
 
 void ed_w_ManipulatorWidgetSetupPickableDrawState(uint32_t pickable_index, struct ed_pickable_t *pickable);
 
@@ -49,7 +53,7 @@ void ed_w_UpdateManipulator();
 
 void ed_w_UpdatePickableObjects();
 
-void ed_w_Update();
+void ed_LevelEditorUpdate();
 
 /*
 =============================================================
@@ -75,37 +79,37 @@ uint32_t ed_w_IntersectPlaneFromCamera(float mouse_x, float mouse_y, vec3_t *pla
 
 void ed_w_PointPixelCoords(int32_t *x, int32_t *y, vec3_t *point);
 
-void ed_w_Idle(struct ed_context_t *context, uint32_t just_changed);
+void ed_w_Idle(uint32_t just_changed);
 
-void ed_w_FlyCamera(struct ed_context_t *context, uint32_t just_changed);
+void ed_w_FlyCamera(uint32_t just_changed);
 
-void ed_w_LeftClick(struct ed_context_t *context, uint32_t just_changed);
+void ed_w_LeftClick(uint32_t just_changed);
 
-void ed_w_RightClick(struct ed_context_t *context, uint32_t just_changed);
+void ed_w_RightClick(uint32_t just_changed);
 
-void ed_w_BrushBox(struct ed_context_t *context, uint32_t just_changed);
+void ed_w_BrushBox(uint32_t just_changed);
 
-void ed_w_PickObjectOrWidget(struct ed_context_t *context, uint32_t just_changed);
+void ed_w_PickObjectOrWidget(uint32_t just_changed);
 
-void ed_w_PickObject(struct ed_context_t *context, uint32_t just_changed);
+void ed_w_PickObject(uint32_t just_changed);
 
-void ed_w_PlaceLightAtCursor(struct ed_context_t *context, uint32_t just_changed);
+void ed_w_PlaceLightAtCursor(uint32_t just_changed);
 
-void ed_w_TransformSelections(struct ed_context_t *context, uint32_t just_changed);
+void ed_w_TransformSelections(uint32_t just_changed);
 
 void ed_SerializeLevel(void **level_buffer, size_t *buffer_size, uint32_t serialize_brushes);
 
 void ed_DeserializeLevel(void *level_buffer, size_t buffer_size);
 
-void ed_SaveLevel(char *path, char *file);
+void ed_LevelEditorSaveLevel(char *path, char *file);
 
-void ed_LoadLevel(char *path, char *file);
+void ed_LevelEditorLoadLevel(char *path, char *file);
 
 void ed_SaveGameLevelSnapshot();
 
 void ed_LoadGameLevelSnapshot();
 
-void ed_ResetLevelEditor();
+void ed_LevelEditorReset();
 
 void ed_BuildWorldData();
 

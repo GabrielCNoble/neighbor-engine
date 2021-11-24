@@ -47,14 +47,7 @@ void ds_dir_close_dir(struct ds_dir_t *dir);
 
 uint32_t ds_dir_next_entry(struct ds_dir_t *dir, struct ds_dir_entry_t *entry);
 
-// void ds_dir_GoUp(struct ds_dir_list_t *dir);
-
-// void ds_dir_GoDown(struct ds_dir_list_t *dir, char *name);
-
-// void ds_dir_EnumerateEntries(struct ds_dir_list_t *dir);
-
-// uint32_t ds_dir_IsDir(char *path);
-
+uint32_t ds_dir_make_dir(char *path);
 
 
 #ifdef DS_DIR_IMPLEMENTATION
@@ -127,6 +120,26 @@ uint32_t ds_dir_next_entry(struct ds_dir_t *dir, struct ds_dir_entry_t *entry)
 
             return 1;
         }
+    }
+
+    return 0;
+}
+
+uint32_t ds_dir_make_dir(char *path)
+{
+    struct ds_dir_t dir;
+    char formatted_path[PATH_MAX];
+    ds_path_format_path(path, formatted_path, PATH_MAX);
+
+    if(!ds_dir_open_dir(formatted_path, &dir))
+    {
+        #ifdef __GNUC__
+            mkdir(formatted_path);
+        #else
+            #error "Not implemented!"
+        #endif
+
+        return 1;
     }
 
     return 0;

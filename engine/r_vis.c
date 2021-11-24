@@ -182,28 +182,28 @@ void r_VisibleLights()
 
             float light_dist = vec3_t_length(&light_pos);
             float ratio = light->range / light_dist;
-            uint32_t shadow_resolution = R_SHADOW_BUCKET0_RES;
+            uint32_t shadow_resolution = R_SHADOW_BUCKET2_RES;
 
-            if(ratio >= 0.5)
-            {
-                shadow_resolution = R_SHADOW_BUCKET4_RES;
-            }
-            else if(ratio >= 0.25)
-            {
-                shadow_resolution = R_SHADOW_BUCKET3_RES;
-            }
-            else if(ratio >= 0.125)
-            {
-                shadow_resolution = R_SHADOW_BUCKET2_RES;
-            }
-            else if(ratio >= 0.0625)
-            {
-                shadow_resolution = R_SHADOW_BUCKET1_RES;
-            }
-            else
-            {
-                shadow_resolution = R_SHADOW_BUCKET0_RES;
-            }
+//            if(ratio >= 0.5)
+//            {
+//                shadow_resolution = R_SHADOW_BUCKET2_RES;
+//            }
+//            else if(ratio >= 0.25)
+//            {
+//                shadow_resolution = R_SHADOW_BUCKET2_RES;
+//            }
+//            else if(ratio >= 0.125)
+//            {
+//                shadow_resolution = R_SHADOW_BUCKET2_RES;
+//            }
+//            else if(ratio >= 0.0625)
+//            {
+//                shadow_resolution = R_SHADOW_BUCKET1_RES;
+//            }
+//            else
+//            {
+//                shadow_resolution = R_SHADOW_BUCKET0_RES;
+//            }
 
 
             light->min.x = (uint32_t)(R_CLUSTER_ROW_WIDTH * (extents[0].x * 0.5 + 0.5));

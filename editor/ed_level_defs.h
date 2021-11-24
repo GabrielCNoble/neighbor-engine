@@ -100,6 +100,12 @@ struct ed_level_state_t
 
     void *game_level_buffer;
     size_t game_level_buffer_size;
+
+    struct
+    {
+        char folder[PATH_MAX];
+        char level_name[PATH_MAX];
+    } project;
 };
 
 #define ED_LEVEL_SECTION_MAGIC0 0x4749454e

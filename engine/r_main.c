@@ -3,6 +3,7 @@
 #include "GL/glew.h"
 #include "stb/stb_image.h"
 #include "dstuff/ds_slist.h"
+#include "dstuff/ds_path.h"
 #include "dstuff/ds_file.h"
 #include "dstuff/ds_mem.h"
 #include "dstuff/ds_obj.h"
@@ -119,6 +120,8 @@ uint32_t r_main_framebuffer;
 uint32_t r_main_color_attachment;
 uint32_t r_main_depth_attachment;
 uint32_t r_z_prepass_framebuffer;
+
+extern char g_base_path[];
 
 extern struct r_renderer_state_t r_renderer_state;
 //extern struct r_renderer_stats_t r_renderer_stats;
@@ -819,12 +822,14 @@ void r_FreeVisItem(struct r_vis_item_t *item)
 struct r_texture_t *r_LoadTexture(char *file_name, char *name)
 {
     struct r_texture_t *texture = NULL;
-    if(file_exists(file_name))
+    char full_path[PATH_MAX];
+    ds_path_append_end(g_base_path, file_name, full_path, PATH_MAX);
+    if(file_exists(full_path))
     {
         int32_t width;
         int32_t height;
         int32_t channels;
-        unsigned char *pixels = stbi_load(file_name, &width, &height, &channels, STBI_rgb_alpha);
+        unsigned char *pixels = stbi_load(full_path, &width, &height, &channels, STBI_rgb_alpha);
         texture = r_CreateTexture(name, width, height, GL_RGBA8, pixels);
         mem_Free(pixels);
     }
@@ -1058,10 +1063,14 @@ struct ds_chunk_t *r_GetIndicesChunk(struct ds_chunk_h chunk)
 struct r_model_t *r_LoadModel(char *file_name)
 {
     struct r_model_t *model = NULL;
-    if(file_exists(file_name))
+    char full_path[PATH_MAX];
+
+    ds_path_append_end(g_base_path, file_name, full_path, PATH_MAX);
+
+    if(file_exists(full_path))
     {
         void *file_buffer;
-        FILE *file = fopen(file_name, "rb");
+        FILE *file = fopen(full_path, "rb");
         read_file(file, &file_buffer, NULL);
         fclose(file);
 
@@ -1767,21 +1776,26 @@ struct r_shader_t *r_LoadShader(char *vertex_file_name, char *fragment_file_name
     int32_t info_log_length;
     char *info_log;
     char include_error[256];
+    char vertex_full_path[PATH_MAX];
+    char fragment_full_path[PATH_MAX];
 
-    if(!file_exists(vertex_file_name))
+    ds_path_append_end(g_base_path, vertex_file_name, vertex_full_path, PATH_MAX);
+    ds_path_append_end(g_base_path, fragment_file_name, fragment_full_path, PATH_MAX);
+
+    if(!file_exists(vertex_full_path))
     {
-        printf("couldn't load vertex shader %s\n", vertex_file_name);
+        printf("couldn't load vertex shader %s\n", vertex_full_path);
         return NULL;
     }
 
-    if(!file_exists(fragment_file_name))
+    if(!file_exists(fragment_full_path))
     {
-        printf("couldn't load fragment shader %s\n", fragment_file_name);
+        printf("couldn't load fragment shader %s\n", fragment_full_path);
         return NULL;
     }
 
 
-    shader_file = fopen(vertex_file_name, "rb");
+    shader_file = fopen(vertex_full_path, "rb");
     read_file(shader_file, (void **)&shader_source, NULL);
     fclose(shader_file);
 
@@ -1806,14 +1820,14 @@ struct r_shader_t *r_LoadShader(char *vertex_file_name, char *fragment_file_name
         glGetShaderiv(vertex_shader, GL_INFO_LOG_LENGTH, &info_log_length);
         info_log = mem_Calloc(1, info_log_length);
         glGetShaderInfoLog(vertex_shader, info_log_length, NULL, info_log);
-        printf("vertex shader compilation for shader %s failed!\n", vertex_file_name);
+        printf("vertex shader compilation for shader %s failed!\n", vertex_full_path);
         printf("info log:\n %s\n", info_log);
         mem_Free(info_log);
         glDeleteShader(vertex_shader);
         return NULL;
     }
 
-    shader_file = fopen(fragment_file_name, "rb");
+    shader_file = fopen(fragment_full_path, "rb");
     read_file(shader_file, (void **)&shader_source, NULL);
     fclose(shader_file);
     preprocessed_shader_source = stb_include_string(shader_source, NULL, "shaders", NULL, include_error);
@@ -1837,7 +1851,7 @@ struct r_shader_t *r_LoadShader(char *vertex_file_name, char *fragment_file_name
         glGetShaderiv(fragment_shader, GL_INFO_LOG_LENGTH, &info_log_length);
         info_log = mem_Calloc(1, info_log_length);
         glGetShaderInfoLog(fragment_shader, info_log_length, NULL, info_log);
-        printf("fragment shader compilation for shader %s failed!\n", fragment_file_name);
+        printf("fragment shader compilation for shader %s failed!\n", fragment_full_path);
         printf("info log:\n %s\n", info_log);
         mem_Free(info_log);
         glDeleteShader(vertex_shader);
@@ -1858,7 +1872,7 @@ struct r_shader_t *r_LoadShader(char *vertex_file_name, char *fragment_file_name
         glGetProgramiv(shader_program, GL_INFO_LOG_LENGTH, &info_log_length);
         info_log = mem_Calloc(1, info_log_length);
         glGetProgramInfoLog(shader_program, info_log_length, NULL, info_log);
-        printf("program linking failed for shaders %s and %s!\n", vertex_file_name, fragment_file_name);
+        printf("program linking failed for shaders %s and %s!\n", vertex_full_path, fragment_full_path);
         printf("info log:\n %s\n", info_log);
         mem_Free(info_log);
         glDeleteProgram(shader_program);

@@ -37,6 +37,8 @@ vec3_t g_camera_pos = {.z = G_CAMERA_Z};
 float g_camera_pitch = G_CAMERA_PITCH;
 float g_camera_yaw = 0.0;
 
+char g_base_path[PATH_MAX] = "";
+
 
 struct r_model_t *g_player_model;
 struct r_model_t *g_floor_tile_model;
@@ -746,6 +748,12 @@ void g_MainMenu()
     {
 
     }
+}
+
+void g_SetBasePath(char *path)
+{
+    strcpy(g_base_path, path);
+    printf("base path set to %s\n", g_base_path);
 }
 
 struct g_projectile_t *g_SpawnProjectile(vec3_t *position, vec3_t *velocity, vec3_t *color, float radius, uint32_t life)

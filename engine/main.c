@@ -26,6 +26,8 @@ int main(int argc, char *argv[])
         }
     }
 
+    g_SetBasePath("");
+
     r_Init();
     p_Init();
     a_Init();

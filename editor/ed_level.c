@@ -2543,15 +2543,39 @@ void ed_LevelEditorSaveLevel(char *path, char *file)
 {
     void *buffer;
     size_t buffer_size;
-    char file_name[PATH_MAX];
+    char file_path[PATH_MAX];
+    char file_no_ext[PATH_MAX];
+
+    if(ed_level_state.project.folder[0] == '\0')
+    {
+        strcpy(ed_level_state.project.folder, path);
+        g_SetBasePath(ed_level_state.project.folder);
+
+        ds_path_append_end(path, "levels", file_path, PATH_MAX);
+        ds_dir_make_dir(file_path);
+        ds_path_append_end(path, "sounds", file_path, PATH_MAX);
+        ds_dir_make_dir(file_path);
+        ds_path_append_end(path, "entities", file_path, PATH_MAX);
+        ds_dir_make_dir(file_path);
+        ds_path_append_end(path, "textures", file_path, PATH_MAX);
+        ds_dir_make_dir(file_path);
+        ds_path_append_end(path, "models", file_path, PATH_MAX);
+        ds_dir_make_dir(file_path);
+        ds_path_append_end(path, "animations", file_path, PATH_MAX);
+        ds_dir_make_dir(file_path);
+    }
+
+    ds_path_drop_ext(file, file_no_ext, PATH_MAX);
+    strcpy(ed_level_state.project.level_name, file);
 
     ed_BuildWorldData();
     ed_SerializeLevel(&buffer, &buffer_size, 1);
     l_DestroyWorld();
-    ds_path_append_end(path, file, file_name, PATH_MAX);
-    ds_path_set_ext(file_name, "nlv", file_name, PATH_MAX);
+    ds_path_append_end(ed_level_state.project.folder, "levels", file_path, PATH_MAX);
+    ds_path_append_end(file_path, file, file_path, PATH_MAX);
+    ds_path_set_ext(file_path, "nlv", file_path, PATH_MAX);
 
-    FILE *fp = fopen(file_name, "wb");
+    FILE *fp = fopen(file_path, "wb");
     fwrite(buffer, buffer_size, 1, fp);
     fclose(fp);
 }
@@ -2572,6 +2596,13 @@ void ed_LevelEditorLoadLevel(char *path, char *file)
     }
 
     ed_LevelEditorReset();
+
+//    ds_path_drop_ext(file, ed_level_state.project.level_name, PATH_MAX);
+    strcpy(ed_level_state.project.level_name, file);
+    ds_path_drop_end(path, ed_level_state.project.folder, PATH_MAX);
+    g_SetBasePath(ed_level_state.project.folder);
+
+//    printf("loaded level %s, at %s\n", ed_level_state.project.level_name, ed_level_state.project.folder);
 
     read_file(fp, &buffer, &buffer_size);
     ed_DeserializeLevel(buffer, buffer_size);
@@ -2674,6 +2705,11 @@ void ed_LevelEditorReset()
     ed_level_state.camera_pitch = ED_LEVEL_CAMERA_PITCH;
     ed_level_state.camera_yaw = ED_LEVEL_CAMERA_YAW;
     ed_level_state.camera_pos = ED_LEVEL_CAMERA_POS;
+
+    ed_level_state.project.folder[0] = '\0';
+    ed_level_state.project.level_name[0] = '\0';
+
+    g_SetBasePath("");
 
     l_DestroyWorld();
 

@@ -13,15 +13,23 @@ void ed_Init();
 
 void ed_Shutdown();
 
+void ed_Quit();
+
 struct ed_editor_t *ed_RegisterEditor(struct ed_editor_t *editor);
 
 void ed_SwitchToEditor(struct ed_editor_t *editor);
 
 void ed_UpdateEditor();
 
-//void ed_SetNextContextState(struct ed_context_t *context, void (*state_fn)(struct ed_context_t *context, uint32_t just_changed));
-
 void ed_SetNextState(void (*state_fn)(uint32_t just_changed));
+
+/*
+=============================================================
+=============================================================
+=============================================================
+*/
+
+void ed_InitProjectFolder(char *path, char *folder_name);
 
 /*
 =============================================================
@@ -49,37 +57,9 @@ void ed_SetExplorerLoadCallback(void (*load_callback)(char *path, char *file));
 
 void ed_SetExplorerSaveCallback(void (*save_callback)(char *path, char *file));
 
-/*
-=============================================================
-=============================================================
-=============================================================
-*/
+void ed_ExplorerSave();
 
-//void ed_FlyCamera();
-//
-//void ed_DrawGrid();
-//
-//void ed_DrawBrushes();
-//
-//void ed_DrawLights();
-//
-//void ed_DrawSelections();
-
-//void ed_SetContextState(struct ed_context_t *context, uint32_t state);
-
-//void ed_WorldContextUpdate();
-//
-//void ed_WorldContextIdleState(struct ed_context_t *context, uint32_t just_changed);
-//
-//void ed_WorldContextLeftClickState(struct ed_context_t *context, uint32_t just_changed);
-//
-//void ed_WorldContextStateBrushBox(struct ed_context_t *context, uint32_t just_changed);
-//
-//void ed_WorldContextCreateBrush(struct ed_context_t *context, uint32_t just_changed);
-//
-//void ed_WorldContextProcessSelection(struct ed_context_t *context, uint32_t just_changed);
-
-//uint32_t ed_PickObject(int32_t mouse_x, int32_t mouse_y, struct ed_selection_t *selection);
+void ed_ExplorerLoad();
 
 #endif // ED_H
 

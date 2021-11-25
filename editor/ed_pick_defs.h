@@ -31,6 +31,7 @@ struct ed_pickable_range_t
 {
     struct ed_pickable_range_t *prev;
     struct ed_pickable_range_t *next;
+    mat4_t offset;
     uint32_t index;
     uint32_t start;
     uint32_t count;
@@ -74,7 +75,7 @@ struct ed_pickable_t
     vec3_t scale;
     mat3_t rotation;
     mat4_t transform;
-    mat4_t draw_transform;
+//    mat4_t draw_transform;
 
     uint32_t mode;
     uint32_t range_count;

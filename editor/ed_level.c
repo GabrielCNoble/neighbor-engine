@@ -158,7 +158,7 @@ void ed_LevelEditorInit(struct ed_editor_t *editor)
     translation_axis->transform.rows[1].y = 1.0;
     translation_axis->transform.rows[2].z = 1.6;
     mat4_t_rotate_y(&translation_axis->transform, 0.5);
-    translation_axis->draw_transform = translation_axis->transform;
+//    translation_axis->draw_transform = translation_axis->transform;
 
     translation_axis = ed_CreatePickableOnList(ED_PICKABLE_TYPE_WIDGET, &widget->pickables);
     translation_axis->camera_distance = 50.0;
@@ -174,7 +174,7 @@ void ed_LevelEditorInit(struct ed_editor_t *editor)
     translation_axis->transform.rows[1].y = 1.0;
     translation_axis->transform.rows[2].z = 1.6;
     mat4_t_rotate_x(&translation_axis->transform, -0.5);
-    translation_axis->draw_transform = translation_axis->transform;
+//    translation_axis->draw_transform = translation_axis->transform;
 
     translation_axis = ed_CreatePickableOnList(ED_PICKABLE_TYPE_WIDGET, &widget->pickables);
     translation_axis->camera_distance = 50.0;
@@ -189,7 +189,7 @@ void ed_LevelEditorInit(struct ed_editor_t *editor)
     translation_axis->transform.rows[0].x = 1.0;
     translation_axis->transform.rows[1].y = 1.0;
     translation_axis->transform.rows[2].z = 1.6;
-    translation_axis->draw_transform = translation_axis->transform;
+//    translation_axis->draw_transform = translation_axis->transform;
 
 
 
@@ -217,7 +217,7 @@ void ed_LevelEditorInit(struct ed_editor_t *editor)
     rotation_axis->transform.rows[1].y = 8.0;
     rotation_axis->transform.rows[2].z = 8.0;
     mat4_t_rotate_y(&rotation_axis->transform, 0.5);
-    rotation_axis->draw_transform = rotation_axis->transform;
+//    rotation_axis->draw_transform = rotation_axis->transform;
 
     rotation_axis = ed_CreatePickableOnList(ED_PICKABLE_TYPE_WIDGET, &widget->pickables);
     rotation_axis->camera_distance = 50.0;
@@ -233,7 +233,7 @@ void ed_LevelEditorInit(struct ed_editor_t *editor)
     rotation_axis->transform.rows[1].y = 8.0;
     rotation_axis->transform.rows[2].z = 8.0;
     mat4_t_rotate_x(&rotation_axis->transform, -0.5);
-    rotation_axis->draw_transform = rotation_axis->transform;
+//    rotation_axis->draw_transform = rotation_axis->transform;
 
     rotation_axis = ed_CreatePickableOnList(ED_PICKABLE_TYPE_WIDGET, &widget->pickables);
     rotation_axis->camera_distance = 50.0;
@@ -248,7 +248,7 @@ void ed_LevelEditorInit(struct ed_editor_t *editor)
     rotation_axis->transform.rows[0].x = 8.0;
     rotation_axis->transform.rows[1].y = 8.0;
     rotation_axis->transform.rows[2].z = 8.0;
-    rotation_axis->draw_transform = rotation_axis->transform;
+//    rotation_axis->draw_transform = rotation_axis->transform;
 
 
 
@@ -938,7 +938,7 @@ void ed_w_UpdatePickableObjects()
                     }
 
                     mat4_t_comp(&pickable->transform, &brush->orientation, &brush->position);
-                    pickable->draw_transform = pickable->transform;
+//                    pickable->draw_transform = pickable->transform;
                 }
                 break;
 
@@ -1024,7 +1024,15 @@ void ed_w_UpdatePickableObjects()
                         mat4_t draw_offset;
                         mat4_t_identity(&draw_offset);
                         vec3_t_mul(&draw_offset.rows[3].xyz, &face->center, -1.0);
-                        mat4_t_mul(&pickable->draw_transform, &draw_offset, &pickable->transform);
+//                        mat4_t_mul(&draw_offset, &draw_offset, &pickable->transform);
+
+                        struct ed_pickable_range_t *range = pickable->ranges;
+
+                        while(range)
+                        {
+                            range->offset = draw_offset;
+                            range = range->next;
+                        }
                     }
                 }
                 break;
@@ -1066,19 +1074,11 @@ void ed_w_UpdatePickableObjects()
                         vec3_t_mul(&edge_center, &edge_center, 0.5);
 
                         mat3_t_vec3_t_mul(&edge_center, &edge_center, &brush->orientation);
-
                         mat4_t_comp(&pickable->transform, &brush->orientation, &brush->position);
-                        pickable->draw_transform = pickable->transform;
-
                         vec3_t_add(&pickable->transform.rows[3].xyz, &pickable->transform.rows[3].xyz, &edge_center);
+                        vec3_t_mul(&pickable->ranges->offset.rows[3].xyz, &edge_center, -1.0);
 
                     }
-
-//                    if(!pickable->transform_flags)
-//                    {
-//                        mat4_t_comp(&pickable->transform, &brush->orientation, &brush->position);
-//                        pickable->draw_transform = pickable->transform;
-//                    }
                 }
                 break;
 
@@ -1100,7 +1100,6 @@ void ed_w_UpdatePickableObjects()
 
                     mat3_t_identity(&rot);
                     mat4_t_comp(&pickable->transform, &rot, &light->position);
-                    pickable->draw_transform = pickable->transform;
                 }
                 break;
 
@@ -1265,92 +1264,94 @@ void ed_LevelEditorDrawSelections()
             {
                 struct ed_pickable_t *pickable = *(struct ed_pickable_t **)ds_list_get_element(selections, selection_index);
 
+                mat4_t base_model_view_projection_matrix;
                 mat4_t model_view_projection_matrix;
-                ed_PickableModelViewProjectionMatrix(pickable, NULL, &model_view_projection_matrix);
-                r_i_SetViewProjectionMatrix(&model_view_projection_matrix);
+                ed_PickableModelViewProjectionMatrix(pickable, NULL, &base_model_view_projection_matrix);
+//                r_i_SetViewProjectionMatrix(&model_view_projection_matrix);
                 struct r_i_draw_list_t *draw_list = NULL;
 
                 switch(pickable->type)
                 {
                     case ED_PICKABLE_TYPE_FACE:
-                        draw_list = r_i_AllocDrawList(pickable->range_count);
+                    {
                         struct ed_pickable_range_t *range = pickable->ranges;
-
-                        for(uint32_t range_index = 0; range_index < pickable->range_count; range_index++)
+                        while(range)
                         {
-                            draw_list->commands[range_index].start = range->start;
-                            draw_list->commands[range_index].count = range->count;
+                            mat4_t_mul(&model_view_projection_matrix, &range->offset, &base_model_view_projection_matrix);
+                            draw_list = r_i_AllocDrawList(1);
+                            draw_list->commands->start = range->start;
+                            draw_list->commands->count = range->count;
+                            draw_list->size = 6.0;
+                            draw_list->indexed = 1;
+
+                            r_i_SetViewProjectionMatrix(&model_view_projection_matrix);
+                            r_i_SetDrawMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE, 0xff);
+                            r_i_SetStencil(GL_TRUE, GL_KEEP, GL_KEEP, GL_REPLACE, GL_ALWAYS, 0xff, 0xff);
+                            r_i_SetDepth(GL_TRUE, GL_ALWAYS);
+                            r_i_SetRasterizer(GL_TRUE, GL_BACK, GL_FILL);
+                            r_i_DrawImmediate(R_I_DRAW_CMD_TRIANGLE_LIST, draw_list);
                             range = range->next;
                         }
-                        draw_list->size = 6.0;
-                        draw_list->indexed = 1;
-
-                        r_i_SetDrawMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE, 0xff);
-                        r_i_SetStencil(GL_TRUE, GL_KEEP, GL_KEEP, GL_REPLACE, GL_ALWAYS, 0xff, 0xff);
-                        r_i_SetDepth(GL_TRUE, GL_ALWAYS);
-                        r_i_SetRasterizer(GL_TRUE, GL_BACK, GL_FILL);
-                        r_i_DrawImmediate(R_I_DRAW_CMD_TRIANGLE_LIST, draw_list);
-
-
 
                         r_i_SetUniform(color_uniform, 1, &vec4_t_c(0.2, 0.7, 0.4, 1.0));
-                        draw_list = r_i_AllocDrawList(pickable->range_count);
                         range = pickable->ranges;
-
-                        for(uint32_t range_index = 0; range_index < pickable->range_count; range_index++)
+                        while(range)
                         {
-                            draw_list->commands[range_index].start = range->start;
-                            draw_list->commands[range_index].count = range->count;
+                            mat4_t_mul(&model_view_projection_matrix, &range->offset, &base_model_view_projection_matrix);
+                            draw_list = r_i_AllocDrawList(1);
+                            draw_list->commands->start = range->start;
+                            draw_list->commands->count = range->count;
+                            draw_list->size = 6.0;
+                            draw_list->indexed = 1;
+
+                            r_i_SetViewProjectionMatrix(&model_view_projection_matrix);
+                            r_i_SetDrawMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+                            r_i_SetStencil(GL_TRUE, GL_KEEP, GL_KEEP, GL_KEEP, GL_EQUAL, 0xff, 0x00);
+                            r_i_SetRasterizer(GL_TRUE, GL_BACK, GL_LINE);
+                            r_i_DrawImmediate(R_I_DRAW_CMD_TRIANGLE_LIST, draw_list);
+
                             range = range->next;
                         }
-                        draw_list->size = 6.0;
-                        draw_list->indexed = 1;
-
-                        r_i_SetDrawMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
-                        r_i_SetStencil(GL_TRUE, GL_KEEP, GL_KEEP, GL_KEEP, GL_EQUAL, 0xff, 0x00);
-                        r_i_SetRasterizer(GL_TRUE, GL_BACK, GL_LINE);
-                        r_i_DrawImmediate(R_I_DRAW_CMD_TRIANGLE_LIST, draw_list);
-
-
 
                         r_i_SetUniform(color_uniform, 1, &vec4_t_c(0.3, 0.4, 1.0, 0.4));
-                        draw_list = r_i_AllocDrawList(pickable->range_count);
                         range = pickable->ranges;
-
-                        for(uint32_t range_index = 0; range_index < pickable->range_count; range_index++)
+                        while(range)
                         {
-                            draw_list->commands[range_index].start = range->start;
-                            draw_list->commands[range_index].count = range->count;
+                            mat4_t_mul(&model_view_projection_matrix, &range->offset, &base_model_view_projection_matrix);
+                            draw_list = r_i_AllocDrawList(1);
+                            draw_list->commands->start = range->start;
+                            draw_list->commands->count = range->count;
+                            draw_list->size = 4.0;
+                            draw_list->indexed = 1;
+
+                            r_i_SetViewProjectionMatrix(&model_view_projection_matrix);
+                            r_i_SetBlending(GL_TRUE, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+                            r_i_SetDrawMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE, 0xff);
+                            r_i_SetStencil(GL_TRUE, GL_KEEP, GL_KEEP, GL_REPLACE, GL_ALWAYS, 0xff, 0x00);
+                            r_i_SetDepth(GL_TRUE, GL_ALWAYS);
+                            r_i_SetRasterizer(GL_TRUE, GL_BACK, GL_FILL);
+                            r_i_DrawImmediate(R_I_DRAW_CMD_TRIANGLE_LIST, draw_list);
+
                             range = range->next;
                         }
-                        draw_list->size = 4.0;
-                        draw_list->indexed = 1;
-
-                        r_i_SetBlending(GL_TRUE, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-                        r_i_SetDrawMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE, 0xff);
-                        r_i_SetStencil(GL_TRUE, GL_KEEP, GL_KEEP, GL_REPLACE, GL_ALWAYS, 0xff, 0x00);
-                        r_i_SetDepth(GL_TRUE, GL_ALWAYS);
-                        r_i_SetRasterizer(GL_TRUE, GL_BACK, GL_FILL);
-                        r_i_DrawImmediate(R_I_DRAW_CMD_TRIANGLE_LIST, draw_list);
+                    }
                     break;
 
 
                     case ED_PICKABLE_TYPE_EDGE:
                     {
-                        draw_list = r_i_AllocDrawList(pickable->range_count);
+                        draw_list = r_i_AllocDrawList(1);
                         struct ed_pickable_range_t *range = pickable->ranges;
 
+                        mat4_t_mul(&model_view_projection_matrix, &range->offset, &base_model_view_projection_matrix);
                         r_i_SetUniform(color_uniform, 1, &vec4_t_c(1.0, 0.7, 0.4, 1.0));
 
-                        for(uint32_t range_index = 0; range_index < pickable->range_count; range_index++)
-                        {
-                            draw_list->commands[range_index].start = range->start;
-                            draw_list->commands[range_index].count = range->count;
-                            range = range->next;
-                        }
+                        draw_list->commands->start = range->start;
+                        draw_list->commands->count = range->count;
                         draw_list->size = 4.0;
                         draw_list->indexed = 1;
 
+                        r_i_SetViewProjectionMatrix(&model_view_projection_matrix);
                         r_i_SetDrawMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE, 0xff);
                         r_i_SetDepth(GL_TRUE, GL_ALWAYS);
                         r_i_DrawImmediate(R_I_DRAW_CMD_LINE_LIST, draw_list);
@@ -1366,6 +1367,8 @@ void ed_LevelEditorDrawSelections()
                         {
                             r_i_SetUniform(color_uniform, 1, &vec4_t_c(1.0, 0.2, 0.0, 1.0));
                         }
+
+                        r_i_SetViewProjectionMatrix(&base_model_view_projection_matrix);
 
 
                         draw_list = r_i_AllocDrawList(1);

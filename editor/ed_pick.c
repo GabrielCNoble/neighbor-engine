@@ -95,7 +95,7 @@ void ed_PickableModelViewProjectionMatrix(struct ed_pickable_t *pickable, mat4_t
 
     if(pickable->draw_transf_flags & ED_PICKABLE_DRAW_TRANSF_FLAG_FIXED_CAM_DIST)
     {
-        transform = pickable->draw_transform;
+        transform = pickable->transform;
 
         *model_view_projection_matrix = r_camera_matrix;
         vec3_t_sub(&model_view_projection_matrix->rows[3].xyz, &model_view_projection_matrix->rows[3].xyz, &parent_transform->rows[3].xyz);
@@ -106,11 +106,11 @@ void ed_PickableModelViewProjectionMatrix(struct ed_pickable_t *pickable, mat4_t
     {
         if(parent_transform)
         {
-            mat4_t_mul(&transform, &pickable->draw_transform, parent_transform);
+            mat4_t_mul(&transform, &pickable->transform, parent_transform);
         }
         else
         {
-            transform = pickable->draw_transform;
+            transform = pickable->transform;
         }
 
         *model_view_projection_matrix = r_camera_matrix;
@@ -163,9 +163,9 @@ struct ed_pickable_t *ed_SelectPickable(int32_t mouse_x, int32_t mouse_y, struct
 
         if(pickable && !((1 << pickable->type) & ignore_types))
         {
-            mat4_t model_view_projection_matrix;
-            ed_PickableModelViewProjectionMatrix(pickable, parent_transform, &model_view_projection_matrix);
-            r_SetDefaultUniformMat4(R_UNIFORM_MODEL_VIEW_PROJECTION_MATRIX, &model_view_projection_matrix);
+            mat4_t base_model_view_projection_matrix;
+            ed_PickableModelViewProjectionMatrix(pickable, parent_transform, &base_model_view_projection_matrix);
+//            r_SetDefaultUniformMat4(R_UNIFORM_MODEL_VIEW_PROJECTION_MATRIX, &model_view_projection_matrix);
             r_SetNamedUniformI(ed_index, pickable->index + 1);
             r_SetNamedUniformI(ed_type, pickable->type + 1);
             struct ed_pickable_range_t *range = pickable->ranges;
@@ -190,6 +190,9 @@ struct ed_pickable_t *ed_SelectPickable(int32_t mouse_x, int32_t mouse_y, struct
 
             while(range)
             {
+                mat4_t model_view_projection_matrix;
+                mat4_t_mul(&model_view_projection_matrix, &range->offset, &base_model_view_projection_matrix);
+                r_SetDefaultUniformMat4(R_UNIFORM_MODEL_VIEW_PROJECTION_MATRIX, &model_view_projection_matrix);
                 glDrawElements(pickable->mode, range->count, GL_UNSIGNED_INT, (void *)(sizeof(uint32_t) * range->start));
                 range = range->next;
             }
@@ -304,6 +307,7 @@ struct ed_pickable_range_t *ed_AllocPickableRange()
     uint32_t index = ds_slist_add_element(&ed_level_state.pickable_ranges, NULL);
     range = ds_slist_get_element(&ed_level_state.pickable_ranges, index);
     range->index = index;
+    mat4_t_identity(&range->offset);
     return range;
 }
 
@@ -479,7 +483,7 @@ struct ed_pickable_t *ed_CreateBrushPickable(vec3_t *position, mat3_t *orientati
     pickable->range_count = 1;
     pickable->ranges = ed_AllocPickableRange();
     mat4_t_comp(&pickable->transform, &brush->orientation, &brush->position);
-    pickable->draw_transform = pickable->transform;
+//    pickable->draw_transform = pickable->transform;
     brush->pickable = pickable;
     ed_w_MarkPickableModified(pickable);
 
@@ -493,7 +497,7 @@ struct ed_pickable_t *ed_CreateBrushPickable(vec3_t *position, mat3_t *orientati
         face_pickable->mode = GL_TRIANGLES;
         face_pickable->range_count = 0;
         mat4_t_comp(&face_pickable->transform, &brush->orientation, &brush->position);
-        face_pickable->draw_transform = face_pickable->transform;
+//        face_pickable->draw_transform = face_pickable->transform;
         face->pickable = face_pickable;
         ed_w_MarkPickableModified(face_pickable);
 
@@ -566,7 +570,7 @@ struct ed_pickable_t *ed_CreateLightPickable(vec3_t *pos, vec3_t *color, float r
     }
 
     mat4_t_comp(&pickable->transform, &orientation, &light->position);
-    pickable->draw_transform = pickable->transform;
+//    pickable->draw_transform = pickable->transform;
 
     return pickable;
 }

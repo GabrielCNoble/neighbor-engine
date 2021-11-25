@@ -15,6 +15,8 @@ uint32_t ed_EndPicking(int32_t mouse_x, int32_t mouse_y, struct ed_pickable_t *r
 
 void ed_PickableModelViewProjectionMatrix(struct ed_pickable_t *pickable, mat4_t *parent_transform, mat4_t *model_view_projection_matrix);
 
+//void ed_PickableRangeModelViewProjectionMatrix()
+
 void ed_DrawPickable(struct ed_pickable_t *pickable, mat4_t *parent_transform);
 
 struct ed_pickable_t *ed_SelectPickable(int32_t mouse_x, int32_t mouse_y, struct ds_slist_t *pickables, mat4_t *parent_transform, uint32_t ignore_types);

@@ -179,6 +179,15 @@ struct ed_pickable_t *ed_SelectPickable(int32_t mouse_x, int32_t mouse_y, struct
                 glPointSize(1.0);
             }
 
+            if(pickable->mode == GL_LINES)
+            {
+                glLineWidth(8.0);
+            }
+            else
+            {
+                glLineWidth(1.0);
+            }
+
             while(range)
             {
                 glDrawElements(pickable->mode, range->count, GL_UNSIGNED_INT, (void *)(sizeof(uint32_t) * range->start));
@@ -488,32 +497,32 @@ struct ed_pickable_t *ed_CreateBrushPickable(vec3_t *position, mat3_t *orientati
         face->pickable = face_pickable;
         ed_w_MarkPickableModified(face_pickable);
 
-//        struct ed_face_polygon_t *polygon = face->polygons;
-//
-//        while(polygon)
-//        {
-//            struct ed_edge_t *edge = polygon->edges;
-//
-//            while(edge)
-//            {
-//                if(!edge->pickable)
-//                {
-//                    struct ed_pickable_t *edge_pickable = ed_CreatePickable(ED_PICKABLE_TYPE_EDGE);
-//                    edge_pickable->primary_index = brush->index;
-//                    edge_pickable->secondary_index = edge->index;
-//                    edge_pickable->mode = GL_LINES;
-//                    edge_pickable->ranges = ed_AllocPickableRange();
-//                    edge_pickable->range_count = 1;
-//                    edge->pickable = edge_pickable;
-//                    ed_w_MarkPickableModified(edge_pickable);
-//                }
-//
-//                uint32_t polygon_index = edge->polygons[1].polygon == polygon;
-//                edge = edge->polygons[polygon_index].next;
-//            }
-//
-//            polygon = polygon->next;
-//        }
+        struct ed_face_polygon_t *polygon = face->polygons;
+
+        while(polygon)
+        {
+            struct ed_edge_t *edge = polygon->edges;
+
+            while(edge)
+            {
+                if(!edge->pickable)
+                {
+                    struct ed_pickable_t *edge_pickable = ed_CreatePickable(ED_PICKABLE_TYPE_EDGE);
+                    edge_pickable->primary_index = brush->index;
+                    edge_pickable->secondary_index = edge->index;
+                    edge_pickable->mode = GL_LINES;
+                    edge_pickable->ranges = ed_AllocPickableRange();
+                    edge_pickable->range_count = 1;
+                    edge->pickable = edge_pickable;
+                    ed_w_MarkPickableModified(edge_pickable);
+                }
+
+                uint32_t polygon_side = edge->polygons[1].polygon == polygon;
+                edge = edge->polygons[polygon_side].next;
+            }
+
+            polygon = polygon->next;
+        }
 
         face = face->next;
     }

@@ -1398,6 +1398,9 @@ void r_DestroyModel(struct r_model_t *model)
             ds_buffer_destroy(&model->weight_ranges);
             a_DestroySkeleton(model->skeleton);
         }
+
+        ds_slist_remove_element(&r_models, model->index);
+        model->index = 0xffffffff;
     }
 }
 

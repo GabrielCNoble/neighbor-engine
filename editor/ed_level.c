@@ -100,7 +100,7 @@ void ed_LevelEditorInit(struct ed_editor_t *editor)
 //    ed_world_context->next_state = ed_w_Idle;
 //    ed_world_context->context_data = &ed_level_state;
 
-    editor->next_state = ed_w_Idle;
+    editor->next_state = ed_LevelEditorIdle;
 
     ed_level_state.pickables.last_selected = NULL;
     ed_level_state.pickables.selections = ds_list_create(sizeof(struct ed_pickable_t *), 512);
@@ -333,12 +333,13 @@ void ed_LevelEditorShutdown()
 
 void ed_LevelEditorSuspend()
 {
-
+    ed_SaveGameLevelSnapshot();
 }
 
 void ed_LevelEditorResume()
 {
     r_SetClearColor(0.05, 0.05, 0.05, 1.0);
+    ed_LoadGameLevelSnapshot();
 }
 
 void ed_w_ManipulatorWidgetSetupPickableDrawState(uint32_t pickable_index, struct ed_pickable_t *pickable)
@@ -478,7 +479,7 @@ void ed_w_DeleteSelections()
     ed_w_ClearSelections(selections);
 }
 
-void ed_w_TranslateSelected(vec3_t *translation, uint32_t transform_mode)
+void ed_LevelEditorTranslateSelected(vec3_t *translation, uint32_t transform_mode)
 {
     struct ds_list_t *selections = &ed_level_state.pickables.selections;
 
@@ -491,7 +492,7 @@ void ed_w_TranslateSelected(vec3_t *translation, uint32_t transform_mode)
     }
 }
 
-void ed_w_RotateSelected(mat3_t *rotation, vec3_t *pivot, uint32_t transform_mode)
+void ed_LevelEditorRotateSelected(mat3_t *rotation, vec3_t *pivot, uint32_t transform_mode)
 {
     struct ds_list_t *selections = &ed_level_state.pickables.selections;
 
@@ -915,6 +916,24 @@ void ed_w_UpdatePickableObjects()
                         /* face/edge/vertice pickables also depend on the up to date brush transform,
                         so mark those as modified so they can have their transforms updated as well */
                         ed_w_MarkPickableModified(face->pickable);
+
+                        struct ed_face_polygon_t *polygon = face->polygons;
+
+                        while(polygon)
+                        {
+
+                            struct ed_edge_t *edge = polygon->edges;
+
+                            while(edge)
+                            {
+                                uint32_t polygon_side = edge->polygons[1].polygon == polygon;
+                                ed_w_MarkPickableModified(edge->pickable);
+                                edge = edge->polygons[polygon_side].next;
+                            }
+
+                            polygon = polygon->next;
+                        }
+
                         face = face->next;
                     }
 
@@ -1010,28 +1029,58 @@ void ed_w_UpdatePickableObjects()
                 }
                 break;
 
-    //                case ED_PICKABLE_TYPE_EDGE:
-    //                {
-    //                    struct ed_brush_t *brush = ed_GetBrush(pickable->primary_index);
-    //                    struct ed_edge_t *edge = ed_GetEdge(pickable->secondary_index);
-    //                    struct r_model_t *model = brush->model;
-    //                    struct r_batch_t *first_batch = model->batches.buffer;
-    //
-    //                    if(!pickable->range_count)
-    //                    {
-    //                        pickable->ranges = ed_AllocPickableRange();
-    //                        pickable->range_count = 1;
-    //                    }
-    //
-    //                    pickable->ranges->start = first_batch->start + edge->model_start;
-    //                    pickable->ranges->count = 2;
-    //
-    //                    if(!pickable->transform_flags)
-    //                    {
-    //                        mat4_t_comp(&pickable->transform, &brush->orientation, &brush->position);
-    //                    }
-    //                }
-    //                break;
+                case ED_PICKABLE_TYPE_EDGE:
+                {
+                    struct ed_brush_t *brush = ed_GetBrush(pickable->primary_index);
+                    struct ed_edge_t *edge = ed_GetEdge(pickable->secondary_index);
+                    struct r_model_t *model = brush->model;
+                    struct r_batch_t *first_batch = model->batches.buffer;
+
+                    if(!pickable->range_count)
+                    {
+                        pickable->ranges = ed_AllocPickableRange();
+                        pickable->range_count = 1;
+                    }
+
+                    pickable->ranges->start = first_batch->start + edge->model_start;
+                    pickable->ranges->count = 2;
+
+                    if(pickable->transform_flags)
+                    {
+                        if(pickable->transform_flags & ED_PICKABLE_TRANSFORM_FLAG_TRANSLATION)
+                        {
+                            ed_TranslateBrushEdge(brush, pickable->secondary_index, &pickable->translation);
+                        }
+
+                        ed_w_MarkBrushModified(brush);
+
+                        ed_w_MarkPickableModified(brush->pickable);
+                    }
+                    else
+                    {
+                        struct ed_vert_t *vert0 = edge->verts[0].vert;
+                        struct ed_vert_t *vert1 = edge->verts[1].vert;
+
+                        vec3_t edge_center;
+                        vec3_t_add(&edge_center, &vert0->vert, &vert1->vert);
+                        vec3_t_mul(&edge_center, &edge_center, 0.5);
+
+                        mat3_t_vec3_t_mul(&edge_center, &edge_center, &brush->orientation);
+
+                        mat4_t_comp(&pickable->transform, &brush->orientation, &brush->position);
+                        pickable->draw_transform = pickable->transform;
+
+                        vec3_t_add(&pickable->transform.rows[3].xyz, &pickable->transform.rows[3].xyz, &edge_center);
+
+                    }
+
+//                    if(!pickable->transform_flags)
+//                    {
+//                        mat4_t_comp(&pickable->transform, &brush->orientation, &brush->position);
+//                        pickable->draw_transform = pickable->transform;
+//                    }
+                }
+                break;
 
                 case ED_PICKABLE_TYPE_LIGHT:
                 {
@@ -1091,11 +1140,11 @@ void ed_LevelEditorUpdate()
     ed_w_UpdatePickableObjects();
     ed_w_UpdateManipulator();
 
-    ed_w_DrawGrid();
-    ed_w_DrawSelections();
-    ed_w_DrawBrushes();
-    ed_w_DrawLights();
-    ed_w_DrawWidgets();
+    ed_LevelEditorDrawGrid();
+    ed_LevelEditorDrawSelections();
+//    ed_LevelEditorDrawBrushes();
+    ed_LevelEditorDrawLights();
+    ed_LevelEditorDrawWidgets();
 
     if(in_GetKeyState(SDL_SCANCODE_P) & IN_KEY_STATE_JUST_PRESSED)
     {
@@ -1110,7 +1159,7 @@ void ed_LevelEditorUpdate()
 =============================================================
 */
 
-void ed_w_DrawManipulator()
+void ed_LevelEditorDrawManipulator()
 {
     if(ed_level_state.manipulator.visible)
     {
@@ -1119,13 +1168,13 @@ void ed_w_DrawManipulator()
     }
 }
 
-void ed_w_DrawWidgets()
+void ed_LevelEditorDrawWidgets()
 {
     r_i_SetShader(ed_outline_shader);
-    ed_w_DrawManipulator();
+    ed_LevelEditorDrawManipulator();
 }
 
-void ed_w_DrawGrid()
+void ed_LevelEditorDrawGrid()
 {
     r_i_SetModelMatrix(NULL);
     r_i_SetViewProjectionMatrix(NULL);
@@ -1142,25 +1191,25 @@ void ed_w_DrawGrid()
     r_i_DrawLine(&vec3_t_c(0.0, 0.0, -10000.0), &vec3_t_c(0.0, 0.0, 10000.0), &vec4_t_c(0.0, 0.0, 1.0, 1.0), 3.0);
 }
 
-void ed_w_DrawBrushes()
-{
-    return;
+//void ed_LevelEditorDrawBrushes()
+//{
+////    return;
+//
+////    for(uint32_t brush_index = 0; brush_index < ed_level_state.brush.brushes.cursor; brush_index++)
+////    {
+////        struct ed_brush_t *brush = ed_GetBrush(brush_index);
+////
+////        if(brush)
+////        {
+////            mat4_t transform;
+////            mat4_t_identity(&transform);
+////            mat4_t_comp(&transform, &brush->orientation, &brush->position);
+////            r_DrawEntity(&transform, brush->model);
+////        }
+////    }
+//}
 
-    for(uint32_t brush_index = 0; brush_index < ed_level_state.brush.brushes.cursor; brush_index++)
-    {
-        struct ed_brush_t *brush = ed_GetBrush(brush_index);
-
-        if(brush)
-        {
-            mat4_t transform;
-            mat4_t_identity(&transform);
-            mat4_t_comp(&transform, &brush->orientation, &brush->position);
-            r_DrawEntity(&transform, brush->model);
-        }
-    }
-}
-
-void ed_w_DrawLights()
+void ed_LevelEditorDrawLights()
 {
     r_i_SetModelMatrix(NULL);
     r_i_SetViewProjectionMatrix(NULL);
@@ -1192,7 +1241,7 @@ void ed_w_DrawLights()
     }
 }
 
-void ed_w_DrawSelections()
+void ed_LevelEditorDrawSelections()
 {
     struct ds_list_t *selections = &ed_level_state.pickables.selections;
 
@@ -1431,7 +1480,7 @@ void ed_w_PointPixelCoords(int32_t *x, int32_t *y, vec3_t *point)
     *y = r_height * (1.0 - ((result.y / result.w) * 0.5 + 0.5));
 }
 
-void ed_w_Idle(uint32_t just_changed)
+void ed_LevelEditorIdle(uint32_t just_changed)
 {
 //    struct ed_level_state_t *context_data = &ed_level_state;
     struct ds_list_t *selections = &ed_level_state.pickables.selections;
@@ -1465,20 +1514,20 @@ void ed_w_Idle(uint32_t just_changed)
     }
     else if(in_GetKeyState(SDL_SCANCODE_LALT) & IN_KEY_STATE_PRESSED)
     {
-        ed_SetNextState(ed_w_FlyCamera);
+        ed_SetNextState(ed_LevelEditorFlyCamera);
         in_SetMouseWarp(1);
     }
     else if(in_GetMouseButtonState(SDL_BUTTON_LEFT) & IN_KEY_STATE_JUST_PRESSED)
     {
-        ed_SetNextState(ed_w_LeftClick);
+        ed_SetNextState(ed_LevelEditorLeftClick);
     }
     else if(in_GetMouseButtonState(SDL_BUTTON_RIGHT) & IN_KEY_STATE_JUST_PRESSED)
     {
-        ed_SetNextState(ed_w_RightClick);
+        ed_SetNextState(ed_LevelEditorRightClick);
     }
     else if(in_GetKeyState(SDL_SCANCODE_LCTRL) & IN_KEY_STATE_PRESSED)
     {
-        ed_SetNextState(ed_w_BrushBox);
+        ed_SetNextState(ed_LevelEditorBrushBox);
     }
     else if(selections->cursor)
     {
@@ -1506,14 +1555,14 @@ void ed_w_Idle(uint32_t just_changed)
     }
 }
 
-void ed_w_FlyCamera(uint32_t just_changed)
+void ed_LevelEditorFlyCamera(uint32_t just_changed)
 {
     float dx;
     float dy;
 
     if(!(in_GetKeyState(SDL_SCANCODE_LALT) & IN_KEY_STATE_PRESSED))
     {
-        ed_SetNextState(ed_w_Idle);
+        ed_SetNextState(ed_LevelEditorIdle);
         in_SetMouseWarp(0);
         return;
     }
@@ -1556,7 +1605,7 @@ void ed_w_FlyCamera(uint32_t just_changed)
     vec3_t_add(&ed_level_state.camera_pos, &ed_level_state.camera_pos, &vec3_t_c(translation.x, translation.y, translation.z));
 }
 
-void ed_w_RightClick(uint32_t just_changed)
+void ed_LevelEditorRightClick(uint32_t just_changed)
 {
     struct ed_level_state_t *context_data = &ed_level_state;
 
@@ -1564,23 +1613,23 @@ void ed_w_RightClick(uint32_t just_changed)
     {
         case ED_LEVEL_SECONDARY_CLICK_FUNC_BRUSH:
             context_data->pickables.ignore_types = ED_PICKABLE_OBJECT_MASK;
-            ed_w_PickObjectOrWidget(just_changed);
+            ed_LevelEditorPickObjectOrWidget(just_changed);
         break;
 
         case ED_LEVEL_SECONDARY_CLICK_FUNC_LIGHT:
-            ed_SetNextState(ed_w_PlaceLightAtCursor);
+            ed_SetNextState(ed_LevelEditorPlaceLightAtCursor);
         break;
     }
 }
 
-void ed_w_LeftClick(uint32_t just_changed)
+void ed_LevelEditorLeftClick(uint32_t just_changed)
 {
     struct ed_level_state_t *context_data = &ed_level_state;
     context_data->pickables.ignore_types = ED_PICKABLE_BRUSH_PART_MASK;
-    ed_w_PickObjectOrWidget(just_changed);
+    ed_LevelEditorPickObjectOrWidget(just_changed);
 }
 
-void ed_w_BrushBox(uint32_t just_changed)
+void ed_LevelEditorBrushBox(uint32_t just_changed)
 {
     struct ed_level_state_t *context_data = &ed_level_state;
     uint32_t right_button_down = in_GetMouseButtonState(SDL_BUTTON_RIGHT) & IN_KEY_STATE_PRESSED;
@@ -1595,7 +1644,7 @@ void ed_w_BrushBox(uint32_t just_changed)
     {
         if(in_GetKeyState(SDL_SCANCODE_ESCAPE) & IN_KEY_STATE_PRESSED)
         {
-            ed_SetNextState(ed_w_Idle);
+            ed_SetNextState(ed_LevelEditorIdle);
         }
         else
         {
@@ -1844,7 +1893,7 @@ void ed_w_BrushBox(uint32_t just_changed)
 
         if(!context_data->brush.drawing)
         {
-            ed_SetNextState(ed_w_Idle);
+            ed_SetNextState(ed_LevelEditorIdle);
         }
         else
         {
@@ -1860,12 +1909,12 @@ void ed_w_BrushBox(uint32_t just_changed)
             vec3_t_fmadd(&position, &position, &context_data->brush.plane_orientation.rows[1], size.y * 0.5);
 
             ed_CreateBrushPickable(&position, &context_data->brush.plane_orientation, &size, NULL);
-            ed_SetNextState(ed_w_Idle);
+            ed_SetNextState(ed_LevelEditorIdle);
         }
     }
 }
 
-void ed_w_PickObjectOrWidget(uint32_t just_changed)
+void ed_LevelEditorPickObjectOrWidget(uint32_t just_changed)
 {
     struct ed_level_state_t *context_data = &ed_level_state;
     int32_t mouse_x;
@@ -1888,7 +1937,7 @@ void ed_w_PickObjectOrWidget(uint32_t just_changed)
     {
         if(context_data->pickables.last_selected->type == ED_PICKABLE_TYPE_WIDGET)
         {
-            ed_SetNextState(ed_w_TransformSelections);
+            ed_SetNextState(ed_LevelEditorTransformSelections);
         }
         else
         {
@@ -1897,11 +1946,11 @@ void ed_w_PickObjectOrWidget(uint32_t just_changed)
     }
     else
     {
-        ed_SetNextState(ed_w_PickObject);
+        ed_SetNextState(ed_LevelEditorPickObject);
     }
 }
 
-void ed_w_PickObject(uint32_t just_changed)
+void ed_LevelEditorPickObject(uint32_t just_changed)
 {
     struct ed_level_state_t *context_data = &ed_level_state;
     uint32_t button_state = in_GetMouseButtonState(SDL_BUTTON_LEFT) | in_GetMouseButtonState(SDL_BUTTON_RIGHT);
@@ -1913,7 +1962,7 @@ void ed_w_PickObject(uint32_t just_changed)
 
     if(!(button_state & IN_KEY_STATE_PRESSED))
     {
-        uint32_t ignore_types = context_data->pickables.ignore_types;;
+        uint32_t ignore_types = context_data->pickables.ignore_types;
         struct ds_slist_t *pickables = &context_data->pickables.pickables;
 
         context_data->pickables.last_selected = ed_SelectPickable(mouse_x, mouse_y, pickables, NULL, ignore_types);
@@ -1953,22 +2002,22 @@ void ed_w_PickObject(uint32_t just_changed)
 
         context_data->pickables.last_selected = NULL;
 
-        ed_SetNextState(ed_w_Idle);
+        ed_SetNextState(ed_LevelEditorIdle);
     }
 }
 
-void ed_w_PlaceLightAtCursor(uint32_t just_changed)
+void ed_LevelEditorPlaceLightAtCursor(uint32_t just_changed)
 {
     struct ed_level_state_t *context_data = &ed_level_state;
 
     if(!(in_GetMouseButtonState(SDL_BUTTON_RIGHT) & IN_KEY_STATE_PRESSED))
     {
         ed_CreateLightPickable(&vec3_t_c(0.0, 0.0, 0.0), &vec3_t_c(1.0, 1.0, 1.0), 6.0, 10.0, NULL);
-        ed_SetNextState(ed_w_Idle);
+        ed_SetNextState(ed_LevelEditorIdle);
     }
 }
 
-void ed_w_TransformSelections(uint32_t just_changed)
+void ed_LevelEditorTransformSelections(uint32_t just_changed)
 {
     struct ed_level_state_t *context_data = &ed_level_state;
     uint32_t mouse_state = in_GetMouseButtonState(SDL_BUTTON_LEFT);
@@ -2052,7 +2101,7 @@ void ed_w_TransformSelections(uint32_t just_changed)
                 }
                 igEnd();
 
-                ed_w_TranslateSelected(&cur_offset, 0);
+                ed_LevelEditorTranslateSelected(&cur_offset, 0);
             }
             break;
 
@@ -2111,14 +2160,14 @@ void ed_w_TransformSelections(uint32_t just_changed)
                     break;
                 }
 
-                ed_w_RotateSelected(&rotation, &context_data->manipulator.transform.rows[3].xyz, 0);
+                ed_LevelEditorRotateSelected(&rotation, &context_data->manipulator.transform.rows[3].xyz, 0);
             }
             break;
         }
     }
     else
     {
-        ed_SetNextState(ed_w_Idle);
+        ed_SetNextState(ed_LevelEditorIdle);
         context_data->pickables.last_selected = NULL;
     }
 }
@@ -2651,76 +2700,80 @@ void ed_SaveGameLevelSnapshot()
 
 void ed_LoadGameLevelSnapshot()
 {
-    l_DeserializeLevel(ed_level_state.game_level_buffer, ed_level_state.game_level_buffer_size, L_LEVEL_DATA_ALL & (~L_LEVEL_DATA_WORLD));
-
-    for(uint32_t brush_index = 0; brush_index < ed_level_state.brush.brushes.cursor; brush_index++)
+    if(ed_level_state.game_level_buffer)
     {
-        struct ed_brush_t *brush = ed_GetBrush(brush_index);
+        l_DeserializeLevel(ed_level_state.game_level_buffer, ed_level_state.game_level_buffer_size, L_LEVEL_DATA_ALL & (~L_LEVEL_DATA_WORLD));
 
-        if(brush)
+        for(uint32_t brush_index = 0; brush_index < ed_level_state.brush.brushes.cursor; brush_index++)
         {
-            ed_UpdateBrushEntity(brush);
-        }
-    }
+            struct ed_brush_t *brush = ed_GetBrush(brush_index);
 
-    char *level_buffer = ed_level_state.game_level_buffer;
-    struct ed_level_section_t *level_section = (struct ed_level_section_t *)level_buffer;
-    struct l_light_section_t *light_section = (struct l_light_section_t *)(level_buffer + level_section->light_section_start);
-    struct l_light_record_t *light_records = (struct l_light_record_t *)(level_buffer + light_section->record_start);
-    struct l_entity_section_t *entity_section = (struct l_entity_section_t *)(level_buffer + level_section->entity_section_start);
-    struct l_entity_record_t *entity_records = (struct l_entity_record_t *)(level_buffer + entity_section->record_start);
-
-    for(uint32_t pickable_index = 0; pickable_index < ed_level_state.pickables.pickables.cursor; pickable_index++)
-    {
-        struct ed_pickable_t *pickable = ed_GetPickable(pickable_index);
-
-        if(pickable)
-        {
-            switch(pickable->type)
+            if(brush)
             {
-                case ED_PICKABLE_TYPE_LIGHT:
-                    for(uint32_t record_index = 0; record_index < light_section->record_count; record_index++)
-                    {
-                        struct l_light_record_t *record = light_records + record_index;
-                        if(pickable->primary_index == record->s_index)
-                        {
-                            pickable->primary_index = record->d_index;
-
-                            if(record_index < light_section->record_count - 1)
-                            {
-                                *record = light_records[light_section->record_count - 1];
-                            }
-                            light_section->record_count--;
-                            break;
-                        }
-                    }
-                break;
-
-                case ED_PICKABLE_TYPE_ENTITY:
-                    for(uint32_t record_index = 0; record_index < entity_section->record_count; record_index++)
-                    {
-                        struct l_entity_record_t *record = entity_records + record_index;
-
-                        if(pickable->primary_index == record->s_index)
-                        {
-                            pickable->primary_index = record->d_index;
-                            /* FIXME: this will break once the level format allows to store
-                            child entities in entity records that were parented in the level
-                            editor */
-                            if(record_index < entity_section->record_count - 1)
-                            {
-                                *record = entity_records[entity_section->record_count - 1];
-                            }
-                            entity_section->record_count--;
-                            break;
-                        }
-                    }
-                break;
+                ed_UpdateBrushEntity(brush);
             }
         }
-    }
 
-    mem_Free(ed_level_state.game_level_buffer);
+        char *level_buffer = ed_level_state.game_level_buffer;
+        struct ed_level_section_t *level_section = (struct ed_level_section_t *)level_buffer;
+        struct l_light_section_t *light_section = (struct l_light_section_t *)(level_buffer + level_section->light_section_start);
+        struct l_light_record_t *light_records = (struct l_light_record_t *)(level_buffer + light_section->record_start);
+        struct l_entity_section_t *entity_section = (struct l_entity_section_t *)(level_buffer + level_section->entity_section_start);
+        struct l_entity_record_t *entity_records = (struct l_entity_record_t *)(level_buffer + entity_section->record_start);
+
+        for(uint32_t pickable_index = 0; pickable_index < ed_level_state.pickables.pickables.cursor; pickable_index++)
+        {
+            struct ed_pickable_t *pickable = ed_GetPickable(pickable_index);
+
+            if(pickable)
+            {
+                switch(pickable->type)
+                {
+                    case ED_PICKABLE_TYPE_LIGHT:
+                        for(uint32_t record_index = 0; record_index < light_section->record_count; record_index++)
+                        {
+                            struct l_light_record_t *record = light_records + record_index;
+                            if(pickable->primary_index == record->s_index)
+                            {
+                                pickable->primary_index = record->d_index;
+
+                                if(record_index < light_section->record_count - 1)
+                                {
+                                    *record = light_records[light_section->record_count - 1];
+                                }
+                                light_section->record_count--;
+                                break;
+                            }
+                        }
+                    break;
+
+                    case ED_PICKABLE_TYPE_ENTITY:
+                        for(uint32_t record_index = 0; record_index < entity_section->record_count; record_index++)
+                        {
+                            struct l_entity_record_t *record = entity_records + record_index;
+
+                            if(pickable->primary_index == record->s_index)
+                            {
+                                pickable->primary_index = record->d_index;
+                                /* FIXME: this will break once the level format allows to store
+                                child entities in entity records that were parented in the level
+                                editor */
+                                if(record_index < entity_section->record_count - 1)
+                                {
+                                    *record = entity_records[entity_section->record_count - 1];
+                                }
+                                entity_section->record_count--;
+                                break;
+                            }
+                        }
+                    break;
+                }
+            }
+        }
+
+        mem_Free(ed_level_state.game_level_buffer);
+        ed_level_state.game_level_buffer = NULL;
+    }
 }
 
 void ed_LevelEditorReset()
@@ -2839,31 +2892,6 @@ void ed_BuildWorldData()
             }
         }
 
-//        for(uint32_t brush_index = 0; brush_index < ed_level_state.brush.brushes.cursor; brush_index++)
-//        {
-//            struct ed_brush_t *brush = ed_GetBrush(brush_index);
-//
-//            if(brush)
-//            {
-//                struct r_vert_t *model_verts = brush->model->verts.buffer;
-//                uint32_t *model_indices = brush->model->indices.buffer;
-//
-//                for(uint32_t index = 0; index < brush->model->indices.buffer_size; index++)
-//                {
-//                    indices[index_offset] = model_indices[index] + vert_offset;
-//                    index_offset++;
-//                }
-//
-//                for(uint32_t vert_index = 0; vert_index < brush->model->verts.buffer_size; vert_index++)
-//                {
-//                    col_verts[vert_offset] = model_verts[vert_index].pos;
-//                    mat3_t_vec3_t_mul(&col_verts[vert_offset], &col_verts[vert_offset], &brush->orientation);
-//                    vec3_t_add(&col_verts[vert_offset], &col_verts[vert_offset], &brush->position);
-//                    vert_offset++;
-//                }
-//            }
-//        }
-
         if(vert_offset)
         {
             l_world_shape->itri_mesh.verts = world_col_verts;
@@ -2883,10 +2911,6 @@ void ed_BuildWorldData()
             l_world_model = r_CreateModel(&model_geometry, NULL, "world_model");
         }
     }
-
-//    struct ds_buffer_t batches = ds_buffer_create(sizeof(struct r_batch_t), ed_level_state.brush.brush_batches.cursor);
-//
-
 }
 
 

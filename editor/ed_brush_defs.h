@@ -84,6 +84,7 @@ struct ed_edge_t
     struct ed_vert_edge_t verts[2];
 
     struct ed_brush_t *brush;
+    uint32_t model_start_flag;
     uint32_t model_start;
 };
 

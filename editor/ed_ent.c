@@ -6,6 +6,7 @@
 #include "../engine/r_draw.h"
 #include "../engine/input.h"
 #include "ed_level.h"
+#include "ed_main.h"
 #include <stddef.h>
 #include <math.h>
 
@@ -37,14 +38,21 @@ void ed_EntityEditorResume()
     r_SetClearColor(0.4, 0.4, 0.8, 1.0);
 }
 
+void ed_EntityEditorUpdateUI()
+{
+
+}
+
 void ed_EntityEditorUpdate()
 {
+    ed_EntityEditorUpdateUI();
+
     r_SetViewPitchYaw(ed_entity_state.camera_pitch, ed_entity_state.camera_yaw);
     vec3_t forward_vec = r_camera_matrix.rows[2].xyz;
     vec3_t_mul(&forward_vec, &forward_vec, ed_entity_state.camera_zoom);
     vec3_t_add(&forward_vec, &forward_vec, &ed_entity_state.camera_offset);
     r_SetViewPos(&forward_vec);
-    ed_w_DrawGrid();
+    ed_LevelEditorDrawGrid();
 }
 
 void ed_EntityEditorReset()
@@ -93,14 +101,14 @@ void ed_EntityEditorFlyCamera(uint32_t just_changed)
         else if(in_GetKeyState(SDL_SCANCODE_LSHIFT) & IN_KEY_STATE_PRESSED)
         {
             float zoom = ed_entity_state.camera_zoom;
-            vec3_t_fmadd(&ed_entity_state.camera_offset, &ed_entity_state.camera_offset, &r_camera_matrix.rows[0].xyz, -dx * zoom);
-            vec3_t_fmadd(&ed_entity_state.camera_offset, &ed_entity_state.camera_offset, &r_camera_matrix.rows[1].xyz, -dy * zoom);
+            vec3_t *camera_offset = &ed_entity_state.camera_offset;
+            vec3_t_fmadd(camera_offset, camera_offset, &r_camera_matrix.rows[0].xyz, -dx * zoom);
+            vec3_t_fmadd(camera_offset, camera_offset, &r_camera_matrix.rows[1].xyz, -dy * zoom);
         }
         else
         {
             ed_entity_state.camera_yaw -= dx;
             ed_entity_state.camera_pitch += dy;
-
             ed_entity_state.camera_pitch = fminf(fmaxf(ed_entity_state.camera_pitch, -0.5), 0.5);
         }
     }

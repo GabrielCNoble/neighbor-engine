@@ -128,8 +128,8 @@ struct e_entity_t
         {
             struct e_local_transform_component_t *local_transform_component;
             struct e_transform_component_t *transform_component;
-            struct e_physics_component_t *physics_component;
             struct e_model_component_t *model_component;
+            struct e_physics_component_t *physics_component;
         };
 
         struct e_component_t *components[E_COMPONENT_TYPE_LAST];

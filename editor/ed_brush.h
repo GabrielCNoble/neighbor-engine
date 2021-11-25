@@ -61,6 +61,8 @@ void ed_SetFaceMaterial(struct ed_brush_t *brush, uint32_t face_index, struct r_
 
 void ed_TranslateBrushFace(struct ed_brush_t *brush, uint32_t face_index, vec3_t *translation);
 
+void ed_TranslateBrushEdge(struct ed_brush_t *brush, uint32_t edge_index, vec3_t *translation);
+
 void ed_RotateBrushFace(struct ed_brush_t *brush, uint32_t face_index, mat3_t *rotation);
 
 void ed_UpdateBrushEntity(struct ed_brush_t *brush);

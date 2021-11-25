@@ -563,6 +563,7 @@ struct ed_edge_t *ed_AllocEdge(struct ed_brush_t *brush)
     edge->polygons[1].prev = NULL;
     edge->polygons[1].polygon = NULL;
     edge->s_index = 0xffffffff;
+    edge->model_start_flag = 0;
 
     brush->edge_count++;
 
@@ -869,6 +870,26 @@ void ed_TranslateBrushFace(struct ed_brush_t *brush, uint32_t face_index, vec3_t
 
             polygon = polygon->next;
         }
+    }
+}
+
+void ed_TranslateBrushEdge(struct ed_brush_t *brush, uint32_t edge_index, vec3_t *translation)
+{
+    struct ed_edge_t *edge = ed_GetEdge(edge_index);
+
+    if(edge)
+    {
+        mat3_t brush_orientation;
+        vec3_t local_translation;
+
+        mat3_t_transpose(&brush_orientation, &brush->orientation);
+        mat3_t_vec3_t_mul(&local_translation, translation, &brush_orientation);
+
+        struct ed_vert_transform_t *vert_transform;
+        vert_transform = ed_FindVertTransform(brush, edge->verts[0].vert->index);
+        vert_transform->translation = local_translation;
+        vert_transform = ed_FindVertTransform(brush, edge->verts[1].vert->index);
+        vert_transform->translation = local_translation;
     }
 }
 
@@ -1189,37 +1210,70 @@ void ed_UpdateBrush(struct ed_brush_t *brush)
             polygon->model_start = polygon_batch->start + polygon_batch->count;
             polygon->model_count = polygon_batch->count;
 
-            struct ed_face_polygon_t *face = polygon->face_polygon;
+            uint32_t vert_count = polygon->vertices.cursor;
+            uint32_t triangle_count = (vert_count - 2);
+            uint32_t root_vertex = vertex_count;
+            struct ed_face_polygon_t *face_polygon = polygon->face_polygon;
+            struct ed_edge_t *edge = face_polygon->edges;
+            uint32_t edge_start = polygon->model_start;
+            uint32_t vert_offset = 2;
 
-
-            for(uint32_t vert_index = 1; vert_index < polygon->vertices.cursor - 1;)
+            while(edge)
             {
-                batch_indices[polygon_batch->count] = vertex_count;
-                polygon_batch->count++;
+                uint32_t polygon_side = edge->polygons[1].polygon == face_polygon;
 
-                batch_indices[polygon_batch->count] = vertex_count + vert_index;
+                if(!polygon_side)
+                {
+                    edge->model_start = edge_start;
+                }
+
+                edge_start++;
+                vert_offset--;
+                if(!vert_offset)
+                {
+                    edge_start++;
+                    vert_offset = 2;
+                }
+
+                edge = edge->polygons[polygon_side].next;
+            }
+
+            /* to allow edge pickables to work properly, we need to triangulate
+            the faces in such a way that the first vertex of the last external edge
+            isn't the last in the list. Here we'll build a triangle fan. */
+
+            /* triangulate first triangle, since this is a special case
+            where the root vertex will come first */
+            uint32_t vert_index = root_vertex + 1;
+            batch_indices[polygon_batch->count] = root_vertex;
+            polygon_batch->count++;
+            batch_indices[polygon_batch->count] = vert_index;
+            vert_index++;
+            polygon_batch->count++;
+            batch_indices[polygon_batch->count] = vert_index;
+            polygon_batch->count++;
+
+            vert_count -= 3;
+
+            while(vert_count)
+            {
+                /* fill indices in a way that makes the root vertex be
+                the last every time */
+                batch_indices[polygon_batch->count] = vert_index;
+                polygon_batch->count++;
                 vert_index++;
+
+                batch_indices[polygon_batch->count] = vert_index;
                 polygon_batch->count++;
 
-                batch_indices[polygon_batch->count] = vertex_count + vert_index;
+                batch_indices[polygon_batch->count] = root_vertex;
                 polygon_batch->count++;
+
+                vert_count--;
             }
 
             polygon->model_count = polygon_batch->count - polygon->model_count;
             index_count += polygon->model_count;
-
-
-    //        struct ed_face_polygon_t *face_polygon = polygon->face_polygon;
-    //        struct ed_edge_t *edge = face_polygon->edges;
-
-    //        uint32_t vert_index = polygon->model_start;
-    //
-    //        while(edge)
-    //        {
-    //            edge->model_start = vert_index;
-    //            vert_index++;
-    //            edge = edge->next;
-    //        }
 
             vertex_count += polygon->vertices.cursor;
         }

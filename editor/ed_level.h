@@ -33,9 +33,9 @@ void ed_w_CopySelections(struct ds_list_t *selections);
 
 void ed_w_DeleteSelections();
 
-void ed_w_TranslateSelected(vec3_t *translation, uint32_t transform_mode);
+void ed_LevelEditorTranslateSelected(vec3_t *translation, uint32_t transform_mode);
 
-void ed_w_RotateSelected(mat3_t *rotation, vec3_t *pivot, uint32_t transform_mode);
+void ed_LevelEditorRotateSelected(mat3_t *rotation, vec3_t *pivot, uint32_t transform_mode);
 
 void ed_w_MarkPickableModified(struct ed_pickable_t *pickable);
 
@@ -61,41 +61,41 @@ void ed_LevelEditorUpdate();
 =============================================================
 */
 
-void ed_w_DrawManipulator();
+void ed_LevelEditorDrawManipulator();
 
-void ed_w_DrawWidgets();
+void ed_LevelEditorDrawWidgets();
 
-void ed_w_DrawGrid();
+void ed_LevelEditorDrawGrid();
 
-void ed_w_DrawBrushes();
+//void ed_LevelEditorDrawBrushes();
 
-void ed_w_DrawLights();
+void ed_LevelEditorDrawLights();
 
-void ed_w_DrawSelections();
+void ed_LevelEditorDrawSelections();
 
-void ed_w_PingInfoWindow();
+//void ed_w_PingInfoWindow();
 
 uint32_t ed_w_IntersectPlaneFromCamera(float mouse_x, float mouse_y, vec3_t *plane_point, vec3_t *plane_normal, vec3_t *result);
 
 void ed_w_PointPixelCoords(int32_t *x, int32_t *y, vec3_t *point);
 
-void ed_w_Idle(uint32_t just_changed);
+void ed_LevelEditorIdle(uint32_t just_changed);
 
-void ed_w_FlyCamera(uint32_t just_changed);
+void ed_LevelEditorFlyCamera(uint32_t just_changed);
 
-void ed_w_LeftClick(uint32_t just_changed);
+void ed_LevelEditorLeftClick(uint32_t just_changed);
 
-void ed_w_RightClick(uint32_t just_changed);
+void ed_LevelEditorRightClick(uint32_t just_changed);
 
-void ed_w_BrushBox(uint32_t just_changed);
+void ed_LevelEditorBrushBox(uint32_t just_changed);
 
-void ed_w_PickObjectOrWidget(uint32_t just_changed);
+void ed_LevelEditorPickObjectOrWidget(uint32_t just_changed);
 
-void ed_w_PickObject(uint32_t just_changed);
+void ed_LevelEditorPickObject(uint32_t just_changed);
 
-void ed_w_PlaceLightAtCursor(uint32_t just_changed);
+void ed_LevelEditorPlaceLightAtCursor(uint32_t just_changed);
 
-void ed_w_TransformSelections(uint32_t just_changed);
+void ed_LevelEditorTransformSelections(uint32_t just_changed);
 
 void ed_SerializeLevel(void **level_buffer, size_t *buffer_size, uint32_t serialize_brushes);
 

@@ -93,6 +93,8 @@ vec4_t ed_selection_outline_colors[][2] =
     [ED_PICKABLE_TYPE_FACE][1] = vec4_t_c(0.3, 0.4, 1.0, 1.0),
 };
 
+extern struct e_ent_def_t *g_ent_def;
+
 void ed_LevelEditorInit(struct ed_editor_t *editor)
 {
 //    ed_world_context = ed_contexts + ED_CONTEXT_WORLD;
@@ -304,6 +306,9 @@ void ed_LevelEditorInit(struct ed_editor_t *editor)
 
     struct r_texture_t *diffuse;
     struct r_texture_t *normal;
+
+
+//    ed_CreateEntityPickable(g_ent_def, &vec3_t_c(0.0, 0.0, 0.0), &vec3_t_c(1.0, 1.0, 1.0), &mat3_t_c_id(), NULL);
 //
 //    diffuse = r_LoadTexture("textures/bathroomtile2-basecolor.png", "bathroomtile2_diffuse");
 //    normal = r_LoadTexture("textures/bathroomtile2-normal.png", "bathroomtile2_normal");
@@ -334,6 +339,7 @@ void ed_LevelEditorShutdown()
 void ed_LevelEditorSuspend()
 {
     ed_SaveGameLevelSnapshot();
+    l_ClearLevel();
 }
 
 void ed_LevelEditorResume()
@@ -862,6 +868,51 @@ void ed_w_UpdateManipulator()
     }
 }
 
+struct ed_pickable_range_t *ed_UpdateEntityPickableRanges(struct ed_pickable_t *pickable, struct e_entity_t *entity, mat4_t *parent_transform, struct ed_pickable_range_t **cur_range)
+{
+    struct e_node_t *node = entity->node;
+    struct e_model_t *model = entity->model;
+
+    struct ed_pickable_range_t *range = *cur_range;
+    pickable->range_count++;
+
+    if(!range)
+    {
+        range = ed_AllocPickableRange();
+    }
+
+    if(!parent_transform)
+    {
+        range->offset = mat4_t_c_id();
+    }
+    else
+    {
+        mat4_t_comp(&range->offset, &node->orientation, &node->position);
+        mat4_t_mul(&range->offset, &range->offset, parent_transform);
+    }
+
+    range->start = model->model->model_start;
+    range->count = model->model->model_count;
+
+    *cur_range = range;
+    struct e_node_t *child = node->children;
+
+    if(child)
+    {
+        struct ed_pickable_range_t *next_range = ed_UpdateEntityPickableRanges(pickable, child->entity, &range->offset, &(*cur_range)->next);
+        next_range->prev = range;
+        child = child->next;
+
+        while(child)
+        {
+            ed_UpdateEntityPickableRanges(pickable, child->entity, &range->offset, &(*cur_range)->next);
+            child = child->next;
+        }
+    }
+
+    return range;
+}
+
 void ed_w_UpdatePickableObjects()
 {
     struct ds_list_t *pickables = &ed_level_state.pickables.modified_pickables;
@@ -1104,7 +1155,51 @@ void ed_w_UpdatePickableObjects()
                 break;
 
                 case ED_PICKABLE_TYPE_ENTITY:
+                {
+                    struct e_entity_t *entity = e_GetEntity(pickable->primary_index);
 
+                    if(pickable->transform_flags)
+                    {
+                        if(pickable->transform_flags & ED_PICKABLE_TRANSFORM_FLAG_TRANSLATION)
+                        {
+                            e_TranslateEntity(entity, &pickable->translation);
+                        }
+
+                        if(pickable->transform_flags & ED_PICKABLE_TRANSFORM_FLAG_ROTATION)
+                        {
+                            e_RotateEntity(entity, &pickable->rotation);
+                        }
+                    }
+
+                    uint32_t range_count = pickable->range_count;
+                    ed_UpdateEntityPickableRanges(pickable, entity, NULL, &pickable->ranges);
+
+                    if(range_count > pickable->range_count)
+                    {
+                        /* we have more ranges than we need, so free the extra at the
+                        end of the list */
+                        struct ed_pickable_range_t *range = pickable->ranges;
+                        range_count = pickable->range_count;
+
+                        while(range_count)
+                        {
+                            /* skip all used ranges */
+                           range = range->next;
+                           range_count--;
+                        }
+
+                        range->prev->next = NULL;
+
+                        while(range)
+                        {
+                            struct ed_pickable_range_t *next_range = range->next;
+                            ed_FreePickableRange(range);
+                            range = next_range;
+                        }
+                    }
+
+                    mat4_t_comp(&pickable->transform, &entity->node->orientation, &entity->node->position);
+                }
                 break;
             }
 
@@ -1555,6 +1650,11 @@ void ed_LevelEditorIdle(uint32_t just_changed)
     else if(in_GetKeyState(SDL_SCANCODE_R) & IN_KEY_STATE_JUST_PRESSED)
     {
         ed_level_state.manipulator.mode = ED_LEVEL_MANIP_MODE_ROTATION;
+    }
+
+    else if(in_GetKeyState(SDL_SCANCODE_L) & IN_KEY_STATE_JUST_PRESSED)
+    {
+        ed_CreateEntityPickable(g_ent_def, &vec3_t_c(0.0, 0.0, 0.0), &vec3_t_c(1.0, 1.0, 1.0), &mat3_t_c_id(), NULL);
     }
 }
 
@@ -2446,8 +2546,8 @@ void ed_SerializeLevel(void **level_buffer, size_t *buffer_size, uint32_t serial
 
     for(uint32_t entity_index = 0; entity_index < e_root_transforms.cursor; entity_index++)
     {
-        struct e_local_transform_component_t *transform;
-        transform = *(struct e_local_transform_component_t **)ds_list_get_element(&e_root_transforms, entity_index);
+        struct e_node_t *transform;
+        transform = *(struct e_node_t **)ds_list_get_element(&e_root_transforms, entity_index);
 
         /* don't serialize entities without a valid ent def (mostly brush entities) */
         if(transform->entity->def)

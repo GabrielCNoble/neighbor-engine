@@ -671,11 +671,11 @@ void r_VisibleEntities()
 {
     for(uint32_t transform_index = 0; transform_index < e_components[E_COMPONENT_TYPE_TRANSFORM].cursor; transform_index++)
     {
-        struct e_transform_component_t *transform = (struct e_transform_component_t *)e_GetComponent(E_COMPONENT_TYPE_TRANSFORM, transform_index);
+        struct e_transform_t *transform = (struct e_transform_t *)e_GetComponent(E_COMPONENT_TYPE_TRANSFORM, transform_index);
 
         if(transform)
         {
-            r_DrawEntity(&transform->transform, transform->entity->model_component->model);
+            r_DrawEntity(&transform->transform, transform->entity->model->model);
         }
     }
 }
@@ -719,8 +719,8 @@ void r_VisibleEntitiesOnLights()
         float light_radius = light->range;
         for(uint32_t transform_index = 0; transform_index < e_components[E_COMPONENT_TYPE_TRANSFORM].cursor; transform_index++)
         {
-            struct e_transform_component_t *transform = (struct e_transform_component_t *)e_GetComponent(E_COMPONENT_TYPE_TRANSFORM, transform_index);
-            struct e_model_component_t *model = transform->entity->model_component;
+            struct e_transform_t *transform = (struct e_transform_t *)e_GetComponent(E_COMPONENT_TYPE_TRANSFORM, transform_index);
+            struct e_model_t *model = transform->entity->model;
 
             if(model)
             {

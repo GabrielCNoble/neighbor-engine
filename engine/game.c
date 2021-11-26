@@ -144,6 +144,8 @@ struct p_character_collider_t *character_collider;
 
 extern struct r_renderer_state_t r_renderer_state;
 
+struct e_ent_def_t *g_ent_def;
+
 void g_TestCallback(void *data, float delta_time)
 {
 //    struct g_entity_t *entity = (struct g_entity_t *)data;
@@ -188,16 +190,16 @@ void g_Init(uint32_t editor_active)
     floor_shape_def->orientation = mat3_t_c_id();
     floor_shape_def->box.size = vec3_t_c(10.0, 1.0, 10.0);
 
-    struct e_ent_def_t *box_ent_def = e_AllocEntDef(E_ENT_DEF_TYPE_ROOT);
+    g_ent_def = e_AllocEntDef(E_ENT_DEF_TYPE_ROOT);
     struct p_shape_def_t *box_shape_def = p_AllocShapeDef(E_ENT_DEF_TYPE_ROOT);
 
-    strcpy(box_ent_def->name, "box");
-    box_ent_def->model = g_cube_model;
-    box_ent_def->scale = vec3_t_c(1.0, 1.0, 1.0);
-    box_ent_def->collider.shape = box_shape_def;
-    box_ent_def->collider.shape_count = 1;
-    box_ent_def->collider.mass = 1.0;
-    box_ent_def->collider.type = P_COLLIDER_TYPE_DYNAMIC;
+    strcpy(g_ent_def->name, "box");
+    g_ent_def->model = g_cube_model;
+    g_ent_def->scale = vec3_t_c(1.0, 1.0, 1.0);
+    g_ent_def->collider.shape = box_shape_def;
+    g_ent_def->collider.shape_count = 1;
+    g_ent_def->collider.mass = 1.0;
+    g_ent_def->collider.type = P_COLLIDER_TYPE_DYNAMIC;
 
     box_shape_def->type = P_COL_SHAPE_TYPE_BOX;
     box_shape_def->position = vec3_t_c(0.0, 0.0, 0.0);

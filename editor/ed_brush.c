@@ -949,7 +949,7 @@ void ed_UpdateBrushEntity(struct ed_brush_t *brush)
     }
     else
     {
-        struct e_local_transform_component_t *transform = brush->entity->local_transform_component;
+        struct e_node_t *transform = brush->entity->node;
         transform->position = brush->position;
         transform->orientation = brush->orientation;
     }

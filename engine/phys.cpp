@@ -434,10 +434,39 @@ void p_DisplaceCollider(struct p_collider_t *collider, vec3_t *disp)
 //    }
 }
 
+void p_TranslateCollider(struct p_collider_t *collider, vec3_t *disp)
+{
+    if(collider && collider->index != 0xffffffff && collider->type)
+    {
+        btRigidBody *rigid_body = (btRigidBody *)collider->rigid_body;
+        rigid_body->translate(btVector3(disp->x, disp->y, disp->z));
+        rigid_body->setLinearVelocity(btVector3(0, 0, 0));
+        rigid_body->setAngularVelocity(btVector3(0, 0, 0));
+
+        vec3_t_add(&collider->position, &collider->position, disp);
+    }
+}
+
 void p_RotateCollider(struct p_collider_t *collider, mat3_t *rot)
 {
-//    mat3_t_mul(&collider->orientation, &collider->orientation, rot);
-//    p_UpdateColliderNode(collider);
+    if(collider && collider->index != 0xffffffff && collider->type)
+    {
+        btRigidBody *rigid_body = (btRigidBody *)collider->rigid_body;
+        btTransform transform = rigid_body->getCenterOfMassTransform();
+        btMatrix3x3 &basis = transform.getBasis();
+        mat3_t *orientation = &collider->orientation;
+        orientation->rows[0] = vec3_t_c(basis[0][0], basis[0][1], basis[0][2]);
+        orientation->rows[1] = vec3_t_c(basis[1][0], basis[1][1], basis[1][2]);
+        orientation->rows[2] = vec3_t_c(basis[2][0], basis[2][1], basis[2][2]);
+        mat3_t_mul(orientation, orientation, rot);
+        basis[0] = btVector3(orientation->rows[0].x, orientation->rows[0].y, orientation->rows[0].z);
+        basis[1] = btVector3(orientation->rows[1].x, orientation->rows[1].y, orientation->rows[1].z);
+        basis[2] = btVector3(orientation->rows[2].x, orientation->rows[2].y, orientation->rows[2].z);
+        transform.setBasis(basis);
+        rigid_body->setCenterOfMassTransform(transform);
+        rigid_body->setLinearVelocity(btVector3(0, 0, 0));
+        rigid_body->setAngularVelocity(btVector3(0, 0, 0));
+    }
 }
 
 void p_MoveCharacterCollider(struct p_character_collider_t *collider, vec3_t *direction)

@@ -15,16 +15,16 @@ extern struct r_renderer_state_t r_renderer_state;
 
 void e_Init()
 {
-    e_components[E_COMPONENT_TYPE_LOCAL_TRANSFORM] = ds_list_create(sizeof(struct e_local_transform_component_t), 512);
-    e_components[E_COMPONENT_TYPE_TRANSFORM] = ds_list_create(sizeof(struct e_transform_component_t), 512);
-    e_components[E_COMPONENT_TYPE_PHYSICS] = ds_list_create(sizeof(struct e_physics_component_t), 512);
-    e_components[E_COMPONENT_TYPE_MODEL] = ds_list_create(sizeof(struct e_model_component_t), 512);
+    e_components[E_COMPONENT_TYPE_NODE] = ds_list_create(sizeof(struct e_node_t), 512);
+    e_components[E_COMPONENT_TYPE_TRANSFORM] = ds_list_create(sizeof(struct e_transform_t), 512);
+    e_components[E_COMPONENT_TYPE_COLLIDER] = ds_list_create(sizeof(struct e_collider_t), 512);
+    e_components[E_COMPONENT_TYPE_MODEL] = ds_list_create(sizeof(struct e_model_t), 512);
 
     e_ent_defs[E_ENT_DEF_TYPE_ROOT] = ds_slist_create(sizeof(struct e_ent_def_t), 512);
     e_ent_defs[E_ENT_DEF_TYPE_CHILD] = ds_slist_create(sizeof(struct e_ent_def_t), 512);
 
     e_entities = ds_slist_create(sizeof(struct e_entity_t), 512);
-    e_root_transforms = ds_list_create(sizeof(struct e_local_transform_component_t *), 512);
+    e_root_transforms = ds_list_create(sizeof(struct e_node_t *), 512);
 }
 
 void e_Shutdown()
@@ -133,14 +133,14 @@ void e_DeallocComponent(struct e_component_t *component)
 
         switch(component->type)
         {
-            case E_COMPONENT_TYPE_LOCAL_TRANSFORM:
+            case E_COMPONENT_TYPE_NODE:
             {
-                struct e_local_transform_component_t *transform = (struct e_local_transform_component_t *)component;
-                struct e_local_transform_component_t *child = transform->children;
+                struct e_node_t *transform = (struct e_node_t *)component;
+                struct e_node_t *child = transform->children;
 
                 while(child)
                 {
-                    struct e_local_transform_component_t *next_child = child->next;
+                    struct e_node_t *next_child = child->next;
                     e_DeallocComponent((struct e_component_t *)child);
                     child = next_child;
                 }
@@ -168,17 +168,17 @@ void e_DeallocComponent(struct e_component_t *component)
 
                     if(root_index < e_root_transforms.cursor)
                     {
-                        struct e_local_transform_component_t *moved_transform;
-                        moved_transform = *(struct e_local_transform_component_t **)ds_list_get_element(&e_root_transforms, root_index);
+                        struct e_node_t *moved_transform;
+                        moved_transform = *(struct e_node_t **)ds_list_get_element(&e_root_transforms, root_index);
                         moved_transform->root_index = root_index;
                     }
                 }
             }
             break;
 
-            case E_COMPONENT_TYPE_PHYSICS:
+            case E_COMPONENT_TYPE_COLLIDER:
             {
-                struct e_physics_component_t *collider = (struct e_physics_component_t *)component;
+                struct e_collider_t *collider = (struct e_collider_t *)component;
                 p_DestroyCollider(collider->collider);
             }
             break;
@@ -196,16 +196,16 @@ void e_DeallocComponent(struct e_component_t *component)
             /* make the entity point at the new component */
             component->entity->components[component->type] = component;
 
-            if(component->type == E_COMPONENT_TYPE_LOCAL_TRANSFORM)
+            if(component->type == E_COMPONENT_TYPE_NODE)
             {
                 /* local transform components take part in a hierarchy, so we need to update its parent child list
                 to make it point to the new component */
-                struct e_local_transform_component_t *transform = (struct e_local_transform_component_t *)component;
-                struct e_local_transform_component_t *parent = transform->parent;
+                struct e_node_t *transform = (struct e_node_t *)component;
+                struct e_node_t *parent = transform->parent;
 
                 if(parent)
                 {
-                    struct e_local_transform_component_t *child_transform = parent->children;
+                    struct e_node_t *child_transform = parent->children;
 
                     while(child_transform)
                     {
@@ -233,7 +233,7 @@ void e_DeallocComponent(struct e_component_t *component)
                 }
                 else
                 {
-                    struct e_local_transform_component_t **transform_ptr = ds_list_get_element(&e_root_transforms, transform->root_index);
+                    struct e_node_t **transform_ptr = ds_list_get_element(&e_root_transforms, transform->root_index);
                     *transform_ptr = transform;
                 }
             }
@@ -243,10 +243,10 @@ void e_DeallocComponent(struct e_component_t *component)
     }
 }
 
-struct e_local_transform_component_t *e_AllocLocalTransformComponent(vec3_t *position, vec3_t *scale, mat3_t *orientation, struct e_entity_t *entity)
+struct e_node_t *e_AllocNode(vec3_t *position, vec3_t *scale, mat3_t *orientation, struct e_entity_t *entity)
 {
-    struct e_local_transform_component_t *component;
-    component = (struct e_local_transform_component_t *)e_AllocComponent(E_COMPONENT_TYPE_LOCAL_TRANSFORM, entity);
+    struct e_node_t *component;
+    component = (struct e_node_t *)e_AllocComponent(E_COMPONENT_TYPE_NODE, entity);
 
     component->parent = NULL;
     component->children = NULL;
@@ -260,20 +260,20 @@ struct e_local_transform_component_t *e_AllocLocalTransformComponent(vec3_t *pos
     return component;
 }
 
-struct e_transform_component_t *e_AllocTransformComponent(struct e_entity_t *entity)
+struct e_transform_t *e_AllocTransform(struct e_entity_t *entity)
 {
-    struct e_transform_component_t *component = (struct e_transform_component_t *)e_AllocComponent(E_COMPONENT_TYPE_TRANSFORM, entity);
+    struct e_transform_t *component = (struct e_transform_t *)e_AllocComponent(E_COMPONENT_TYPE_TRANSFORM, entity);
     component->extents = vec3_t_c(0.0, 0.0, 0.0);
     return component;
 }
 
-struct e_physics_component_t *e_AllocPhysicsComponent(struct p_col_def_t *col_def, struct e_entity_t *entity)
+struct e_collider_t *e_AllocCollider(struct p_col_def_t *col_def, struct e_entity_t *entity)
 {
-    struct e_physics_component_t *component = (struct e_physics_component_t *)e_AllocComponent(E_COMPONENT_TYPE_PHYSICS, entity);
+    struct e_collider_t *component = (struct e_collider_t *)e_AllocComponent(E_COMPONENT_TYPE_COLLIDER, entity);
 
     if(entity)
     {
-        struct e_local_transform_component_t *transform = entity->local_transform_component;
+        struct e_node_t *transform = entity->node;
         component->collider = p_CreateCollider(col_def, &transform->position, &transform->orientation);
     }
     else
@@ -284,9 +284,9 @@ struct e_physics_component_t *e_AllocPhysicsComponent(struct p_col_def_t *col_de
     return component;
 }
 
-struct e_model_component_t *e_AllocModelComponent(struct r_model_t *model, struct e_entity_t *entity)
+struct e_model_t *e_AllocModel(struct r_model_t *model, struct e_entity_t *entity)
 {
-    struct e_model_component_t *component = (struct e_model_component_t *)e_AllocComponent(E_COMPONENT_TYPE_MODEL, entity);
+    struct e_model_t *component = (struct e_model_t *)e_AllocComponent(E_COMPONENT_TYPE_MODEL, entity);
     component->model = model;
     return component;
 }
@@ -299,14 +299,14 @@ struct e_entity_t *e_SpawnEntityRecursive(struct e_ent_def_t *ent_def, vec3_t *p
     index = ds_slist_add_element(&e_entities, NULL);
     entity = ds_slist_get_element(&e_entities, index);
 
-    entity->local_transform_component = e_AllocLocalTransformComponent(position, scale, orientation, entity);
-    entity->transform_component = e_AllocTransformComponent(entity);
+    entity->node = e_AllocNode(position, scale, orientation, entity);
+    entity->transform = e_AllocTransform(entity);
     entity->index = index;
     entity->def = NULL;
 
     if(ent_def->model)
     {
-        entity->model_component = e_AllocModelComponent(ent_def->model, entity);
+        entity->model = e_AllocModel(ent_def->model, entity);
     }
 
     if(ent_def->children)
@@ -316,17 +316,17 @@ struct e_entity_t *e_SpawnEntityRecursive(struct e_ent_def_t *ent_def, vec3_t *p
         while(child_def)
         {
             struct e_entity_t *child_entity = e_SpawnEntityRecursive(child_def, &child_def->position, &child_def->scale, &child_def->orientation, entity);
-            struct e_local_transform_component_t *child_transform = child_entity->local_transform_component;
-            child_transform->parent = entity->local_transform_component;
+            struct e_node_t *child_transform = child_entity->node;
+            child_transform->parent = entity->node;
 
-            child_transform->next = entity->local_transform_component->children;
-            if(entity->local_transform_component->children)
+            child_transform->next = entity->node->children;
+            if(entity->node->children)
             {
-                entity->local_transform_component->prev = child_transform;
+                entity->node->prev = child_transform;
             }
-            entity->local_transform_component->children = child_transform;
-
+            entity->node->children = child_transform;
             child_def = child_def->next;
+//            entity->node->child_count += 1 + child_transform->child_count;
         }
     }
 
@@ -336,11 +336,11 @@ struct e_entity_t *e_SpawnEntityRecursive(struct e_ent_def_t *ent_def, vec3_t *p
 struct e_entity_t *e_SpawnEntity(struct e_ent_def_t *ent_def, vec3_t *position, vec3_t *scale, mat3_t *orientation)
 {
     struct e_entity_t *entity = e_SpawnEntityRecursive(ent_def, position, scale, orientation, NULL);
-    entity->local_transform_component->root_index = ds_list_add_element(&e_root_transforms, &entity->local_transform_component);
+    entity->node->root_index = ds_list_add_element(&e_root_transforms, &entity->node);
 
-    entity->local_transform_component->scale.x *= ent_def->scale.x;
-    entity->local_transform_component->scale.y *= ent_def->scale.y;
-    entity->local_transform_component->scale.z *= ent_def->scale.z;
+    entity->node->scale.x *= ent_def->scale.x;
+    entity->node->scale.y *= ent_def->scale.y;
+    entity->node->scale.z *= ent_def->scale.z;
 
     if(ent_def->type == E_ENT_DEF_TYPE_ROOT)
     {
@@ -349,8 +349,10 @@ struct e_entity_t *e_SpawnEntity(struct e_ent_def_t *ent_def, vec3_t *position, 
 
     if(ent_def->collider.shape_count)
     {
-        entity->physics_component = e_AllocPhysicsComponent(&ent_def->collider, entity);
+        entity->collider = e_AllocCollider(&ent_def->collider, entity);
     }
+
+    e_UpdateEntityNode(entity->node, &mat4_t_c_id());
 
     return entity;
 }
@@ -371,15 +373,15 @@ void e_DestroyEntity(struct e_entity_t *entity)
 {
     if(entity && entity->index != 0xffffffff)
     {
-        struct e_local_transform_component_t *transform = entity->local_transform_component;
+        struct e_node_t *transform = entity->node;
 
         if(transform->children)
         {
-            struct e_local_transform_component_t *child_transfom = transform->children;
+            struct e_node_t *child_transfom = transform->children;
 
             while(child_transfom)
             {
-                struct e_local_transform_component_t *next_child_transform = child_transfom->next;
+                struct e_node_t *next_child_transform = child_transfom->next;
                 e_DestroyEntity(child_transfom->entity);
                 child_transfom = next_child_transform;
             }
@@ -409,9 +411,35 @@ void e_DestroyAllEntities()
     }
 }
 
-void e_UpdateEntityLocalTransform(struct e_local_transform_component_t *local_transform, mat4_t *parent_transform)
+void e_TranslateEntity(struct e_entity_t *entity, vec3_t *translation)
 {
-    struct e_transform_component_t *transform = local_transform->entity->transform_component;
+    if(entity && entity->index != 0xffffffff)
+    {
+        if(entity->collider)
+        {
+            p_TranslateCollider(entity->collider->collider, translation);
+        }
+
+        vec3_t_add(&entity->node->position, &entity->node->position, translation);
+    }
+}
+
+void e_RotateEntity(struct e_entity_t *entity, mat3_t *rotation)
+{
+    if(entity && entity->index != 0xffffffff)
+    {
+        if(entity->collider)
+        {
+            p_RotateCollider(entity->collider->collider, rotation);
+        }
+
+        mat3_t_mul(&entity->node->orientation, &entity->node->orientation, rotation);
+    }
+}
+
+void e_UpdateEntityNode(struct e_node_t *local_transform, mat4_t *parent_transform)
+{
+    struct e_transform_t *transform = local_transform->entity->transform;
     mat3_t local_orientation = mat3_t_c_id();
 
     local_orientation.rows[0].x = local_transform->scale.x;
@@ -421,40 +449,40 @@ void e_UpdateEntityLocalTransform(struct e_local_transform_component_t *local_tr
     mat4_t_comp(&transform->transform, &local_orientation, &local_transform->position);
     mat4_t_mul(&transform->transform, &transform->transform, parent_transform);
 
-    struct e_local_transform_component_t *child = local_transform->children;
+    struct e_node_t *child = local_transform->children;
 
     while(child)
     {
-        e_UpdateEntityLocalTransform(child, &transform->transform);
+        e_UpdateEntityNode(child, &transform->transform);
         child = child->next;
     }
 }
 
 void e_UpdateEntities()
 {
-    for(uint32_t collider_index = 0; collider_index < e_components[E_COMPONENT_TYPE_PHYSICS].cursor; collider_index++)
+    for(uint32_t collider_index = 0; collider_index < e_components[E_COMPONENT_TYPE_COLLIDER].cursor; collider_index++)
     {
-        struct e_physics_component_t *collider = (struct e_physics_component_t *)e_GetComponent(E_COMPONENT_TYPE_PHYSICS, collider_index);
-        struct e_local_transform_component_t *transform = collider->entity->local_transform_component;
+        struct e_collider_t *collider = (struct e_collider_t *)e_GetComponent(E_COMPONENT_TYPE_COLLIDER, collider_index);
+        struct e_node_t *transform = collider->entity->node;
         transform->orientation = collider->collider->orientation;
         transform->position = collider->collider->position;
     }
 
     for(uint32_t root_index = 0; root_index < e_root_transforms.cursor; root_index++)
     {
-        struct e_local_transform_component_t *local_transform = *(struct e_local_transform_component_t **)ds_list_get_element(&e_root_transforms, root_index);
-        e_UpdateEntityLocalTransform(local_transform, &mat4_t_c_id());
+        struct e_node_t *local_transform = *(struct e_node_t **)ds_list_get_element(&e_root_transforms, root_index);
+        e_UpdateEntityNode(local_transform, &mat4_t_c_id());
     }
 
     for(uint32_t model_index = 0; model_index < e_components[E_COMPONENT_TYPE_MODEL].cursor; model_index++)
     {
-        struct e_model_component_t *model = (struct e_model_component_t *)e_GetComponent(E_COMPONENT_TYPE_MODEL, model_index);
+        struct e_model_t *model = (struct e_model_t *)e_GetComponent(E_COMPONENT_TYPE_MODEL, model_index);
 
         vec3_t corners[8];
         vec3_t min;
         vec3_t max;
 
-        struct e_transform_component_t *transform = model->entity->transform_component;
+        struct e_transform_t *transform = model->entity->transform;
 
         max = model->model->max;
         min = model->model->min;
@@ -526,8 +554,8 @@ void e_UpdateEntities()
 
         for(uint32_t model_index = 0; model_index < e_components[E_COMPONENT_TYPE_MODEL].cursor; model_index++)
         {
-            struct e_model_component_t *model = (struct e_model_component_t *)e_GetComponent(E_COMPONENT_TYPE_MODEL, model_index);
-            struct e_transform_component_t *transform = model->entity->transform_component;
+            struct e_model_t *model = (struct e_model_t *)e_GetComponent(E_COMPONENT_TYPE_MODEL, model_index);
+            struct e_transform_t *transform = model->entity->transform;
 
             vec3_t_mul(&max, &transform->extents, 0.5);
             vec3_t_mul(&min, &transform->extents, -0.5);

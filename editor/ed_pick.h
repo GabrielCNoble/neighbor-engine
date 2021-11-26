@@ -57,7 +57,7 @@ struct ed_pickable_t *ed_CreateBrushPickable(vec3_t *position, mat3_t *orientati
 
 struct ed_pickable_t *ed_CreateLightPickable(vec3_t *pos, vec3_t *color, float radius, float energy, struct r_light_t *src_light);
 
-struct ed_pickable_t *ed_CreateEntityPickable(mat4_t *transform, struct r_model_t *model);
+struct ed_pickable_t *ed_CreateEntityPickable(struct e_ent_def_t *ent_def, vec3_t *position, vec3_t *scale, mat3_t *orientation, struct e_entity_t *src_entity);
 
 
 #endif

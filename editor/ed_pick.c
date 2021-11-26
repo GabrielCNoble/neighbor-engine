@@ -497,7 +497,6 @@ struct ed_pickable_t *ed_CreateBrushPickable(vec3_t *position, mat3_t *orientati
         face_pickable->mode = GL_TRIANGLES;
         face_pickable->range_count = 0;
         mat4_t_comp(&face_pickable->transform, &brush->orientation, &brush->position);
-//        face_pickable->draw_transform = face_pickable->transform;
         face->pickable = face_pickable;
         ed_w_MarkPickableModified(face_pickable);
 
@@ -575,7 +574,34 @@ struct ed_pickable_t *ed_CreateLightPickable(vec3_t *pos, vec3_t *color, float r
     return pickable;
 }
 
-struct ed_pickable_t *ed_CreateEntityPickable(mat4_t *transform, struct r_model_t *model)
+struct ed_pickable_t *ed_CreateEntityPickable(struct e_ent_def_t *ent_def, vec3_t *position, vec3_t *scale, mat3_t *orientation, struct e_entity_t *src_entity)
 {
-    return NULL;
+    struct e_entity_t *entity;
+
+    if(src_entity)
+    {
+        entity = src_entity;
+    }
+    else
+    {
+        entity = e_SpawnEntity(ent_def, position, scale, orientation);
+    }
+
+    struct ed_pickable_t *pickable = ed_CreatePickable(ED_PICKABLE_TYPE_ENTITY);
+    pickable->primary_index = entity->index;
+    pickable->mode = GL_TRIANGLES;
+    pickable->transform = entity->transform->transform;
+
+    ed_w_MarkPickableModified(pickable);
+
+    return pickable;
 }
+
+
+
+
+
+
+
+
+

@@ -95,7 +95,7 @@ vec4_t ed_selection_outline_colors[][2] =
 
 extern struct e_ent_def_t *g_ent_def;
 
-void ed_LevelEditorInit(struct ed_editor_t *editor)
+void ed_l_Init(struct ed_editor_t *editor)
 {
 //    ed_world_context = ed_contexts + ED_CONTEXT_WORLD;
 //    ed_world_context->update = ed_w_Update;
@@ -331,21 +331,23 @@ void ed_LevelEditorInit(struct ed_editor_t *editor)
 //    r_CreateSpotLight(&vec3_t_c(0.0, 2.2, 0.0), &vec3_t_c(1.0, 1.0, 1.0), &orientation, 30.0, 5.0, 0.2, 0.1);
 }
 
-void ed_LevelEditorShutdown()
+void ed_l_Shutdown()
 {
 
 }
 
-void ed_LevelEditorSuspend()
+void ed_l_Suspend()
 {
-    ed_SaveGameLevelSnapshot();
+    ed_l_SaveGameLevelSnapshot();
+    ed_l_ClearBrushEntities();
     l_ClearLevel();
 }
 
-void ed_LevelEditorResume()
+void ed_l_Resume()
 {
     r_SetClearColor(0.05, 0.05, 0.05, 1.0);
-    ed_LoadGameLevelSnapshot();
+    ed_l_LoadGameLevelSnapshot();
+    ed_l_RestoreBrushEntities();
 }
 
 void ed_w_ManipulatorWidgetSetupPickableDrawState(uint32_t pickable_index, struct ed_pickable_t *pickable)
@@ -887,8 +889,15 @@ struct ed_pickable_range_t *ed_UpdateEntityPickableRanges(struct ed_pickable_t *
     }
     else
     {
+        mat4_t scale = mat4_t_c_id();
+
+        scale.rows[0].x = node->scale.x;
+        scale.rows[1].y = node->scale.y;
+        scale.rows[2].z = node->scale.z;
+
         mat4_t_comp(&range->offset, &node->orientation, &node->position);
         mat4_t_mul(&range->offset, &range->offset, parent_transform);
+        mat4_t_mul(&range->offset, &scale, &range->offset);
     }
 
     range->start = model->model->model_start;
@@ -941,6 +950,8 @@ void ed_w_UpdatePickableObjects()
                     struct r_batch_t *first_batch = brush->model->batches.buffer;
                     pickable->ranges->start = first_batch->start;
                     pickable->ranges->count = brush->model->indices.buffer_size;
+
+                    ed_level_state.world_data_stale = 1;
 
                     if(pickable->transform_flags)
                     {
@@ -1198,7 +1209,13 @@ void ed_w_UpdatePickableObjects()
                         }
                     }
 
+                    mat4_t scale = mat4_t_c_id();
+                    scale.rows[0].x = entity->node->scale.x;
+                    scale.rows[1].y = entity->node->scale.y;
+                    scale.rows[2].z = entity->node->scale.z;
+
                     mat4_t_comp(&pickable->transform, &entity->node->orientation, &entity->node->position);
+                    mat4_t_mul(&pickable->transform, &scale, &pickable->transform);
                 }
                 break;
             }
@@ -1225,7 +1242,7 @@ void ed_w_UpdatePickableObjects()
     pickables->cursor = 0;
 }
 
-void ed_LevelEditorUpdate()
+void ed_l_Update()
 {
     r_SetViewPos(&ed_level_state.camera_pos);
     r_SetViewPitchYaw(ed_level_state.camera_pitch, ed_level_state.camera_yaw);
@@ -1242,8 +1259,7 @@ void ed_LevelEditorUpdate()
 
     if(in_GetKeyState(SDL_SCANCODE_P) & IN_KEY_STATE_JUST_PRESSED)
     {
-        ed_SaveGameLevelSnapshot();
-        g_BeginGame();
+        ed_l_PlayGame();
     }
 }
 
@@ -2552,6 +2568,7 @@ void ed_SerializeLevel(void **level_buffer, size_t *buffer_size, uint32_t serial
         /* don't serialize entities without a valid ent def (mostly brush entities) */
         if(transform->entity->def)
         {
+            struct e_ent_def_t *ent_def = transform->entity->def;
             struct l_entity_record_t *entity_record = entity_records + entity_section->record_count;
             entity_section->record_count++;
 
@@ -2560,7 +2577,11 @@ void ed_SerializeLevel(void **level_buffer, size_t *buffer_size, uint32_t serial
             entity_record->ent_def = transform->entity->def->s_index;
             entity_record->position = transform->position;
             entity_record->orientation = transform->orientation;
-            entity_record->scale = transform->scale;
+
+            entity_record->scale.x = transform->scale.x / ent_def->scale.x;
+            entity_record->scale.y = transform->scale.y / ent_def->scale.y;
+            entity_record->scale.z = transform->scale.z / ent_def->scale.z;
+
             entity_record->s_index = transform->entity->index;
         }
     }
@@ -2691,7 +2712,7 @@ void ed_DeserializeLevel(void *level_buffer, size_t buffer_size)
     }
 }
 
-void ed_LevelEditorSaveLevel(char *path, char *file)
+void ed_l_SaveLevel(char *path, char *file)
 {
     void *buffer;
     size_t buffer_size;
@@ -2720,7 +2741,7 @@ void ed_LevelEditorSaveLevel(char *path, char *file)
     ds_path_drop_ext(file, file_no_ext, PATH_MAX);
     strcpy(ed_level_state.project.level_name, file);
 
-    ed_BuildWorldData();
+    ed_l_BuildWorldData();
     ed_SerializeLevel(&buffer, &buffer_size, 1);
     l_DestroyWorld();
     ds_path_append_end(ed_level_state.project.folder, "levels", file_path, PATH_MAX);
@@ -2732,7 +2753,7 @@ void ed_LevelEditorSaveLevel(char *path, char *file)
     fclose(fp);
 }
 
-void ed_LevelEditorLoadFile(char *path, char *file)
+void ed_l_LoadFile(char *path, char *file)
 {
     void *buffer;
     void *resource = NULL;
@@ -2771,7 +2792,7 @@ void ed_LevelEditorLoadFile(char *path, char *file)
             return;
         }
 
-        ed_LevelEditorReset();
+        ed_l_ResetEditor();
 
         strcpy(ed_level_state.project.level_name, file);
         ds_path_drop_end(path, ed_level_state.project.folder, PATH_MAX);
@@ -2784,7 +2805,7 @@ void ed_LevelEditorLoadFile(char *path, char *file)
     }
 }
 
-void ed_SaveGameLevelSnapshot()
+void ed_l_ClearBrushEntities()
 {
     for(uint32_t brush_index = 0; brush_index < ed_level_state.brush.brushes.cursor; brush_index++)
     {
@@ -2796,26 +2817,32 @@ void ed_SaveGameLevelSnapshot()
             brush->entity = NULL;
         }
     }
+}
 
-    ed_BuildWorldData();
+void ed_l_RestoreBrushEntities()
+{
+    for(uint32_t brush_index = 0; brush_index < ed_level_state.brush.brushes.cursor; brush_index++)
+    {
+        struct ed_brush_t *brush = ed_GetBrush(brush_index);
+
+        if(brush)
+        {
+            ed_UpdateBrushEntity(brush);
+        }
+    }
+}
+
+void ed_l_SaveGameLevelSnapshot()
+{
+    ed_l_BuildWorldData();
     ed_SerializeLevel(&ed_level_state.game_level_buffer, &ed_level_state.game_level_buffer_size, 0);
 }
 
-void ed_LoadGameLevelSnapshot()
+void ed_l_LoadGameLevelSnapshot()
 {
     if(ed_level_state.game_level_buffer)
     {
         l_DeserializeLevel(ed_level_state.game_level_buffer, ed_level_state.game_level_buffer_size, L_LEVEL_DATA_ALL & (~L_LEVEL_DATA_WORLD));
-
-        for(uint32_t brush_index = 0; brush_index < ed_level_state.brush.brushes.cursor; brush_index++)
-        {
-            struct ed_brush_t *brush = ed_GetBrush(brush_index);
-
-            if(brush)
-            {
-                ed_UpdateBrushEntity(brush);
-            }
-        }
 
         char *level_buffer = ed_level_state.game_level_buffer;
         struct ed_level_section_t *level_section = (struct ed_level_section_t *)level_buffer;
@@ -2879,7 +2906,20 @@ void ed_LoadGameLevelSnapshot()
     }
 }
 
-void ed_LevelEditorReset()
+void ed_l_PlayGame()
+{
+    ed_l_SaveGameLevelSnapshot();
+    ed_l_ClearBrushEntities();
+    g_BeginGame();
+}
+
+void ed_l_StopGame()
+{
+    ed_l_LoadGameLevelSnapshot();
+    ed_l_RestoreBrushEntities();
+}
+
+void ed_l_ResetEditor()
 {
     ed_level_state.camera_pitch = ED_LEVEL_CAMERA_PITCH;
     ed_level_state.camera_yaw = ED_LEVEL_CAMERA_YAW;
@@ -2907,10 +2947,12 @@ void ed_LevelEditorReset()
     ed_level_state.pickables.selections.cursor = 0;
 }
 
-void ed_BuildWorldData()
+void ed_l_BuildWorldData()
 {
-    if(!l_world_collider && ed_level_state.brush.brushes.used)
+    if(ed_level_state.world_data_stale && ed_level_state.brush.brushes.used)
     {
+        ed_level_state.world_data_stale = 0;
+
         struct ds_buffer_t world_col_verts_buffer = ds_buffer_create(sizeof(vec3_t), ed_level_state.brush.brush_model_vert_count);
         struct ds_buffer_t world_draw_verts_buffer = ds_buffer_create(sizeof(struct r_vert_t), ed_level_state.brush.brush_model_vert_count);
         struct ds_buffer_t world_indices_buffer = ds_buffer_create(sizeof(uint32_t), ed_level_state.brush.brush_model_index_count);

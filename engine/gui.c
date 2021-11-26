@@ -107,12 +107,7 @@ void gui_BeginFrame(float delta_time)
     gui_projection_matrix.rows[3].y = 1.0;
 
     igNewFrame();
-//    igSetNextWindowPos((ImVec2){0.0, 0.0}, ImGuiCond_Once, (ImVec2){0.0, 0.0});
-//    if(igBegin("blah", NULL, 0))
-//    {
-//        igText("BLAH");
-//    }
-//    igEnd();
+
 //    igShowDemoWindow(NULL);
 }
 

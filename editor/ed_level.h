@@ -7,13 +7,13 @@
 
 
 
-void ed_LevelEditorInit(struct ed_editor_t *editor);
+void ed_l_Init(struct ed_editor_t *editor);
 
-void ed_LevelEditorShutdown();
+void ed_l_Shutdown();
 
-void ed_LevelEditorSuspend();
+void ed_l_Suspend();
 
-void ed_LevelEditorResume();
+void ed_l_Resume();
 
 void ed_w_ManipulatorWidgetSetupPickableDrawState(uint32_t pickable_index, struct ed_pickable_t *pickable);
 
@@ -53,7 +53,7 @@ void ed_w_UpdateManipulator();
 
 void ed_w_UpdatePickableObjects();
 
-void ed_LevelEditorUpdate();
+void ed_l_Update();
 
 /*
 =============================================================
@@ -103,17 +103,25 @@ void ed_DeserializeLevel(void *level_buffer, size_t buffer_size);
 
 //void ed_
 
-void ed_LevelEditorSaveLevel(char *path, char *file);
+void ed_l_SaveLevel(char *path, char *file);
 
-void ed_LevelEditorLoadFile(char *path, char *file);
+void ed_l_LoadFile(char *path, char *file);
 
-void ed_SaveGameLevelSnapshot();
+void ed_l_ClearBrushEntities();
 
-void ed_LoadGameLevelSnapshot();
+void ed_l_RestoreBrushEntities();
 
-void ed_LevelEditorReset();
+void ed_l_SaveGameLevelSnapshot();
 
-void ed_BuildWorldData();
+void ed_l_LoadGameLevelSnapshot();
+
+void ed_l_PlayGame();
+
+void ed_l_StopGame();
+
+void ed_l_ResetEditor();
+
+void ed_l_BuildWorldData();
 
 
 #endif // ED_W_CTX_H

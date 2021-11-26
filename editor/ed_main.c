@@ -142,23 +142,23 @@ void ed_Init()
     ed_PickingInit();
 
     ed_editors[ED_EDITOR_LEVEL] = (struct ed_editor_t ){
-        .init = ed_LevelEditorInit,
-        .shutdown = ed_LevelEditorShutdown,
-        .update = ed_LevelEditorUpdate,
-        .suspend = ed_LevelEditorSuspend,
-        .resume = ed_LevelEditorResume,
-        .explorer_load = ed_LevelEditorLoadFile,
-        .explorer_save = ed_LevelEditorSaveLevel,
-        .explorer_new = ed_LevelEditorReset
+        .init = ed_l_Init,
+        .shutdown = ed_l_Shutdown,
+        .update = ed_l_Update,
+        .suspend = ed_l_Suspend,
+        .resume = ed_l_Resume,
+        .explorer_load = ed_l_LoadFile,
+        .explorer_save = ed_l_SaveLevel,
+        .explorer_new = ed_l_ResetEditor
     };
 
     ed_editors[ED_EDITOR_ENTITY] = (struct ed_editor_t){
-        .init = ed_EntityEditorInit,
-        .shutdown = ed_EntityEditorShutdown,
-        .update = ed_EntityEditorUpdate,
-        .suspend = ed_EntityEditorSuspend,
-        .resume = ed_EntityEditorResume,
-        .explorer_new = ed_EntityEditorReset
+        .init = ed_e_Init,
+        .shutdown = ed_e_Shutdown,
+        .update = ed_e_Update,
+        .suspend = ed_e_Suspend,
+        .resume = ed_e_Resume,
+        .explorer_new = ed_e_ResetEditor
     };
 
     ed_editors[ED_EDITOR_PROJ] = (struct ed_editor_t){

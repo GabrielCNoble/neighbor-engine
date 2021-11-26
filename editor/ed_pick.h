@@ -23,6 +23,7 @@ struct ed_pickable_t *ed_SelectPickable(int32_t mouse_x, int32_t mouse_y, struct
 
 struct ed_pickable_t *ed_SelectWidget(int32_t mouse_x, int32_t mouse_y, struct ed_widget_t *widget, mat4_t *widget_transform);
 
+uint32_t ed_ClickOnManipulator(int32_t mouse_x, int32_t mouse_y, struct ed_manipulator_t *manipulator);
 
 
 struct ed_widget_t *ed_CreateWidget();

@@ -64,7 +64,7 @@ struct ed_pickable_t
     struct ds_slist_t *list;
     uint32_t selection_index;
     uint32_t modified_index;
-    struct ed_pick_dep_t *deps;
+//    struct ed_pick_dep_t *deps;
 
     uint32_t transform_flags;
     uint32_t draw_render_flags;
@@ -86,17 +86,31 @@ struct ed_pickable_t
     uint32_t update_index;
 };
 
-struct ed_pick_dep_t
+struct ed_manipulator_t
 {
-    struct
-    {
-        struct ed_pick_dep_t *next;
-        struct ed_pick_dep_t *prev;
-        struct ed_pickable_t *pickable;
-    } pickables[2];
-
-    uint32_t index;
+    uint32_t mode;
+    uint32_t visible;
+    float prev_angle;
+    vec3_t start_pos;
+    vec3_t prev_offset;
+    mat4_t transform;
+    vec2_t screen_pos;
+    float linear_snap;
+    float angular_snap;
+    struct ed_widget_t *widgets[3];
 };
+
+//struct ed_pick_dep_t
+//{
+//    struct
+//    {
+//        struct ed_pick_dep_t *next;
+//        struct ed_pick_dep_t *prev;
+//        struct ed_pickable_t *pickable;
+//    } pickables[2];
+//
+//    uint32_t index;
+//};
 
 struct ed_widget_t
 {

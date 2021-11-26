@@ -3,17 +3,23 @@
 
 #include "ed_ent_defs.h"
 
-void ed_EntityEditorInit(struct ed_editor_t *editor);
+void ed_e_Init(struct ed_editor_t *editor);
 
-void ed_EntityEditorShutdown();
+void ed_e_Shutdown();
 
-void ed_EntityEditorSuspend();
+void ed_e_Suspend();
 
-void ed_EntityEditorResume();
+void ed_e_Resume();
 
-void ed_EntityEditorUpdate();
+uint32_t ed_e_HierarchyUI(struct e_ent_def_t *ent_def);
 
-void ed_EntityEditorReset();
+void ed_e_UpdateUI();
+
+void ed_e_Update();
+
+void ed_e_ResetEditor();
+
+void ed_e_SelectEntDef(struct e_ent_def_t *ent_def);
 
 void ed_EntityEditorIdle(uint32_t just_changed);
 

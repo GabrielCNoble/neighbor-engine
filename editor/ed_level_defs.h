@@ -52,7 +52,6 @@ struct ed_level_state_t
 
         uint32_t brush_model_vert_count;
         uint32_t brush_model_index_count;
-//        uint32_t brush_index_count;
 
         struct ds_list_t brush_batches;
     } brush;
@@ -100,6 +99,11 @@ struct ed_level_state_t
 
     void *game_level_buffer;
     size_t game_level_buffer_size;
+    uint32_t world_data_stale;
+
+    struct p_collider_t *world_collider;
+    struct p_shape_def_t *world_shape;
+    struct r_model_t *world_model;
 
     struct
     {

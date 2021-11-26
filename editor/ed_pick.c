@@ -5,6 +5,7 @@
 #include "ed_level.h"
 #include "../engine/game.h"
 #include "../engine/r_main.h"
+#include "../engine/ent.h"
 
 extern struct ed_level_state_t ed_level_state;
 extern struct r_shader_t *ed_picking_shader;

@@ -5,6 +5,7 @@
 #include "../lib/dstuff/ds_mem.h"
 #include "../engine/r_draw.h"
 #include "../engine/input.h"
+#include "../engine/gui.h"
 #include "ed_level.h"
 #include "ed_main.h"
 #include <stddef.h>
@@ -13,7 +14,12 @@
 struct ed_entity_state_t ed_entity_state;
 extern mat4_t r_camera_matrix;
 
-void ed_EntityEditorInit(struct ed_editor_t *editor)
+extern uint32_t r_width;
+extern uint32_t r_height;
+extern struct ds_slist_t e_ent_defs[];
+extern struct ds_slist_t r_models;
+
+void ed_e_Init(struct ed_editor_t *editor)
 {
     editor->next_state = ed_EntityEditorIdle;
 
@@ -23,41 +29,246 @@ void ed_EntityEditorInit(struct ed_editor_t *editor)
     ed_entity_state.camera_offset = vec3_t_c(0.0, 0.0, 0.0);
 }
 
-void ed_EntityEditorShutdown()
+void ed_e_Shutdown()
 {
 
 }
 
-void ed_EntityEditorSuspend()
+void ed_e_Suspend()
 {
+    if(ed_entity_state.cur_entity)
+    {
+        e_DestroyEntity(ed_entity_state.cur_entity);
+    }
 
+    r_DestroyLight((struct r_light_t *)ed_entity_state.light);
 }
 
-void ed_EntityEditorResume()
+void ed_e_Resume()
 {
     r_SetClearColor(0.4, 0.4, 0.8, 1.0);
+
+    if(ed_entity_state.cur_ent_def && ed_entity_state.cur_ent_def->index != 0xffffffff)
+    {
+        struct e_ent_def_t *ent_def = ed_entity_state.cur_ent_def;
+        ed_entity_state.cur_entity = e_SpawnEntity(ent_def, &vec3_t_c(0.0, 0.0, 0.0), &vec3_t_c(1.0, 1.0, 1.0), &mat3_t_c_id());
+    }
+
+    ed_entity_state.light = r_CreatePointLight(&vec3_t_c(0.0, 0.0, 0.0), &vec3_t_c(1.0, 1.0, 1.0), 20.0, 5.0);
 }
 
-void ed_EntityEditorUpdateUI()
+void ed_e_DrawColliderShape(struct p_shape_def_t *shape_def)
 {
+    switch(shape_def->type)
+    {
+        case P_COL_SHAPE_TYPE_BOX:
+        {
+            vec3_t max;
+            vec3_t min;
 
+            vec3_t_add(&max, &shape_def->position, &shape_def->box.size);
+            vec3_t_sub(&min, &shape_def->position, &shape_def->box.size);
+
+            r_i_DrawLine(&vec3_t_c(min.x, max.y, max.z), &vec3_t_c(min.x, min.y, max.z), &vec4_t_c(0.0, 1.0, 0.0, 1.0), 1.0);
+            r_i_DrawLine(&vec3_t_c(max.x, max.y, max.z), &vec3_t_c(max.x, min.y, max.z), &vec4_t_c(0.0, 1.0, 0.0, 1.0), 1.0);
+
+            r_i_DrawLine(&vec3_t_c(min.x, max.y, min.z), &vec3_t_c(min.x, min.y, min.z), &vec4_t_c(0.0, 1.0, 0.0, 1.0), 1.0);
+            r_i_DrawLine(&vec3_t_c(max.x, max.y, min.z), &vec3_t_c(max.x, min.y, min.z), &vec4_t_c(0.0, 1.0, 0.0, 1.0), 1.0);
+        }
+        break;
+
+        case P_COL_SHAPE_TYPE_CAPSULE:
+        {
+
+        }
+        break;
+    }
 }
 
-void ed_EntityEditorUpdate()
+uint32_t ed_e_HierarchyUI(struct e_ent_def_t *ent_def)
 {
-    ed_EntityEditorUpdateUI();
+    uint32_t refresh_entity = 0;
+
+    if(igTreeNode_Ptr(ent_def, ""))
+    {
+        igSeparator();
+        igText("Transform");
+
+        if(igInputFloat3("Position", ent_def->position.comps, "%0.2f", 0))
+        {
+            refresh_entity = 1;
+        }
+
+        if(igInputFloat3("Scale", ent_def->scale.comps, "%0.2f", 0))
+        {
+            refresh_entity = 1;
+        }
+
+        if(ent_def->model)
+        {
+            igSeparator();
+            igText("Model");
+            if(igBeginCombo("##model", ent_def->model->name, 0))
+            {
+                for(uint32_t model_index = 0; model_index < r_models.cursor; model_index++)
+                {
+                    struct r_model_t *model = r_GetModel(model_index);
+
+                    if(model)
+                    {
+                        if(igSelectable_Bool(model->name, 0, 0, (ImVec2){0, 0}))
+                        {
+                            ent_def->model = model;
+                            refresh_entity = 1;
+                        }
+                    }
+                }
+                igEndCombo();
+            }
+        }
+
+        if(ent_def->collider.shape_count)
+        {
+            igSeparator();
+            igText("Collider");
+            struct p_shape_def_t *shape = ent_def->collider.shape;
+            char *shape_label;
+            while(shape)
+            {
+                ed_e_DrawColliderShape(shape);
+                switch(shape->type)
+                {
+                    case P_COL_SHAPE_TYPE_BOX:
+                        shape_label = "Box";
+                    break;
+
+                    case P_COL_SHAPE_TYPE_CAPSULE:
+                        shape_label = "Capsule";
+                    break;
+                }
+                if(igInputFloat3("Position", shape->position.comps, 0, 0))
+                {
+                    refresh_entity = 1;
+                }
+                shape = shape->next;
+            }
+        }
+
+        struct e_ent_def_t *child = ent_def->children;
+
+        while(child)
+        {
+            refresh_entity |= ed_e_HierarchyUI(child);
+            child = child->next;
+        }
+
+        igTreePop();
+    }
+
+    return refresh_entity;
+}
+
+void ed_e_UpdateUI()
+{
+    ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_AlwaysAutoResize;
+    window_flags |= ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar;
+
+    if(ed_entity_state.cur_ent_def)
+    {
+        r_i_SetViewProjectionMatrix(NULL);
+        r_i_SetModelMatrix(NULL);
+        r_i_SetShader(NULL);
+        struct e_ent_def_t *ent_def = ed_entity_state.cur_ent_def;
+        igSetNextWindowPos((ImVec2){r_width, 40}, 0, (ImVec2){1, 0});
+        igSetNextWindowSize((ImVec2){350, 0}, 0);
+        if(igBegin("##ent_defs_data", NULL, 0))
+        {
+            igInputText("Name", ent_def->name, sizeof(ent_def->name), 0, 0, NULL);
+            igText("Total child nodes: %d", ent_def->children_count);
+
+            igSeparator();
+            igText("Hierarchy");
+            igSeparator();
+
+            if(ed_e_HierarchyUI(ent_def))
+            {
+                e_DestroyEntity(ed_entity_state.cur_entity);
+                ed_entity_state.cur_entity = e_SpawnEntity(ent_def, &vec3_t_c(0.0, 0.0, 0.0), &vec3_t_c(1.0, 1.0, 1.0), &mat3_t_c_id());
+            }
+        }
+        igEnd();
+    }
+
+    if(ed_entity_state.ent_def_window_open)
+    {
+        if(igBegin("Ent defs", NULL, 0))
+        {
+            for(uint32_t ent_def_index = 0; ent_def_index < e_ent_defs[E_ENT_DEF_TYPE_ROOT].cursor; ent_def_index++)
+            {
+                struct e_ent_def_t *ent_def = e_GetEntDef(E_ENT_DEF_TYPE_ROOT, ent_def_index);
+
+                igSelectable_Bool(ent_def->name, 0, 0, (ImVec2){50, 50});
+                if(igIsItemClicked(ImGuiMouseButton_Left))
+                {
+                    if(igIsMouseDoubleClicked(ImGuiMouseButton_Left))
+                    {
+                        ed_e_SelectEntDef(ent_def);
+                        ed_entity_state.ent_def_window_open = 0;
+                    }
+                }
+            }
+        }
+        igEnd();
+    }
+
+    igSetNextWindowBgAlpha(0.5);
+    igPushStyleVar_Float(ImGuiStyleVar_WindowBorderSize, 0.0);
+    igSetNextWindowSize((ImVec2){r_width, 0}, 0);
+    igSetNextWindowPos((ImVec2){0.0, r_height}, 0, (ImVec2){0, 1});
+    if(igBegin("Footer window", NULL, window_flags))
+    {
+        char label[32];
+        sprintf(label, "Ent defs (%d)", e_ent_defs[E_ENT_DEF_TYPE_ROOT].used);
+        if(igSelectable_Bool(label, ed_entity_state.ent_def_window_open, 0, (ImVec2){100, 0}))
+        {
+            ed_entity_state.ent_def_window_open = !ed_entity_state.ent_def_window_open;
+        }
+    }
+    igEnd();
+    igPopStyleVar(1);
+}
+
+void ed_e_Update()
+{
+    ed_e_UpdateUI();
 
     r_SetViewPitchYaw(ed_entity_state.camera_pitch, ed_entity_state.camera_yaw);
     vec3_t forward_vec = r_camera_matrix.rows[2].xyz;
     vec3_t_mul(&forward_vec, &forward_vec, ed_entity_state.camera_zoom);
     vec3_t_add(&forward_vec, &forward_vec, &ed_entity_state.camera_offset);
     r_SetViewPos(&forward_vec);
+
+    ed_entity_state.light->position = forward_vec;
     ed_LevelEditorDrawGrid();
 }
 
-void ed_EntityEditorReset()
+void ed_e_ResetEditor()
 {
 
+}
+
+void ed_e_SelectEntDef(struct e_ent_def_t *ent_def)
+{
+    if(ent_def && ent_def != ed_entity_state.cur_ent_def)
+    {
+        if(ed_entity_state.cur_entity)
+        {
+            e_DestroyEntity(ed_entity_state.cur_entity);
+        }
+
+        ed_entity_state.cur_ent_def = ent_def;
+        ed_entity_state.cur_entity = e_SpawnEntity(ent_def, &vec3_t_c(0.0, 0.0, 0.0), &vec3_t_c(1.0, 1.0, 1.0), &mat3_t_c_id());
+    }
 }
 
 void ed_EntityEditorIdle(uint32_t just_changed)

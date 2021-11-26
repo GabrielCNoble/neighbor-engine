@@ -179,7 +179,7 @@ void g_Init(uint32_t editor_active)
 
     strcpy(floor_ent_def->name, "floor");
     floor_ent_def->model = g_cube_model;
-    floor_ent_def->scale = vec3_t_c(1.0, 1.0, 1.0);
+    floor_ent_def->scale = vec3_t_c(10.0, 1.0, 10.0);
     floor_ent_def->collider.shape = floor_shape_def;
     floor_ent_def->collider.shape_count = 1;
     floor_ent_def->collider.mass = 0.0;
@@ -231,7 +231,7 @@ void g_Init(uint32_t editor_active)
 //    box->collider = p_CreateCollider(&collider_def, &box->local_position, &orientation);
 
 
-//    g_gun_model = r_LoadModel("models/shocksplinter.mof");
+    g_gun_model = r_LoadModel("models/shocksplinter.mof", "shocksplinter");
 //    g_wiggle_model = r_LoadModel("models/dude.mof");
 //    g_cube_model = r_LoadModel("models/Cube.mof");
 
@@ -713,7 +713,7 @@ void g_StopGame()
 
     if(g_editor)
     {
-        ed_LoadGameLevelSnapshot();
+        ed_l_StopGame();
     }
     else
     {

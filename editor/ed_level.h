@@ -101,8 +101,6 @@ void ed_SerializeLevel(void **level_buffer, size_t *buffer_size, uint32_t serial
 
 void ed_DeserializeLevel(void *level_buffer, size_t buffer_size);
 
-//void ed_
-
 void ed_l_SaveLevel(char *path, char *file);
 
 void ed_l_LoadFile(char *path, char *file);
@@ -122,6 +120,8 @@ void ed_l_StopGame();
 void ed_l_ResetEditor();
 
 void ed_l_BuildWorldData();
+
+void ed_l_ClearWorldData();
 
 
 #endif // ED_W_CTX_H

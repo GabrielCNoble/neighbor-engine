@@ -270,6 +270,13 @@ void r_Init()
     pixels[0] = 0x0000003f;
     r_default_roughness_texture = r_CreateTexture("default_roughness", 1, 1, GL_RGBA8, pixels);
 
+//    r_default_material.diffuse_texture = r_default_albedo_texture;
+//    r_default_material.normal_texture = r_default_normal_texture;
+//    r_default_material.height_texture = r_default_height_texture;
+//    r_default_material.roughness_texture = r_default_roughness_texture;
+//    r_default_material.name = "default";
+//    r_default_material.index = 0xffffffff;
+
     r_default_material = r_CreateMaterial("default", NULL, NULL, NULL);
 
     r_clusters = mem_Calloc(R_CLUSTER_COUNT, sizeof(struct r_cluster_t));
@@ -976,11 +983,26 @@ struct r_material_t *r_CreateMaterial(char *name, struct r_texture_t *diffuse_te
     material->diffuse_texture = diffuse_texture;
     material->normal_texture = normal_texture;
     material->roughness_texture = roughness_texture;
+    material->height_texture = r_default_height_texture;
 
     return material;
 }
 
-struct r_material_t *r_GetMaterial(char *name)
+struct r_material_t *r_GetMaterial(uint32_t index)
+{
+    struct r_material_t *material = NULL;
+
+    material = ds_slist_get_element(&r_materials, index);
+
+    if(material && material->index == 0xffffffff)
+    {
+        material = NULL;
+    }
+
+    return material;
+}
+
+struct r_material_t *r_FindMaterial(char *name)
 {
     for(uint32_t material_index = 0; material_index < r_materials.cursor; material_index++)
     {
@@ -1121,7 +1143,7 @@ struct r_model_t *r_LoadModel(char *file_name, char *name)
         for(uint32_t batch_index = 0; batch_index < batch_section->batch_count; batch_index++)
         {
             struct r_batch_record_t *batch_record = batch_section->batches + batch_index;
-            struct r_material_t *material = r_GetMaterial(batch_record->material);
+            struct r_material_t *material = r_FindMaterial(batch_record->material);
 
             if(!material)
             {
@@ -1140,7 +1162,7 @@ struct r_model_t *r_LoadModel(char *file_name, char *name)
 
                 if(material_record->diffuse_texture[0])
                 {
-                    diffuse_texture = r_GetTexture(material_record->diffuse_texture);
+                    diffuse_texture = r_FindTexture(material_record->diffuse_texture);
 
                     if(!diffuse_texture)
                     {
@@ -1150,7 +1172,7 @@ struct r_model_t *r_LoadModel(char *file_name, char *name)
 
                 if(material_record->normal_texture[0])
                 {
-                    normal_texture = r_GetTexture(material_record->normal_texture);
+                    normal_texture = r_FindTexture(material_record->normal_texture);
 
                     if(!normal_texture)
                     {

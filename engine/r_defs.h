@@ -23,6 +23,7 @@ struct r_material_t
     struct r_texture_t *roughness_texture;
     struct r_texture_t *height_texture;
     uint32_t index;
+    uint32_t s_index;
     char *name;
 };
 

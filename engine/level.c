@@ -14,7 +14,9 @@ struct p_col_def_t l_world_col_def;
 
 struct l_player_record_t l_player_record;
 
-//extern struct ds_slist_t r_lights;
+extern struct r_texture_t *r_default_albedo_texture;
+extern struct r_texture_t *r_default_normal_texture;
+extern struct r_texture_t *r_default_roughness_texture;
 
 void l_Init()
 {
@@ -36,9 +38,14 @@ void l_DestroyWorld()
 {
     if(l_world_collider)
     {
-        p_DestroyCollider(l_world_collider);
         mem_Free(l_world_shape->itri_mesh.indices);
+        l_world_shape->itri_mesh.indices = NULL;
+        l_world_shape->itri_mesh.index_count = 0;
         mem_Free(l_world_shape->itri_mesh.verts);
+        l_world_shape->itri_mesh.verts = NULL;
+        l_world_shape->itri_mesh.vert_count = 0;
+
+        p_DestroyCollider(l_world_collider);
         l_world_collider = NULL;
     }
 
@@ -74,6 +81,43 @@ void l_DeserializeLevel(void *level_buffer, size_t buffer_size, uint32_t data_fl
         }
     }
 
+    struct l_material_section_t *material_section = (struct l_material_section_t *)(in_buffer + level_section->material_section_start);
+    struct l_material_record_t *material_records = (struct l_material_record_t *)(in_buffer + material_section->record_start);
+
+    for(uint32_t record_index = 0; record_index < material_section->record_count; record_index++)
+    {
+        struct l_material_record_t *record = material_records + record_index;
+        struct r_material_t *material = r_FindMaterial(record->name);
+
+        if(!material)
+        {
+            struct r_texture_t *diffuse_texture;
+            struct r_texture_t *normal_texture;
+            struct r_texture_t *roughness_texture;
+
+            diffuse_texture = r_FindTexture(record->diffuse_texture);
+            if(!diffuse_texture)
+            {
+                diffuse_texture = r_default_albedo_texture;
+            }
+
+            normal_texture = r_FindTexture(record->normal_texture);
+            if(!normal_texture)
+            {
+                normal_texture = r_default_normal_texture;
+            }
+
+            roughness_texture = r_FindTexture(record->roughness_texture);
+            if(!roughness_texture)
+            {
+                roughness_texture = r_default_roughness_texture;
+            }
+
+            material = r_CreateMaterial(record->name, diffuse_texture, normal_texture, roughness_texture);
+        }
+
+        record->material = material;
+    }
 
     if(data_flags & L_LEVEL_DATA_ENTITIES)
     {
@@ -88,7 +132,7 @@ void l_DeserializeLevel(void *level_buffer, size_t buffer_size, uint32_t data_fl
 
             if(!record->def)
             {
-                record->def = e_LoadEntDef(record->file);
+                record->def = e_LoadEntDef(record->name);
             }
         }
 
@@ -107,6 +151,49 @@ void l_DeserializeLevel(void *level_buffer, size_t buffer_size, uint32_t data_fl
     if(data_flags & L_LEVEL_DATA_WORLD)
     {
         struct l_world_section_t *world_section = (struct l_world_section_t *)(in_buffer + level_section->world_section_start);
+        struct r_vert_t *verts = (struct r_vert_t *)(in_buffer + world_section->vert_start);
+        uint32_t *indices = (uint32_t *)(in_buffer + world_section->index_start);
+        struct l_batch_record_t *batch_records = (struct l_batch_record_t *)(in_buffer + world_section->batch_start);
+
+        struct ds_buffer_t index_buffer = ds_buffer_create(sizeof(uint32_t), world_section->index_count);
+        struct ds_buffer_t batch_buffer = ds_buffer_create(sizeof(struct r_batch_t), world_section->batch_count);
+        struct ds_buffer_t col_verts = ds_buffer_create(sizeof(vec3_t), world_section->vert_count);
+
+        ds_buffer_fill(&index_buffer, 0, indices, world_section->index_count);
+
+        for(uint32_t batch_index = 0; batch_index < world_section->batch_count; batch_index++)
+        {
+            struct l_batch_record_t *record = batch_records + batch_index;
+            struct r_batch_t *batch = ((struct r_batch_t *)batch_buffer.buffer) + batch_index;
+
+            batch->start = record->start;
+            batch->count = record->count;
+            batch->material = material_records[record->material].material;
+        }
+
+        for(uint32_t vert_index = 0; vert_index < world_section->vert_count; vert_index++)
+        {
+            vec3_t *col_vert = ((vec3_t *)col_verts.buffer) + vert_index;
+            struct r_vert_t *draw_vert = verts + vert_index;
+            *col_vert = draw_vert->pos;
+        }
+
+        l_world_shape->itri_mesh.indices = index_buffer.buffer;
+        l_world_shape->itri_mesh.index_count = world_section->index_count;
+        l_world_shape->itri_mesh.verts = col_verts.buffer;
+        l_world_shape->itri_mesh.vert_count = world_section->vert_count;
+        l_world_collider = p_CreateCollider(&l_world_col_def, &vec3_t_c(0.0, 0.0, 0.0), &mat3_t_c_id());
+
+        struct r_model_geometry_t geometry = {};
+        geometry.batches = batch_buffer.buffer;
+        geometry.batch_count = world_section->batch_count;
+        geometry.indices = indices;
+        geometry.index_count = world_section->index_count;
+        geometry.verts = verts;
+        geometry.vert_count = world_section->vert_count;
+        l_world_model = r_CreateModel(&geometry, NULL, "world_model");
+
+        ds_buffer_destroy(&batch_buffer);
     }
 }
 

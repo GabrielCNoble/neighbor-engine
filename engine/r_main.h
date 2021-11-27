@@ -44,7 +44,9 @@ void r_DestroyTexture(struct r_texture_t *texture);
 
 struct r_material_t *r_CreateMaterial(char *name, struct r_texture_t *diffuse_texture, struct r_texture_t *normal_texture, struct r_texture_t *roughness_texture);
 
-struct r_material_t *r_GetMaterial(char *name);
+struct r_material_t *r_GetMaterial(uint32_t index);
+
+struct r_material_t *r_FindMaterial(char *name);
 
 struct r_material_t *r_GetDefaultMaterial();
 

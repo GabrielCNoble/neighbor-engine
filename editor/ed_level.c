@@ -35,6 +35,7 @@ struct r_shader_t *ed_outline_shader;
 struct r_i_verts_t *ed_grid;
 
 extern struct ds_slist_t r_lights[];
+extern struct ds_slist_t r_materials;
 extern struct ds_slist_t e_entities;
 extern struct ds_slist_t e_ent_defs[];
 extern struct ds_list_t e_components[];
@@ -1251,9 +1252,15 @@ void ed_l_Update()
     ed_w_UpdatePickableObjects();
     ed_w_UpdateManipulator();
 
+    if(ed_level_state.world_data_stale && l_world_collider)
+    {
+        ed_level_state.world_data_stale = 0;
+        ed_l_ClearWorldData();
+        ed_l_RestoreBrushEntities();
+    }
+
     ed_LevelEditorDrawGrid();
     ed_LevelEditorDrawSelections();
-//    ed_LevelEditorDrawBrushes();
     ed_LevelEditorDrawLights();
     ed_LevelEditorDrawWidgets();
 
@@ -2322,19 +2329,23 @@ void ed_SerializeLevel(void **level_buffer, size_t *buffer_size, uint32_t serial
     size_t ent_def_section_size = sizeof(struct l_ent_def_section_t);
     ent_def_section_size += sizeof(struct l_ent_def_record_t) * e_ent_defs[E_ENT_DEF_TYPE_ROOT].used;
 
+    size_t material_section_size = sizeof(struct l_material_section_t);
+    material_section_size += sizeof(struct l_material_record_t) * r_materials.used;
+
 
     size_t world_section_size = 0;
-
     if(l_world_collider)
     {
         world_section_size = sizeof(struct l_world_section_t);
-        world_section_size += sizeof(struct r_material_record_t) * l_world_model->batches.buffer_size;
-//        world_section_size += sizeof(struct r_)
+        world_section_size += sizeof(struct l_batch_record_t) * l_world_model->batches.buffer_size;
+        world_section_size += sizeof(struct r_vert_t) * l_world_model->verts.buffer_size;
+        world_section_size += sizeof(uint32_t) * l_world_model->indices.buffer_size;
     }
 
 
 
-    out_buffer_size += brush_section_size + light_section_size + entity_section_size + ent_def_section_size + world_section_size;
+    out_buffer_size += brush_section_size + light_section_size + entity_section_size;
+    out_buffer_size += ent_def_section_size + world_section_size + material_section_size;
 
     char *start_out_buffer = mem_Calloc(1, out_buffer_size);
     char *cur_out_buffer = start_out_buffer;
@@ -2528,6 +2539,34 @@ void ed_SerializeLevel(void **level_buffer, size_t *buffer_size, uint32_t serial
         }
     }
 
+
+    level_section->material_section_start = cur_out_buffer - start_out_buffer;
+    level_section->material_section_size = material_section_size;
+
+    struct l_material_section_t *material_section = (struct l_material_section_t *)cur_out_buffer;
+    cur_out_buffer += sizeof(struct l_material_section_t);
+    material_section->record_start = cur_out_buffer - start_out_buffer;
+    struct l_material_record_t *material_records = (struct l_material_record_t *)cur_out_buffer;
+    cur_out_buffer += sizeof(struct l_material_record_t) * r_materials.used;
+
+    for(uint32_t material_index = 0; material_index < r_materials.cursor; material_index++)
+    {
+        struct r_material_t *material = r_GetMaterial(material_index);
+
+        if(material)
+        {
+            struct l_material_record_t *record = material_records + material_section->record_count;
+            material->s_index = material_section->record_count;
+            material_section->record_count++;
+
+            strcpy(record->name, material->name);
+            strcpy(record->diffuse_texture, material->diffuse_texture->name);
+            strcpy(record->normal_texture, material->normal_texture->name);
+//            strcpy(record->height_texture, material->height_texture->name);
+            strcpy(record->roughness_texture, material->roughness_texture->name);
+        }
+    }
+
     level_section->ent_def_section_size = ent_def_section_size;
     level_section->ent_def_section_start = cur_out_buffer - start_out_buffer;
 
@@ -2551,8 +2590,6 @@ void ed_SerializeLevel(void **level_buffer, size_t *buffer_size, uint32_t serial
         }
     }
 
-
-//    level_section->entity_section_size = entity_section_size;
     level_section->entity_section_start = cur_out_buffer - start_out_buffer;
 
     struct l_entity_section_t *entity_section = (struct l_entity_section_t *)cur_out_buffer;
@@ -2588,6 +2625,41 @@ void ed_SerializeLevel(void **level_buffer, size_t *buffer_size, uint32_t serial
 
     cur_out_buffer += sizeof(struct l_entity_record_t) * entity_section->record_count;
     level_section->entity_section_size = (cur_out_buffer - start_out_buffer) - level_section->entity_section_start;
+
+    if(l_world_model)
+    {
+        level_section->world_section_start = cur_out_buffer - start_out_buffer;
+        level_section->world_section_size = world_section_size;
+
+        struct l_world_section_t *world_section = (struct l_world_section_t *)cur_out_buffer;
+        cur_out_buffer += sizeof(struct l_world_section_t);
+
+        world_section->vert_start = cur_out_buffer - start_out_buffer;
+        world_section->vert_count = l_world_model->verts.buffer_size;
+        struct r_vert_t *verts = (struct r_vert_t *)cur_out_buffer;
+        cur_out_buffer += sizeof(struct r_vert_t ) * world_section->vert_count;
+        memcpy(verts, l_world_model->verts.buffer, sizeof(struct r_vert_t) * world_section->vert_count);
+
+        world_section->index_start = cur_out_buffer - start_out_buffer;
+        world_section->index_count = l_world_model->indices.buffer_size;
+        uint32_t *indices = (uint32_t *)cur_out_buffer;
+        cur_out_buffer += sizeof(uint32_t) * world_section->index_count;
+        memcpy(indices, l_world_model->indices.buffer, sizeof(uint32_t) * world_section->index_count);
+
+        world_section->batch_start = cur_out_buffer - start_out_buffer;
+        world_section->batch_count = l_world_model->batches.buffer_size;
+        struct l_batch_record_t *batch_records = (struct l_batch_record_t *)cur_out_buffer;
+        cur_out_buffer += sizeof(struct l_batch_record_t) * world_section->batch_count;
+        for(uint32_t batch_index = 0; batch_index < world_section->batch_count; batch_index++)
+        {
+            struct r_batch_t *batch = ((struct r_batch_t *)l_world_model->batches.buffer) + batch_index;
+            struct l_batch_record_t *record = batch_records + batch_index;
+
+            record->start = batch->start - l_world_model->model_start;
+            record->count = batch->count;
+            record->material = batch->material->s_index;
+        }
+    }
 }
 
 void ed_DeserializeLevel(void *level_buffer, size_t buffer_size)
@@ -2599,6 +2671,28 @@ void ed_DeserializeLevel(void *level_buffer, size_t buffer_size)
     if(level_section->magic0 != ED_LEVEL_SECTION_MAGIC0 || level_section->magic1 != ED_LEVEL_SECTION_MAGIC1)
     {
         return;
+    }
+
+    l_DeserializeLevel(level_buffer, buffer_size, L_LEVEL_DATA_ALL);
+
+    for(uint32_t light_index = 0; light_index < r_lights[R_LIGHT_TYPE_POINT].cursor; light_index++)
+    {
+        struct r_light_t *light = r_GetLight(light_index);
+
+        if(light)
+        {
+            ed_CreateLightPickable(NULL, NULL, 0.0, 0.0, light);
+        }
+    }
+
+    for(uint32_t entity_index = 0; entity_index < e_root_transforms.cursor; entity_index++)
+    {
+        struct e_node_t *node = *(struct e_node_t **)ds_list_get_element(&e_root_transforms, entity_index);
+
+        if(node->entity->def)
+        {
+            ed_CreateEntityPickable(NULL, NULL, NULL, NULL, node->entity);
+        }
     }
 
     /* level editor stuff */
@@ -2643,7 +2737,7 @@ void ed_DeserializeLevel(void *level_buffer, size_t buffer_size)
             struct ed_face_record_t *face_record = face_records + face_index;
             struct ed_face_t *face = ed_AllocFace(brush);
 
-            face->material = r_GetMaterial(face_record->material);
+            face->material = r_FindMaterial(face_record->material);
             face->tex_coords_rot = face_record->uv_rot;
             face->tex_coords_scale = face_record->uv_scale;
 
@@ -2699,17 +2793,9 @@ void ed_DeserializeLevel(void *level_buffer, size_t buffer_size)
         ed_CreateBrushPickable(NULL, NULL, NULL, brush);
     }
 
-    l_DeserializeLevel(level_buffer, buffer_size, L_LEVEL_DATA_ALL & (~L_LEVEL_DATA_WORLD));
-
-    for(uint32_t light_index = 0; light_index < r_lights[R_LIGHT_TYPE_POINT].cursor; light_index++)
-    {
-        struct r_light_t *light = r_GetLight(light_index);
-
-        if(light)
-        {
-            ed_CreateLightPickable(NULL, NULL, 0.0, 0.0, light);
-        }
-    }
+    ed_w_UpdatePickableObjects();
+    ed_l_ClearBrushEntities();
+    ed_level_state.world_data_stale = 0;
 }
 
 void ed_l_SaveLevel(char *path, char *file)
@@ -2743,7 +2829,6 @@ void ed_l_SaveLevel(char *path, char *file)
 
     ed_l_BuildWorldData();
     ed_SerializeLevel(&buffer, &buffer_size, 1);
-    l_DestroyWorld();
     ds_path_append_end(ed_level_state.project.folder, "levels", file_path, PATH_MAX);
     ds_path_append_end(file_path, file, file_path, PATH_MAX);
     ds_path_set_ext(file_path, "nlv", file_path, PATH_MAX);
@@ -2842,7 +2927,7 @@ void ed_l_LoadGameLevelSnapshot()
 {
     if(ed_level_state.game_level_buffer)
     {
-        l_DeserializeLevel(ed_level_state.game_level_buffer, ed_level_state.game_level_buffer_size, L_LEVEL_DATA_ALL & (~L_LEVEL_DATA_WORLD));
+        l_DeserializeLevel(ed_level_state.game_level_buffer, ed_level_state.game_level_buffer_size, L_LEVEL_DATA_ALL);
 
         char *level_buffer = ed_level_state.game_level_buffer;
         struct ed_level_section_t *level_section = (struct ed_level_section_t *)level_buffer;
@@ -2949,8 +3034,13 @@ void ed_l_ResetEditor()
 
 void ed_l_BuildWorldData()
 {
-    if(/* ed_level_state.world_data_stale && */ ed_level_state.brush.brushes.used)
+//    ed_l_ClearBrushEntities();
+
+    if((ed_level_state.world_data_stale || !l_world_collider) && ed_level_state.brush.brushes.used)
     {
+        printf("ed_l_BuildWorldData\n");
+        ed_l_ClearWorldData();
+
         ed_level_state.world_data_stale = 0;
 
         struct ds_buffer_t world_col_verts_buffer = ds_buffer_create(sizeof(vec3_t), ed_level_state.brush.brush_model_vert_count);
@@ -3056,6 +3146,12 @@ void ed_l_BuildWorldData()
             l_world_model = r_CreateModel(&model_geometry, NULL, "world_model");
         }
     }
+}
+
+void ed_l_ClearWorldData()
+{
+    printf("ed_l_ClearWorldData\n");
+    l_DestroyWorld();
 }
 
 

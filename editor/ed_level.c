@@ -2949,7 +2949,7 @@ void ed_l_ResetEditor()
 
 void ed_l_BuildWorldData()
 {
-    if(ed_level_state.world_data_stale && ed_level_state.brush.brushes.used)
+    if(/* ed_level_state.world_data_stale && */ ed_level_state.brush.brushes.used)
     {
         ed_level_state.world_data_stale = 0;
 

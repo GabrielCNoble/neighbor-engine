@@ -209,7 +209,7 @@ void g_Init(uint32_t editor_active)
     mat3_t_rotate_x(&orientation, 0.05);
     mat3_t_rotate_y(&orientation, 0.05);
 
-    g_InitPlayer();
+//    g_InitPlayer();
 
 //    character_collider = p_CreateCharacterCollider(&vec3_t_c(0.0, 4.0, 0.0), 0.4, 1.7, 0.3, 0.8);
 
@@ -729,7 +729,7 @@ void g_GameMain(float delta_time)
     }
     else
     {
-        g_UpdatePlayer();
+//        g_UpdatePlayer();
     }
 }
 

@@ -75,6 +75,14 @@ p_DebugDraw *p_debug_drawer;
 extern struct r_renderer_state_t r_renderer_state;
 
 
+char *p_col_shape_names[P_COL_SHAPE_TYPE_LAST] =
+{
+    "Capsule",
+    "Cylinder",
+    "Triangle mesh",
+    "Indexed triangle mesh",
+    "Box",
+};
 
 
 #ifdef __cplusplus
@@ -97,7 +105,7 @@ void p_Init()
     p_dynamics_world = new btDiscreteDynamicsWorld(p_collision_dispatcher, p_broadphase, p_constraint_solver, p_collision_configuration);
     p_debug_drawer = new p_DebugDraw();
     p_dynamics_world->setDebugDrawer(p_debug_drawer);
-    p_dynamics_world->getDebugDrawer()->setDebugMode(btIDebugDraw::DBG_DrawWireframe);
+    p_dynamics_world->getDebugDrawer()->setDebugMode(btIDebugDraw::DBG_DrawWireframe | btIDebugDraw::DBG_DrawFrames);
 }
 
 void p_Shutdown()
@@ -265,11 +273,21 @@ struct p_collider_t *p_CreateCollider(struct p_col_def_t *col_def, vec3_t *posit
 //    }
 //    else
 //    {
+//        btTransform collider_transform;
+//        collider_transform.setOrigin(btVector3(position->x, position->y, position->z));
+//        collider_transform.setBasis(btMatrix3x3(orientation->x0, orientation->x1, orientation->x2,
+//                                                orientation->y0, orientation->y1, orientation->z1,
+//                                                orientation->x2, orientation->y2, orientation->z2));
+
+        btVector3 origin = btVector3(position->x, position->y, position->z);
+        btMatrix3x3 basis;
+        basis[0] = btVector3(orientation->rows[0].x, orientation->rows[1].x, orientation->rows[2].x);
+        basis[1] = btVector3(orientation->rows[0].y, orientation->rows[1].y, orientation->rows[2].y);
+        basis[2] = btVector3(orientation->rows[0].z, orientation->rows[1].z, orientation->rows[2].z);
+
         btTransform collider_transform;
-        collider_transform.setOrigin(btVector3(position->x, position->y, position->z));
-        collider_transform.setBasis(btMatrix3x3(orientation->x0, orientation->x1, orientation->x2,
-                                                orientation->y0, orientation->y1, orientation->y2,
-                                                orientation->z0, orientation->z1, orientation->z2));
+        collider_transform.setOrigin(origin);
+        collider_transform.setBasis(basis);
 
         btDefaultMotionState *motion_state = new btDefaultMotionState(collider_transform);
         btVector3 inertia_tensor = btVector3(0, 0, 0);
@@ -330,16 +348,24 @@ void p_UpdateColliderTransform(struct p_collider_t *collider)
 {
     btRigidBody *rigid_body = (btRigidBody *)collider->rigid_body;
 //    const btMotionState *motion_state = rigid_body->getMotionState();
-//    btTransform body_transform;
-    mat4_t collider_transform;
+//    btTransform motion_state_transform;
+//    motion_state->getWorldTransform(motion_state_transform);
+//    mat4_t collider_transform;
     const btTransform &body_transform = rigid_body->getCenterOfMassTransform();
+    btMatrix3x3 basis = body_transform.getBasis();
+    const btVector3 &origin = body_transform.getOrigin();
 //    motion_state->getWorldTransform(body_transform);
-    body_transform.getOpenGLMatrix((btScalar *)collider_transform.comps);
+//    body_transform.getOpenGLMatrix((btScalar *)collider_transform.comps);
+    basis = basis.transpose();
+    collider->orientation.rows[0] = vec3_t_c(basis[0][0], basis[0][1], basis[0][2]);
+    collider->orientation.rows[1] = vec3_t_c(basis[1][0], basis[1][1], basis[1][2]);
+    collider->orientation.rows[2] = vec3_t_c(basis[2][0], basis[2][1], basis[2][2]);
+    collider->position = vec3_t_c(origin[0], origin[1], origin[2]);
 
-    collider->orientation.rows[0] = collider_transform.rows[0].xyz;
-    collider->orientation.rows[1] = collider_transform.rows[1].xyz;
-    collider->orientation.rows[2] = collider_transform.rows[2].xyz;
-    collider->position = collider_transform.rows[3].xyz;
+//    printf("p_UpdateColliderTransform:\n[%f %f %f]\n[%f %f %f]\n[%f %f %f]\n\n", basis[0][0], basis[0][1], basis[0][2],
+//                                                                                 basis[1][0], basis[1][1], basis[1][2],
+//                                                                                 basis[2][0], basis[2][1], basis[2][2]);
+//    collider->position = collider_transform.rows[3].xyz;
 }
 
 void p_SetColliderPosition(struct p_collider_t *collider, vec3_t *position)
@@ -349,6 +375,9 @@ void p_SetColliderPosition(struct p_collider_t *collider, vec3_t *position)
 
 void p_SetColliderOrientation(struct p_collider_t *collider, mat3_t *orientation)
 {
+//    printf("p_SetColliderOrientation:\n[%f %f %f]\n[%f %f %f]\n[%f %f %f]\n\n", orientation->rows[0].x, orientation->rows[0].y, orientation->rows[0].z,
+//                                                     orientation->rows[1].x, orientation->rows[1].y, orientation->rows[1].z,
+//                                                     orientation->rows[2].x, orientation->rows[2].y, orientation->rows[2].z);
     p_SetColliderTransform(collider, &collider->position, orientation);
 }
 
@@ -356,13 +385,32 @@ void p_SetColliderTransform(struct p_collider_t *collider, vec3_t *position, mat
 {
     if(collider && collider->index != 0xffffffff)
     {
+
+        collider->orientation = *orientation;
+        collider->position = *position;
+
         btRigidBody *rigid_body = (btRigidBody *)collider->rigid_body;
-        const btTransform &src_transform = rigid_body->getWorldTransform();
-        btTransform dst_transform = src_transform;
-        dst_transform.setOrigin(btVector3(position->x, position->y, position->z));
-        dst_transform.setBasis(btMatrix3x3(orientation->x0, orientation->x1, orientation->x2,
-                                           orientation->y0, orientation->y1, orientation->y2,
-                                           orientation->z0, orientation->z1, orientation->z2));
+//        const btTransform &src_transform = rigid_body->getWorldTransform();
+        btVector3 origin = btVector3(position->x, position->y, position->z);
+        btMatrix3x3 basis;
+        basis[0] = btVector3(orientation->rows[0].x, orientation->rows[1].x, orientation->rows[2].x);
+        basis[1] = btVector3(orientation->rows[0].y, orientation->rows[1].y, orientation->rows[2].y);
+        basis[2] = btVector3(orientation->rows[0].z, orientation->rows[1].z, orientation->rows[2].z);
+//         = btMatrix3x3(orientation->x0, orientation->y0, orientation->z0,
+//                                        orientation->x1, orientation->y1, orientation->z1,
+//                                        orientation->x2, orientation->y2, orientation->z2);
+//        basis = basis.transpose();
+        btTransform dst_transform;
+        dst_transform.setBasis(basis);
+        dst_transform.setOrigin(origin);
+
+
+//        btTransform dst_transform = src_transform;
+//        dst_transform.setOrigin(btVector3(position->x, position->y, position->z));
+//        dst_transform.setBasis(btMatrix3x3(orientation->x0, orientation->y0, orientation->z0,
+//                                           orientation->x1, orientation->y1, orientation->z1,
+//                                           orientation->x2, orientation->y2, orientation->z2));
+//        dst_transform.getBasis().transpose();
         rigid_body->setWorldTransform(dst_transform);
     }
 }
@@ -458,16 +506,37 @@ void p_RotateCollider(struct p_collider_t *collider, mat3_t *rot)
         orientation->rows[0] = vec3_t_c(basis[0][0], basis[0][1], basis[0][2]);
         orientation->rows[1] = vec3_t_c(basis[1][0], basis[1][1], basis[1][2]);
         orientation->rows[2] = vec3_t_c(basis[2][0], basis[2][1], basis[2][2]);
-        mat3_t_mul(orientation, orientation, rot);
+        mat3_t transpose_rotation;
+        mat3_t_transpose(&transpose_rotation, rot);
+        mat3_t_mul(orientation, &transpose_rotation, orientation);
         basis[0] = btVector3(orientation->rows[0].x, orientation->rows[0].y, orientation->rows[0].z);
         basis[1] = btVector3(orientation->rows[1].x, orientation->rows[1].y, orientation->rows[1].z);
         basis[2] = btVector3(orientation->rows[2].x, orientation->rows[2].y, orientation->rows[2].z);
+//        basis = basis.transpose();
         transform.setBasis(basis);
         rigid_body->setCenterOfMassTransform(transform);
         rigid_body->setLinearVelocity(btVector3(0, 0, 0));
         rigid_body->setAngularVelocity(btVector3(0, 0, 0));
     }
 }
+
+//void p_SetColliderOrientation(struct p_collider_t *collider, mat3_t *orientation)
+//{
+//    if(collider && collider->index != 0xffffffff && collider->type)
+//    {
+//        btRigidBody *rigid_body = (btRigidBody *)collider->rigid_body;
+//        btTransform transform = rigid_body->getCenterOfMassTransform();
+//        btMatrix3x3 &basis = transform.getBasis();
+//        collider->orientation = *orientation;
+//        basis[0] = btVector3(orientation->rows[0].x, orientation->rows[0].y, orientation->rows[0].z);
+//        basis[1] = btVector3(orientation->rows[1].x, orientation->rows[1].y, orientation->rows[1].z);
+//        basis[2] = btVector3(orientation->rows[2].x, orientation->rows[2].y, orientation->rows[2].z);
+//        transform.setBasis(basis);
+//        rigid_body->setCenterOfMassTransform(transform);
+//        rigid_body->setLinearVelocity(btVector3(0, 0, 0));
+//        rigid_body->setAngularVelocity(btVector3(0, 0, 0));
+//    }
+//}
 
 void p_MoveCharacterCollider(struct p_character_collider_t *collider, vec3_t *direction)
 {
@@ -525,7 +594,10 @@ void p_JumpCharacterCollider(struct p_character_collider_t *collider)
 
 void p_UpdateColliders(float delta_time)
 {
-    p_dynamics_world->stepSimulation(delta_time, 10);
+    if(delta_time)
+    {
+        p_dynamics_world->stepSimulation(delta_time, 10);
+    }
 
     for(uint32_t collider_index = 0; collider_index < p_colliders[P_COLLIDER_TYPE_DYNAMIC].cursor; collider_index++)
     {

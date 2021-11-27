@@ -49,8 +49,8 @@ int main(int argc, char *argv[])
         {
             case G_GAME_STATE_PLAYING:
                 g_GameMain(delta_time);
-                p_UpdateColliders(delta_time);
                 a_UpdateAnimations(delta_time);
+                p_UpdateColliders(delta_time);
             break;
 
             case G_GAME_STATE_PAUSED:
@@ -61,6 +61,8 @@ int main(int argc, char *argv[])
                 g_MainMenu();
             break;
         }
+
+//        p_UpdateColliders(0.0);
 
         e_UpdateEntities();
         r_VisibleWorld();

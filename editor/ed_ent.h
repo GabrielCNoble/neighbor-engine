@@ -11,7 +11,9 @@ void ed_e_Suspend();
 
 void ed_e_Resume();
 
-uint32_t ed_e_HierarchyUI(struct e_ent_def_t *ent_def);
+uint32_t ed_e_EntDefHierarchyUI(struct e_ent_def_t *ent_def);
+
+uint32_t ed_e_CollisionShapeUI(struct p_col_def_t *col_def);
 
 void ed_e_UpdateUI();
 

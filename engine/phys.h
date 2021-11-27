@@ -48,6 +48,8 @@ void p_TranslateCollider(struct p_collider_t *collider, vec3_t *disp);
 
 void p_RotateCollider(struct p_collider_t *collider, mat3_t *rot);
 
+//void p_SetColliderOrientation(struct p_collider_t *collider, mat3_t *orientation);
+
 void p_MoveCharacterCollider(struct p_character_collider_t *collider, vec3_t *direction);
 
 void p_JumpCharacterCollider(struct p_character_collider_t *collider);

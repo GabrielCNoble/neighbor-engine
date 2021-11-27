@@ -105,6 +105,8 @@ struct e_node_t
 struct e_collider_t
 {
     E_ENT_BASE_COMPONENT_FIELDS;
+    mat3_t offset_rotation;
+    vec3_t offset_position;
     struct p_collider_t *collider;
 };
 

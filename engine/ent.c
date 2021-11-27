@@ -271,15 +271,40 @@ struct e_collider_t *e_AllocCollider(struct p_col_def_t *col_def, struct e_entit
 {
     struct e_collider_t *component = (struct e_collider_t *)e_AllocComponent(E_COMPONENT_TYPE_COLLIDER, entity);
 
-    if(entity)
+    if(col_def->shape_count == 1)
     {
-        struct e_node_t *transform = entity->node;
-        component->collider = p_CreateCollider(col_def, &transform->position, &transform->orientation);
+        component->offset_position = col_def->shape->position;
+        component->offset_rotation = col_def->shape->orientation;
     }
     else
     {
-        component->collider = p_CreateCollider(col_def, &vec3_t_c(0.0, 0.0, 0.0), &mat3_t_c_id());
+        component->offset_position = vec3_t_c(0.0, 0.0, 0.0);
+        component->offset_rotation = mat3_t_c_id();
     }
+
+    vec3_t offset_position = component->offset_position;
+    mat3_t offset_orientation = component->offset_rotation;
+    vec3_t entity_position;
+    mat3_t entity_orientation;
+
+    if(entity)
+    {
+        struct e_node_t *transform = entity->node;
+        entity_position = transform->position;
+        entity_orientation = transform->orientation;
+    }
+    else
+    {
+        entity_position = vec3_t_c(0.0, 0.0, 0.0);
+        entity_orientation = mat3_t_c_id();
+    }
+
+    mat3_t_vec3_t_mul(&offset_position, &offset_position, &entity_orientation);
+    vec3_t_add(&entity_position, &entity_position, &offset_position);
+    mat3_t_mul(&entity_orientation, &offset_orientation, &entity_orientation);
+
+    component->collider = p_CreateCollider(col_def, &entity_position, &entity_orientation);
+    mat3_t_transpose(&component->offset_rotation, &component->offset_rotation);
 
     return component;
 }
@@ -428,12 +453,24 @@ void e_RotateEntity(struct e_entity_t *entity, mat3_t *rotation)
 {
     if(entity && entity->index != 0xffffffff)
     {
+
+
         if(entity->collider)
         {
-            p_RotateCollider(entity->collider->collider, rotation);
+            vec3_t start_pos = entity->collider->offset_position;
+            vec3_t end_pos;
+            vec3_t translation;
+            mat3_t_vec3_t_mul(&start_pos, &start_pos, &entity->node->orientation);
+            mat3_t_vec3_t_mul(&end_pos, &start_pos, rotation);
+            vec3_t_sub(&translation, &end_pos, &start_pos);
+            mat3_t_mul(&entity->node->orientation, &entity->node->orientation, rotation);
+            p_SetColliderOrientation(entity->collider->collider, &entity->node->orientation);
+            p_TranslateCollider(entity->collider->collider, &translation);
         }
-
-        mat3_t_mul(&entity->node->orientation, &entity->node->orientation, rotation);
+        else
+        {
+            mat3_t_mul(&entity->node->orientation, &entity->node->orientation, rotation);
+        }
     }
 }
 
@@ -464,8 +501,10 @@ void e_UpdateEntities()
     {
         struct e_collider_t *collider = (struct e_collider_t *)e_GetComponent(E_COMPONENT_TYPE_COLLIDER, collider_index);
         struct e_node_t *transform = collider->entity->node;
-        transform->orientation = collider->collider->orientation;
-        transform->position = collider->collider->position;
+        mat3_t_mul(&transform->orientation, &collider->offset_rotation, &collider->collider->orientation);
+        vec3_t offset_position = collider->offset_position;
+        mat3_t_vec3_t_mul(&offset_position, &offset_position, &transform->orientation);
+        vec3_t_sub(&transform->position, &collider->collider->position, &offset_position);
     }
 
     for(uint32_t root_index = 0; root_index < e_root_transforms.cursor; root_index++)

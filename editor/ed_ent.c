@@ -6,6 +6,7 @@
 #include "../engine/r_draw.h"
 #include "../engine/input.h"
 #include "../engine/gui.h"
+#include "../engine/phys.h"
 #include "ed_level.h"
 #include "ed_main.h"
 #include <stddef.h>
@@ -18,6 +19,8 @@ extern uint32_t r_width;
 extern uint32_t r_height;
 extern struct ds_slist_t e_ent_defs[];
 extern struct ds_slist_t r_models;
+
+extern char *p_col_shape_names[];
 
 void ed_e_Init(struct ed_editor_t *editor)
 {
@@ -57,35 +60,44 @@ void ed_e_Resume()
     ed_entity_state.light = r_CreatePointLight(&vec3_t_c(0.0, 0.0, 0.0), &vec3_t_c(1.0, 1.0, 1.0), 20.0, 5.0);
 }
 
-void ed_e_DrawColliderShape(struct p_shape_def_t *shape_def)
-{
-    switch(shape_def->type)
-    {
-        case P_COL_SHAPE_TYPE_BOX:
-        {
-            vec3_t max;
-            vec3_t min;
+//void ed_e_DrawColliderShape(struct p_shape_def_t *shape_def)
+//{
+//    switch(shape_def->type)
+//    {
+//        case P_COL_SHAPE_TYPE_BOX:
+//        {
+//            vec3_t max;
+//            vec3_t min;
+//
+//            vec3_t_add(&max, &shape_def->position, &shape_def->box.size);
+//            vec3_t_sub(&min, &shape_def->position, &shape_def->box.size);
+//
+//            r_i_DrawLine(&vec3_t_c(min.x, max.y, max.z), &vec3_t_c(min.x, min.y, max.z), &vec4_t_c(0.0, 1.0, 0.0, 1.0), 1.0);
+//            r_i_DrawLine(&vec3_t_c(max.x, max.y, max.z), &vec3_t_c(max.x, min.y, max.z), &vec4_t_c(0.0, 1.0, 0.0, 1.0), 1.0);
+//            r_i_DrawLine(&vec3_t_c(min.x, max.y, min.z), &vec3_t_c(min.x, min.y, min.z), &vec4_t_c(0.0, 1.0, 0.0, 1.0), 1.0);
+//            r_i_DrawLine(&vec3_t_c(max.x, max.y, min.z), &vec3_t_c(max.x, min.y, min.z), &vec4_t_c(0.0, 1.0, 0.0, 1.0), 1.0);
+//
+//            r_i_DrawLine(&vec3_t_c(min.x, max.y, max.z), &vec3_t_c(max.x, max.y, max.z), &vec4_t_c(0.0, 1.0, 0.0, 1.0), 1.0);
+//            r_i_DrawLine(&vec3_t_c(min.x, min.y, max.z), &vec3_t_c(max.x, min.y, max.z), &vec4_t_c(0.0, 1.0, 0.0, 1.0), 1.0);
+//            r_i_DrawLine(&vec3_t_c(min.x, max.y, min.z), &vec3_t_c(max.x, max.y, min.z), &vec4_t_c(0.0, 1.0, 0.0, 1.0), 1.0);
+//            r_i_DrawLine(&vec3_t_c(min.x, min.y, min.z), &vec3_t_c(max.x, min.y, min.z), &vec4_t_c(0.0, 1.0, 0.0, 1.0), 1.0);
+//
+//            r_i_DrawLine(&vec3_t_c(min.x, max.y, max.z), &vec3_t_c(min.x, max.y, min.z), &vec4_t_c(0.0, 1.0, 0.0, 1.0), 1.0);
+//            r_i_DrawLine(&vec3_t_c(min.x, min.y, max.z), &vec3_t_c(min.x, min.y, min.z), &vec4_t_c(0.0, 1.0, 0.0, 1.0), 1.0);
+//            r_i_DrawLine(&vec3_t_c(max.x, max.y, max.z), &vec3_t_c(max.x, max.y, min.z), &vec4_t_c(0.0, 1.0, 0.0, 1.0), 1.0);
+//            r_i_DrawLine(&vec3_t_c(max.x, min.y, max.z), &vec3_t_c(max.x, min.y, min.z), &vec4_t_c(0.0, 1.0, 0.0, 1.0), 1.0);
+//        }
+//        break;
+//
+//        case P_COL_SHAPE_TYPE_CAPSULE:
+//        {
+//
+//        }
+//        break;
+//    }
+//}
 
-            vec3_t_add(&max, &shape_def->position, &shape_def->box.size);
-            vec3_t_sub(&min, &shape_def->position, &shape_def->box.size);
-
-            r_i_DrawLine(&vec3_t_c(min.x, max.y, max.z), &vec3_t_c(min.x, min.y, max.z), &vec4_t_c(0.0, 1.0, 0.0, 1.0), 1.0);
-            r_i_DrawLine(&vec3_t_c(max.x, max.y, max.z), &vec3_t_c(max.x, min.y, max.z), &vec4_t_c(0.0, 1.0, 0.0, 1.0), 1.0);
-
-            r_i_DrawLine(&vec3_t_c(min.x, max.y, min.z), &vec3_t_c(min.x, min.y, min.z), &vec4_t_c(0.0, 1.0, 0.0, 1.0), 1.0);
-            r_i_DrawLine(&vec3_t_c(max.x, max.y, min.z), &vec3_t_c(max.x, min.y, min.z), &vec4_t_c(0.0, 1.0, 0.0, 1.0), 1.0);
-        }
-        break;
-
-        case P_COL_SHAPE_TYPE_CAPSULE:
-        {
-
-        }
-        break;
-    }
-}
-
-uint32_t ed_e_HierarchyUI(struct e_ent_def_t *ent_def)
+uint32_t ed_e_EntDefHierarchyUI(struct e_ent_def_t *ent_def)
 {
     uint32_t refresh_entity = 0;
 
@@ -94,15 +106,9 @@ uint32_t ed_e_HierarchyUI(struct e_ent_def_t *ent_def)
         igSeparator();
         igText("Transform");
 
-        if(igInputFloat3("Position", ent_def->position.comps, "%0.2f", 0))
-        {
-            refresh_entity = 1;
-        }
+        refresh_entity |= igInputFloat3("Position", ent_def->position.comps, "%0.2f", 0);
 
-        if(igInputFloat3("Scale", ent_def->scale.comps, "%0.2f", 0))
-        {
-            refresh_entity = 1;
-        }
+        refresh_entity |= igInputFloat3("Scale", ent_def->scale.comps, "%0.2f", 0);
 
         if(ent_def->model)
         {
@@ -131,34 +137,14 @@ uint32_t ed_e_HierarchyUI(struct e_ent_def_t *ent_def)
         {
             igSeparator();
             igText("Collider");
-            struct p_shape_def_t *shape = ent_def->collider.shape;
-            char *shape_label;
-            while(shape)
-            {
-                ed_e_DrawColliderShape(shape);
-                switch(shape->type)
-                {
-                    case P_COL_SHAPE_TYPE_BOX:
-                        shape_label = "Box";
-                    break;
-
-                    case P_COL_SHAPE_TYPE_CAPSULE:
-                        shape_label = "Capsule";
-                    break;
-                }
-                if(igInputFloat3("Position", shape->position.comps, 0, 0))
-                {
-                    refresh_entity = 1;
-                }
-                shape = shape->next;
-            }
+            refresh_entity |= ed_e_CollisionShapeUI(&ent_def->collider);
         }
 
         struct e_ent_def_t *child = ent_def->children;
 
         while(child)
         {
-            refresh_entity |= ed_e_HierarchyUI(child);
+            refresh_entity |= ed_e_EntDefHierarchyUI(child);
             child = child->next;
         }
 
@@ -166,6 +152,89 @@ uint32_t ed_e_HierarchyUI(struct e_ent_def_t *ent_def)
     }
 
     return refresh_entity;
+}
+
+uint32_t ed_e_CollisionShapeUI(struct p_col_def_t *col_def)
+{
+    uint32_t refresh_shape = 0;
+    struct p_shape_def_t *shape = col_def->shape;
+
+    if(igButton("Add shape", (ImVec2){0, 0}))
+    {
+        struct p_shape_def_t *new_shape = p_AllocShapeDef(0);
+        new_shape->type = P_COL_SHAPE_TYPE_BOX;
+        new_shape->box.size = vec3_t_c(1.0, 1.0, 1.0);
+        new_shape->position = vec3_t_c(0.0, 0.0, 0.0);
+        new_shape->orientation = mat3_t_c_id();
+
+        new_shape->next = shape;
+        col_def->shape = new_shape;
+        col_def->shape_count++;
+
+        refresh_shape = 1;
+    }
+
+    while(shape)
+    {
+        igPushID_Ptr(shape);
+
+        if(igBeginCombo("Shape type", p_col_shape_names[shape->type], 0))
+        {
+            for(uint32_t shape_type = P_COL_SHAPE_TYPE_CAPSULE; shape_type < P_COL_SHAPE_TYPE_LAST; shape_type++)
+            {
+                if(igSelectable_Bool(p_col_shape_names[shape_type], 0, 0, (ImVec2){0, 0}))
+                {
+                    shape->type = shape_type;
+                    refresh_shape = 1;
+                }
+            }
+            igEndCombo();
+        }
+
+        refresh_shape |= igInputFloat3("Position offset", shape->position.comps, "%.2f", 0);
+
+        switch(shape->type)
+        {
+            case P_COL_SHAPE_TYPE_BOX:
+            {
+                vec3_t max;
+                vec3_t min;
+
+                vec3_t_add(&max, &shape->position, &shape->box.size);
+                vec3_t_sub(&min, &shape->position, &shape->box.size);
+
+                r_i_DrawLine(&vec3_t_c(min.x, max.y, max.z), &vec3_t_c(min.x, min.y, max.z), &vec4_t_c(0.0, 1.0, 0.0, 1.0), 1.0);
+                r_i_DrawLine(&vec3_t_c(max.x, max.y, max.z), &vec3_t_c(max.x, min.y, max.z), &vec4_t_c(0.0, 1.0, 0.0, 1.0), 1.0);
+                r_i_DrawLine(&vec3_t_c(min.x, max.y, min.z), &vec3_t_c(min.x, min.y, min.z), &vec4_t_c(0.0, 1.0, 0.0, 1.0), 1.0);
+                r_i_DrawLine(&vec3_t_c(max.x, max.y, min.z), &vec3_t_c(max.x, min.y, min.z), &vec4_t_c(0.0, 1.0, 0.0, 1.0), 1.0);
+
+                r_i_DrawLine(&vec3_t_c(min.x, max.y, max.z), &vec3_t_c(max.x, max.y, max.z), &vec4_t_c(0.0, 1.0, 0.0, 1.0), 1.0);
+                r_i_DrawLine(&vec3_t_c(min.x, min.y, max.z), &vec3_t_c(max.x, min.y, max.z), &vec4_t_c(0.0, 1.0, 0.0, 1.0), 1.0);
+                r_i_DrawLine(&vec3_t_c(min.x, max.y, min.z), &vec3_t_c(max.x, max.y, min.z), &vec4_t_c(0.0, 1.0, 0.0, 1.0), 1.0);
+                r_i_DrawLine(&vec3_t_c(min.x, min.y, min.z), &vec3_t_c(max.x, min.y, min.z), &vec4_t_c(0.0, 1.0, 0.0, 1.0), 1.0);
+
+                r_i_DrawLine(&vec3_t_c(min.x, max.y, max.z), &vec3_t_c(min.x, max.y, min.z), &vec4_t_c(0.0, 1.0, 0.0, 1.0), 1.0);
+                r_i_DrawLine(&vec3_t_c(min.x, min.y, max.z), &vec3_t_c(min.x, min.y, min.z), &vec4_t_c(0.0, 1.0, 0.0, 1.0), 1.0);
+                r_i_DrawLine(&vec3_t_c(max.x, max.y, max.z), &vec3_t_c(max.x, max.y, min.z), &vec4_t_c(0.0, 1.0, 0.0, 1.0), 1.0);
+                r_i_DrawLine(&vec3_t_c(max.x, min.y, max.z), &vec3_t_c(max.x, min.y, min.z), &vec4_t_c(0.0, 1.0, 0.0, 1.0), 1.0);
+
+                refresh_shape |= igInputFloat3("Half-size", shape->box.size.comps, "%0.2f", 0);
+            }
+            break;
+
+            case P_COL_SHAPE_TYPE_CAPSULE:
+            {
+                refresh_shape |= igInputFloat("Height", &shape->capsule.height, 0.0, 0.0, "%0.2f", 0);
+                refresh_shape |= igInputFloat("Radius", &shape->capsule.radius, 0.0, 0.0, "%0.2f", 0);
+            }
+            break;
+        }
+
+        igPopID();
+        igNewLine();
+
+        shape = shape->next;
+    }
 }
 
 void ed_e_UpdateUI()
@@ -190,7 +259,7 @@ void ed_e_UpdateUI()
             igText("Hierarchy");
             igSeparator();
 
-            if(ed_e_HierarchyUI(ent_def))
+            if(ed_e_EntDefHierarchyUI(ent_def))
             {
                 e_DestroyEntity(ed_entity_state.cur_entity);
                 ed_entity_state.cur_entity = e_SpawnEntity(ent_def, &vec3_t_c(0.0, 0.0, 0.0), &vec3_t_c(1.0, 1.0, 1.0), &mat3_t_c_id());

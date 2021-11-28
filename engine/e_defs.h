@@ -6,31 +6,25 @@
 #include "r_defs.h"
 #include "p_defs.h"
 
-struct e_prop_t
-{
-    char *name;
-    uint32_t size;
-    void *data;
-};
-
 struct e_ent_def_section_t
 {
-    uint32_t record_start;
-    uint32_t record_count;
+    size_t record_start;
+    size_t record_count;
+    size_t reserved[32];
 };
 
 struct e_ent_def_record_t
 {
-    uint32_t child_start;
-    uint32_t child_count;
-    uint32_t collider_start;
+    size_t child_start;
+    size_t child_count;
+
+    size_t collider_start;
+
     char model[128];
 
     mat3_t orientation;
     vec3_t position;
     vec3_t scale;
-
-//    struct p_col_def_record_t collider;
 };
 
 enum E_ENT_DEF_TYPES
@@ -38,6 +32,13 @@ enum E_ENT_DEF_TYPES
     E_ENT_DEF_TYPE_CHILD = 0,
     E_ENT_DEF_TYPE_ROOT,
     E_ENT_DEF_TYPE_LAST,
+};
+
+struct e_prop_t
+{
+    char *name;
+    void *data;
+    uint32_t size;
 };
 
 struct e_ent_def_t
@@ -56,6 +57,8 @@ struct e_ent_def_t
     /* all child nodes, including children of children */
     uint32_t children_count;
 
+    struct e_constraint_t *constraints;
+
     struct r_model_t *model;
     struct p_col_def_t collider;
 
@@ -64,6 +67,16 @@ struct e_ent_def_t
     vec3_t scale;
 
     struct ds_list_t props;
+    /* spawned entity, used only when sorting constraints while spawning an entity */
+    struct e_entity_t *entity;
+};
+
+struct e_constraint_t
+{
+    uint32_t index;
+    struct e_constraint_t *next;
+    struct e_ent_def_t *child_entity;
+    struct p_constraint_def_t constraint;
 };
 
 enum E_COMPONENT_TYPES
@@ -98,8 +111,6 @@ struct e_node_t
     vec3_t position;
     vec3_t scale;
     uint32_t root_index;
-    /* all children, including children of children */
-//    uint32_t child_count;
 };
 
 struct e_collider_t

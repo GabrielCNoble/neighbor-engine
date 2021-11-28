@@ -46,7 +46,11 @@ struct p_collider_t *p_GetCollider(uint32_t type, uint32_t index);
 
 struct p_dynamic_collider_t *p_GetDynamicCollider(uint32_t index);
 
-//struct p_collider_t *p_GetCollision(struct p_collider_t *collider, uint32_t collision_index);
+
+struct p_constraint_t *p_CreateConstraint(struct p_constraint_def_t *constraint_def, struct p_collider_t *collider_a, struct p_collider_t *collider_b);
+
+void p_DestroyConstraint(struct p_constraint_t *constraint);
+
 
 
 
@@ -63,6 +67,10 @@ void p_JumpCharacterCollider(struct p_character_collider_t *collider);
 //void p_RotateColliderZ(struct p_collider_t *collider, float angle);
 
 void p_UpdateColliders(float delta_time);
+
+void p_FreezePhysics();
+
+void p_UnfreezePhysics();
 
 //void p_UpdateColliderNode(struct p_collider_t *collider);
 

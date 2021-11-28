@@ -7,6 +7,7 @@
 struct ds_list_t e_components[E_COMPONENT_TYPE_LAST];
 struct ds_slist_t e_ent_defs[E_ENT_DEF_TYPE_LAST];
 struct ds_slist_t e_entities;
+struct ds_slist_t e_constraints;
 struct ds_list_t e_root_transforms;
 uint32_t e_valid_def_ents;
 
@@ -25,6 +26,7 @@ void e_Init()
 
     e_entities = ds_slist_create(sizeof(struct e_entity_t), 512);
     e_root_transforms = ds_list_create(sizeof(struct e_node_t *), 512);
+    e_constraints = ds_slist_create(sizeof(struct e_constraint_t), 512);
 }
 
 void e_Shutdown()
@@ -98,6 +100,27 @@ void e_DeallocEntDef(struct e_ent_def_t *ent_def)
 
         ds_slist_remove_element(&e_ent_defs[ent_def->type], ent_def->index);
         ent_def->index = 0xffffffff;
+    }
+}
+
+struct e_constraint_t *e_AllocConstraint()
+{
+    uint32_t index = ds_slist_add_element(&e_constraints, NULL);
+    struct e_constraint_t *constraint = ds_slist_get_element(&e_constraints, index);
+    constraint->index = index;
+    constraint->next = NULL;
+    constraint->child_entity = NULL;
+    constraint->constraint.type = P_CONSTRAINT_TYPE_LAST;
+
+    return constraint;
+}
+
+void e_DeallocConstraint(struct e_constraint_t *constraint)
+{
+    if(constraint && constraint->index != 0xffffffff)
+    {
+        ds_slist_remove_element(&e_constraints, constraint->index);
+        constraint->index = 0xffffffff;
     }
 }
 
@@ -289,9 +312,11 @@ struct e_collider_t *e_AllocCollider(struct p_col_def_t *col_def, struct e_entit
 
     if(entity)
     {
-        struct e_node_t *transform = entity->node;
-        entity_position = transform->position;
-        entity_orientation = transform->orientation;
+        struct e_transform_t *transform = entity->transform;
+        entity_position = transform->transform.rows[3].xyz;
+        entity_orientation.rows[0] = transform->transform.rows[0].xyz;
+        entity_orientation.rows[1] = transform->transform.rows[1].xyz;
+        entity_orientation.rows[2] = transform->transform.rows[2].xyz;
     }
     else
     {
@@ -329,9 +354,28 @@ struct e_entity_t *e_SpawnEntityRecursive(struct e_ent_def_t *ent_def, vec3_t *p
     entity->index = index;
     entity->def = NULL;
 
+    mat4_t scale_transform = mat4_t_c_id();
+    scale_transform.rows[0].x = entity->node->scale.x;
+    scale_transform.rows[1].y = entity->node->scale.y;
+    scale_transform.rows[2].z = entity->node->scale.z;
+
+    mat4_t_comp(&entity->transform->transform, &entity->node->orientation, &entity->node->position);
+    mat4_t_mul(&entity->transform->transform, &scale_transform, &entity->transform->transform);
+
+    if(parent)
+    {
+        mat4_t_mul(&entity->transform->transform, &entity->transform->transform, &parent->transform->transform);
+    }
+
     if(ent_def->model)
     {
         entity->model = e_AllocModel(ent_def->model, entity);
+    }
+
+    if(ent_def->collider.shape_count)
+    {
+        entity->collider = e_AllocCollider(&ent_def->collider, entity);
+        ent_def->entity = entity;
     }
 
     if(ent_def->children)
@@ -350,8 +394,21 @@ struct e_entity_t *e_SpawnEntityRecursive(struct e_ent_def_t *ent_def, vec3_t *p
                 entity->node->prev = child_transform;
             }
             entity->node->children = child_transform;
+
             child_def = child_def->next;
-//            entity->node->child_count += 1 + child_transform->child_count;
+        }
+    }
+
+    if(ent_def->constraints)
+    {
+        struct e_constraint_t *constraint = ent_def->constraints;
+
+        while(constraint)
+        {
+            struct e_entity_t *child = constraint->child_entity->entity;
+            p_CreateConstraint(&constraint->constraint, entity->collider->collider, child->collider->collider);
+            constraint->child_entity->entity = NULL;
+            constraint = constraint->next;
         }
     }
 
@@ -372,12 +429,7 @@ struct e_entity_t *e_SpawnEntity(struct e_ent_def_t *ent_def, vec3_t *position, 
         entity->def = ent_def;
     }
 
-    if(ent_def->collider.shape_count)
-    {
-        entity->collider = e_AllocCollider(&ent_def->collider, entity);
-    }
-
-    e_UpdateEntityNode(entity->node, &mat4_t_c_id());
+//    e_UpdateEntityNode(entity->node, &mat4_t_c_id());
 
     return entity;
 }
@@ -440,12 +492,15 @@ void e_TranslateEntity(struct e_entity_t *entity, vec3_t *translation)
 {
     if(entity && entity->index != 0xffffffff)
     {
+        vec3_t_add(&entity->node->position, &entity->node->position, translation);
+
         if(entity->collider)
         {
-            p_TranslateCollider(entity->collider->collider, translation);
+            vec3_t collider_position = entity->collider->offset_position;
+            mat3_t_vec3_t_mul(&collider_position, &collider_position, &entity->node->orientation);
+            vec3_t_add(&collider_position, &entity->node->position, &collider_position);
+            p_SetColliderPosition(entity->collider->collider, &collider_position);
         }
-
-        vec3_t_add(&entity->node->position, &entity->node->position, translation);
     }
 }
 
@@ -453,8 +508,6 @@ void e_RotateEntity(struct e_entity_t *entity, mat3_t *rotation)
 {
     if(entity && entity->index != 0xffffffff)
     {
-
-
         if(entity->collider)
         {
             vec3_t start_pos = entity->collider->offset_position;
@@ -484,7 +537,11 @@ void e_UpdateEntityNode(struct e_node_t *local_transform, mat4_t *parent_transfo
     local_orientation.rows[2].z = local_transform->scale.z;
     mat3_t_mul(&local_orientation, &local_orientation, &local_transform->orientation);
     mat4_t_comp(&transform->transform, &local_orientation, &local_transform->position);
-    mat4_t_mul(&transform->transform, &transform->transform, parent_transform);
+
+    if(!transform->entity->collider)
+    {
+        mat4_t_mul(&transform->transform, &transform->transform, parent_transform);
+    }
 
     struct e_node_t *child = local_transform->children;
 

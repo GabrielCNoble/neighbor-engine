@@ -112,6 +112,14 @@
     #define PATH_MAX 260
 #endif
 
+#define DS_PATH_NO_ERROR 0
+#define DS_PATH_NO_SPACE 1
+#define DS_PATH_BAD_PATH 2
+#define DS_PATH_BAD_EXT 3
+
+#define DS_PATH_VALIDATE_PATHS
+#define DS_PATH_CONVENTION_UNIX
+
 #ifdef __cplusplus
 extern "C"
 {
@@ -198,6 +206,10 @@ size_t ds_path_append_ext(char *path, char *ext, char *out, size_t out_size);
 size_t ds_path_format_path(char *path, char *out, size_t out_size);
 
 
+
+size_t ds_path_validate_path(char *path);
+
+
 int ds_path_is_absolute(char *path);
 
 #ifdef __cplusplus
@@ -211,13 +223,14 @@ extern "C"
 {
 #endif
 
+
 size_t ds_path_get_end(char *path, char *out, size_t out_size)
 {
     char stripped_path[PATH_MAX] = "";
 
     if(ds_path_format_path(path, stripped_path, PATH_MAX) == SIZE_MAX)
     {
-        return SIZE_MAX;
+        return DS_PATH_NO_SPACE;
     }
 
     size_t length = strlen(stripped_path);
@@ -233,23 +246,24 @@ size_t ds_path_get_end(char *path, char *out, size_t out_size)
 
     if(copy_size > out_size)
     {
-        return copy_size - out_size;
+        return DS_PATH_NO_SPACE;
+        // return copy_size - out_size;
     }
 
     out[0] = '\0';
     /* strncat nicely writes a null terminator for us */
     strncat(out, stripped_path + index, copy_size - 1);
 
-    return 0;
+    return DS_PATH_NO_ERROR;
 }
 
 size_t ds_path_drop_end(char *path, char *out, size_t out_size)
 {
     char stripped_path[PATH_MAX] = "";
 
-    if(ds_path_format_path(path, stripped_path, PATH_MAX) == SIZE_MAX)
+    if(ds_path_format_path(path, stripped_path, PATH_MAX) == DS_PATH_NO_SPACE)
     {
-        return SIZE_MAX;
+        return DS_PATH_NO_SPACE;
     }
 
     size_t length = strlen(stripped_path);
@@ -262,14 +276,15 @@ size_t ds_path_drop_end(char *path, char *out, size_t out_size)
 
     if(index > out_size)
     {
-        return index - out_size;
+        return DS_PATH_NO_SPACE;
+        // return index - out_size;
     }
 
     out[0] = '\0';
     /* strncat nicely writes a null terminator for us */
     strncat(out, stripped_path, index - 1);
 
-    return 0;
+    return DS_PATH_NO_ERROR;
 }
 
 size_t ds_path_append_end(char *path, char *append, char *out, size_t out_size)
@@ -278,10 +293,10 @@ size_t ds_path_append_end(char *path, char *append, char *out, size_t out_size)
     char formatted_append[PATH_MAX] = "";
     size_t append_offset = 0;
 
-    if(ds_path_format_path(path, formatted_path, PATH_MAX) == SIZE_MAX ||
-       ds_path_format_path(append, formatted_append, PATH_MAX) == SIZE_MAX)
+    if(ds_path_format_path(path, formatted_path, PATH_MAX) == DS_PATH_NO_SPACE ||
+       ds_path_format_path(append, formatted_append, PATH_MAX) == DS_PATH_NO_SPACE)
     {
-        return SIZE_MAX;
+        return DS_PATH_NO_SPACE;
     }
 
     size_t formatted_len = strlen(formatted_path);
@@ -298,7 +313,8 @@ size_t ds_path_append_end(char *path, char *append, char *out, size_t out_size)
 
     if(copy_size > out_size)
     {
-        return copy_size - out_size;
+        return DS_PATH_NO_SPACE;
+        // return copy_size - out_size;
     }
 
     out[0] = '\0';
@@ -312,16 +328,16 @@ size_t ds_path_append_end(char *path, char *append, char *out, size_t out_size)
 
     strncat(out, formatted_append + append_offset, append_len);
 
-    return 0;
+    return DS_PATH_NO_ERROR;
 }
 
 size_t ds_path_get_ext(char *path, char *out, size_t out_size)
 {
     char stripped_ext[PATH_MAX];
 
-    if(ds_path_format_path(path, stripped_ext, PATH_MAX) == SIZE_MAX)
+    if(ds_path_format_path(path, stripped_ext, PATH_MAX) == DS_PATH_NO_SPACE)
     {
-        return SIZE_MAX;
+        return DS_PATH_NO_SPACE;
     }
 
     size_t length = strlen(stripped_ext);
@@ -336,7 +352,8 @@ size_t ds_path_get_ext(char *path, char *out, size_t out_size)
 
     if(copy_size > out_size)
     {
-        return copy_size - out_size;
+        return DS_PATH_NO_SPACE;
+        // return copy_size - out_size;
     }
 
     out[0] = '\0';
@@ -346,7 +363,7 @@ size_t ds_path_get_ext(char *path, char *out, size_t out_size)
         strncat(out, stripped_ext + index, copy_size - 1);
     }
 
-    return 0;
+    return DS_PATH_NO_ERROR;
 }
 
 size_t ds_path_drop_ext(char *path, char *out, size_t out_size)
@@ -372,7 +389,59 @@ size_t ds_path_drop_ext(char *path, char *out, size_t out_size)
 
 size_t ds_path_set_ext(char *path, char *ext, char *out, size_t out_size)
 {
-//    char
+    char new_path[PATH_MAX];
+    char new_ext[PATH_MAX];
+    char *new_ext_start = new_ext;
+
+    if(ds_path_format_path(path, new_path, PATH_MAX) == DS_PATH_NO_SPACE ||
+       ds_path_format_path(ext, new_ext, PATH_MAX) == DS_PATH_NO_SPACE)
+    {
+        return DS_PATH_NO_SPACE;
+    }
+
+    size_t path_length = strlen(new_path) + 1;
+    size_t ext_length = strlen(new_ext);
+
+    for(size_t index = ext_length; index >= 0; index--)
+    {
+        if(new_ext[index] == '.')
+        {
+            new_ext_start += index + 1;
+            break;
+        }
+    }
+
+    for(size_t index = 0; index < path_length; index++)
+    {
+        if(new_path[index] == '.')
+        {
+            index++;
+
+            if(!strncmp(new_path + index, ext, PATH_MAX))
+            {
+                return DS_PATH_NO_ERROR;
+            }
+
+            new_path[index] = '\0';
+            path_length -= index;
+            break;
+        }
+    }
+
+    if(path_length + ext_length > out_size)
+    {
+        return DS_PATH_NO_SPACE;
+    }
+
+    strncpy(out, new_path, path_length);
+    
+    if(ext_length)
+    {
+        strncat(out, ".", 2);
+        strncat(out, new_ext, ext_length);
+    }
+
+    return DS_PATH_NO_ERROR;
 }
 
 size_t ds_path_append_ext(char *path, char *ext, char *out, size_t out_size)
@@ -436,15 +505,21 @@ size_t ds_path_format_path(char *path, char *out, size_t out_size)
 
         if(path[index])
         {
-            return SIZE_MAX;
+            return DS_PATH_NO_SPACE;
         }
 
         if(formatted_index > 1 && formatted_path[formatted_index - 1] == '/')
         {
-            /* only remove a trailing '/' if it's not the first char, since a path
-            that consists only of a '/' is a absolute path that refers to the root
-            directory */
-            formatted_index--;
+            if(formatted_index > 2 && formatted_path[formatted_index - 2] == ':')
+            {
+                /* do nothing */
+            }
+            else
+            {
+                /* only remove a trailing '/' if it's at the end of the path, and it's not
+                after a volume separator */
+                formatted_index--;
+            }
         }
     }
 
@@ -487,6 +562,19 @@ int ds_path_is_absolute(char *path)
     return 0;
 }
 
+size_t ds_path_validate_path(char *path)
+{
+    #ifdef DS_PATH_VALIDATE_PATHS
+        if(!path)
+        {
+            return 0;
+        }
+
+        size_t length = strlen(path) + 1;
+    #else
+        return 1;
+    #endif
+}
 
 #ifdef __cplusplus
 }

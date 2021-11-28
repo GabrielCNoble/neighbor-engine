@@ -1124,6 +1124,37 @@ void r_i_DrawLine(vec3_t *start, vec3_t *end, vec4_t *color, float width)
     r_i_DrawVerts(R_I_DRAW_CMD_LINE_LIST, verts, width);
 }
 
+void r_i_DrawBox(vec3_t *half_extents)
+{
+    vec3_t min = vec3_t_c(-half_extents->x, -half_extents->y, -half_extents->z);
+    vec3_t max = vec3_t_c(half_extents->x, half_extents->y, half_extents->z);
+
+    r_i_DrawLine(&vec3_t_c(min.x, max.y, max.z), &vec3_t_c(min.x, min.y, max.z), &vec4_t_c(0.0, 1.0, 0.0, 1.0), 1.0);
+    r_i_DrawLine(&vec3_t_c(max.x, max.y, max.z), &vec3_t_c(max.x, min.y, max.z), &vec4_t_c(0.0, 1.0, 0.0, 1.0), 1.0);
+    r_i_DrawLine(&vec3_t_c(min.x, max.y, min.z), &vec3_t_c(min.x, min.y, min.z), &vec4_t_c(0.0, 1.0, 0.0, 1.0), 1.0);
+    r_i_DrawLine(&vec3_t_c(max.x, max.y, min.z), &vec3_t_c(max.x, min.y, min.z), &vec4_t_c(0.0, 1.0, 0.0, 1.0), 1.0);
+
+    r_i_DrawLine(&vec3_t_c(min.x, max.y, max.z), &vec3_t_c(max.x, max.y, max.z), &vec4_t_c(0.0, 1.0, 0.0, 1.0), 1.0);
+    r_i_DrawLine(&vec3_t_c(min.x, min.y, max.z), &vec3_t_c(max.x, min.y, max.z), &vec4_t_c(0.0, 1.0, 0.0, 1.0), 1.0);
+    r_i_DrawLine(&vec3_t_c(min.x, max.y, min.z), &vec3_t_c(max.x, max.y, min.z), &vec4_t_c(0.0, 1.0, 0.0, 1.0), 1.0);
+    r_i_DrawLine(&vec3_t_c(min.x, min.y, min.z), &vec3_t_c(max.x, min.y, min.z), &vec4_t_c(0.0, 1.0, 0.0, 1.0), 1.0);
+
+    r_i_DrawLine(&vec3_t_c(min.x, max.y, max.z), &vec3_t_c(min.x, max.y, min.z), &vec4_t_c(0.0, 1.0, 0.0, 1.0), 1.0);
+    r_i_DrawLine(&vec3_t_c(min.x, min.y, max.z), &vec3_t_c(min.x, min.y, min.z), &vec4_t_c(0.0, 1.0, 0.0, 1.0), 1.0);
+    r_i_DrawLine(&vec3_t_c(max.x, max.y, max.z), &vec3_t_c(max.x, max.y, min.z), &vec4_t_c(0.0, 1.0, 0.0, 1.0), 1.0);
+    r_i_DrawLine(&vec3_t_c(max.x, min.y, max.z), &vec3_t_c(max.x, min.y, min.z), &vec4_t_c(0.0, 1.0, 0.0, 1.0), 1.0);
+}
+
+void r_i_DrawCylinder(float radius, float height)
+{
+
+}
+
+void r_i_DrawCapsule(float radius, float height)
+{
+
+}
+
 #ifdef __cplusplus
 }
 #endif

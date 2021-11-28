@@ -103,7 +103,7 @@ void ed_DeserializeLevel(void *level_buffer, size_t buffer_size);
 
 void ed_l_SaveLevel(char *path, char *file);
 
-void ed_l_LoadFile(char *path, char *file);
+void ed_l_LoadLevel(char *path, char *file);
 
 void ed_l_ClearBrushEntities();
 

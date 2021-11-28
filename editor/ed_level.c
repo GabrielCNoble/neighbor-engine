@@ -348,7 +348,7 @@ void ed_l_Resume()
 {
     r_SetClearColor(0.05, 0.05, 0.05, 1.0);
     ed_l_LoadGameLevelSnapshot();
-    ed_l_RestoreBrushEntities();
+//    ed_l_RestoreBrushEntities();
 }
 
 void ed_w_ManipulatorWidgetSetupPickableDrawState(uint32_t pickable_index, struct ed_pickable_t *pickable)
@@ -2831,43 +2831,24 @@ void ed_l_SaveLevel(char *path, char *file)
     ed_SerializeLevel(&buffer, &buffer_size, 1);
     ds_path_append_end(ed_level_state.project.folder, "levels", file_path, PATH_MAX);
     ds_path_append_end(file_path, file, file_path, PATH_MAX);
-    ds_path_set_ext(file_path, "nlv", file_path, PATH_MAX);
+    ds_path_set_ext(file_path, "nlf", file_path, PATH_MAX);
 
     FILE *fp = fopen(file_path, "wb");
     fwrite(buffer, buffer_size, 1, fp);
     fclose(fp);
+
+    return 1;
 }
 
-void ed_l_LoadFile(char *path, char *file)
+void ed_l_LoadLevel(char *path, char *file)
 {
     void *buffer;
-    void *resource = NULL;
-    uint32_t resource_type = ED_LEVEL_RESOURCE_TYPE_LAST;
     size_t buffer_size;
     char file_name[PATH_MAX];
 
     ds_path_append_end(path, file, file_name, PATH_MAX);
 
-    if(strstr(file, ".mof"))
-    {
-        if(!r_FindModel(file))
-        {
-            r_LoadModel(file_name, file);
-        }
-    }
-    else if(strstr(file, ".ent"))
-    {
-        e_LoadEntDef(file_name);
-    }
-    else if(strstr(file, ".png") || strstr(file, ".jpg") ||
-            strstr(file, ".jpeg") || strstr(file, ".tga"))
-    {
-        if(!r_FindTexture(file))
-        {
-            r_LoadTexture(file_name, file);
-        }
-    }
-    else
+    if(strstr(file, ".nlf"))
     {
         FILE *fp = fopen(file_name, "rb");
 
@@ -2887,7 +2868,11 @@ void ed_l_LoadFile(char *path, char *file)
         fclose(fp);
         ed_DeserializeLevel(buffer, buffer_size);
         mem_Free(buffer);
+
+        return 1;
     }
+
+    return 0;
 }
 
 void ed_l_ClearBrushEntities()
@@ -3001,7 +2986,7 @@ void ed_l_PlayGame()
 void ed_l_StopGame()
 {
     ed_l_LoadGameLevelSnapshot();
-    ed_l_RestoreBrushEntities();
+//    ed_l_RestoreBrushEntities();
 }
 
 void ed_l_ResetEditor()
@@ -3039,7 +3024,7 @@ void ed_l_BuildWorldData()
     if((ed_level_state.world_data_stale || !l_world_collider) && ed_level_state.brush.brushes.used)
     {
         printf("ed_l_BuildWorldData\n");
-        ed_l_ClearWorldData();
+//        ed_l_ClearWorldData();
 
         ed_level_state.world_data_stale = 0;
 

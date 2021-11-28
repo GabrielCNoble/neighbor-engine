@@ -62,8 +62,6 @@ int main(int argc, char *argv[])
             break;
         }
 
-//        p_UpdateColliders(0.0);
-
         e_UpdateEntities();
         r_VisibleWorld();
         r_VisibleLights();

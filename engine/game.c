@@ -190,30 +190,61 @@ void g_Init(uint32_t editor_active)
     floor_shape_def->orientation = mat3_t_c_id();
     floor_shape_def->box.size = vec3_t_c(10.0, 1.0, 10.0);
 
-    g_ent_def = e_AllocEntDef(E_ENT_DEF_TYPE_ROOT);
+    struct e_ent_def_t *base_box = e_AllocEntDef(E_ENT_DEF_TYPE_ROOT);
     struct p_shape_def_t *box_shape_def = p_AllocShapeDef(E_ENT_DEF_TYPE_ROOT);
 
-    strcpy(g_ent_def->name, "box");
-    g_ent_def->model = g_cube_model;
-    g_ent_def->scale = vec3_t_c(1.0, 1.0, 1.0);
-    g_ent_def->collider.shape = box_shape_def;
-    g_ent_def->collider.shape_count = 1;
-    g_ent_def->collider.mass = 1.0;
-    g_ent_def->collider.type = P_COLLIDER_TYPE_DYNAMIC;
+    strcpy(base_box->name, "box_root");
+    base_box->model = g_cube_model;
+    base_box->scale = vec3_t_c(1.0, 0.2, 1.0);
+    base_box->collider.shape = box_shape_def;
+    base_box->collider.shape_count = 1;
+    base_box->collider.mass = 1.0;
+    base_box->collider.type = P_COLLIDER_TYPE_DYNAMIC;
 
     box_shape_def->type = P_COL_SHAPE_TYPE_BOX;
     box_shape_def->position = vec3_t_c(0.0, 0.0, 0.0);
     box_shape_def->orientation = mat3_t_c_id();
-    box_shape_def->box.size = vec3_t_c(1.0, 1.0, 1.0);
+    box_shape_def->box.size = vec3_t_c(1.0, 0.2, 1.0);
 
-    mat3_t_rotate_x(&orientation, 0.05);
-    mat3_t_rotate_y(&orientation, 0.05);
 
-    g_InitPlayer();
+
+    struct e_ent_def_t *child_box = e_AllocEntDef(E_ENT_DEF_TYPE_CHILD);
+    box_shape_def = p_AllocShapeDef(E_ENT_DEF_TYPE_ROOT);
+
+    child_box->model = g_cube_model;
+    child_box->scale = vec3_t_c(1.0, 0.2, 1.0);
+    child_box->position = vec3_t_c(2.2, 0.0, 0.0);
+    child_box->orientation = mat3_t_c_id();
+    child_box->collider.shape = box_shape_def;
+    child_box->collider.shape_count = 1;
+    child_box->collider.mass = 1.0;
+    child_box->collider.type = P_COLLIDER_TYPE_DYNAMIC;
+
+    box_shape_def->type = P_COL_SHAPE_TYPE_BOX;
+    box_shape_def->position = vec3_t_c(0.0, 0.0, 0.0);
+    box_shape_def->orientation = mat3_t_c_id();
+    box_shape_def->box.size = vec3_t_c(1.0, 0.2, 1.0);
+
+    base_box->constraints = e_AllocConstraint();
+    base_box->constraints->child_entity = child_box;
+    base_box->constraints->constraint.type = P_CONSTRAINT_TYPE_HINGE;
+    base_box->constraints->constraint.fields.hinge.pivot_a = vec3_t_c(1.2, 0.0, 0.0);
+    base_box->constraints->constraint.fields.hinge.pivot_b = vec3_t_c(-1.2, 0.0, 0.0);
+    base_box->constraints->constraint.fields.hinge.axis = vec3_t_c(0.0, 0.0, 1.0);
+    base_box->constraints->constraint.fields.hinge.limit_low = -1.3;
+    base_box->constraints->constraint.fields.hinge.limit_high = 1.3;
+    base_box->children = child_box;
+    base_box->children_count = 1;
+
+    mat3_t_rotate_z(&orientation, 0.2);
+    mat3_t_rotate_x(&orientation, 0.2);
+//    mat3_t_rotate_y(&orientation, 0.05);
+
+//    g_InitPlayer();
 
 //    character_collider = p_CreateCharacterCollider(&vec3_t_c(0.0, 4.0, 0.0), 0.4, 1.7, 0.3, 0.8);
 
-//    e_SpawnEntity(box_ent_def, &vec3_t_c(0.0, 6.0, 0.0), &vec3_t_c(1.0, 1.0, 1.0), &orientation);
+    e_SpawnEntity(base_box, &vec3_t_c(0.0, 6.0, 0.0), &vec3_t_c(1.0, 1.0, 1.0), &orientation);
 //
 //    e_SpawnEntity(box_ent_def, &vec3_t_c(1.0, 9.0, 0.0), &vec3_t_c(1.0, 1.0, 1.0), &orientation);
 //    e_SpawnEntity(box_ent_def, &vec3_t_c(0.4, 12.0, 0.3), &vec3_t_c(1.0, 1.0, 1.0), &orientation);
@@ -231,7 +262,7 @@ void g_Init(uint32_t editor_active)
 //    box->collider = p_CreateCollider(&collider_def, &box->local_position, &orientation);
 
 
-    g_gun_model = r_LoadModel("models/shocksplinter.mof", "shocksplinter");
+//    g_gun_model = r_LoadModel("models/shocksplinter.mof", "shocksplinter");
 //    g_wiggle_model = r_LoadModel("models/dude.mof");
 //    g_cube_model = r_LoadModel("models/Cube.mof");
 
@@ -729,7 +760,7 @@ void g_GameMain(float delta_time)
     }
     else
     {
-        g_UpdatePlayer();
+//        g_UpdatePlayer();
     }
 }
 

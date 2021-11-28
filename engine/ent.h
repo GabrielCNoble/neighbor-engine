@@ -15,6 +15,10 @@ struct e_ent_def_t *e_FindEntDef(uint32_t type, char *name);
 
 void e_DeallocEntDef(struct e_ent_def_t *ent_def);
 
+struct e_constraint_t *e_AllocConstraint();
+
+void e_DeallocConstraint(struct e_constraint_t *constraint);
+
 struct e_component_t *e_AllocComponent(uint32_t type, struct e_entity_t *entity);
 
 struct e_component_t *e_GetComponent(uint32_t type, uint32_t index);

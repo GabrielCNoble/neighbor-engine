@@ -36,8 +36,8 @@ struct ed_editor_t
     void (*suspend)();
     void (*resume)();
     void (*update)();
-    void (*explorer_load)(char *path, char *file);
-    void (*explorer_save)(char *path, char *file);
+    uint32_t (*explorer_load)(char *path, char *file);
+    uint32_t (*explorer_save)(char *path, char *file);
     void (*explorer_new)();
 
     void (*current_state)(uint32_t just_changed);

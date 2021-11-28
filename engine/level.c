@@ -68,7 +68,7 @@ void l_DeserializeLevel(void *level_buffer, size_t buffer_size, uint32_t data_fl
     char *in_buffer = level_buffer;
     struct ed_level_section_t *level_section = (struct ed_level_section_t *)in_buffer;
 
-    if(data_flags & L_LEVEL_DATA_LIGHTS)
+    if(level_section->light_section_size)
     {
         struct l_light_section_t *light_section = (struct l_light_section_t *)(in_buffer + level_section->light_section_start);
         struct l_light_record_t *light_records = (struct l_light_record_t *)(in_buffer + light_section->record_start);
@@ -119,7 +119,7 @@ void l_DeserializeLevel(void *level_buffer, size_t buffer_size, uint32_t data_fl
         record->material = material;
     }
 
-    if(data_flags & L_LEVEL_DATA_ENTITIES)
+    if(level_section->ent_def_section_size && level_section->entity_section_size)
     {
         struct l_ent_def_section_t *ent_def_section = (struct l_ent_def_section_t *)(in_buffer + level_section->ent_def_section_start);
         struct l_ent_def_record_t *ent_def_records = (struct l_ent_def_record_t *)(in_buffer + ent_def_section->record_start);
@@ -148,7 +148,7 @@ void l_DeserializeLevel(void *level_buffer, size_t buffer_size, uint32_t data_fl
         }
     }
 
-    if(data_flags & L_LEVEL_DATA_WORLD)
+    if(level_section->world_section_size)
     {
         struct l_world_section_t *world_section = (struct l_world_section_t *)(in_buffer + level_section->world_section_start);
         struct r_vert_t *verts = (struct r_vert_t *)(in_buffer + world_section->vert_start);

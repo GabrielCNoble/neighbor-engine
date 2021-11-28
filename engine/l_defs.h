@@ -52,8 +52,7 @@ struct l_ent_def_section_t
 
 struct l_ent_def_record_t
 {
-    char name[32];
-    char file[32];
+    char name[64];
     /* ent def loaded from this record, to speed up entity spawning
     during deserialization */
     struct e_ent_def_t *def;

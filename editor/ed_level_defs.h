@@ -164,7 +164,10 @@ struct ed_level_section_t
     size_t world_section_start;
     size_t world_section_size;
 
-    size_t reserved[32];
+    size_t waypoint_section_start;
+    size_t waypoint_section_count;
+
+    size_t reserved[30];
 };
 
 #endif

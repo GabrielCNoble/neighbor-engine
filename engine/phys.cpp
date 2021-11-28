@@ -14,10 +14,15 @@
 #include "BulletCollision/CollisionDispatch/btDefaultCollisionConfiguration.h"
 #include "BulletCollision/CollisionShapes/btCollisionShape.h"
 #include "BulletCollision/CollisionShapes/btBoxShape.h"
+#include "BulletCollision/CollisionShapes/btCylinderShape.h"
+#include "BulletCollision/CollisionShapes/btSphereShape.h"
 #include "BulletCollision/CollisionShapes/btCapsuleShape.h"
 #include "BulletCollision/CollisionShapes/btBvhTriangleMeshShape.h"
 #include "BulletCollision/CollisionShapes/btCompoundShape.h"
 #include "BulletCollision/CollisionShapes/btTriangleIndexVertexArray.h"
+#include "BulletDynamics/ConstraintSolver/btHingeConstraint.h"
+#include "BulletDynamics/ConstraintSolver/btPoint2PointConstraint.h"
+#include "BulletDynamics/ConstraintSolver/btSliderConstraint.h"
 #include "BulletDynamics/Dynamics/btRigidBody.h"
 #include "LinearMath/btDefaultMotionState.h"
 #include "LinearMath/btTransform.h"
@@ -70,7 +75,9 @@ btSequentialImpulseConstraintSolver *p_constraint_solver;
 btBroadphaseInterface *p_broadphase;
 struct ds_slist_t p_colliders[P_COLLIDER_TYPE_LAST];
 struct ds_slist_t p_shape_defs;
+struct ds_slist_t p_constraints;
 p_DebugDraw *p_debug_drawer;
+uint32_t p_physics_frozen;
 
 extern struct r_renderer_state_t r_renderer_state;
 
@@ -97,6 +104,7 @@ void p_Init()
     p_colliders[P_COLLIDER_TYPE_CHARACTER] = ds_slist_create(sizeof(struct p_character_collider_t), 512);
 //    p_colliders[P_COLLIDER_TYPE_CHILD] = ds_slist_create(sizeof(struct p_child_collider_t), 512);
     p_shape_defs = ds_slist_create(sizeof(struct p_shape_def_t), 512);
+    p_constraints = ds_slist_create(sizeof(struct p_constraint_t), 512);
 
     p_broadphase = new btDbvtBroadphase();
     p_collision_configuration = new btDefaultCollisionConfiguration();
@@ -105,7 +113,7 @@ void p_Init()
     p_dynamics_world = new btDiscreteDynamicsWorld(p_collision_dispatcher, p_broadphase, p_constraint_solver, p_collision_configuration);
     p_debug_drawer = new p_DebugDraw();
     p_dynamics_world->setDebugDrawer(p_debug_drawer);
-    p_dynamics_world->getDebugDrawer()->setDebugMode(btIDebugDraw::DBG_DrawWireframe | btIDebugDraw::DBG_DrawFrames);
+    p_dynamics_world->getDebugDrawer()->setDebugMode(btIDebugDraw::DBG_DrawWireframe | btIDebugDraw::DBG_DrawConstraints | btIDebugDraw::DBG_DrawConstraintLimits);
 }
 
 void p_Shutdown()
@@ -155,10 +163,17 @@ void *p_CreateCollisionShape(struct p_shape_def_t *shape_def)
             shape = new btCapsuleShape(shape_def->capsule.radius, shape_def->capsule.radius);
         break;
 
+        case P_COL_SHAPE_TYPE_CYLINDER:
+            shape = new btCylinderShape(btVector3(shape_def->cylinder.radius,
+                                                  shape_def->cylinder.height * 0.5,
+                                                  shape_def->cylinder.radius));
+        break;
+
         case P_COL_SHAPE_TYPE_ITRI_MESH:
         {
             btTriangleIndexVertexArray *indexed_mesh;
-            indexed_mesh = new btTriangleIndexVertexArray(shape_def->itri_mesh.index_count / 3, (int *)shape_def->itri_mesh.indices,
+            indexed_mesh = new btTriangleIndexVertexArray(shape_def->itri_mesh.index_count / 3,
+                                                          (int *)shape_def->itri_mesh.indices,
                                                           sizeof(uint32_t) * 3, shape_def->itri_mesh.vert_count,
                                                           shape_def->itri_mesh.verts->comps, sizeof(vec3_t));
 
@@ -260,6 +275,7 @@ struct p_collider_t *p_CreateCollider(struct p_col_def_t *col_def, vec3_t *posit
     collider->type = col_def->type;
     collider->position = *position;
     collider->orientation = *orientation;
+    collider->constraints = NULL;
 
     btCollisionShape *collision_shape = (btCollisionShape *)p_CreateColliderCollisionShape(col_def);
 
@@ -461,57 +477,101 @@ struct p_dynamic_collider_t *p_GetDynamicCollider(uint32_t index)
     return(struct p_dynamic_collider_t *)p_GetCollider(P_COLLIDER_TYPE_DYNAMIC, index);
 }
 
-void p_DisplaceCollider(struct p_collider_t *collider, vec3_t *disp)
+
+struct p_constraint_t *p_CreateConstraint(struct p_constraint_def_t *constraint_def, struct p_collider_t *collider_a, struct p_collider_t *collider_b)
 {
-//    struct p_col_plane_t *planes;
-//
-//    switch(collider->type)
-//    {
-//        case P_COLLIDER_TYPE_STATIC:
-//        {
-//            vec3_t_add(&collider->position, &collider->position, disp);
-//            struct ds_dbvn_t *node = ds_dbvt_get_node_pointer(&p_main_dbvt, collider->node_index);
-//            vec3_t_add(&node->max, &node->max, disp);
-//            vec3_t_add(&node->min, &node->min, disp);
-//            uint32_t node_index = ds_dbvt_nodes_smallest_volume(&p_main_dbvt, collider->node_index);
-//            ds_dbvt_pair_nodes(&p_main_dbvt, collider->node_index, node_index);
-//
-//            planes = ds_slist_get_element(&p_col_planes, collider->planes_index);
-//
-//            for(uint32_t plane_index = 0; plane_index < 6; plane_index++)
-//            {
-//                struct p_col_plane_t *plane = planes + plane_index;
-//                vec3_t_add(&plane->point, &plane->point, disp);
-//            }
-//        }
-//        break;
-//
-//        case P_COLLIDER_TYPE_MOVABLE:
-//        {
-//            struct p_movable_collider_t *movable_collider = (struct p_movable_collider_t *)collider;
-//            vec3_t_add(&movable_collider->disp, &movable_collider->disp, disp);
-//        }
-//        break;
-//    }
+    uint32_t index = ds_slist_add_element(&p_constraints, NULL);
+    struct p_constraint_t *constraint = (struct p_constraint_t *)ds_slist_get_element(&p_constraints, index);
+
+    constraint->index = index;
+    constraint->type = P_CONSTRAINT_TYPE_LAST;
+
+    constraint->colliders[0].next = collider_a->constraints;
+    constraint->colliders[0].prev = NULL;
+    constraint->colliders[0].collider = collider_a;
+    if(collider_a->constraints)
+    {
+        uint32_t collider_side = collider_a->constraints->colliders[1].collider == collider_a;
+        collider_a->constraints->colliders[collider_side].prev = constraint;
+    }
+    collider_a->constraints = constraint;
+
+    constraint->colliders[1].next = collider_b->constraints;
+    constraint->colliders[1].prev = NULL;
+    constraint->colliders[1].collider = collider_b;
+    if(collider_b->constraints)
+    {
+        uint32_t collider_side = collider_b->constraints->colliders[1].collider == collider_b;
+        collider_b->constraints->colliders[collider_side].prev = constraint;
+    }
+    collider_b->constraints = constraint;
+    constraint->type = constraint_def->type;
+
+    mat3_t a_to_b_transform = collider_b->orientation;
+    mat3_t_transpose(&a_to_b_transform, &a_to_b_transform);
+    mat3_t_mul(&a_to_b_transform, &collider_a->orientation, &a_to_b_transform);
+    btRigidBody *rigid_body_a = (btRigidBody *)collider_a->rigid_body;
+    btRigidBody *rigid_body_b = (btRigidBody *)collider_b->rigid_body;
+
+    switch(constraint->type)
+    {
+        case P_CONSTRAINT_TYPE_HINGE:
+        {
+            btVector3 pivot_a = btVector3(constraint_def->fields.hinge.pivot_a.x, constraint_def->fields.hinge.pivot_a.y, constraint_def->fields.hinge.pivot_a.z);
+            btVector3 pivot_b = btVector3(constraint_def->fields.hinge.pivot_b.x, constraint_def->fields.hinge.pivot_b.y, constraint_def->fields.hinge.pivot_b.z);
+            vec3_t *axis_a = &constraint_def->fields.hinge.axis;
+            vec3_t axis_b;
+            mat3_t_vec3_t_mul(&axis_b, axis_a, &a_to_b_transform);
+            btHingeConstraint *hinge_constraint;
+            hinge_constraint = new btHingeConstraint(*rigid_body_a, *rigid_body_b, pivot_a, pivot_b,
+                                                     btVector3(axis_a->x, axis_a->y, axis_a->z), btVector3(axis_b.x, axis_b.y, axis_b.z));
+
+            constraint->constraint = hinge_constraint;
+            constraint->fields.hinge = constraint_def->fields.hinge;
+            hinge_constraint->setLimit(constraint_def->fields.hinge.limit_low, constraint_def->fields.hinge.limit_high);
+        }
+        break;
+    }
+
+    p_dynamics_world->addConstraint((btTypedConstraint *)constraint->constraint);
+
+    return constraint;
 }
 
-//void p_SetColliderOrientation(struct p_collider_t *collider, mat3_t *orientation)
-//{
-//    if(collider && collider->index != 0xffffffff && collider->type)
-//    {
-//        btRigidBody *rigid_body = (btRigidBody *)collider->rigid_body;
-//        btTransform transform = rigid_body->getCenterOfMassTransform();
-//        btMatrix3x3 &basis = transform.getBasis();
-//        collider->orientation = *orientation;
-//        basis[0] = btVector3(orientation->rows[0].x, orientation->rows[0].y, orientation->rows[0].z);
-//        basis[1] = btVector3(orientation->rows[1].x, orientation->rows[1].y, orientation->rows[1].z);
-//        basis[2] = btVector3(orientation->rows[2].x, orientation->rows[2].y, orientation->rows[2].z);
-//        transform.setBasis(basis);
-//        rigid_body->setCenterOfMassTransform(transform);
-//        rigid_body->setLinearVelocity(btVector3(0, 0, 0));
-//        rigid_body->setAngularVelocity(btVector3(0, 0, 0));
-//    }
-//}
+void p_DestroyConstraint(struct p_constraint_t *constraint)
+{
+    if(constraint && constraint->index != 0xffffffff)
+    {
+        btTypedConstraint *bt_constraint = (btTypedConstraint *)constraint->constraint;
+        delete bt_constraint;
+
+        for(uint32_t index = 0; index < 2; index++)
+        {
+            struct p_collider_constraint_t *col_constraint = constraint->colliders + index;
+
+            if(col_constraint->prev)
+            {
+                uint32_t collider_side = col_constraint->prev->colliders[1].collider == col_constraint->collider;
+                col_constraint->prev->colliders[collider_side].next = col_constraint->next;
+            }
+            else
+            {
+                col_constraint->collider->constraints = col_constraint->next;
+            }
+
+            col_constraint->prev = NULL;
+
+            if(col_constraint->next)
+            {
+                uint32_t collider_side = col_constraint->next->colliders[1].collider == col_constraint->collider;
+                col_constraint->next->colliders[collider_side].prev = col_constraint->prev;
+            }
+        }
+
+        ds_slist_remove_element(&p_constraints, constraint->index);
+        constraint->index = 0xffffffff;
+    }
+}
 
 void p_MoveCharacterCollider(struct p_character_collider_t *collider, vec3_t *direction)
 {
@@ -569,7 +629,7 @@ void p_JumpCharacterCollider(struct p_character_collider_t *collider)
 
 void p_UpdateColliders(float delta_time)
 {
-    if(delta_time)
+    if(!p_physics_frozen)
     {
         p_dynamics_world->stepSimulation(delta_time, 10);
     }
@@ -624,6 +684,16 @@ void p_UpdateColliders(float delta_time)
     {
         p_dynamics_world->debugDrawWorld();
     }
+}
+
+void p_FreezePhysics()
+{
+    p_physics_frozen = 1;
+}
+
+void p_UnfreezePhysics()
+{
+    p_physics_frozen = 0;
 }
 
 #ifdef __cplusplus

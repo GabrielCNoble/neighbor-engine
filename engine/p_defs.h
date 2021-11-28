@@ -76,13 +76,19 @@ enum P_COLLIDER_TYPE
     P_COLLIDER_TYPE_LAST
 };
 
+enum P_COLLIDER_FLAGS
+{
+    P_COLLIDER_FLAG_FROZEN = 1,
+};
+
 #define P_BASE_COLLIDER_FIELDS              \
     struct p_constraint_t *constraints;     \
     mat3_t orientation;                     \
     vec3_t position;                        \
     void *rigid_body;                       \
     uint32_t index;                         \
-    uint32_t type
+    uint16_t type;                          \
+    uint16_t flags
 
 
 struct p_collider_t

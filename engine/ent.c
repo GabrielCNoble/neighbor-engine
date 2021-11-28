@@ -266,7 +266,7 @@ void e_DeallocComponent(struct e_component_t *component)
     }
 }
 
-struct e_node_t *e_AllocNode(vec3_t *position, vec3_t *scale, mat3_t *orientation, struct e_entity_t *entity)
+struct e_node_t *e_AllocNode(vec3_t *position, vec3_t *scale, vec3_t *local_scale, mat3_t *orientation, struct e_entity_t *entity)
 {
     struct e_node_t *component;
     component = (struct e_node_t *)e_AllocComponent(E_COMPONENT_TYPE_NODE, entity);
@@ -278,6 +278,7 @@ struct e_node_t *e_AllocNode(vec3_t *position, vec3_t *scale, mat3_t *orientatio
     component->position = *position;
     component->orientation = *orientation;
     component->scale = *scale;
+    component->local_scale = *local_scale;
     component->root_index = 0xffffffff;
 
     return component;
@@ -341,7 +342,7 @@ struct e_model_t *e_AllocModel(struct r_model_t *model, struct e_entity_t *entit
     return component;
 }
 
-struct e_entity_t *e_SpawnEntityRecursive(struct e_ent_def_t *ent_def, vec3_t *position, vec3_t *scale, mat3_t *orientation, struct e_entity_t *parent)
+struct e_entity_t *e_SpawnEntityRecursive(struct e_ent_def_t *ent_def, vec3_t *position, vec3_t *scale, vec3_t *local_scale, mat3_t *orientation, struct e_entity_t *parent)
 {
     uint32_t index;
     struct e_entity_t *entity;
@@ -349,7 +350,7 @@ struct e_entity_t *e_SpawnEntityRecursive(struct e_ent_def_t *ent_def, vec3_t *p
     index = ds_slist_add_element(&e_entities, NULL);
     entity = ds_slist_get_element(&e_entities, index);
 
-    entity->node = e_AllocNode(position, scale, orientation, entity);
+    entity->node = e_AllocNode(position, scale, local_scale, orientation, entity);
     entity->transform = e_AllocTransform(entity);
     entity->index = index;
     entity->def = NULL;
@@ -384,7 +385,7 @@ struct e_entity_t *e_SpawnEntityRecursive(struct e_ent_def_t *ent_def, vec3_t *p
 
         while(child_def)
         {
-            struct e_entity_t *child_entity = e_SpawnEntityRecursive(child_def, &child_def->position, &child_def->scale, &child_def->orientation, entity);
+            struct e_entity_t *child_entity = e_SpawnEntityRecursive(child_def, &child_def->position, &vec3_t_c(1.0, 1.0, 1.0), &child_def->scale, &child_def->orientation, entity);
             struct e_node_t *child_transform = child_entity->node;
             child_transform->parent = entity->node;
 
@@ -417,12 +418,12 @@ struct e_entity_t *e_SpawnEntityRecursive(struct e_ent_def_t *ent_def, vec3_t *p
 
 struct e_entity_t *e_SpawnEntity(struct e_ent_def_t *ent_def, vec3_t *position, vec3_t *scale, mat3_t *orientation)
 {
-    struct e_entity_t *entity = e_SpawnEntityRecursive(ent_def, position, scale, orientation, NULL);
+    struct e_entity_t *entity = e_SpawnEntityRecursive(ent_def, position, scale, &ent_def->scale, orientation, NULL);
     entity->node->root_index = ds_list_add_element(&e_root_transforms, &entity->node);
 
-    entity->node->scale.x *= ent_def->scale.x;
-    entity->node->scale.y *= ent_def->scale.y;
-    entity->node->scale.z *= ent_def->scale.z;
+//    entity->node->scale.x *= ent_def->scale.x;
+//    entity->node->scale.y *= ent_def->scale.y;
+//    entity->node->scale.z *= ent_def->scale.z;
 
     if(ent_def->type == E_ENT_DEF_TYPE_ROOT)
     {
@@ -550,6 +551,13 @@ void e_UpdateEntityNode(struct e_node_t *local_transform, mat4_t *parent_transfo
         e_UpdateEntityNode(child, &transform->transform);
         child = child->next;
     }
+
+    mat4_t local_scale = mat4_t_c_id();
+    local_scale.rows[0].x = local_transform->local_scale.x;
+    local_scale.rows[1].y = local_transform->local_scale.y;
+    local_scale.rows[2].z = local_transform->local_scale.z;
+
+    mat4_t_mul(&transform->transform, &local_scale, &transform->transform);
 }
 
 void e_UpdateEntities()

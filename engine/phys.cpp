@@ -86,9 +86,17 @@ char *p_col_shape_names[P_COL_SHAPE_TYPE_LAST] =
 {
     "Capsule",
     "Cylinder",
+    "Sphere",
+    "Box",
     "Triangle mesh",
     "Indexed triangle mesh",
-    "Box",
+};
+
+char *p_constraint_names[P_CONSTRAINT_TYPE_LAST] =
+{
+    "Hinge",
+    "Point2Point",
+    "Slider"
 };
 
 
@@ -451,6 +459,16 @@ void p_DestroyCollider(struct p_collider_t *collider)
         ds_slist_remove_element(&p_colliders[collider->type], collider->index);
         collider->index = 0xffffffff;
 
+        struct p_constraint_t *constraint = collider->constraints;
+
+        while(constraint)
+        {
+            uint32_t collider_side = constraint->colliders[1].collider == collider;
+            struct p_constraint_t *next_constraint = constraint->colliders[collider_side].next;
+            p_DestroyConstraint(constraint);
+            constraint = next_constraint;
+        }
+
         btRigidBody *rigid_body = (btRigidBody *)collider->rigid_body;
         p_dynamics_world->removeRigidBody(rigid_body);
         btCollisionShape *collision_shape = rigid_body->getCollisionShape();
@@ -475,6 +493,26 @@ struct p_collider_t *p_GetCollider(uint32_t type, uint32_t index)
 struct p_dynamic_collider_t *p_GetDynamicCollider(uint32_t index)
 {
     return(struct p_dynamic_collider_t *)p_GetCollider(P_COLLIDER_TYPE_DYNAMIC, index);
+}
+
+void p_FreezeCollider(struct p_collider_t *collider)
+{
+    if(collider && collider->index != 0xffffffff)
+    {
+        btRigidBody *rigid_body = (btRigidBody *)collider->rigid_body;
+        rigid_body->setLinearFactor(btVector3(0, 0, 0));
+        rigid_body->setAngularFactor(btVector3(0, 0, 0));
+    }
+}
+
+void p_UnfreezeCollider(struct p_collider_t *collider)
+{
+    if(collider && collider->index != 0xffffffff)
+    {
+        btRigidBody *rigid_body = (btRigidBody *)collider->rigid_body;
+        rigid_body->setLinearFactor(btVector3(1, 1, 1));
+        rigid_body->setAngularFactor(btVector3(1, 1, 1));
+    }
 }
 
 
@@ -543,6 +581,7 @@ void p_DestroyConstraint(struct p_constraint_t *constraint)
     if(constraint && constraint->index != 0xffffffff)
     {
         btTypedConstraint *bt_constraint = (btTypedConstraint *)constraint->constraint;
+        p_dynamics_world->removeConstraint(bt_constraint);
         delete bt_constraint;
 
         for(uint32_t index = 0; index < 2; index++)

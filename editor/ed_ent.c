@@ -22,6 +22,7 @@ extern struct ds_slist_t e_ent_defs[];
 extern struct ds_slist_t r_models;
 
 extern char *p_col_shape_names[];
+extern char *p_constraint_names[];
 
 void ed_e_Init(struct ed_editor_t *editor)
 {
@@ -40,6 +41,7 @@ void ed_e_Shutdown()
 
 void ed_e_Suspend()
 {
+    p_UnfreezePhysics();
     if(ed_entity_state.cur_entity)
     {
         e_DestroyEntity(ed_entity_state.cur_entity);
@@ -51,7 +53,7 @@ void ed_e_Suspend()
 void ed_e_Resume()
 {
     r_SetClearColor(0.4, 0.4, 0.8, 1.0);
-
+    p_FreezePhysics();
     if(ed_entity_state.cur_ent_def && ed_entity_state.cur_ent_def->index != 0xffffffff)
     {
         struct e_ent_def_t *ent_def = ed_entity_state.cur_ent_def;
@@ -71,7 +73,7 @@ uint32_t ed_e_LoadEntDef(char *path, char *file)
     return 0;
 }
 
-uint32_t ed_e_EntDefHierarchyUI(struct e_ent_def_t *ent_def)
+uint32_t ed_e_EntDefHierarchyUI(struct e_ent_def_t *ent_def, struct e_ent_def_t *parent_def)
 {
     uint32_t refresh_entity = 0;
 
@@ -79,14 +81,15 @@ uint32_t ed_e_EntDefHierarchyUI(struct e_ent_def_t *ent_def)
     {
         igSeparator();
         igText("Transform");
-
+        igIndent(0.0);
         refresh_entity |= igInputFloat3("Position", ent_def->position.comps, "%0.2f", 0);
-
         refresh_entity |= igInputFloat3("Scale", ent_def->scale.comps, "%0.2f", 0);
+        igUnindent(0.0);
 
         igSeparator();
         igText("Model");
         char *model_name = "None";
+        igIndent(0.0);
         if(ent_def->model)
         {
             struct r_model_t *ent_model = ent_def->model;
@@ -116,13 +119,14 @@ uint32_t ed_e_EntDefHierarchyUI(struct e_ent_def_t *ent_def)
             }
             igEndCombo();
         }
+        igUnindent(0.0);
 
         igSeparator();
         igText("Collider");
-
         if(ent_def->collider.shape_count)
         {
             igSameLine(0, -1);
+
             if(igButton("Remove##collider", (ImVec2){0, 0}))
             {
                 refresh_entity = 1;
@@ -137,7 +141,86 @@ uint32_t ed_e_EntDefHierarchyUI(struct e_ent_def_t *ent_def)
                     shape = next_shape;
                 }
             }
+
+            igNewLine();
+            igIndent(0.0);
+
+            if(parent_def)
+            {
+                struct e_constraint_t *constraint = NULL;
+                struct e_constraint_t *prev_constraint = NULL;
+
+                if(parent_def->constraints)
+                {
+                    constraint = parent_def->constraints;
+
+                    while(constraint)
+                    {
+                        if(constraint->child_entity == ent_def)
+                        {
+                            break;
+                        }
+
+                        prev_constraint = constraint;
+                        constraint = constraint->next;
+                    }
+                }
+
+                if(constraint)
+                {
+                    if(igButton("Remove constraint", (ImVec2){0, 0}))
+                    {
+                        refresh_entity = 1;
+
+                        if(prev_constraint)
+                        {
+                            prev_constraint->next = constraint->next;
+                        }
+                        else
+                        {
+                            ent_def->constraints = constraint->next;
+                        }
+
+                        e_DeallocConstraint(constraint);
+                    }
+
+                    if(igBeginCombo("Constraint type", p_constraint_names[constraint->constraint.type], 0))
+                    {
+                        for(uint32_t type = P_CONSTRAINT_TYPE_HINGE; type < P_CONSTRAINT_TYPE_LAST; type++)
+                        {
+                            if(igSelectable_Bool(p_constraint_names[constraint->constraint.type], 0, 0, (ImVec2){0, 0}))
+                            {
+
+                            }
+                        }
+                        igEndCombo();
+                    }
+
+                    switch(constraint->constraint.type)
+                    {
+                        case P_CONSTRAINT_TYPE_HINGE:
+                            refresh_entity |= igInputFloat3("Pivot A", constraint->constraint.hinge.pivot_a.comps, "%0.2f", 0);
+                            refresh_entity |= igInputFloat3("Pivot B", constraint->constraint.hinge.pivot_b.comps, "%0.2f", 0);
+                            refresh_entity |= igSliderAngle("Low limit", &constraint->constraint.hinge.limit_low, -180.0, 180.0, "%0.2f", 0);
+                            refresh_entity |= igSliderAngle("High limit", &constraint->constraint.hinge.limit_high, -180.0, 180.0, "%0.2f", 0);
+                        break;
+                    }
+                }
+                else
+                {
+                    if(igButton("Add constraint", (ImVec2){0, 0}))
+                    {
+                        refresh_entity = 1;
+                    }
+                }
+            }
         }
+        else
+        {
+            igIndent(0.0);
+        }
+
+        igNewLine();
 
         if(igButton("Add shape", (ImVec2){0, 0}))
         {
@@ -155,16 +238,14 @@ uint32_t ed_e_EntDefHierarchyUI(struct e_ent_def_t *ent_def)
         }
 
         refresh_entity |= ed_e_CollisionShapeUI(&ent_def->collider);
-//        if(ent_def->collider.shape_count)
-//        {
-//            refresh_entity |= ed_e_CollisionShapeUI(&ent_def->collider);
-//        }
+
+        igUnindent(0.0);
 
         struct e_ent_def_t *child = ent_def->children;
 
         while(child)
         {
-            refresh_entity |= ed_e_EntDefHierarchyUI(child);
+            refresh_entity |= ed_e_EntDefHierarchyUI(child, ent_def);
             child = child->next;
         }
 
@@ -179,15 +260,13 @@ uint32_t ed_e_CollisionShapeUI(struct p_col_def_t *col_def)
     uint32_t refresh_shape = 0;
     struct p_shape_def_t *shape = col_def->shape;
 
-    mat4_t shape_transform;
-
     while(shape)
     {
         igPushID_Ptr(shape);
 
         if(igBeginCombo("Shape type", p_col_shape_names[shape->type], 0))
         {
-            for(uint32_t shape_type = P_COL_SHAPE_TYPE_CAPSULE; shape_type < P_COL_SHAPE_TYPE_LAST; shape_type++)
+            for(uint32_t shape_type = P_COL_SHAPE_TYPE_CAPSULE; shape_type <= P_COL_SHAPE_TYPE_BOX; shape_type++)
             {
                 if(igSelectable_Bool(p_col_shape_names[shape_type], 0, 0, (ImVec2){0, 0}))
                 {
@@ -199,24 +278,20 @@ uint32_t ed_e_CollisionShapeUI(struct p_col_def_t *col_def)
         }
 
         refresh_shape |= igInputFloat3("Position offset", shape->position.comps, "%.2f", 0);
-        mat4_t_comp(&shape_transform, &shape->orientation, &shape->position);
-        r_i_SetModelMatrix(&shape_transform);
 
         switch(shape->type)
         {
             case P_COL_SHAPE_TYPE_BOX:
-                r_i_DrawBox(&shape->box.size);
                 refresh_shape |= igInputFloat3("Half-size", shape->box.size.comps, "%0.2f", 0);
             break;
 
             case P_COL_SHAPE_TYPE_CYLINDER:
-                r_i_DrawCylinder(shape->cylinder.radius, shape->cylinder.height);
+
             break;
 
             case P_COL_SHAPE_TYPE_CAPSULE:
                 refresh_shape |= igInputFloat("Height", &shape->capsule.height, 0.0, 0.0, "%0.2f", 0);
                 refresh_shape |= igInputFloat("Radius", &shape->capsule.radius, 0.0, 0.0, "%0.2f", 0);
-                r_i_DrawCapsule(shape->capsule.radius, shape->capsule.height);
             break;
         }
 
@@ -225,6 +300,8 @@ uint32_t ed_e_CollisionShapeUI(struct p_col_def_t *col_def)
 
         shape = shape->next;
     }
+
+    return refresh_shape;
 }
 
 void ed_e_UpdateUI()
@@ -238,8 +315,8 @@ void ed_e_UpdateUI()
         r_i_SetModelMatrix(NULL);
         r_i_SetShader(NULL);
         struct e_ent_def_t *ent_def = ed_entity_state.cur_ent_def;
-        igSetNextWindowPos((ImVec2){r_width, 40}, 0, (ImVec2){1, 0});
-        igSetNextWindowSize((ImVec2){350, 0}, 0);
+        igSetNextWindowPos((ImVec2){r_width, 40}, ImGuiCond_Once, (ImVec2){1, 0});
+        igSetNextWindowSize((ImVec2){450, r_height - 100}, 0);
         if(igBegin("##ent_defs_data", NULL, 0))
         {
             igInputText("Name", ent_def->name, sizeof(ent_def->name), 0, 0, NULL);
@@ -249,7 +326,7 @@ void ed_e_UpdateUI()
             igText("Hierarchy");
             igSeparator();
 
-            if(ed_e_EntDefHierarchyUI(ent_def))
+            if(ed_e_EntDefHierarchyUI(ent_def, NULL))
             {
                 e_DestroyEntity(ed_entity_state.cur_entity);
                 ed_entity_state.cur_entity = e_SpawnEntity(ent_def, &vec3_t_c(0.0, 0.0, 0.0), &vec3_t_c(1.0, 1.0, 1.0), &mat3_t_c_id());
@@ -260,7 +337,6 @@ void ed_e_UpdateUI()
 
     if(ed_entity_state.ent_def_window_open)
     {
-//        igSetNextWindowSizeConstraints((ImVec2){200, 200})
         igSetNextWindowPos((ImVec2){0, 40}, 0, (ImVec2){0, 0});
         if(igBegin("Ent defs", NULL, 0))
         {
@@ -317,6 +393,8 @@ void ed_e_Update()
 
     ed_entity_state.light->position = forward_vec;
     ed_LevelEditorDrawGrid();
+
+    p_UpdateColliders(0.0);
 }
 
 void ed_e_ResetEditor()

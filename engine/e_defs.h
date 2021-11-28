@@ -110,6 +110,7 @@ struct e_node_t
     mat3_t orientation;
     vec3_t position;
     vec3_t scale;
+    vec3_t local_scale;
     uint32_t root_index;
 };
 

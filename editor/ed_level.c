@@ -2614,11 +2614,7 @@ void ed_SerializeLevel(void **level_buffer, size_t *buffer_size, uint32_t serial
             entity_record->ent_def = transform->entity->def->s_index;
             entity_record->position = transform->position;
             entity_record->orientation = transform->orientation;
-
-            entity_record->scale.x = transform->scale.x / ent_def->scale.x;
-            entity_record->scale.y = transform->scale.y / ent_def->scale.y;
-            entity_record->scale.z = transform->scale.z / ent_def->scale.z;
-
+            entity_record->scale = transform->scale;
             entity_record->s_index = transform->entity->index;
         }
     }

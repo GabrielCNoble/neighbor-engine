@@ -25,7 +25,7 @@ struct e_component_t *e_GetComponent(uint32_t type, uint32_t index);
 
 void e_DeallocComponent(struct e_component_t *component);
 
-struct e_node_t *e_AllocNode(vec3_t *position, vec3_t *scale, mat3_t *orientation, struct e_entity_t *entity);
+struct e_node_t *e_AllocNode(vec3_t *position, vec3_t *scale, vec3_t *local_scale, mat3_t *orientation, struct e_entity_t *entity);
 
 struct e_transform_t *e_AllocTransform(struct e_entity_t *entity);
 

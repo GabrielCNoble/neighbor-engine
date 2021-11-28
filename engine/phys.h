@@ -46,6 +46,10 @@ struct p_collider_t *p_GetCollider(uint32_t type, uint32_t index);
 
 struct p_dynamic_collider_t *p_GetDynamicCollider(uint32_t index);
 
+void p_FreezeCollider(struct p_collider_t *collider);
+
+void p_UnfreezeCollider(struct p_collider_t *collider);
+
 
 struct p_constraint_t *p_CreateConstraint(struct p_constraint_def_t *constraint_def, struct p_collider_t *collider_a, struct p_collider_t *collider_b);
 

@@ -454,7 +454,7 @@ struct ed_pickable_t *ed_CopyPickable(struct ed_pickable_t *src_pickable)
         case ED_PICKABLE_TYPE_LIGHT:
         {
             struct r_light_t *src_light = r_GetLight(src_pickable->primary_index);
-            copy = ed_CreateLightPickable(NULL, NULL, 0, 0, r_CopyLight(src_light));
+            copy = ed_CreateLightPickable(NULL, NULL, 0, 0, 0, r_CopyLight(src_light));
         }
         break;
     }
@@ -534,7 +534,7 @@ struct ed_pickable_t *ed_CreateBrushPickable(vec3_t *position, mat3_t *orientati
     return pickable;
 }
 
-struct ed_pickable_t *ed_CreateLightPickable(vec3_t *pos, vec3_t *color, float radius, float energy, struct r_light_t *src_light)
+struct ed_pickable_t *ed_CreateLightPickable(vec3_t *pos, vec3_t *color, float radius, float energy, uint32_t type, struct r_light_t *src_light)
 {
     struct r_light_t *light;
 
@@ -544,8 +544,14 @@ struct ed_pickable_t *ed_CreateLightPickable(vec3_t *pos, vec3_t *color, float r
     }
     else
     {
-        light = r_CreateLight(R_LIGHT_TYPE_POINT, pos, color, radius, energy);
-//        light = r_CreateSpotLight(pos, color, NULL, radius, energy, 20, 0.1);
+        if(type == ED_LEVEL_LIGHT_TYPE_POINT)
+        {
+            light = r_CreateLight(R_LIGHT_TYPE_POINT, pos, color, radius, energy);
+        }
+        else
+        {
+            light = r_CreateSpotLight(pos, color, NULL, radius, energy, 20, 0.1);
+        }
     }
 
     struct ed_pickable_t *pickable = ed_CreatePickable(ED_PICKABLE_TYPE_LIGHT);

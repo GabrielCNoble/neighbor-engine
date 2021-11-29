@@ -20,7 +20,19 @@ enum ED_LEVEL_MANIP_MODES
 enum ED_LEVEL_SECONDARY_CLICK_FUNCS
 {
     ED_LEVEL_SECONDARY_CLICK_FUNC_BRUSH = 0,
-    ED_LEVEL_SECONDARY_CLICK_FUNC_LIGHT
+    ED_LEVEL_SECONDARY_CLICK_FUNC_LIGHT,
+    ED_LEVEL_SECONDARY_CLICK_FUNC_ENTITY
+};
+
+enum ED_LEVEL_BRUSH_TOOLS
+{
+    ED_LEVEL_BRUSH_TOOL_CREATE = 0,
+};
+
+enum ED_LEVEL_LIGHT_TYPES
+{
+    ED_LEVEL_LIGHT_TYPE_POINT = 0,
+    ED_LEVEL_LIGHT_TYPE_SPOT
 };
 
 struct ed_level_state_t
@@ -30,10 +42,9 @@ struct ed_level_state_t
     {
         vec3_t box_start;
         vec3_t box_end;
-        vec3_t plane_point;
         vec2_t box_size;
-        mat3_t plane_orientation;
         uint32_t drawing;
+        uint32_t selected_tool;
 
         struct ds_slist_t bsp_nodes;
         struct ds_slist_t bsp_polygons;
@@ -58,6 +69,10 @@ struct ed_level_state_t
 
     struct
     {
+        vec3_t plane_point;
+        mat3_t plane_orientation;
+        struct e_ent_def_t *ent_def;
+        uint32_t light_type;
         uint32_t ignore_types;
         uint32_t secondary_click_function;
         uint32_t selections_window_open;

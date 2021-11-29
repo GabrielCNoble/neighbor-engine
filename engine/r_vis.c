@@ -43,7 +43,7 @@ extern float r_fov;
 
 //extern struct ds_slist_t g_entities;
 
-extern struct ds_slist_t e_components[];
+extern struct ds_list_t e_components[];
 
 int32_t r_CompareVisibleLights(void *a, void *b)
 {
@@ -669,14 +669,12 @@ void r_VisibleLights()
 
 void r_VisibleEntities()
 {
-    for(uint32_t transform_index = 0; transform_index < e_components[E_COMPONENT_TYPE_TRANSFORM].cursor; transform_index++)
+    for(uint32_t model_index = 0; model_index < e_components[E_COMPONENT_TYPE_MODEL].cursor; model_index++)
     {
-        struct e_transform_t *transform = (struct e_transform_t *)e_GetComponent(E_COMPONENT_TYPE_TRANSFORM, transform_index);
+        struct e_model_t *model = (struct e_model_t *)e_GetComponent(E_COMPONENT_TYPE_MODEL, model_index);
+        struct e_transform_t *transform = model->entity->transform;
 
-        if(transform)
-        {
-            r_DrawEntity(&transform->transform, transform->entity->model->model);
-        }
+        r_DrawEntity(&transform->transform, transform->entity->model->model);
     }
 }
 

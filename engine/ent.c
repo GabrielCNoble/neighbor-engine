@@ -109,7 +109,8 @@ struct e_constraint_t *e_AllocConstraint()
     struct e_constraint_t *constraint = ds_slist_get_element(&e_constraints, index);
     constraint->index = index;
     constraint->next = NULL;
-    constraint->child_entity = NULL;
+    constraint->prev = NULL;
+    constraint->child_def = NULL;
     constraint->constraint.type = P_CONSTRAINT_TYPE_LAST;
 
     return constraint;
@@ -406,9 +407,9 @@ struct e_entity_t *e_SpawnEntityRecursive(struct e_ent_def_t *ent_def, vec3_t *p
 
         while(constraint)
         {
-            struct e_entity_t *child = constraint->child_entity->entity;
+            struct e_entity_t *child = constraint->child_def->entity;
             p_CreateConstraint(&constraint->constraint, entity->collider->collider, child->collider->collider);
-            constraint->child_entity->entity = NULL;
+            constraint->child_def->entity = NULL;
             constraint = constraint->next;
         }
     }

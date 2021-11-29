@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <float.h>
 #include "anim.h"
 #include "r_draw.h"
 #include "dstuff/ds_file.h"
@@ -591,6 +592,9 @@ void a_UpdateMixer(struct a_mixer_t *mixer, float delta_time)
         }
     }
 
+    copy->max = vec3_t_c(-FLT_MAX, -FLT_MAX, -FLT_MAX);
+    copy->min = vec3_t_c(FLT_MAX, FLT_MAX, FLT_MAX);
+
     for(uint32_t vert_index = 0; vert_index < model->verts.buffer_size; vert_index++)
     {
         struct r_vert_t *vert = (struct r_vert_t *)model->verts.buffer + vert_index;
@@ -623,6 +627,9 @@ void a_UpdateMixer(struct a_mixer_t *mixer, float delta_time)
         vert->pos = vec3_t_c(position.x, position.y, position.z);
         vert->normal = vec4_t_c(normal.x, normal.y, normal.z, 1.0);
         vert->tangent = vec3_t_c(tangent.x, tangent.y, tangent.z);
+
+        vec3_t_max(&copy->max, &vert->pos, &copy->max);
+        vec3_t_min(&copy->min, &vert->pos, &copy->min);
     }
 
     r_FillVertices(copy->vert_chunk, copy->verts.buffer, copy->verts.buffer_size);

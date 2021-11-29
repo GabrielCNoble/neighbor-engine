@@ -77,6 +77,9 @@ struct l_entity_record_t
 
     size_t child_start;
     size_t child_count;
+
+    size_t prop_start;
+    size_t prop_count;
 };
 
 struct l_material_section_t

@@ -87,8 +87,8 @@ enum P_COLLIDER_FLAGS
     vec3_t position;                        \
     void *rigid_body;                       \
     uint32_t index;                         \
-    uint16_t type;                          \
-    uint16_t flags
+    uint32_t type                           \
+//    uint16_t flags
 
 
 struct p_collider_t

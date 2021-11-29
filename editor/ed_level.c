@@ -633,6 +633,97 @@ void ed_w_UpdateUI()
         igEnd();
     }
 
+    window_flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoCollapse;
+    igSetNextWindowPos((ImVec2){r_width, 20}, 0, (ImVec2){1, 0});
+    igSetNextWindowSize((ImVec2){0, 400}, 0);
+    if(igBegin("Tools window", NULL, window_flags))
+    {
+        switch(ed_level_state.pickables.secondary_click_function)
+        {
+            case ED_LEVEL_SECONDARY_CLICK_FUNC_BRUSH:
+            {
+                uint32_t func = ed_level_state.brush.selected_tool;
+                if(igBeginChild_Str("Brush tools", (ImVec2){48, 0}, 0, 0))
+                {
+                    if(igSelectable_Bool("Create", func == ED_LEVEL_BRUSH_TOOL_CREATE, 0, (ImVec2){48, 48}))
+                    {
+                        ed_level_state.brush.selected_tool = ED_LEVEL_BRUSH_TOOL_CREATE;
+                    }
+                }
+                igEndChild();
+            }
+            break;
+
+            case ED_LEVEL_SECONDARY_CLICK_FUNC_LIGHT:
+            {
+                uint32_t type = ed_level_state.pickables.light_type;
+                if(igBeginChild_Str("Light types", (ImVec2){48, 0}, 0, 0))
+                {
+                    if(igSelectable_Bool("Point", type == ED_LEVEL_LIGHT_TYPE_POINT, 0, (ImVec2){48, 48}))
+                    {
+                        ed_level_state.pickables.light_type = ED_LEVEL_LIGHT_TYPE_POINT;
+                    }
+                    if(igSelectable_Bool("Spot", type == ED_LEVEL_LIGHT_TYPE_SPOT, 0, (ImVec2){48, 48}))
+                    {
+                        ed_level_state.pickables.light_type = ED_LEVEL_LIGHT_TYPE_SPOT;
+                    }
+                }
+                igEndChild();
+            }
+            break;
+
+            case ED_LEVEL_SECONDARY_CLICK_FUNC_ENTITY:
+            {
+                uint32_t type = ed_level_state.pickables.light_type;
+                if(igBeginChild_Str("Ent defs", (ImVec2){120, 0}, 0, 0))
+                {
+                    struct e_ent_def_t *cur_def = ed_level_state.pickables.ent_def;
+
+                    for(uint32_t ent_def_index = 0; ent_def_index < e_ent_defs[E_ENT_DEF_TYPE_ROOT].cursor; ent_def_index++)
+                    {
+                        struct e_ent_def_t *ent_def = e_GetEntDef(E_ENT_DEF_TYPE_ROOT, ent_def_index);
+
+                        if(ent_def)
+                        {
+                            if(igSelectable_Bool(ent_def->name, ent_def == cur_def, 0, (ImVec2){0, 32}))
+                            {
+                                ed_level_state.pickables.ent_def = ent_def;
+                            }
+                        }
+                    }
+                }
+                igEndChild();
+            }
+            break;
+        }
+
+        igSameLine(0.0, -1.0);
+        igSeparatorEx(ImGuiSeparatorFlags_Vertical);
+        igSameLine(0.0, -1.0);
+
+        if(igBeginChild_Str("Tool buttons", (ImVec2){36, 0}, 0, 0))
+        {
+            uint32_t func = ed_level_state.pickables.secondary_click_function;
+
+            if(igSelectable_Bool("Brush", func == ED_LEVEL_SECONDARY_CLICK_FUNC_BRUSH, 0, (ImVec2){0, 0}))
+            {
+                ed_level_state.pickables.secondary_click_function = ED_LEVEL_SECONDARY_CLICK_FUNC_BRUSH;
+            }
+
+            if(igSelectable_Bool("Light", func == ED_LEVEL_SECONDARY_CLICK_FUNC_LIGHT, 0, (ImVec2){0, 0}))
+            {
+                ed_level_state.pickables.secondary_click_function = ED_LEVEL_SECONDARY_CLICK_FUNC_LIGHT;
+            }
+
+            if(igSelectable_Bool("Entity", func == ED_LEVEL_SECONDARY_CLICK_FUNC_ENTITY, 0, (ImVec2){0, 0}))
+            {
+                ed_level_state.pickables.secondary_click_function = ED_LEVEL_SECONDARY_CLICK_FUNC_ENTITY;
+            }
+        }
+        igEndChild();
+    }
+    igEnd();
+
     igSetNextWindowBgAlpha(0.5);
     igPushStyleVar_Float(ImGuiStyleVar_WindowBorderSize, 0.0);
     igSetNextWindowSize((ImVec2){r_width, 0}, 0);
@@ -653,85 +744,141 @@ void ed_w_UpdateUI()
         }
 
 
-        igPushStyleVar_Float(ImGuiStyleVar_Alpha, 0.5);
-        if(igBeginTable("Stats table", 4, ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_Hideable, (ImVec2){0.0, 0.0}, 0.0))
-        {
-            igTableNextRow(0, 0.0);
+//        if(igBeginChild_Str("left_side", (ImVec2){0, 24}, 0, 0))
+//        {
+            igPushStyleVar_Float(ImGuiStyleVar_Alpha, 0.5);
 
-            char selected_label[32];
-            sprintf(selected_label, "Selected: %d  ", selections->cursor);
-
-            igTableNextColumn();
-            igSetNextItemWidth(100.0);
-            if(igSelectable_Bool(selected_label, ed_level_state.pickables.selections_window_open, 0, (ImVec2){0, 0}))
+            if(igBeginTable("Stats table", 4, ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_Hideable, (ImVec2){0.0, 0.0}, 0.0))
             {
-                ed_level_state.pickables.selections_window_open = !ed_level_state.pickables.selections_window_open;
-            }
+                igTableNextRow(0, 0.0);
 
-            igTableNextColumn();
-            igText("Manipulator: %s  ", transform_mode_text);
-            igTableNextColumn();
+                char selected_label[32];
+                sprintf(selected_label, "Selected: %d  ", selections->cursor);
 
-            char snap_label[32];
-            char snap_preview[32];
-            igText("Snap: ");
-            igSameLine(0.0, -1.0);
-            if(ed_level_state.manipulator.mode == ED_LEVEL_MANIP_MODE_ROTATION)
-            {
-                sprintf(snap_preview, "%0.4f deg", ed_level_state.manipulator.angular_snap * 180.0);
-                igSetNextItemWidth(120.0);
-                if(igBeginCombo("##angular_snap", snap_preview, 0))
+                igTableNextColumn();
+                igSetNextItemWidth(100.0);
+                if(igSelectable_Bool(selected_label, ed_level_state.pickables.selections_window_open, 0, (ImVec2){0, 0}))
                 {
-                    for(uint32_t index = 0; index < sizeof(ed_w_angular_snap_values) / sizeof(ed_w_angular_snap_values[0]); index++)
-                    {
-                        sprintf(snap_label, "%f", ed_w_angular_snap_values[index] * 180.0);
-
-                        if(igSelectable_Bool(snap_label, 0, 0, (ImVec2){0.0, 0.0}))
-                        {
-                            ed_level_state.manipulator.angular_snap = ed_w_angular_snap_values[index];
-                        }
-                    }
-
-                    igEndCombo();
+                    ed_level_state.pickables.selections_window_open = !ed_level_state.pickables.selections_window_open;
                 }
-            }
-            else
-            {
-                sprintf(snap_preview, "%0.4f m", ed_level_state.manipulator.linear_snap);
-                igSetNextItemWidth(120.0);
-                if(igBeginCombo("##linear_snap", snap_preview, 0))
+
+                igTableNextColumn();
+                igText("Manipulator: %s  ", transform_mode_text);
+                igTableNextColumn();
+
+                char snap_label[32];
+                char snap_preview[32];
+                igText("Snap: ");
+                igSameLine(0.0, -1.0);
+                if(ed_level_state.manipulator.mode == ED_LEVEL_MANIP_MODE_ROTATION)
                 {
-                    for(uint32_t index = 0; index < sizeof(ed_w_linear_snap_values) / sizeof(ed_w_linear_snap_values[0]); index++)
+                    sprintf(snap_preview, "%0.4f deg", ed_level_state.manipulator.angular_snap * 180.0);
+                    igSetNextItemWidth(120.0);
+                    if(igBeginCombo("##angular_snap", snap_preview, 0))
                     {
-                        sprintf(snap_label, "%f", ed_w_linear_snap_values[index]);
-
-                        if(igSelectable_Bool(snap_label, 0, 0, (ImVec2){0.0, 0.0}))
+                        for(uint32_t index = 0; index < sizeof(ed_w_angular_snap_values) / sizeof(ed_w_angular_snap_values[0]); index++)
                         {
-                            ed_level_state.manipulator.linear_snap = ed_w_linear_snap_values[index];
+                            sprintf(snap_label, "%f", ed_w_angular_snap_values[index] * 180.0);
+
+                            if(igSelectable_Bool(snap_label, 0, 0, (ImVec2){0.0, 0.0}))
+                            {
+                                ed_level_state.manipulator.angular_snap = ed_w_angular_snap_values[index];
+                            }
                         }
+
+                        igEndCombo();
                     }
-
-                    igEndCombo();
                 }
+                else
+                {
+                    sprintf(snap_preview, "%0.4f m", ed_level_state.manipulator.linear_snap);
+                    igSetNextItemWidth(120.0);
+                    if(igBeginCombo("##linear_snap", snap_preview, 0))
+                    {
+                        for(uint32_t index = 0; index < sizeof(ed_w_linear_snap_values) / sizeof(ed_w_linear_snap_values[0]); index++)
+                        {
+                            sprintf(snap_label, "%f", ed_w_linear_snap_values[index]);
+
+                            if(igSelectable_Bool(snap_label, 0, 0, (ImVec2){0.0, 0.0}))
+                            {
+                                ed_level_state.manipulator.linear_snap = ed_w_linear_snap_values[index];
+                            }
+                        }
+
+                        igEndCombo();
+                    }
+                }
+
+                igTableNextColumn();
+
+//                if(igBeginChild_Str("tools", (ImVec2){500, 24}, 0, 0))
+//                {
+//                    if(igBeginTabBar("Tools", 0))
+//                    {
+//                        if(igBeginTabItem("Brush", NULL, 0))
+//                        {
+//                            ed_level_state.pickables.secondary_click_function = ED_LEVEL_SECONDARY_CLICK_FUNC_BRUSH;
+//                            igEndTabItem();
+//                        }
+//                        if(igBeginTabItem("Light", NULL, 0))
+//                        {
+//                            ed_level_state.pickables.secondary_click_function = ED_LEVEL_SECONDARY_CLICK_FUNC_LIGHT;
+//                            igEndTabItem();
+//                        }
+//                        if(igBeginTabItem("Entity", NULL, 0))
+//                        {
+//                            ed_level_state.pickables.secondary_click_function = ED_LEVEL_SECONDARY_CLICK_FUNC_ENTITY;
+//                            igEndTabItem();
+//                        }
+//                        igEndTabBar();
+//                    }
+//                }
+//                igEndChild();
+
+                igEndTable();
+
+    //            igTableNextColumn();
+
+
+//                if(igButton("Brush", (ImVec2){0.0, 20.0}))
+//                {
+//                    ed_level_state.pickables.secondary_click_function = ED_LEVEL_SECONDARY_CLICK_FUNC_BRUSH;
+//                }
+//
+//                igSameLine(0.0, -1.0);
+//
+//                if(igButton("Light", (ImVec2){0.0, 20.0}))
+//                {
+//                    ed_level_state.pickables.secondary_click_function = ED_LEVEL_SECONDARY_CLICK_FUNC_LIGHT;
+//                }
+//
+//                igEndTable();
             }
+            igPopStyleVar(1);
+//        }
+//        igEndChild();
 
-            igTableNextColumn();
-            if(igButton("Brush", (ImVec2){0.0, 20.0}))
-            {
-                ed_level_state.pickables.secondary_click_function = ED_LEVEL_SECONDARY_CLICK_FUNC_BRUSH;
-            }
+//        igSameLine(0.0, -1.0);
+//
+//        if(igBeginChild_Str("right_side", (ImVec2){0, 24}, 0, 0))
+//        {
+//            if(igBeginTabBar("Tools", 0))
+//            {
+//                if(igBeginTabItem("Brush", NULL, 0))
+//                {
+//                    ed_level_state.pickables.secondary_click_function = ED_LEVEL_SECONDARY_CLICK_FUNC_BRUSH;
+//                    igEndTabItem();
+//                }
+//                if(igBeginTabItem("Light", NULL, 0))
+//                {
+//                    ed_level_state.pickables.secondary_click_function = ED_LEVEL_SECONDARY_CLICK_FUNC_BRUSH;
+//                    igEndTabItem();
+//                }
+//                igEndTabBar();
+//            }
+//        }
+//        igEndChild();
 
-            igSameLine(0.0, -1.0);
-
-            if(igButton("Light", (ImVec2){0.0, 20.0}))
-            {
-                ed_level_state.pickables.secondary_click_function = ED_LEVEL_SECONDARY_CLICK_FUNC_LIGHT;
-            }
-
-            igEndTable();
-        }
-
-        igSameLine(0.0, -1.0);
 
 //        if(igButton("Brush", (ImVec2){0.0, 20.0}))
 //        {
@@ -745,7 +892,7 @@ void ed_w_UpdateUI()
 //            ed_level_state.pickables.secondary_click_function = ED_LEVEL_SECONDARY_CLICK_FUNC_LIGHT;
 //        }
 
-        struct ds_list_t *selections = &ed_level_state.pickables.selections;
+//        struct ds_list_t *selections = &ed_level_state.pickables.selections;
 
 //        if(selections->cursor)
 //        {
@@ -799,7 +946,7 @@ void ed_w_UpdateUI()
 //            igEndChild();
 //        }
 
-        igPopStyleVar(1);
+//        igPopStyleVar(1);
     }
     igEnd();
     igPopStyleVar(1);
@@ -1210,13 +1357,16 @@ void ed_w_UpdatePickableObjects()
                         }
                     }
 
-                    mat4_t scale = mat4_t_c_id();
-                    scale.rows[0].x = entity->node->scale.x;
-                    scale.rows[1].y = entity->node->scale.y;
-                    scale.rows[2].z = entity->node->scale.z;
+                    e_UpdateEntityNode(entity->node, &mat4_t_c_id());
+                    pickable->transform = entity->transform->transform;
 
-                    mat4_t_comp(&pickable->transform, &entity->node->orientation, &entity->node->position);
-                    mat4_t_mul(&pickable->transform, &scale, &pickable->transform);
+//                    mat4_t scale = mat4_t_c_id();
+//                    scale.rows[0].x = entity->node->scale.x;
+//                    scale.rows[1].y = entity->node->scale.y;
+//                    scale.rows[2].z = entity->node->scale.z;
+//
+//                    mat4_t_comp(&pickable->transform, &entity->node->orientation, &entity->node->position);
+//                    mat4_t_mul(&pickable->transform, &scale, &pickable->transform);
                 }
                 break;
             }
@@ -1549,11 +1699,13 @@ void ed_w_PingInfoWindow()
     ed_level_state.info_window_alpha = 1.0;
 }
 
-uint32_t ed_w_IntersectPlaneFromCamera(float mouse_x, float mouse_y, vec3_t *plane_point, vec3_t *plane_normal, vec3_t *result)
+uint32_t ed_w_IntersectPlaneFromCamera(int32_t mouse_x, int32_t mouse_y, vec3_t *plane_point, vec3_t *plane_normal, vec3_t *result)
 {
     vec3_t mouse_pos;
     vec3_t camera_pos;
-    vec4_t mouse_vec = {.x = mouse_x, .y = mouse_y, .z = 0.0, .w = 0.0};
+    vec4_t mouse_vec = {.z = 0.0, .w = 0.0};
+    mouse_vec.x = ((float)mouse_x / (float)r_width) * 2.0 - 1.0;
+    mouse_vec.y = 1.0 - ((float)mouse_y / (float)r_height) * 2.0;
 
     float aspect = (float)r_width / (float)r_height;
     float top = tan(r_fov) * r_z_near;
@@ -1648,7 +1800,8 @@ void ed_LevelEditorIdle(uint32_t just_changed)
     }
     else if(in_GetKeyState(SDL_SCANCODE_LCTRL) & IN_KEY_STATE_PRESSED)
     {
-        ed_SetNextState(ed_LevelEditorBrushBox);
+        ed_SetNextState(ed_l_PlacementCrosshair);
+//        ed_SetNextState(ed_LevelEditorBrushBox);
     }
     else if(selections->cursor)
     {
@@ -1742,9 +1895,89 @@ void ed_LevelEditorRightClick(uint32_t just_changed)
             ed_LevelEditorPickObjectOrWidget(just_changed);
         break;
 
-        case ED_LEVEL_SECONDARY_CLICK_FUNC_LIGHT:
-            ed_SetNextState(ed_LevelEditorPlaceLightAtCursor);
-        break;
+//        case ED_LEVEL_SECONDARY_CLICK_FUNC_LIGHT:
+////            ed_SetNextState(ed_LevelEditorPlaceLightAtCursor);
+//        break;
+    }
+}
+
+void ed_l_PlacementCrosshair(uint32_t just_changed)
+{
+    if(in_GetKeyState(SDL_SCANCODE_LCTRL) & IN_KEY_STATE_PRESSED)
+    {
+        int32_t mouse_x;
+        int32_t mouse_y;
+        struct ed_level_state_t *context_data = &ed_level_state;
+        in_GetMousePos(&mouse_x, &mouse_y);
+        vec3_t intersection = {};
+
+        vec3_t *plane_point = &context_data->pickables.plane_point;
+        mat3_t *plane_orientation = &context_data->pickables.plane_orientation;
+
+        ed_l_SurfaceUnderMouse(mouse_x, mouse_y, plane_point, plane_orientation);
+        ed_w_IntersectPlaneFromCamera(mouse_x, mouse_y, plane_point, &plane_orientation->rows[1], plane_point);
+        ed_l_LinearSnapValueOnSurface(plane_point, plane_orientation, plane_point);
+
+        vec3_t start = *plane_point;
+        vec3_t end = *plane_point;
+        vec3_t normal = plane_orientation->rows[1];
+
+        vec3_t u_axis;
+        vec3_t v_axis;
+
+        vec3_t_mul(&u_axis, &plane_orientation->rows[0], ED_W_BRUSH_BOX_CROSSHAIR_DIM);
+        vec3_t_mul(&v_axis, &plane_orientation->rows[2], ED_W_BRUSH_BOX_CROSSHAIR_DIM);
+
+        int32_t window_x;
+        int32_t window_y;
+
+        ed_w_PointPixelCoords(&window_x, &window_y, plane_point);
+
+        igSetNextWindowPos((ImVec2){window_x, window_y}, 0, (ImVec2){0.0, 0.0});
+        igSetNextWindowBgAlpha(0.25);
+        if(igBegin("crosshair", NULL, ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoTitleBar |
+                                 ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoDecoration))
+        {
+            igText("pos: [%f, %f, %f]", plane_point->x, plane_point->y, plane_point->z);
+            igText("norm: [%f, %f, %f]", normal.x, normal.y, normal.z);
+        }
+        igEnd();
+
+        r_i_SetModelMatrix(NULL);
+        r_i_SetViewProjectionMatrix(NULL);
+
+        r_i_DrawLine(&vec3_t_c(start.x + u_axis.x, start.y + u_axis.y, start.z + u_axis.z),
+                     &vec3_t_c(end.x - u_axis.x, end.y - u_axis.y, end.z - u_axis.z),
+                     &vec4_t_c(1.0, 1.0, 1.0, 1.0), 4.0);
+
+        r_i_DrawLine(&vec3_t_c(start.x + v_axis.x, start.y + v_axis.y, start.z + v_axis.z),
+                     &vec3_t_c(end.x - v_axis.x, end.y - v_axis.y, end.z - v_axis.z),
+                     &vec4_t_c(1.0, 1.0, 1.0, 1.0), 4.0);
+
+        if(in_GetMouseButtonState(SDL_BUTTON_LEFT) & IN_KEY_STATE_JUST_PRESSED)
+        {
+            switch(context_data->pickables.secondary_click_function)
+            {
+                case ED_LEVEL_SECONDARY_CLICK_FUNC_BRUSH:
+                    ed_SetNextState(ed_LevelEditorBrushBox);
+                break;
+
+                case ED_LEVEL_SECONDARY_CLICK_FUNC_LIGHT:
+                    ed_SetNextState(ed_l_PlaceLightAtCursor);
+                break;
+
+                case ED_LEVEL_SECONDARY_CLICK_FUNC_ENTITY:
+                    if(ed_level_state.pickables.ent_def)
+                    {
+                        ed_SetNextState(ed_l_PlaceEntityAtCursor);
+                    }
+                break;
+            }
+        }
+    }
+    else
+    {
+        ed_SetNextState(ed_LevelEditorIdle);
     }
 }
 
@@ -1758,12 +1991,13 @@ void ed_LevelEditorLeftClick(uint32_t just_changed)
 void ed_LevelEditorBrushBox(uint32_t just_changed)
 {
     struct ed_level_state_t *context_data = &ed_level_state;
-    uint32_t right_button_down = in_GetMouseButtonState(SDL_BUTTON_RIGHT) & IN_KEY_STATE_PRESSED;
+    uint32_t right_button_down = in_GetMouseButtonState(SDL_BUTTON_LEFT) & IN_KEY_STATE_PRESSED;
     uint32_t ctrl_down = in_GetKeyState(SDL_SCANCODE_LCTRL) & IN_KEY_STATE_PRESSED;
 
     if(just_changed)
     {
-        context_data->brush.drawing = 0;
+//        context_data->brush.drawing = 0;
+        context_data->brush.box_start = context_data->pickables.plane_point;
     }
 
     if((ctrl_down && (!context_data->brush.drawing)) || right_button_down)
@@ -1774,238 +2008,128 @@ void ed_LevelEditorBrushBox(uint32_t just_changed)
         }
         else
         {
-            float normalized_mouse_x;
-            float normalized_mouse_y;
             int32_t mouse_x;
             int32_t mouse_y;
 
-            in_GetNormalizedMousePos(&normalized_mouse_x, &normalized_mouse_y);
             in_GetMousePos(&mouse_x, &mouse_y);
 
             vec3_t intersection = {};
 
-            if(!context_data->brush.drawing)
-            {
-                uint32_t ignore_types = ED_PICKABLE_OBJECT_MASK | ED_PICKABLE_TYPE_MASK_EDGE | ED_PICKABLE_TYPE_MASK_VERT;
-                struct ds_slist_t *pickables = &context_data->pickables.pickables;
-                struct ed_pickable_t *surface = ed_SelectPickable(mouse_x, mouse_y, pickables, NULL, ignore_types);
+//            if(!context_data->brush.drawing)
+//            {
+//                ed_l_SurfaceUnderMouse(mouse_x, mouse_y, &context_data->brush.plane_point, &context_data->brush.plane_orientation);
+//            }
 
-                if(surface)
-                {
-                    struct ed_brush_t *brush = ed_GetBrush(surface->primary_index);
-                    struct ed_face_t *face = ed_GetFace(surface->secondary_index);
-                    context_data->brush.plane_orientation.rows[1] = face->polygons->normal;
-                    context_data->brush.plane_point = *(vec3_t *)ds_list_get_element(&face->clipped_polygons->vertices, 0);
-                    mat3_t_vec3_t_mul(&context_data->brush.plane_orientation.rows[1], &context_data->brush.plane_orientation.rows[1], &brush->orientation);
-                    mat3_t_vec3_t_mul(&context_data->brush.plane_point, &context_data->brush.plane_point, &brush->orientation);
-                    vec3_t_add(&context_data->brush.plane_point, &context_data->brush.plane_point, &brush->position);
+            vec3_t plane_point = context_data->pickables.plane_point;
+            mat3_t plane_orientation = context_data->pickables.plane_orientation;
 
-                    float max_axis_proj = -FLT_MAX;
-                    uint32_t j_axis_index = 0;
-                    mat3_t *plane_orientation = &context_data->brush.plane_orientation;
-                    vec3_t axes[] =
-                    {
-                        vec3_t_c(1.0, 0.0, 0.0),
-                        vec3_t_c(0.0, 1.0, 0.0),
-                        vec3_t_c(0.0, 0.0, 1.0),
-                    };
-
-                    for(uint32_t comp_index = 0; comp_index < 3; comp_index++)
-                    {
-                        float axis_proj = fabsf(plane_orientation->rows[1].comps[comp_index]);
-
-                        if(axis_proj > max_axis_proj)
-                        {
-                            max_axis_proj = axis_proj;
-                            j_axis_index = comp_index;
-                        }
-                    }
-
-                    uint32_t k_axis_index = (j_axis_index + 1) % 3;
-                    vec3_t_cross(&plane_orientation->rows[0], &axes[k_axis_index], &plane_orientation->rows[1]);
-                    vec3_t_normalize(&plane_orientation->rows[0], &plane_orientation->rows[0]);
-
-                    vec3_t_cross(&plane_orientation->rows[2], &plane_orientation->rows[1], &plane_orientation->rows[0]);
-                    vec3_t_normalize(&plane_orientation->rows[2], &plane_orientation->rows[2]);
-                }
-                else
-                {
-                    context_data->brush.plane_point = vec3_t_c(0.0, 0.0, 0.0);
-                    mat3_t_identity(&context_data->brush.plane_orientation);
-                }
-            }
-
-            vec3_t plane_point = context_data->brush.plane_point;
-            mat3_t plane_orientation = context_data->brush.plane_orientation;
-
-            if(ed_w_IntersectPlaneFromCamera(normalized_mouse_x, normalized_mouse_y, &plane_point, &plane_orientation.rows[1], &intersection))
+            if(ed_w_IntersectPlaneFromCamera(mouse_x, mouse_y, &plane_point, &plane_orientation.rows[1], &intersection))
             {
                 r_i_SetModelMatrix(NULL);
                 r_i_SetViewProjectionMatrix(NULL);
                 r_i_SetShader(NULL);
 
-                vec3_t plane_origin;
-                /* compute where the world origin projects onto the plane */
-                vec3_t_mul(&plane_origin, &plane_orientation.rows[1], vec3_t_dot(&plane_point, &plane_orientation.rows[1]));
+                ed_l_LinearSnapValueOnSurface(&plane_point, &plane_orientation, &intersection);
 
-                /* transform intersection point from world space to plane space */
-                vec3_t_sub(&intersection, &intersection, &plane_origin);
-                vec3_t transformed_intersection;
-                transformed_intersection.x = vec3_t_dot(&intersection, &plane_orientation.rows[0]);
-                transformed_intersection.y = vec3_t_dot(&intersection, &plane_orientation.rows[1]);
-                transformed_intersection.z = vec3_t_dot(&intersection, &plane_orientation.rows[2]);
-                intersection = transformed_intersection;
+//                if(right_button_down)
+//                {
+//                    if(!context_data->brush.drawing)
+//                    {
+//                        context_data->brush.box_start = intersection;
+//                        context_data->brush.drawing |= right_button_down;
+//                    }
 
-                if(context_data->manipulator.linear_snap)
+                context_data->brush.box_end = intersection;
+                vec3_t start = context_data->brush.box_start;
+                vec3_t end = context_data->brush.box_end;
+                vec3_t diagonal;
+                vec3_t_sub(&diagonal, &end, &start);
+                float proj_u = vec3_t_dot(&diagonal, &plane_orientation.rows[0]);
+                float proj_v = vec3_t_dot(&diagonal, &plane_orientation.rows[2]);
+
+                vec3_t corners[4];
+                corners[0] = start;
+                vec3_t_fmadd(&corners[1], &start, &plane_orientation.rows[0], proj_u);
+                corners[2] = end;
+                vec3_t_fmadd(&corners[3], &start, &plane_orientation.rows[2], proj_v);
+
+                r_i_DrawLine(&corners[0], &corners[1], &vec4_t_c(0.0, 1.0, 0.0, 1.0), 2.0);
+                r_i_DrawLine(&corners[1], &corners[2], &vec4_t_c(0.0, 1.0, 0.0, 1.0), 2.0);
+                r_i_DrawLine(&corners[2], &corners[3], &vec4_t_c(0.0, 1.0, 0.0, 1.0), 2.0);
+                r_i_DrawLine(&corners[3], &corners[0], &vec4_t_c(0.0, 1.0, 0.0, 1.0), 2.0);
+
+
+                context_data->brush.box_size.x = fabsf(proj_u);
+                context_data->brush.box_size.y = fabsf(proj_v);
+
+                vec3_t edge_center;
+                int32_t window_x;
+                int32_t window_y;
+
+                vec3_t_add(&edge_center, &corners[3], &corners[0]);
+                vec3_t_mul(&edge_center, &edge_center, 0.5);
+                ed_w_PointPixelCoords(&window_x, &window_y, &edge_center);
+
+                igSetNextWindowPos((ImVec2){window_x, window_y}, 0, (ImVec2){0.5, 0.5});
+                igSetNextWindowBgAlpha(0.15);
+                if(igBegin("dimh", NULL, ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoTitleBar |
+                                         ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoDecoration))
                 {
-                    float linear_snap = context_data->manipulator.linear_snap;
-                    float x_a = ceilf(intersection.x / linear_snap) * linear_snap;
-                    float x_b = floorf(intersection.x / linear_snap) * linear_snap;
-
-                    float z_a = ceilf(intersection.z / linear_snap) * linear_snap;
-                    float z_b = floorf(intersection.z / linear_snap) * linear_snap;
-
-                    if(intersection.x > 0.0)
-                    {
-                        float t = x_a;
-                        x_a = x_b;
-                        x_b = t;
-                    }
-
-                    if(intersection.z > 0.0)
-                    {
-                        float t = z_a;
-                        z_a = z_b;
-                        z_b = t;
-                    }
-
-                    float snapped_x;
-                    float snapped_z;
-
-                    if(fabsf(fabsf(intersection.x) - fabsf(x_a)) < fabsf(fabsf(x_b) - fabsf(intersection.x)))
-                    {
-                        snapped_x = x_a;
-                    }
-                    else
-                    {
-                        snapped_x = x_b;
-                    }
-
-                    if(fabsf(fabsf(intersection.z) - fabsf(z_a)) < fabsf(fabsf(z_b) - fabsf(intersection.z)))
-                    {
-                        snapped_z = z_a;
-                    }
-                    else
-                    {
-                        snapped_z = z_b;
-                    }
-
-                    intersection.x = snapped_x;
-                    intersection.z = snapped_z;
+                    igText("%f m", context_data->brush.box_size.x);
                 }
 
-                mat3_t_vec3_t_mul(&intersection, &intersection, &plane_orientation);
-                vec3_t_add(&intersection, &intersection, &plane_origin);
+                igEnd();
 
-                if(right_button_down)
+
+                vec3_t_add(&edge_center, &corners[3], &corners[2]);
+                vec3_t_mul(&edge_center, &edge_center, 0.5);
+                ed_w_PointPixelCoords(&window_x, &window_y, &edge_center);
+
+                igSetNextWindowPos((ImVec2){window_x, window_y}, 0, (ImVec2){0.5, 0.5});
+                igSetNextWindowBgAlpha(0.15);
+                if(igBegin("dimv", NULL, ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoTitleBar |
+                                         ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoDecoration))
                 {
-                    if(!context_data->brush.drawing)
-                    {
-                        context_data->brush.box_start = intersection;
-                        context_data->brush.drawing |= right_button_down;
-                    }
-
-                    context_data->brush.box_end = intersection;
-                    vec3_t start = context_data->brush.box_start;
-                    vec3_t end = context_data->brush.box_end;
-                    vec3_t diagonal;
-                    vec3_t_sub(&diagonal, &end, &start);
-                    float proj_u = vec3_t_dot(&diagonal, &plane_orientation.rows[0]);
-                    float proj_v = vec3_t_dot(&diagonal, &plane_orientation.rows[2]);
-
-                    vec3_t corners[4];
-                    corners[0] = start;
-                    vec3_t_fmadd(&corners[1], &start, &plane_orientation.rows[0], proj_u);
-                    corners[2] = end;
-                    vec3_t_fmadd(&corners[3], &start, &plane_orientation.rows[2], proj_v);
-
-                    r_i_DrawLine(&corners[0], &corners[1], &vec4_t_c(0.0, 1.0, 0.0, 1.0), 2.0);
-                    r_i_DrawLine(&corners[1], &corners[2], &vec4_t_c(0.0, 1.0, 0.0, 1.0), 2.0);
-                    r_i_DrawLine(&corners[2], &corners[3], &vec4_t_c(0.0, 1.0, 0.0, 1.0), 2.0);
-                    r_i_DrawLine(&corners[3], &corners[0], &vec4_t_c(0.0, 1.0, 0.0, 1.0), 2.0);
-
-
-                    context_data->brush.box_size.x = fabsf(proj_u);
-                    context_data->brush.box_size.y = fabsf(proj_v);
-
-                    vec3_t edge_center;
-                    int32_t window_x;
-                    int32_t window_y;
-
-                    vec3_t_add(&edge_center, &corners[3], &corners[0]);
-                    vec3_t_mul(&edge_center, &edge_center, 0.5);
-                    ed_w_PointPixelCoords(&window_x, &window_y, &edge_center);
-
-                    igSetNextWindowPos((ImVec2){window_x, window_y}, 0, (ImVec2){0.5, 0.5});
-                    igSetNextWindowBgAlpha(0.15);
-                    if(igBegin("dimh", NULL, ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoTitleBar |
-                                             ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoDecoration))
-                    {
-                        igText("%f m", context_data->brush.box_size.x);
-                    }
-
-                    igEnd();
-
-
-                    vec3_t_add(&edge_center, &corners[3], &corners[2]);
-                    vec3_t_mul(&edge_center, &edge_center, 0.5);
-                    ed_w_PointPixelCoords(&window_x, &window_y, &edge_center);
-
-                    igSetNextWindowPos((ImVec2){window_x, window_y}, 0, (ImVec2){0.5, 0.5});
-                    igSetNextWindowBgAlpha(0.15);
-                    if(igBegin("dimv", NULL, ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoTitleBar |
-                                             ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoDecoration))
-                    {
-                        igText("%f m", context_data->brush.box_size.y);
-                    }
-
-                    igEnd();
+                    igText("%f m", context_data->brush.box_size.y);
                 }
-                else
-                {
-                    vec3_t start = intersection;
-                    vec3_t end = intersection;
-                    vec3_t normal = plane_orientation.rows[1];
 
-                    vec3_t u_axis;
-                    vec3_t v_axis;
-
-                    vec3_t_mul(&u_axis, &plane_orientation.rows[0], ED_W_BRUSH_BOX_CROSSHAIR_DIM);
-                    vec3_t_mul(&v_axis, &plane_orientation.rows[2], ED_W_BRUSH_BOX_CROSSHAIR_DIM);
-
-                    int32_t window_x;
-                    int32_t window_y;
-
-                    ed_w_PointPixelCoords(&window_x, &window_y, &intersection);
-
-                    igSetNextWindowPos((ImVec2){window_x, window_y}, 0, (ImVec2){0.0, 0.0});
-                    igSetNextWindowBgAlpha(0.25);
-                    if(igBegin("crosshair", NULL, ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoTitleBar |
-                                             ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoDecoration))
-                    {
-                        igText("pos: [%f, %f, %f]", intersection.x, intersection.y, intersection.z);
-                        igText("norm: [%f, %f, %f]", normal.x, normal.y, normal.z);
-                    }
-                    igEnd();
-
-                    r_i_DrawLine(&vec3_t_c(start.x + u_axis.x, start.y + u_axis.y, start.z + u_axis.z),
-                                 &vec3_t_c(end.x - u_axis.x, end.y - u_axis.y, end.z - u_axis.z),
-                                 &vec4_t_c(1.0, 1.0, 1.0, 1.0), 4.0);
-
-                    r_i_DrawLine(&vec3_t_c(start.x + v_axis.x, start.y + v_axis.y, start.z + v_axis.z),
-                                 &vec3_t_c(end.x - v_axis.x, end.y - v_axis.y, end.z - v_axis.z),
-                                 &vec4_t_c(1.0, 1.0, 1.0, 1.0), 4.0);
-                }
+                igEnd();
+//                }
+//                else
+//                {
+//                    vec3_t start = intersection;
+//                    vec3_t end = intersection;
+//                    vec3_t normal = plane_orientation.rows[1];
+//
+//                    vec3_t u_axis;
+//                    vec3_t v_axis;
+//
+//                    vec3_t_mul(&u_axis, &plane_orientation.rows[0], ED_W_BRUSH_BOX_CROSSHAIR_DIM);
+//                    vec3_t_mul(&v_axis, &plane_orientation.rows[2], ED_W_BRUSH_BOX_CROSSHAIR_DIM);
+//
+//                    int32_t window_x;
+//                    int32_t window_y;
+//
+//                    ed_w_PointPixelCoords(&window_x, &window_y, &intersection);
+//
+//                    igSetNextWindowPos((ImVec2){window_x, window_y}, 0, (ImVec2){0.0, 0.0});
+//                    igSetNextWindowBgAlpha(0.25);
+//                    if(igBegin("crosshair", NULL, ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoTitleBar |
+//                                             ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoDecoration))
+//                    {
+//                        igText("pos: [%f, %f, %f]", intersection.x, intersection.y, intersection.z);
+//                        igText("norm: [%f, %f, %f]", normal.x, normal.y, normal.z);
+//                    }
+//                    igEnd();
+//
+//                    r_i_DrawLine(&vec3_t_c(start.x + u_axis.x, start.y + u_axis.y, start.z + u_axis.z),
+//                                 &vec3_t_c(end.x - u_axis.x, end.y - u_axis.y, end.z - u_axis.z),
+//                                 &vec4_t_c(1.0, 1.0, 1.0, 1.0), 4.0);
+//
+//                    r_i_DrawLine(&vec3_t_c(start.x + v_axis.x, start.y + v_axis.y, start.z + v_axis.z),
+//                                 &vec3_t_c(end.x - v_axis.x, end.y - v_axis.y, end.z - v_axis.z),
+//                                 &vec4_t_c(1.0, 1.0, 1.0, 1.0), 4.0);
+//                }
             }
         }
     }
@@ -2017,11 +2141,11 @@ void ed_LevelEditorBrushBox(uint32_t just_changed)
 //            ed_w_SetEditMode(context, just_changed);
 //        }
 
-        if(!context_data->brush.drawing)
-        {
-            ed_SetNextState(ed_LevelEditorIdle);
-        }
-        else
+//        if(!context_data->brush.drawing)
+//        {
+//            ed_SetNextState(ed_LevelEditorIdle);
+//        }
+//        else
         {
             vec3_t position;
             vec3_t size;
@@ -2032,9 +2156,9 @@ void ed_LevelEditorBrushBox(uint32_t just_changed)
 
             vec3_t_add(&position, &context_data->brush.box_start, &context_data->brush.box_end);
             vec3_t_mul(&position, &position, 0.5);
-            vec3_t_fmadd(&position, &position, &context_data->brush.plane_orientation.rows[1], size.y * 0.5);
+            vec3_t_fmadd(&position, &position, &context_data->pickables.plane_orientation.rows[1], size.y * 0.5);
 
-            ed_CreateBrushPickable(&position, &context_data->brush.plane_orientation, &size, NULL);
+            ed_CreateBrushPickable(&position, &context_data->pickables.plane_orientation, &size, NULL);
             ed_SetNextState(ed_LevelEditorIdle);
         }
     }
@@ -2132,15 +2256,26 @@ void ed_LevelEditorPickObject(uint32_t just_changed)
     }
 }
 
-void ed_LevelEditorPlaceLightAtCursor(uint32_t just_changed)
+void ed_l_PlaceEntityAtCursor(uint32_t just_changed)
 {
     struct ed_level_state_t *context_data = &ed_level_state;
+    struct e_ent_def_t *ent_def = ed_level_state.pickables.ent_def;
+    vec3_t position = ed_level_state.pickables.plane_point;
+    mat3_t orientation = ed_level_state.pickables.plane_orientation;
 
-    if(!(in_GetMouseButtonState(SDL_BUTTON_RIGHT) & IN_KEY_STATE_PRESSED))
-    {
-        ed_CreateLightPickable(&vec3_t_c(0.0, 0.0, 0.0), &vec3_t_c(1.0, 1.0, 1.0), 6.0, 10.0, NULL);
-        ed_SetNextState(ed_LevelEditorIdle);
-    }
+    vec3_t_fmadd(&position, &position, &orientation.rows[2], 0.2);
+    ed_CreateEntityPickable(ent_def, &position, &vec3_t_c(1.0, 1.0, 1.0), &orientation, NULL);
+    ed_SetNextState(ed_LevelEditorIdle);
+}
+
+void ed_l_PlaceLightAtCursor(uint32_t just_changed)
+{
+    struct ed_level_state_t *context_data = &ed_level_state;
+    uint32_t type = ed_level_state.pickables.light_type;
+    vec3_t position;
+    vec3_t_fmadd(&position, &context_data->pickables.plane_point, &context_data->pickables.plane_orientation.rows[1], 0.2);
+    ed_CreateLightPickable(&position, &vec3_t_c(1.0, 1.0, 1.0), 6.0, 10.0, type, NULL);
+    ed_SetNextState(ed_LevelEditorIdle);
 }
 
 void ed_LevelEditorTransformSelections(uint32_t just_changed)
@@ -2162,10 +2297,10 @@ void ed_LevelEditorTransformSelections(uint32_t just_changed)
             vec4_t_c(0.0, 1.0, 0.0, 1.0),
             vec4_t_c(0.0, 0.0, 1.0, 1.0),
         };
-        float mouse_x;
-        float mouse_y;
+        int32_t mouse_x;
+        int32_t mouse_y;
 
-        in_GetNormalizedMousePos(&mouse_x, &mouse_y);
+        in_GetMousePos(&mouse_x, &mouse_y);
 
         r_i_SetShader(NULL);
         r_i_SetViewProjectionMatrix(NULL);
@@ -2677,7 +2812,7 @@ void ed_DeserializeLevel(void *level_buffer, size_t buffer_size)
 
         if(light)
         {
-            ed_CreateLightPickable(NULL, NULL, 0.0, 0.0, light);
+            ed_CreateLightPickable(NULL, NULL, 0.0, 0.0, 0, light);
         }
     }
 
@@ -2792,6 +2927,124 @@ void ed_DeserializeLevel(void *level_buffer, size_t buffer_size)
     ed_w_UpdatePickableObjects();
     ed_l_ClearBrushEntities();
     ed_level_state.world_data_stale = 0;
+}
+
+void ed_l_SurfaceUnderMouse(int32_t mouse_x, int32_t mouse_y, vec3_t *plane_point, mat3_t *plane_orientation)
+{
+    uint32_t ignore_types = ED_PICKABLE_OBJECT_MASK | ED_PICKABLE_TYPE_MASK_EDGE | ED_PICKABLE_TYPE_MASK_VERT;
+    struct ds_slist_t *pickables = &ed_level_state.pickables.pickables;
+    struct ed_pickable_t *surface = ed_SelectPickable(mouse_x, mouse_y, pickables, NULL, ignore_types);
+
+    if(surface)
+    {
+        struct ed_brush_t *brush = ed_GetBrush(surface->primary_index);
+        struct ed_face_t *face = ed_GetFace(surface->secondary_index);
+        plane_orientation->rows[1] = face->polygons->normal;
+        *plane_point = *(vec3_t *)ds_list_get_element(&face->clipped_polygons->vertices, 0);
+        mat3_t_vec3_t_mul(&plane_orientation->rows[1], &plane_orientation->rows[1], &brush->orientation);
+        mat3_t_vec3_t_mul(plane_point, plane_point, &brush->orientation);
+        vec3_t_add(plane_point, plane_point, &brush->position);
+
+        float max_axis_proj = -FLT_MAX;
+        uint32_t j_axis_index = 0;
+//        mat3_t *plane_orientation = &context_data->brush.plane_orientation;
+        vec3_t axes[] =
+        {
+            vec3_t_c(1.0, 0.0, 0.0),
+            vec3_t_c(0.0, 1.0, 0.0),
+            vec3_t_c(0.0, 0.0, 1.0),
+        };
+
+        for(uint32_t comp_index = 0; comp_index < 3; comp_index++)
+        {
+            float axis_proj = fabsf(plane_orientation->rows[1].comps[comp_index]);
+
+            if(axis_proj > max_axis_proj)
+            {
+                max_axis_proj = axis_proj;
+                j_axis_index = comp_index;
+            }
+        }
+
+        uint32_t k_axis_index = (j_axis_index + 1) % 3;
+        vec3_t_cross(&plane_orientation->rows[0], &axes[k_axis_index], &plane_orientation->rows[1]);
+        vec3_t_normalize(&plane_orientation->rows[0], &plane_orientation->rows[0]);
+
+        vec3_t_cross(&plane_orientation->rows[2], &plane_orientation->rows[1], &plane_orientation->rows[0]);
+        vec3_t_normalize(&plane_orientation->rows[2], &plane_orientation->rows[2]);
+    }
+    else
+    {
+        *plane_point = vec3_t_c(0.0, 0.0, 0.0);
+        *plane_orientation = mat3_t_c_id();
+    }
+}
+
+void ed_l_LinearSnapValueOnSurface(vec3_t *plane_point, mat3_t *plane_orientation, vec3_t *snapped_value)
+{
+    vec3_t plane_origin;
+    /* compute where the world origin projects onto the plane */
+    vec3_t_mul(&plane_origin, &plane_orientation->rows[1], vec3_t_dot(plane_point, &plane_orientation->rows[1]));
+
+    /* transform intersection point from world space to plane space */
+    vec3_t_sub(snapped_value, snapped_value, &plane_origin);
+    vec3_t transformed_intersection;
+    transformed_intersection.x = vec3_t_dot(snapped_value, &plane_orientation->rows[0]);
+    transformed_intersection.y = vec3_t_dot(snapped_value, &plane_orientation->rows[1]);
+    transformed_intersection.z = vec3_t_dot(snapped_value, &plane_orientation->rows[2]);
+    *snapped_value = transformed_intersection;
+
+    float linear_snap = ed_level_state.manipulator.linear_snap;
+    if(linear_snap)
+    {
+//        float linear_snap = context_data->manipulator.linear_snap;
+        float x_a = ceilf(snapped_value->x / linear_snap) * linear_snap;
+        float x_b = floorf(snapped_value->x / linear_snap) * linear_snap;
+
+        float z_a = ceilf(snapped_value->z / linear_snap) * linear_snap;
+        float z_b = floorf(snapped_value->z / linear_snap) * linear_snap;
+
+        if(snapped_value->x > 0.0)
+        {
+            float t = x_a;
+            x_a = x_b;
+            x_b = t;
+        }
+
+        if(snapped_value->z > 0.0)
+        {
+            float t = z_a;
+            z_a = z_b;
+            z_b = t;
+        }
+
+        float snapped_x;
+        float snapped_z;
+
+        if(fabsf(fabsf(snapped_value->x) - fabsf(x_a)) < fabsf(fabsf(x_b) - fabsf(snapped_value->x)))
+        {
+            snapped_x = x_a;
+        }
+        else
+        {
+            snapped_x = x_b;
+        }
+
+        if(fabsf(fabsf(snapped_value->z) - fabsf(z_a)) < fabsf(fabsf(z_b) - fabsf(snapped_value->z)))
+        {
+            snapped_z = z_a;
+        }
+        else
+        {
+            snapped_z = z_b;
+        }
+
+        snapped_value->x = snapped_x;
+        snapped_value->z = snapped_z;
+    }
+
+    mat3_t_vec3_t_mul(snapped_value, snapped_value, plane_orientation);
+    vec3_t_add(snapped_value, snapped_value, &plane_origin);
 }
 
 void ed_l_SaveLevel(char *path, char *file)

@@ -75,7 +75,7 @@ void ed_LevelEditorDrawSelections();
 
 //void ed_w_PingInfoWindow();
 
-uint32_t ed_w_IntersectPlaneFromCamera(float mouse_x, float mouse_y, vec3_t *plane_point, vec3_t *plane_normal, vec3_t *result);
+uint32_t ed_w_IntersectPlaneFromCamera(int32_t mouse_x, int32_t mouse_y, vec3_t *plane_point, vec3_t *plane_normal, vec3_t *result);
 
 void ed_w_PointPixelCoords(int32_t *x, int32_t *y, vec3_t *point);
 
@@ -87,19 +87,27 @@ void ed_LevelEditorLeftClick(uint32_t just_changed);
 
 void ed_LevelEditorRightClick(uint32_t just_changed);
 
+void ed_l_PlacementCrosshair(uint32_t just_changed);
+
 void ed_LevelEditorBrushBox(uint32_t just_changed);
 
 void ed_LevelEditorPickObjectOrWidget(uint32_t just_changed);
 
 void ed_LevelEditorPickObject(uint32_t just_changed);
 
-void ed_LevelEditorPlaceLightAtCursor(uint32_t just_changed);
+void ed_l_PlaceEntityAtCursor(uint32_t just_changed);
+
+void ed_l_PlaceLightAtCursor(uint32_t just_changed);
 
 void ed_LevelEditorTransformSelections(uint32_t just_changed);
 
 void ed_SerializeLevel(void **level_buffer, size_t *buffer_size, uint32_t serialize_brushes);
 
 void ed_DeserializeLevel(void *level_buffer, size_t buffer_size);
+
+void ed_l_SurfaceUnderMouse(int32_t mouse_x, int32_t mouse_y, vec3_t *plane_point, mat3_t *plane_orientation);
+
+void ed_l_LinearSnapValueOnSurface(vec3_t *plane_point, mat3_t *plane_orientation, vec3_t *snapped_value);
 
 void ed_l_SaveLevel(char *path, char *file);
 

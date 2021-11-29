@@ -1366,35 +1366,64 @@ void r_UpdateModelGeometry(struct r_model_t *model, struct r_model_geometry_t *g
 
 struct r_model_t *r_ShallowCopyModel(struct r_model_t *base)
 {
-    struct r_model_t *copy;
-    uint32_t index = ds_slist_add_element(&r_models, NULL);
-    struct ds_chunk_t *chunk;
-    copy = ds_slist_get_element(&r_models, index);
-    memcpy(copy, base, sizeof(struct r_model_t));
-    copy->index = index;
+    struct r_model_geometry_t geometry = {};
+    struct r_model_skeleton_t skeleton = {};
 
-    copy->verts = ds_buffer_create(sizeof(struct r_vert_t), base->verts.buffer_size);
-    memcpy(copy->verts.buffer, base->verts.buffer, sizeof(struct r_vert_t) * copy->verts.buffer_size);
+    struct ds_buffer_t batches = ds_buffer_create(sizeof(struct r_batch_t), base->batches.buffer_size);
+    memcpy(batches.buffer, base->batches.buffer, sizeof(struct r_batch_t) * base->batches.buffer_size);
 
-    copy->vert_chunk = r_AllocateVertices(copy->verts.buffer_size);
-    r_FillVertices(copy->vert_chunk, copy->verts.buffer, copy->verts.buffer_size);
-    chunk = ds_get_chunk_pointer(&r_vertex_heap, copy->vert_chunk);
-    uint32_t new_start = chunk->start / sizeof(struct r_vert_t);
-
-    copy->index_chunk = r_AllocateIndices(copy->indices.buffer_size);
-    r_FillIndices(copy->index_chunk, copy->indices.buffer, copy->indices.buffer_size, new_start);
-    chunk = ds_get_chunk_pointer(&r_index_heap, copy->index_chunk);
-    new_start = chunk->start / sizeof(uint32_t);
-    chunk = ds_get_chunk_pointer(&r_index_heap, base->index_chunk);
-
-    copy->batches = ds_buffer_create(sizeof(struct r_batch_t), base->batches.buffer_size);
-    for(uint32_t batch_index = 0; batch_index < copy->batches.buffer_size; batch_index++)
+    for(uint32_t batch_index = 0; batch_index < base->batches.buffer_size; batch_index++)
     {
-        ((struct r_batch_t *)copy->batches.buffer)[batch_index] = ((struct r_batch_t *)base->batches.buffer)[batch_index];
-        ((struct r_batch_t *)copy->batches.buffer)[batch_index].start += new_start;
+        struct r_batch_t *batch = ((struct r_batch_t *)batches.buffer) + batch_index;
+        batch->start -= base->model_start;
     }
 
+    geometry.batches = batches.buffer;
+    geometry.batch_count = batches.buffer_size;
+    geometry.indices = base->indices.buffer;
+    geometry.index_count = base->indices.buffer_size;
+    geometry.verts = base->verts.buffer;
+    geometry.vert_count = base->verts.buffer_size;
+    geometry.max = base->max;
+    geometry.min = base->min;
+
+    skeleton.skeleton = base->skeleton;
+    skeleton.weights = base->weights.buffer;
+    skeleton.weight_count = base->weights.buffer_size;
+    skeleton.weight_ranges = base->weight_ranges.buffer;
+    skeleton.weight_range_count = base->weight_ranges.buffer_size;
+
+    struct r_model_t *copy = r_CreateModel(&geometry, &skeleton, "copy");
     copy->base = base;
+//    struct r_model_t *copy;
+//    uint32_t index = ds_slist_add_element(&r_models, NULL);
+//    struct ds_chunk_t *chunk;
+//    copy = ds_slist_get_element(&r_models, index);
+//    memcpy(copy, base, sizeof(struct r_model_t));
+//    copy->index = index;
+//
+//    copy->verts = ds_buffer_create(sizeof(struct r_vert_t), base->verts.buffer_size);
+//    memcpy(copy->verts.buffer, base->verts.buffer, sizeof(struct r_vert_t) * copy->verts.buffer_size);
+
+//    copy->vert_chunk = r_AllocateVertices(copy->verts.buffer_size);
+//    r_FillVertices(copy->vert_chunk, copy->verts.buffer, copy->verts.buffer_size);
+//    chunk = ds_get_chunk_pointer(&r_vertex_heap, copy->vert_chunk);
+//    uint32_t new_start = chunk->start / sizeof(struct r_vert_t);
+//
+//    copy->index_chunk = r_AllocateIndices(copy->indices.buffer_size);
+//    r_FillIndices(copy->index_chunk, copy->indices.buffer, copy->indices.buffer_size, new_start);
+//    chunk = ds_get_chunk_pointer(&r_index_heap, copy->index_chunk);
+//    new_start = chunk->start / sizeof(uint32_t);
+//    chunk = ds_get_chunk_pointer(&r_index_heap, base->index_chunk);
+//
+//    copy->batches = ds_buffer_create(sizeof(struct r_batch_t), base->batches.buffer_size);
+//    for(uint32_t batch_index = 0; batch_index < copy->batches.buffer_size; batch_index++)
+//    {
+//        ((struct r_batch_t *)copy->batches.buffer)[batch_index] = ((struct r_batch_t *)base->batches.buffer)[batch_index];
+//        ((struct r_batch_t *)copy->batches.buffer)[batch_index].start += new_start;
+//    }
+//
+//    copy->base = base;
 
     return copy;
 }

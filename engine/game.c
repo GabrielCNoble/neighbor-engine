@@ -207,7 +207,7 @@ void g_Init(uint32_t editor_active)
     box_shape_def->box.size = vec3_t_c(1.0, 0.2, 1.0);
 
 
-
+//    printf("%x %x\n", &e_ent_defs[E_ENT_DEF_TYPE_CHILD], &e_components[E_COMPONENT_TYPE_MODEL]);
     struct e_ent_def_t *child_box = e_AllocEntDef(E_ENT_DEF_TYPE_CHILD);
     box_shape_def = p_AllocShapeDef(E_ENT_DEF_TYPE_ROOT);
 
@@ -226,7 +226,7 @@ void g_Init(uint32_t editor_active)
     box_shape_def->box.size = vec3_t_c(1.0, 0.2, 1.0);
 
     base_box->constraints = e_AllocConstraint();
-    base_box->constraints->child_entity = child_box;
+    base_box->constraints->child_def = child_box;
     base_box->constraints->constraint.type = P_CONSTRAINT_TYPE_HINGE;
     base_box->constraints->constraint.fields.hinge.pivot_a = vec3_t_c(1.2, 0.0, 0.0);
     base_box->constraints->constraint.fields.hinge.pivot_b = vec3_t_c(-1.2, 0.0, 0.0);
@@ -235,6 +235,7 @@ void g_Init(uint32_t editor_active)
     base_box->constraints->constraint.fields.hinge.limit_high = 1.3;
     base_box->children = child_box;
     base_box->children_count = 1;
+    base_box->constraint_count = 1;
 
     mat3_t_rotate_z(&orientation, 0.2);
     mat3_t_rotate_x(&orientation, 0.2);
@@ -245,6 +246,29 @@ void g_Init(uint32_t editor_active)
 //    character_collider = p_CreateCharacterCollider(&vec3_t_c(0.0, 4.0, 0.0), 0.4, 1.7, 0.3, 0.8);
 
     e_SpawnEntity(base_box, &vec3_t_c(0.0, 6.0, 0.0), &vec3_t_c(1.0, 1.0, 1.0), &orientation);
+
+
+//    struct r_model_t *blah = r_LoadModel("models/Akai.mof", "akai");
+//    struct a_animation_t *idle = a_LoadAnimation("models/idle.anf");
+//    struct a_animation_t *pose = a_LoadAnimation("models/pose.anf");
+
+//    struct r_model_t *copy = r_ShallowCopyModel(blah);
+//    struct a_mixer_t *mixer = a_CreateMixer(copy);
+//    a_MixAnimation(mixer, idle, "blah");
+
+
+//    struct e_ent_def_t *def = e_AllocEntDef(E_ENT_DEF_TYPE_ROOT);
+//    def->model = copy;
+//    def->position = vec3_t_c(0.0, 0.0, 0.0);
+//    def->orientation = mat3_t_c_id();
+//    def->scale = vec3_t_c(1.0, 1.0, 1.0);
+//
+//    mat3_t blah_orientation = mat3_t_c_id();
+//    mat3_t_rotate_x(&blah_orientation, -0.5);
+//
+//    e_SpawnEntity(def, &vec3_t_c(0.0, 0.0, 0.0), &vec3_t_c(0.01, 0.01, 0.01), &blah_orientation);
+
+
 //
 //    e_SpawnEntity(box_ent_def, &vec3_t_c(1.0, 9.0, 0.0), &vec3_t_c(1.0, 1.0, 1.0), &orientation);
 //    e_SpawnEntity(box_ent_def, &vec3_t_c(0.4, 12.0, 0.3), &vec3_t_c(1.0, 1.0, 1.0), &orientation);

@@ -34,12 +34,12 @@ enum E_ENT_DEF_TYPES
     E_ENT_DEF_TYPE_LAST,
 };
 
-struct e_prop_t
-{
-    char *name;
-    void *data;
-    uint32_t size;
-};
+//struct e_prop_def_t
+//{
+//    char *name;
+//    void *data;
+//    uint32_t size;
+//};
 
 struct e_ent_def_t
 {
@@ -58,6 +58,8 @@ struct e_ent_def_t
     uint32_t children_count;
 
     struct e_constraint_t *constraints;
+    /* all constraints, including those of children */
+    uint32_t constraint_count;
 
     struct r_model_t *model;
     struct p_col_def_t collider;
@@ -66,7 +68,7 @@ struct e_ent_def_t
     vec3_t position;
     vec3_t scale;
 
-    struct ds_list_t props;
+//    struct ds_list_t props;
     /* spawned entity, used only when sorting constraints while spawning an entity */
     struct e_entity_t *entity;
 };
@@ -75,7 +77,8 @@ struct e_constraint_t
 {
     uint32_t index;
     struct e_constraint_t *next;
-    struct e_ent_def_t *child_entity;
+    struct e_constraint_t *prev;
+    struct e_ent_def_t *child_def;
     struct p_constraint_def_t constraint;
 };
 

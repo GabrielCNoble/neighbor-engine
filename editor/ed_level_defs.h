@@ -122,7 +122,7 @@ struct ed_level_state_t
 
     struct
     {
-        char folder[PATH_MAX];
+        char base_folder[PATH_MAX];
         char level_name[PATH_MAX];
 
     } project;

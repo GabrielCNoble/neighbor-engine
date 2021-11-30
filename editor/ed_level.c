@@ -5,6 +5,7 @@
 #include "ed_main.h"
 #include "../engine/r_main.h"
 #include "dstuff/ds_buffer.h"
+#include "../lib/dstuff/ds_path.h"
 #include "../engine/gui.h"
 #include "../engine/game.h"
 #include "../engine/input.h"
@@ -95,6 +96,17 @@ vec4_t ed_selection_outline_colors[][2] =
 };
 
 extern struct e_ent_def_t *g_ent_def;
+
+char *ed_l_project_folders[] =
+{
+    "entities",
+    "levels",
+    "models",
+    "sounds",
+    "animations",
+    "textures",
+    NULL
+};
 
 void ed_l_Init(struct ed_editor_t *editor)
 {
@@ -3054,23 +3066,30 @@ uint32_t ed_l_SaveLevel(char *path, char *file)
     char file_path[PATH_MAX];
     char file_no_ext[PATH_MAX];
 
-    if(ed_level_state.project.folder[0] == '\0')
+    if(strcmp(ed_level_state.project.base_folder, path))
     {
-        strcpy(ed_level_state.project.folder, path);
-        g_SetBasePath(ed_level_state.project.folder);
+        strcpy(ed_level_state.project.base_folder, path);
+        uint32_t folder_index = 0;
+        while(ed_l_project_folders[folder_index])
+        {
+            if(strstr(ed_level_state.project.base_folder, ed_l_project_folders[folder_index]))
+            {
+                ds_path_drop_end(ed_level_state.project.base_folder, ed_level_state.project.base_folder, PATH_MAX);
+                break;
+            }
 
-        ds_path_append_end(path, "levels", file_path, PATH_MAX);
-        ds_dir_make_dir(file_path);
-        ds_path_append_end(path, "sounds", file_path, PATH_MAX);
-        ds_dir_make_dir(file_path);
-        ds_path_append_end(path, "entities", file_path, PATH_MAX);
-        ds_dir_make_dir(file_path);
-        ds_path_append_end(path, "textures", file_path, PATH_MAX);
-        ds_dir_make_dir(file_path);
-        ds_path_append_end(path, "models", file_path, PATH_MAX);
-        ds_dir_make_dir(file_path);
-        ds_path_append_end(path, "animations", file_path, PATH_MAX);
-        ds_dir_make_dir(file_path);
+            folder_index++;
+        }
+
+        g_SetBasePath(ed_level_state.project.base_folder);
+
+        folder_index = 0;
+        while(ed_l_project_folders[folder_index])
+        {
+            ds_path_append_end(ed_level_state.project.base_folder, ed_l_project_folders[folder_index], file_path, PATH_MAX);
+            ds_dir_make_dir(file_path);
+            folder_index++;
+        }
     }
 
     ds_path_drop_ext(file, file_no_ext, PATH_MAX);
@@ -3078,7 +3097,7 @@ uint32_t ed_l_SaveLevel(char *path, char *file)
 
     ed_l_BuildWorldData();
     ed_SerializeLevel(&buffer, &buffer_size, 1);
-    ds_path_append_end(ed_level_state.project.folder, "levels", file_path, PATH_MAX);
+    ds_path_append_end(ed_level_state.project.base_folder, "levels", file_path, PATH_MAX);
     ds_path_append_end(file_path, file, file_path, PATH_MAX);
     ds_path_set_ext(file_path, "nlf", file_path, PATH_MAX);
 
@@ -3110,8 +3129,8 @@ uint32_t ed_l_LoadLevel(char *path, char *file)
         ed_l_ResetEditor();
 
         strcpy(ed_level_state.project.level_name, file);
-        ds_path_drop_end(path, ed_level_state.project.folder, PATH_MAX);
-        g_SetBasePath(ed_level_state.project.folder);
+        ds_path_drop_end(path, ed_level_state.project.base_folder, PATH_MAX);
+        g_SetBasePath(ed_level_state.project.base_folder);
 
         read_file(fp, &buffer, &buffer_size);
         fclose(fp);
@@ -3122,6 +3141,25 @@ uint32_t ed_l_LoadLevel(char *path, char *file)
     }
 
     return 0;
+}
+
+void ed_l_OpenExplorerSave(struct ed_explorer_state_t *explorer_state)
+{
+    if(ed_level_state.project.base_folder[0])
+    {
+        ds_path_append_end(ed_level_state.project.base_folder, "levels", explorer_state->current_path, PATH_MAX);
+        strcpy(explorer_state->current_file, ed_level_state.project.level_name);
+        ds_path_set_ext(explorer_state->current_file, "nlf", explorer_state->current_file, PATH_MAX);
+    }
+}
+
+void ed_l_OpenExplorerLoad(struct ed_explorer_state_t *explorer_state)
+{
+    if(ed_level_state.project.base_folder[0])
+    {
+        ds_path_append_end(ed_level_state.project.base_folder, "levels", explorer_state->current_path, PATH_MAX);
+        explorer_state->current_file[0] = '\0';
+    }
 }
 
 void ed_l_ClearBrushEntities()
@@ -3244,7 +3282,7 @@ void ed_l_ResetEditor()
     ed_level_state.camera_yaw = ED_LEVEL_CAMERA_YAW;
     ed_level_state.camera_pos = ED_LEVEL_CAMERA_POS;
 
-    ed_level_state.project.folder[0] = '\0';
+    ed_level_state.project.base_folder[0] = '\0';
     ed_level_state.project.level_name[0] = '\0';
 
     g_SetBasePath("");

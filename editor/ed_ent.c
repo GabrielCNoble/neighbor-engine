@@ -15,6 +15,7 @@
 #include <math.h>
 
 struct ed_entity_state_t ed_entity_state;
+extern struct ed_level_state_t ed_level_state;
 extern mat4_t r_camera_matrix;
 
 extern uint32_t r_width;
@@ -79,6 +80,11 @@ uint32_t ed_e_SaveEntDef(char *path, char *file)
     fwrite(buffer, buffer_size, 1, fp);
     fclose(fp);
 
+    if(!ed_entity_state.cur_ent_def->name[0])
+    {
+        ds_path_drop_ext(file, ed_entity_state.cur_ent_def->name, sizeof(ed_entity_state.cur_ent_def->name));
+    }
+
     return 1;
 }
 
@@ -93,6 +99,32 @@ uint32_t ed_e_LoadEntDef(char *path, char *file)
     }
 
     return 0;
+}
+
+void ed_e_OpenExplorerSave(struct ed_explorer_state_t *explorer_state)
+{
+    if(ed_level_state.project.base_folder[0])
+    {
+        ds_path_append_end(ed_level_state.project.base_folder, "entities", explorer_state->current_path, PATH_MAX);
+
+        if(ed_entity_state.cur_ent_def && ed_entity_state.cur_ent_def->name[0])
+        {
+            strcpy(explorer_state->current_file, ed_entity_state.cur_ent_def->name);
+            ds_path_set_ext(explorer_state->current_file, "ent", explorer_state->current_file, PATH_MAX);
+        }
+        else
+        {
+            explorer_state->current_file[0] = '\0';
+        }
+    }
+}
+
+void ed_e_OpenExplorerLoad(struct ed_explorer_state_t *explorer_state)
+{
+    if(ed_level_state.project.base_folder[0])
+    {
+        ds_path_append_end(ed_level_state.project.base_folder, "entities", explorer_state->current_path, PATH_MAX);
+    }
 }
 
 void ed_e_AddCollisionShape(struct e_ent_def_t *ent_def)
@@ -279,8 +311,8 @@ uint32_t ed_e_EntDefHierarchyUI(struct e_ent_def_t *ent_def, struct e_ent_def_t 
         igSeparator();
         igText("Transform");
         igIndent(0.0);
-        refresh_entity |= igInputFloat3("Position", ent_def->position.comps, "%0.2f", 0);
-        refresh_entity |= igInputFloat3("Scale", ent_def->scale.comps, "%0.2f", 0);
+        refresh_entity |= igInputFloat3("Position", ent_def->position.comps, "%0.6f", 0);
+        refresh_entity |= igInputFloat3("Scale", ent_def->scale.comps, "%0.6f", 0);
         igUnindent(0.0);
         igNewLine();
 
@@ -365,7 +397,7 @@ uint32_t ed_e_EntDefHierarchyUI(struct e_ent_def_t *ent_def, struct e_ent_def_t 
             igNewLine();
             igIndent(0.0);
 
-            refresh_entity |= igSliderFloat("Mass", &ent_def->collider.passive.mass, 0.0, 100.0, "%0.2f", 0);
+            refresh_entity |= igSliderFloat("Mass", &ent_def->collider.passive.mass, 0.0, 100.0, "%0.6f", 0);
 
             ent_def->constraint_count = 0;
 
@@ -396,8 +428,8 @@ uint32_t ed_e_EntDefHierarchyUI(struct e_ent_def_t *ent_def, struct e_ent_def_t 
                     switch(constraint->constraint.type)
                     {
                         case P_CONSTRAINT_TYPE_HINGE:
-                            refresh_entity |= igInputFloat3("Pivot A", constraint->constraint.hinge.pivot_a.comps, "%0.2f", 0);
-                            refresh_entity |= igInputFloat3("Pivot B", constraint->constraint.hinge.pivot_b.comps, "%0.2f", 0);
+                            refresh_entity |= igInputFloat3("Pivot A", constraint->constraint.hinge.pivot_a.comps, "%0.6f", 0);
+                            refresh_entity |= igInputFloat3("Pivot B", constraint->constraint.hinge.pivot_b.comps, "%0.6f", 0);
                             refresh_entity |= igSliderAngle("Low limit", &constraint->constraint.hinge.limit_low, -180.0, 180.0, "%0.2f", 0);
                             refresh_entity |= igSliderAngle("High limit", &constraint->constraint.hinge.limit_high, -180.0, 180.0, "%0.2f", 0);
                         break;
@@ -496,12 +528,12 @@ uint32_t ed_e_CollisionShapeUI(struct e_ent_def_t *ent_def)
             igEndCombo();
         }
 
-        refresh_shape |= igInputFloat3("Position offset", shape->position.comps, "%.2f", 0);
+        refresh_shape |= igInputFloat3("Position offset", shape->position.comps, "%.6f", 0);
 
         switch(shape->type)
         {
             case P_COL_SHAPE_TYPE_BOX:
-                refresh_shape |= igInputFloat3("Half-size", shape->box.size.comps, "%0.2f", 0);
+                refresh_shape |= igInputFloat3("Half-size", shape->box.size.comps, "%0.6f", 0);
             break;
 
             case P_COL_SHAPE_TYPE_CYLINDER:
@@ -509,8 +541,8 @@ uint32_t ed_e_CollisionShapeUI(struct e_ent_def_t *ent_def)
             break;
 
             case P_COL_SHAPE_TYPE_CAPSULE:
-                refresh_shape |= igInputFloat("Height", &shape->capsule.height, 0.0, 0.0, "%0.2f", 0);
-                refresh_shape |= igInputFloat("Radius", &shape->capsule.radius, 0.0, 0.0, "%0.2f", 0);
+                refresh_shape |= igInputFloat("Height", &shape->capsule.height, 0.0, 0.0, "%0.6f", 0);
+                refresh_shape |= igInputFloat("Radius", &shape->capsule.radius, 0.0, 0.0, "%0.6f", 0);
             break;
         }
 

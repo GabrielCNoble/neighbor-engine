@@ -40,7 +40,11 @@ void ed_InitProjectFolder(char *path, char *folder_name);
 
 void ed_UpdateExplorer();
 
-void ed_OpenExplorer(char *path, uint32_t mode);
+void ed_OpenExplorer(char *path);
+
+void ed_OpenExplorerSave();
+
+void ed_OpenExplorerLoad();
 
 void ed_CloseExplorer();
 
@@ -54,13 +58,9 @@ void ed_MatchExplorerEntries(char *match);
 
 void ed_ClearExplorerExtFilters();
 
-void ed_SetExplorerLoadCallback(uint32_t (*load_callback)(char *path, char *file));
+uint32_t ed_ExplorerSaveFile(char *path, char *file);
 
-void ed_SetExplorerSaveCallback(uint32_t (*save_callback)(char *path, char *file));
-
-void ed_ExplorerSaveFile(char *path, char *file);
-
-void ed_ExplorerLoadFile(char *path, char *file);
+uint32_t ed_ExplorerLoadFile(char *path, char *file);
 
 #endif // ED_H
 

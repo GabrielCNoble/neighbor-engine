@@ -15,6 +15,10 @@ uint32_t ed_e_SaveEntDef(char *path, char *file);
 
 uint32_t ed_e_LoadEntDef(char *path, char *file);
 
+void ed_e_OpenExplorerSave(struct ed_explorer_state_t *explorer_state);
+
+void ed_e_OpenExplorerLoad(struct ed_explorer_state_t *explorer_state);
+
 void ed_e_AddCollisionShape(struct e_ent_def_t *ent_def);
 
 void ed_e_RemoveCollisionShape(struct e_ent_def_t *ent_def, struct p_shape_def_t *shape_def);

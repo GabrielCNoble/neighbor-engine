@@ -86,50 +86,35 @@ extern struct r_renderer_state_t r_renderer_state;
 
 //struct ed_world_context_data_t ed_world_context_data;
 
-struct ed_explorer_ext_filter_t
-{
-    char extension[8];
-};
+//struct ed_explorer_ext_filter_t
+//{
+//    char extension[8];
+//};
+//
+//struct ed_explorer_drive_t
+//{
+//    char drive[4];
+//};
+//
+//enum ED_EDITOR_EXPLORER_MODE
+//{
+//    ED_EDITOR_EXPLORER_MODE_OPEN = 0,
+//    ED_EDITOR_EXPLORER_MODE_SAVE,
+//};
 
-struct ed_explorer_drive_t
-{
-    char drive[4];
-};
-
-enum ED_EDITOR_EXPLORER_MODE
-{
-    ED_EDITOR_EXPLORER_MODE_OPEN = 0,
-    ED_EDITOR_EXPLORER_MODE_SAVE,
-};
-
-struct
-{
-    uint32_t open;
-    uint32_t mode;
-    char path_buffer[PATH_MAX];
-    char current_path[PATH_MAX];
-    char current_file[PATH_MAX];
-    char search_bar[PATH_MAX];
-    struct ds_list_t dir_entries;
-    struct ds_list_t matched_dir_entries;
-    struct ds_list_t ext_filters;
-    struct ds_list_t drives;
-
-    uint32_t (*load_callback)(char *path, char *file);
-    uint32_t (*save_callback)(char *path, char *file);
-}ed_explorer_state;
+struct ed_explorer_state_t ed_explorer_state;
 
 //uint32_t ed_explorer_open = 0;
 
-void test_load_callback(char *path, char *file)
-{
-    printf("load file %s/%s\n", path, file);
-}
-
-void test_save_callback(char *path, char *file)
-{
-    printf("save file %s/%s\n", path, file);
-}
+//void test_load_callback(char *path, char *file)
+//{
+//    printf("load file %s/%s\n", path, file);
+//}
+//
+//void test_save_callback(char *path, char *file)
+//{
+//    printf("save file %s/%s\n", path, file);
+//}
 
 void ed_Init()
 {
@@ -147,6 +132,8 @@ void ed_Init()
         .update = ed_l_Update,
         .suspend = ed_l_Suspend,
         .resume = ed_l_Resume,
+        .open_explorer_save = ed_l_OpenExplorerSave,
+        .open_explorer_load = ed_l_OpenExplorerLoad,
         .explorer_load = ed_l_LoadLevel,
         .explorer_save = ed_l_SaveLevel,
         .explorer_new = ed_l_ResetEditor
@@ -158,6 +145,8 @@ void ed_Init()
         .update = ed_e_Update,
         .suspend = ed_e_Suspend,
         .resume = ed_e_Resume,
+        .open_explorer_save = ed_e_OpenExplorerSave,
+        .open_explorer_load = ed_e_OpenExplorerLoad,
         .explorer_load = ed_e_LoadEntDef,
         .explorer_save = ed_e_SaveEntDef,
         .explorer_new = ed_e_ResetEditor
@@ -191,8 +180,8 @@ void ed_Init()
 
     ed_ChangeExplorerPath("C:/Users/gabri/Documents");
     ed_EnumerateExplorerDrives();
-    ed_SetExplorerLoadCallback(test_load_callback);
-    ed_SetExplorerSaveCallback(test_save_callback);
+//    ed_SetExplorerLoadCallback(test_load_callback);
+//    ed_SetExplorerSaveCallback(test_save_callback);
 
     in_SetMouseRelative(0);
 
@@ -257,26 +246,36 @@ void ed_UpdateEditor()
             {
                 if(ed_active_editor->explorer_save)
                 {
-                    ed_SetExplorerSaveCallback(ed_active_editor->explorer_save);
-                    ed_OpenExplorer(ed_explorer_state.current_path, ED_EDITOR_EXPLORER_MODE_SAVE);
+                    ed_OpenExplorerSave();
+//                    ed_SetExplorerSaveCallback(ed_active_editor->explorer_save);
+//
+//                    if(ed_active_editor->explorer_open_save)
+//                    {
+//                        ed_active_editor->explorer_open_save(ed_explorer_state.current_path, ed_explorer_state.current_file);
+//                    }
+//                    else
+//                    {
+//                        ed_OpenExplorer(ed_explorer_state.current_path, ED_EXPLORER_FLAG_SAVE);
+//                    }
                 }
             }
-
-//            if(igMenuItem_Bool("Save as...", NULL, 0, 1))
-//            {
-//                if(ed_active_editor->explorer_save)
-//                {
-//                    ed_SetExplorerSaveCallback(ed_active_editor->explorer_save);
-//                    ed_OpenExplorer(ed_explorer_state.current_path, ED_EDITOR_EXPLORER_MODE_SAVE);
-//                }
-//            }
 
             if(igMenuItem_Bool("Load", NULL, 0, 1))
             {
                 if(ed_active_editor->explorer_load)
                 {
-                    ed_SetExplorerLoadCallback(ed_active_editor->explorer_load);
-                    ed_OpenExplorer(ed_explorer_state.current_path, ED_EDITOR_EXPLORER_MODE_OPEN);
+                    ed_OpenExplorerLoad();
+//                    ed_SetExplorerLoadCallback(ed_active_editor->explorer_load);
+//
+//                    if(ed_active_editor->explorer_open_load)
+//                    {
+//                        ed_active_editor->explorer_open_load(ed_explorer_state.current_path, ed_explorer_state.current_file);
+//                    }
+//                    else
+//                    {
+//                        ed_OpenExplorer(ed_explorer_state.current_path, ED_EDITOR_EXPLORER_MODE_OPEN);
+//                    }
+
                 }
             }
 
@@ -314,10 +313,6 @@ void ed_UpdateEditor()
             {
                 ed_show_renderer_info_window ^= 1;
             }
-//            if(igMenuItem_Bool("Gen world collider", NULL, 0, 1))
-//            {
-//                ed_BuildWorldGeometry();
-//            }
             igEndMenu();
         }
         igEndMainMenuBar();
@@ -454,16 +449,22 @@ void ed_UpdateExplorer()
                         igTableSetupColumn("Name", 0, 0.0, 0);
                         igTableHeadersRow();
 
+
                         for(uint32_t entry_index = 0; entry_index < ed_explorer_state.matched_dir_entries.cursor; entry_index++)
                         {
                             struct ds_dir_entry_t *entry = *(struct ds_dir_entry_t **)ds_list_get_element(&ed_explorer_state.matched_dir_entries, entry_index);
 
                             igTableNextRow(0, 25.0);
                             igTableSetColumnIndex(0);
-                            igMenuItem_Bool(entry->name, NULL, 0, 1);
+                            igSelectable_Bool(entry->name, ed_explorer_state.selected_entry == entry, 0, (ImVec2){0, 0});
                             if(igIsItemClicked(ImGuiMouseButton_Left))
                             {
-                                strcpy(ed_explorer_state.current_file, entry->name);
+                                ed_explorer_state.selected_entry = entry;
+
+                                if(entry->type == DS_DIR_ENTRY_TYPE_FILE)
+                                {
+                                    strcpy(ed_explorer_state.current_file, entry->name);
+                                }
 
                                 if(igIsMouseDoubleClicked(ImGuiMouseButton_Left))
                                 {
@@ -474,7 +475,6 @@ void ed_UpdateExplorer()
                                     }
                                     else
                                     {
-//                                        ed_explorer_state.load_callback(ed_explorer_state.current_path, ed_explorer_state.current_file);
                                         ed_ExplorerLoadFile(ed_explorer_state.current_path, ed_explorer_state.current_file);
                                         ed_CloseExplorer();
                                     }
@@ -501,7 +501,6 @@ void ed_UpdateExplorer()
                         case ED_EDITOR_EXPLORER_MODE_OPEN:
                             if(igButton("Open", (ImVec2){100.0, 0.0}) && ed_explorer_state.load_callback)
                             {
-//                                ed_explorer_state.load_callback(ed_explorer_state.current_path, ed_explorer_state.current_file);
                                 ed_ExplorerLoadFile(ed_explorer_state.current_path, ed_explorer_state.current_file);
                                 ed_CloseExplorer();
                             }
@@ -510,7 +509,6 @@ void ed_UpdateExplorer()
                         case ED_EDITOR_EXPLORER_MODE_SAVE:
                             if(igButton("Save", (ImVec2){100.0, 0.0}) && ed_explorer_state.save_callback)
                             {
-//                                ed_explorer_state.save_callback(ed_explorer_state.current_path, ed_explorer_state.current_file);
                                 ed_ExplorerSaveFile(ed_explorer_state.current_path, ed_explorer_state.current_file);
                                 ed_CloseExplorer();
                             }
@@ -534,16 +532,50 @@ void ed_UpdateExplorer()
     }
 }
 
-void ed_OpenExplorer(char *path, uint32_t mode)
+void ed_OpenExplorer(char *path)
 {
     ed_explorer_state.open = 1;
-    ed_explorer_state.mode = mode;
     ed_explorer_state.search_bar[0] = '\0';
+    ed_explorer_state.selected_entry = NULL;
 
     if(path)
     {
         ed_ChangeExplorerPath(path);
     }
+}
+
+void ed_OpenExplorerSave()
+{
+    if(ed_active_editor->explorer_save)
+    {
+        ed_explorer_state.save_callback = ed_active_editor->explorer_save;
+    }
+
+    if(ed_active_editor->open_explorer_save)
+    {
+        ed_active_editor->open_explorer_save(&ed_explorer_state);
+    }
+
+//    ed_explorer_state.mode &= ~(ED_EXPLORER_FLAG_LOAD);
+    ed_explorer_state.mode = ED_EDITOR_EXPLORER_MODE_SAVE;
+    ed_OpenExplorer(ed_explorer_state.current_path);
+}
+
+void ed_OpenExplorerLoad()
+{
+    if(ed_active_editor->explorer_load)
+    {
+        ed_explorer_state.load_callback = ed_active_editor->explorer_load;
+    }
+
+    if(ed_active_editor->open_explorer_load)
+    {
+        ed_active_editor->open_explorer_load(&ed_explorer_state);
+    }
+
+//    ed_explorer_state.mode &= ~(ED_EXPLORER_FLAG_SAVE);
+    ed_explorer_state.mode = ED_EDITOR_EXPLORER_MODE_OPEN;
+    ed_OpenExplorer(ed_explorer_state.current_path);
 }
 
 void ed_CloseExplorer()
@@ -586,7 +618,6 @@ void ed_ChangeExplorerPath(char *path)
         {
             if(entry.type == DS_DIR_ENTRY_TYPE_FILE && ed_explorer_state.ext_filters.cursor)
             {
-//                char *ext = ds_path_GetExt(entry.path);
                 ds_path_get_ext(entry.name, ext, PATH_MAX);
 
                 for(uint32_t ext_filter_index = 0; ext_filter_index < ed_explorer_state.ext_filters.cursor; ext_filter_index++)
@@ -674,17 +705,7 @@ void ed_ClearExplorerExtFilters()
     ed_explorer_state.ext_filters.cursor = 0;
 }
 
-void ed_SetExplorerLoadCallback(uint32_t (*load_callback)(char *path, char *file))
-{
-    ed_explorer_state.load_callback = load_callback;
-}
-
-void ed_SetExplorerSaveCallback(uint32_t (*save_callback)(char *path, char *file))
-{
-    ed_explorer_state.save_callback = save_callback;
-}
-
-void ed_ExplorerSaveFile(char *path, char *file)
+uint32_t ed_ExplorerSaveFile(char *path, char *file)
 {
     char file_name[PATH_MAX];
     ds_path_append_end(path, file, file_name, PATH_MAX);
@@ -695,7 +716,7 @@ void ed_ExplorerSaveFile(char *path, char *file)
     }
 }
 
-void ed_ExplorerLoadFile(char *path, char *file)
+uint32_t ed_ExplorerLoadFile(char *path, char *file)
 {
     char file_name[PATH_MAX];
     ds_path_append_end(path, file, file_name, PATH_MAX);

@@ -50,6 +50,10 @@ struct e_ent_def_t *e_AllocEntDef(uint32_t type)
     ent_def->collider.passive.shape_count = 0;
     ent_def->collider.passive.shape = NULL;
     ent_def->children = NULL;
+    ent_def->node_count = 0;
+    ent_def->constraint_count = 0;
+    ent_def->collider_count = 0;
+    ent_def->shape_count = 0;
     ent_def->next = NULL;
     ent_def->prev = NULL;
     ent_def->model = NULL;
@@ -81,7 +85,7 @@ void e_DeserializeEntDefRecursive(char *start_in_buffer, struct e_ent_def_t *ent
         struct p_col_def_record_t *collider_record = (struct p_col_def_record_t *)(start_in_buffer + record->collider_start);
 
         ent_def->collider.type = collider_record->type;
-
+        ent_def->collider_count = 1;
         if(collider_record->type == P_COLLIDER_TYPE_CHARACTER)
         {
             ent_def->collider.character.step_height = collider_record->character.step_height;
@@ -129,6 +133,7 @@ void e_DeserializeEntDefRecursive(char *start_in_buffer, struct e_ent_def_t *ent
                 ent_def->node_count += child_def->node_count;
                 ent_def->constraint_count += child_def->constraint_count;
                 ent_def->shape_count += child_def->shape_count;
+                ent_def->collider_count += child_def->collider_count;
 
                 for(uint32_t constraint_index = 0; constraint_index < record->constraint_count; constraint_index++)
                 {
@@ -146,7 +151,7 @@ void e_DeserializeEntDefRecursive(char *start_in_buffer, struct e_ent_def_t *ent
                             ent_def->constraints->prev = constraint;
                         }
                         ent_def->constraints = constraint;
-                        ent_def->constraint_count++;
+//                        ent_def->constraint_count++;
 
                         break;
                     }
@@ -164,6 +169,7 @@ void e_DeserializeEntDefRecursive(char *start_in_buffer, struct e_ent_def_t *ent
                 ent_def->node_count += child_def->node_count;
                 ent_def->constraint_count += child_def->constraint_count;
                 ent_def->shape_count += child_def->shape_count;
+                ent_def->collider_count += child_def->collider_count;
             }
         }
     }
@@ -396,6 +402,16 @@ void e_DeallocComponent(struct e_component_t *component)
                 to make it point to the new component */
                 struct e_node_t *transform = (struct e_node_t *)component;
                 struct e_node_t *parent = transform->parent;
+                struct e_node_t *child = transform->children;
+
+                if(child)
+                {
+                    while(child)
+                    {
+                        child->parent = transform;
+                        child = child->next;
+                    }
+                }
 
                 if(parent)
                 {
@@ -563,7 +579,7 @@ struct e_entity_t *e_SpawnEntityRecursive(struct e_ent_def_t *ent_def, vec3_t *p
             child_transform->next = entity->node->children;
             if(entity->node->children)
             {
-                entity->node->prev = child_transform;
+                entity->node->children->prev = child_transform;
             }
             entity->node->children = child_transform;
 

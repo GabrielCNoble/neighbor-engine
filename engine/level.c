@@ -23,10 +23,10 @@ void l_Init()
     l_world_shape = p_AllocShapeDef();
     l_world_shape->type = P_COL_SHAPE_TYPE_ITRI_MESH;
 
-    l_world_col_def.shape_count = 1;
-    l_world_col_def.shape = l_world_shape;
+    l_world_col_def.passive.shape_count = 1;
+    l_world_col_def.passive.shape = l_world_shape;
+    l_world_col_def.passive.mass = 0.0;
     l_world_col_def.type = P_COLLIDER_TYPE_STATIC;
-    l_world_col_def.mass = 0.0;
 }
 
 void l_Shutdown()
@@ -67,6 +67,7 @@ void l_DeserializeLevel(void *level_buffer, size_t buffer_size, uint32_t data_fl
 {
     char *in_buffer = level_buffer;
     struct ed_level_section_t *level_section = (struct ed_level_section_t *)in_buffer;
+    char full_path[PATH_MAX];
 
     if(level_section->light_section_size)
     {
@@ -132,7 +133,9 @@ void l_DeserializeLevel(void *level_buffer, size_t buffer_size, uint32_t data_fl
 
             if(!record->def)
             {
-                record->def = e_LoadEntDef(record->name);
+                ds_path_append_end("entities", record->name, full_path, PATH_MAX);
+                ds_path_set_ext(full_path, "ent", full_path, PATH_MAX);
+                record->def = e_LoadEntDef(full_path);
             }
         }
 

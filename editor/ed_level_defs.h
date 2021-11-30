@@ -180,9 +180,12 @@ struct ed_level_section_t
     size_t world_section_size;
 
     size_t waypoint_section_start;
-    size_t waypoint_section_count;
+    size_t waypoint_section_size;
 
-    size_t reserved[30];
+    size_t game_section_start;
+    size_t game_section_size;
+
+    size_t reserved[32];
 };
 
 #endif

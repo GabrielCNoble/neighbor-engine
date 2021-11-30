@@ -474,7 +474,8 @@ void ed_UpdateExplorer()
                                     }
                                     else
                                     {
-                                        ed_explorer_state.load_callback(ed_explorer_state.current_path, ed_explorer_state.current_file);
+//                                        ed_explorer_state.load_callback(ed_explorer_state.current_path, ed_explorer_state.current_file);
+                                        ed_ExplorerLoadFile(ed_explorer_state.current_path, ed_explorer_state.current_file);
                                         ed_CloseExplorer();
                                     }
                                 }
@@ -690,11 +691,22 @@ void ed_ExplorerSaveFile(char *path, char *file)
 
     if(!ed_explorer_state.save_callback(path, file))
     {
+
+    }
+}
+
+void ed_ExplorerLoadFile(char *path, char *file)
+{
+    char file_name[PATH_MAX];
+    ds_path_append_end(path, file, file_name, PATH_MAX);
+
+    if(!ed_explorer_state.load_callback(path, file))
+    {
         if(strstr(file, ".mof"))
         {
             if(!r_FindModel(file))
             {
-                r_LoadModel(file_name, file);
+                r_LoadModel(file_name);
             }
         }
         else if(strstr(file, ".ent"))
@@ -706,17 +718,9 @@ void ed_ExplorerSaveFile(char *path, char *file)
         {
             if(!r_FindTexture(file))
             {
-                r_LoadTexture(file_name, file);
+                r_LoadTexture(file_name);
             }
         }
-    }
-}
-
-void ed_ExplorerLoadFile(char *path, char *file)
-{
-    if(!ed_explorer_state.load_callback(path, file))
-    {
-
     }
 }
 

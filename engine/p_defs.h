@@ -37,13 +37,13 @@ struct p_shape_def_fields_t
     P_SHAPE_DEF_FIELDS;
 };
 
-struct p_col_def_record_t
-{
-    float mass;
-    uint32_t type;
-    uint32_t shape_count;
-    struct p_shape_def_fields_t shape[];
-};
+//struct p_col_def_record_t
+//{
+//    float mass;
+//    uint32_t type;
+//    uint32_t shape_count;
+//    struct p_shape_def_fields_t shape[];
+//};
 
 struct p_shape_def_t
 {
@@ -57,12 +57,23 @@ struct p_shape_def_t
     };
 };
 
+#define P_COL_DEF_FIELDS(SHAPE_LIST)                                                                \
+    uint32_t type;                                                                                  \
+    union                                                                                           \
+    {                                                                                               \
+        struct {float step_height; float crouch_height; float height; float radius;} character;     \
+        struct {float mass; uint32_t shape_count; SHAPE_LIST;} passive;                             \
+    }
+
 struct p_col_def_t
 {
-    float mass;
-    uint32_t type;
-    uint32_t shape_count;
-    struct p_shape_def_t *shape;
+    P_COL_DEF_FIELDS(struct p_shape_def_t *shape);
+};
+
+struct p_col_def_record_t
+{
+    size_t shape_start;
+    P_COL_DEF_FIELDS(struct p_shape_def_fields_t shape[]);
 };
 
 enum P_COLLIDER_TYPE
@@ -158,6 +169,7 @@ struct p_collider_constraint_t
     struct p_constraint_t *next;
     struct p_constraint_t *prev;
     struct p_collider_t *collider;
+    uint32_t transform_set;
 };
 
 struct p_constraint_t

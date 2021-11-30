@@ -199,28 +199,44 @@ void *p_CreateColliderCollisionShape(struct p_col_def_t *collider_def)
 {
     btCollisionShape *shape;
 
-    if(collider_def->shape_count > 1)
+    if(collider_def->type == P_COLLIDER_TYPE_CHARACTER)
     {
-        btCompoundShape *compound_shape = new btCompoundShape(true, collider_def->shape_count);
-        struct p_shape_def_t *shape_def = collider_def->shape;
-        while(shape_def)
-        {
-            btCollisionShape *child_shape = (btCollisionShape *)p_CreateCollisionShape(shape_def);
-            btTransform child_transform;
-            child_transform.setOrigin(btVector3(shape_def->position.x, shape_def->position.y, shape_def->position.z));
-            child_transform.setBasis(btMatrix3x3(shape_def->orientation.x0, shape_def->orientation.x1, shape_def->orientation.x2,
-                                                 shape_def->orientation.y0, shape_def->orientation.y1, shape_def->orientation.y2,
-                                                 shape_def->orientation.z0, shape_def->orientation.z1, shape_def->orientation.z2));
+        float height = collider_def->character.height;
+        float radius = collider_def->character.radius;
+        float step_height = collider_def->character.step_height;
 
-            compound_shape->addChildShape(child_transform, child_shape);
-            shape_def = shape_def->next;
-        }
+        struct p_shape_def_t shape_def = {};
+        shape_def.type = P_COL_SHAPE_TYPE_CAPSULE;
+        shape_def.capsule.height = (height - 2.0 * radius) - step_height;
+        shape_def.capsule.radius = radius;
 
-        shape = compound_shape;
+        shape = (btCollisionShape *)p_CreateCollisionShape(&shape_def);
     }
     else
     {
-        shape = (btCollisionShape *)p_CreateCollisionShape(collider_def->shape);
+        if(collider_def->passive.shape_count > 1)
+        {
+            btCompoundShape *compound_shape = new btCompoundShape(true, collider_def->passive.shape_count);
+            struct p_shape_def_t *shape_def = collider_def->passive.shape;
+            while(shape_def)
+            {
+                btCollisionShape *child_shape = (btCollisionShape *)p_CreateCollisionShape(shape_def);
+                btTransform child_transform;
+                child_transform.setOrigin(btVector3(shape_def->position.x, shape_def->position.y, shape_def->position.z));
+                child_transform.setBasis(btMatrix3x3(shape_def->orientation.x0, shape_def->orientation.x1, shape_def->orientation.x2,
+                                                     shape_def->orientation.y0, shape_def->orientation.y1, shape_def->orientation.y2,
+                                                     shape_def->orientation.z0, shape_def->orientation.z1, shape_def->orientation.z2));
+
+                compound_shape->addChildShape(child_transform, child_shape);
+                shape_def = shape_def->next;
+            }
+
+            shape = compound_shape;
+        }
+        else
+        {
+            shape = (btCollisionShape *)p_CreateCollisionShape(collider_def->passive.shape);
+        }
     }
 
     return shape;
@@ -275,6 +291,7 @@ struct p_collider_t *p_CreateCollider(struct p_col_def_t *col_def, vec3_t *posit
 {
     uint32_t collider_index;
     struct p_collider_t *collider;
+    float mass;
 
     collider_index = ds_slist_add_element(&p_colliders[col_def->type], NULL);
     collider = (struct p_collider_t *)ds_slist_get_element(&p_colliders[col_def->type], collider_index);
@@ -282,90 +299,115 @@ struct p_collider_t *p_CreateCollider(struct p_col_def_t *col_def, vec3_t *posit
     collider->index = collider_index;
     collider->type = col_def->type;
     collider->position = *position;
-    collider->orientation = *orientation;
     collider->constraints = NULL;
 
     btCollisionShape *collision_shape = (btCollisionShape *)p_CreateColliderCollisionShape(col_def);
+    btVector3 origin = btVector3(position->x, position->y, position->z);
+    btMatrix3x3 basis;
 
-//    if(collider->type != P_COLLIDER_TYPE_CHILD)
-//    {
-//        struct p_child_collider_t *child_collider = (struct p_child_collider_t *)collider;
-//        child_collider->collision_shape = collision_shape;
-//        child_collider->next = NULL;
-//        child_collider->next = NULL;
-//        child_collider->parent = NULL;
-//    }
-//    else
-//    {
-//        btTransform collider_transform;
-//        collider_transform.setOrigin(btVector3(position->x, position->y, position->z));
-//        collider_transform.setBasis(btMatrix3x3(orientation->x0, orientation->x1, orientation->x2,
-//                                                orientation->y0, orientation->y1, orientation->z1,
-//                                                orientation->x2, orientation->y2, orientation->z2));
-
-        btVector3 origin = btVector3(position->x, position->y, position->z);
-        btMatrix3x3 basis;
+    if(col_def->type == P_COLLIDER_TYPE_CHARACTER)
+    {
+        basis.setIdentity();
+        collider->orientation = mat3_t_c_id();
+        mass = 1.0;
+    }
+    else
+    {
         basis[0] = btVector3(orientation->rows[0].x, orientation->rows[1].x, orientation->rows[2].x);
         basis[1] = btVector3(orientation->rows[0].y, orientation->rows[1].y, orientation->rows[2].y);
         basis[2] = btVector3(orientation->rows[0].z, orientation->rows[1].z, orientation->rows[2].z);
+        collider->orientation = *orientation;
+        mass = col_def->passive.mass;
+    }
 
-        btTransform collider_transform;
-        collider_transform.setOrigin(origin);
-        collider_transform.setBasis(basis);
+    btTransform collider_transform;
+    collider_transform.setOrigin(origin);
+    collider_transform.setBasis(basis);
 
-        btDefaultMotionState *motion_state = new btDefaultMotionState(collider_transform);
-        btVector3 inertia_tensor = btVector3(0, 0, 0);
-        collision_shape->calculateLocalInertia(col_def->mass, inertia_tensor);
-        btRigidBody::btRigidBodyConstructionInfo info(col_def->mass, motion_state, collision_shape, inertia_tensor);
-        btRigidBody *rigid_body = new btRigidBody(info);
-        collider->rigid_body = rigid_body;
+    btDefaultMotionState *motion_state = new btDefaultMotionState(collider_transform);
+    btVector3 inertia_tensor = btVector3(0, 0, 0);
+    collision_shape->calculateLocalInertia(mass, inertia_tensor);
+    btRigidBody::btRigidBodyConstructionInfo info(mass, motion_state, collision_shape, inertia_tensor);
+    btRigidBody *rigid_body = new btRigidBody(info);
+    collider->rigid_body = rigid_body;
 
-        p_dynamics_world->addRigidBody(rigid_body);
+    p_dynamics_world->addRigidBody(rigid_body);
 
-        if(col_def->type == P_COLLIDER_TYPE_DYNAMIC)
+    switch(col_def->type)
+    {
+        case P_COLLIDER_TYPE_DYNAMIC:
         {
             struct p_dynamic_collider_t *dynamic_collider = (struct p_dynamic_collider_t *)collider;
-            dynamic_collider->mass = col_def->mass;
+            dynamic_collider->mass = mass;
 
-            if(col_def->mass == 0.0)
+            if(mass == 0.0)
             {
                 rigid_body->setCollisionFlags(rigid_body->getCollisionFlags() | btCollisionObject::CF_KINEMATIC_OBJECT);
                 rigid_body->setActivationState(DISABLE_DEACTIVATION);
             }
         }
+        break;
+
+        case P_COLLIDER_TYPE_CHARACTER:
+        {
+            struct p_character_collider_t *character_collider = (struct p_character_collider_t *)collider;
+
+            character_collider->height = col_def->character.height;
+            character_collider->crouch_height = col_def->character.crouch_height;
+            character_collider->step_height = col_def->character.step_height;
+            character_collider->radius = col_def->character.radius;
+
+            rigid_body = (btRigidBody *)collider->rigid_body;
+            rigid_body->setAngularFactor(0.0);
+            rigid_body->setCcdMotionThreshold(0.0);
+            rigid_body->setActivationState(DISABLE_DEACTIVATION);
+        }
+        break;
+    }
+//
+//    if(col_def->type == P_COLLIDER_TYPE_DYNAMIC)
+//    {
+//        struct p_dynamic_collider_t *dynamic_collider = (struct p_dynamic_collider_t *)collider;
+//        dynamic_collider->mass = mass;
+//
+//        if(mass == 0.0)
+//        {
+//            rigid_body->setCollisionFlags(rigid_body->getCollisionFlags() | btCollisionObject::CF_KINEMATIC_OBJECT);
+//            rigid_body->setActivationState(DISABLE_DEACTIVATION);
+//        }
 //    }
 
     return collider;
 }
 
-struct p_character_collider_t *p_CreateCharacterCollider(vec3_t *position, float step_height, float height, float radius, float crouch_height)
-{
-    struct p_shape_def_t shape_def = {};
-    struct p_col_def_t col_def = {};
-
-    shape_def.type = P_COL_SHAPE_TYPE_CAPSULE;
-    shape_def.capsule.height = (height - 2.0 * radius) - step_height;
-    shape_def.capsule.radius = radius;
-
-    col_def.mass = 1.0;
-    col_def.shape = &shape_def;
-    col_def.shape_count = 1;
-    col_def.type = P_COLLIDER_TYPE_CHARACTER;
-
-    mat3_t orientation = mat3_t_c_id();
-    struct p_character_collider_t *collider = (struct p_character_collider_t *)p_CreateCollider(&col_def, position, &orientation);
-    collider->crouch_height = crouch_height;
-    collider->height = height;
-    collider->step_height = step_height;
-    collider->radius = radius;
-
-    btRigidBody *rigid_body = (btRigidBody *)collider->rigid_body;
-    rigid_body->setAngularFactor(0.0);
-    rigid_body->setCcdMotionThreshold(0.0);
-    rigid_body->setActivationState(DISABLE_DEACTIVATION);
-
-    return collider;
-}
+//struct p_character_collider_t *p_CreateCharacterCollider(vec3_t *position, float step_height, float height, float radius, float crouch_height)
+//{
+//    struct p_shape_def_t shape_def = {};
+//    struct p_col_def_t col_def = {};
+//
+//    shape_def.type = P_COL_SHAPE_TYPE_CAPSULE;
+//    shape_def.capsule.height = (height - 2.0 * radius) - step_height;
+//    shape_def.capsule.radius = radius;
+//
+//    col_def.mass = 1.0;
+//    col_def.shape = &shape_def;
+//    col_def.shape_count = 1;
+//    col_def.type = P_COLLIDER_TYPE_CHARACTER;
+//
+//    mat3_t orientation = mat3_t_c_id();
+//    struct p_character_collider_t *collider = (struct p_character_collider_t *)p_CreateCollider(&col_def, position, &orientation);
+//    collider->crouch_height = crouch_height;
+//    collider->height = height;
+//    collider->step_height = step_height;
+//    collider->radius = radius;
+//
+//    btRigidBody *rigid_body = (btRigidBody *)collider->rigid_body;
+//    rigid_body->setAngularFactor(0.0);
+//    rigid_body->setCcdMotionThreshold(0.0);
+//    rigid_body->setActivationState(DISABLE_DEACTIVATION);
+//
+//    return collider;
+//}
 
 void p_UpdateColliderTransform(struct p_collider_t *collider)
 {

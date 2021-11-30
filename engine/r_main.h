@@ -26,7 +26,7 @@ void r_FreeVisItem(struct r_vis_item_t *item);
 ============================================================================
 */
 
-struct r_texture_t *r_LoadTexture(char *file_name, char *name);
+struct r_texture_t *r_LoadTexture(char *file_name);
 
 struct r_texture_t *r_CreateTexture(char *name, uint32_t width, uint32_t height, uint32_t internal_format, void *data);
 
@@ -76,7 +76,7 @@ void r_FillIndices(struct ds_chunk_h chunk, uint32_t *indices, uint32_t count, u
 
 struct ds_chunk_t *r_GetIndicesChunk(struct ds_chunk_h chunk);
 
-struct r_model_t *r_LoadModel(char *file_name, char *name);
+struct r_model_t *r_LoadModel(char *file_name);
 
 struct r_model_t *r_GetModel(uint32_t index);
 

@@ -945,6 +945,7 @@ void ed_UpdateBrushEntity(struct ed_brush_t *brush)
         struct e_ent_def_t ent_def = {};
         ent_def.model = brush->model;
         ent_def.scale = vec3_t_c(1.0, 1.0, 1.0);
+        ent_def.collider.type = P_COLLIDER_TYPE_LAST;
         brush->entity = e_SpawnEntity(&ent_def, &brush->position, &vec3_t_c(1.0, 1.0, 1.0), &brush->orientation);
     }
     else

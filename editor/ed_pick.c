@@ -356,6 +356,8 @@ struct ed_pickable_t *ed_CreatePickableOnList(uint32_t type, struct ds_slist_t *
     pickable->selection_index = 0xffffffff;
     pickable->modified_index = 0xffffffff;
     pickable->update_index = 0xffffffff;
+    pickable->ranges = NULL;
+    pickable->range_count = 0;
 
 //    mat4_t_identity(&pickable->draw_offset);
 
@@ -378,17 +380,40 @@ void ed_DestroyPickable(struct ed_pickable_t *pickable)
             case ED_PICKABLE_TYPE_BRUSH:
             {
                 struct ds_list_t *selections = &ed_level_state.pickables.selections;
-
                 struct ed_brush_t *brush = ed_GetBrush(pickable->primary_index);
                 struct ed_face_t *face = brush->faces;
+
+                ed_level_state.world_data_stale = 1;
 
                 while(face)
                 {
                     struct ed_pickable_t *face_pickable = face->pickable;
 
-                    if(face_pickable->selection_index)
+                    if(face_pickable->selection_index != 0xffffffff)
                     {
                         ed_w_DropSelection(face_pickable, selections);
+                    }
+
+                    struct ed_face_polygon_t *face_polygon = face->polygons;
+
+                    while(face_polygon)
+                    {
+                        struct ed_edge_t *edge = face_polygon->edges;
+
+                        while(edge)
+                        {
+                            uint32_t polygon_side = edge->polygons[1].polygon == face_polygon;
+
+                            if(edge->pickable)
+                            {
+                                ed_DestroyPickable(edge->pickable);
+                                edge->pickable = NULL;
+
+                            }
+                            edge = edge->polygons[polygon_side].next;
+                        }
+
+                        face_polygon = face_polygon->next;
                     }
 
                     ed_DestroyPickable(face_pickable);
@@ -484,7 +509,6 @@ struct ed_pickable_t *ed_CreateBrushPickable(vec3_t *position, mat3_t *orientati
     pickable->range_count = 1;
     pickable->ranges = ed_AllocPickableRange();
     mat4_t_comp(&pickable->transform, &brush->orientation, &brush->position);
-//    pickable->draw_transform = pickable->transform;
     brush->pickable = pickable;
     ed_w_MarkPickableModified(pickable);
 

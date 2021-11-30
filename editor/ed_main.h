@@ -60,7 +60,7 @@ void ed_SetExplorerSaveCallback(uint32_t (*save_callback)(char *path, char *file
 
 void ed_ExplorerSaveFile(char *path, char *file);
 
-void ed_ExplorerLoadFile(char *pat, char *file);
+void ed_ExplorerLoadFile(char *path, char *file);
 
 #endif // ED_H
 

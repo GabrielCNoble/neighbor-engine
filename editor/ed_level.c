@@ -135,9 +135,9 @@ void ed_l_Init(struct ed_editor_t *editor)
     ed_center_grid_shader = r_LoadShader("shaders/ed_grid.vert", "shaders/ed_grid.frag");
     ed_picking_shader = r_LoadShader("shaders/ed_pick.vert", "shaders/ed_pick.frag");
     ed_outline_shader = r_LoadShader("shaders/ed_outline.vert", "shaders/ed_outline.frag");
-    ed_translation_widget_model = r_LoadModel("models/twidget.mof", "twidget");
-    ed_rotation_widget_model = r_LoadModel("models/rwidget.mof", "rwidget");
-    ed_ball_widget_model = r_LoadModel("models/bwidget.mof", "bwidget");
+    ed_translation_widget_model = r_LoadModel("models/twidget.mof");
+    ed_rotation_widget_model = r_LoadModel("models/rwidget.mof");
+    ed_ball_widget_model = r_LoadModel("models/bwidget.mof");
 
     mat4_t_identity(&ed_level_state.manipulator.transform);
     ed_level_state.manipulator.linear_snap = 0.25;
@@ -3047,7 +3047,7 @@ void ed_l_LinearSnapValueOnSurface(vec3_t *plane_point, mat3_t *plane_orientatio
     vec3_t_add(snapped_value, snapped_value, &plane_origin);
 }
 
-void ed_l_SaveLevel(char *path, char *file)
+uint32_t ed_l_SaveLevel(char *path, char *file)
 {
     void *buffer;
     size_t buffer_size;
@@ -3089,7 +3089,7 @@ void ed_l_SaveLevel(char *path, char *file)
     return 1;
 }
 
-void ed_l_LoadLevel(char *path, char *file)
+uint32_t ed_l_LoadLevel(char *path, char *file)
 {
     void *buffer;
     size_t buffer_size;

@@ -826,7 +826,7 @@ void r_FreeVisItem(struct r_vis_item_t *item)
 ============================================================================
 */
 
-struct r_texture_t *r_LoadTexture(char *file_name, char *name)
+struct r_texture_t *r_LoadTexture(char *file_name)
 {
     struct r_texture_t *texture = NULL;
     char full_path[PATH_MAX];
@@ -839,7 +839,11 @@ struct r_texture_t *r_LoadTexture(char *file_name, char *name)
         int32_t height;
         int32_t channels;
         unsigned char *pixels = stbi_load(full_path, &width, &height, &channels, STBI_rgb_alpha);
-        texture = r_CreateTexture(name, width, height, GL_RGBA8, pixels);
+
+        ds_path_get_end(full_path, full_path, PATH_MAX);
+        ds_path_drop_ext(full_path, full_path, PATH_MAX);
+
+        texture = r_CreateTexture(full_path, width, height, GL_RGBA8, pixels);
         mem_Free(pixels);
 
         printf("r_LoadTexture: texture %s loaded\n", full_path);
@@ -1108,7 +1112,7 @@ struct ds_chunk_t *r_GetIndicesChunk(struct ds_chunk_h chunk)
     return ds_get_chunk_pointer(&r_index_heap, chunk);
 }
 
-struct r_model_t *r_LoadModel(char *file_name, char *name)
+struct r_model_t *r_LoadModel(char *file_name)
 {
     struct r_model_t *model = NULL;
     char full_path[PATH_MAX];
@@ -1166,7 +1170,7 @@ struct r_model_t *r_LoadModel(char *file_name, char *name)
 
                     if(!diffuse_texture)
                     {
-                        diffuse_texture = r_LoadTexture(material_record->diffuse_texture, material_record->diffuse_texture);
+                        diffuse_texture = r_LoadTexture(material_record->diffuse_texture);
                     }
                 }
 
@@ -1176,7 +1180,7 @@ struct r_model_t *r_LoadModel(char *file_name, char *name)
 
                     if(!normal_texture)
                     {
-                        normal_texture = r_LoadTexture(material_record->normal_texture, material_record->normal_texture);
+                        normal_texture = r_LoadTexture(material_record->normal_texture);
                     }
                 }
 
@@ -1218,6 +1222,9 @@ struct r_model_t *r_LoadModel(char *file_name, char *name)
         geometry_data.min = verts->min;
         geometry_data.max = verts->max;
 
+        ds_path_get_end(full_path, full_path, PATH_MAX);
+        ds_path_drop_ext(full_path, full_path, PATH_MAX);
+
         if(skeleton)
         {
             skeleton_data.skeleton = skeleton;
@@ -1226,21 +1233,21 @@ struct r_model_t *r_LoadModel(char *file_name, char *name)
             skeleton_data.weight_range_count = weight_range_count;
             skeleton_data.weight_ranges = weight_ranges;
 
-            model = r_CreateModel(&geometry_data, &skeleton_data, name);
+            model = r_CreateModel(&geometry_data, &skeleton_data, full_path);
         }
         else
         {
-            model = r_CreateModel(&geometry_data, NULL, name);
+            model = r_CreateModel(&geometry_data, NULL, full_path);
         }
 
         mem_Free(batches);
         mem_Free(file_buffer);
 
-        printf("r_LoadModel: model %s (%s) loaded\n", full_path, name);
+        printf("r_LoadModel: model %s loaded\n", full_path);
     }
     else
     {
-        printf("r_LoadModel: couldn't load model %s (%s)\n", full_path, name);
+        printf("r_LoadModel: couldn't load model %s\n", full_path);
     }
 
     return model;

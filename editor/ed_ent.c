@@ -4,6 +4,7 @@
 #include "../lib/dstuff/ds_vector.h"
 #include "../lib/dstuff/ds_matrix.h"
 #include "../lib/dstuff/ds_mem.h"
+#include "../lib/dstuff/ds_path.h"
 #include "../engine/r_draw.h"
 #include "../engine/input.h"
 #include "../engine/gui.h"
@@ -65,12 +66,72 @@ void ed_e_Resume()
 
 uint32_t ed_e_SaveEntDef(char *path, char *file)
 {
-    return 0;
+    void *buffer;
+    size_t buffer_size;
+    char file_name[PATH_MAX];
+
+    ed_e_SerializeEntDef(&buffer, &buffer_size, ed_entity_state.cur_ent_def);
+
+    ds_path_append_end(path, file, file_name, PATH_MAX);
+    ds_path_set_ext(file_name, "ent", file_name, PATH_MAX);
+
+    FILE *fp = fopen(file_name, "wb");
+    fwrite(buffer, buffer_size, 1, fp);
+    fclose(fp);
+
+    return 1;
 }
 
 uint32_t ed_e_LoadEntDef(char *path, char *file)
 {
+    char file_name[PATH_MAX];
+
+    if(strstr(file, ".ent"))
+    {
+        ds_path_append_end(path, file, file_name, PATH_MAX);
+        e_LoadEntDef(file_name);
+    }
+
     return 0;
+}
+
+void ed_e_AddCollisionShape(struct e_ent_def_t *ent_def)
+{
+    struct p_shape_def_t *new_shape = p_AllocShapeDef();
+    new_shape->type = P_COL_SHAPE_TYPE_BOX;
+    new_shape->box.size = vec3_t_c(1.0, 1.0, 1.0);
+    new_shape->position = vec3_t_c(0.0, 0.0, 0.0);
+    new_shape->orientation = mat3_t_c_id();
+
+    new_shape->next = ent_def->collider.passive.shape;
+    if(!ent_def->collider.passive.shape_count)
+    {
+        ent_def->collider.passive.mass = 1.0;
+        ent_def->collider.type = P_COLLIDER_TYPE_DYNAMIC;
+    }
+    ent_def->collider.passive.shape = new_shape;
+    ent_def->collider.passive.shape_count++;
+}
+
+void ed_e_RemoveCollisionShape(struct e_ent_def_t *ent_def, struct p_shape_def_t *shape_def)
+{
+    struct p_shape_def_t *prev_shape = ent_def->collider.passive.shape;
+
+    if(prev_shape != shape_def)
+    {
+        while(prev_shape->next != shape_def)
+        {
+            prev_shape = prev_shape->next;
+        }
+
+        prev_shape->next = shape_def->next;
+    }
+    else
+    {
+        ent_def->collider.passive.shape = shape_def->next;
+    }
+
+    ent_def->collider.passive.shape_count--;
 }
 
 struct e_constraint_t *ed_e_GetConstraint(struct e_ent_def_t *child_def, struct e_ent_def_t *parent_def)
@@ -111,13 +172,13 @@ void ed_e_AddConstraint(struct e_ent_def_t *child_def, struct e_ent_def_t *paren
         constraint->constraint.hinge.pivot_a = vec3_t_c(0.0, 0.0, 0.0);
         constraint->constraint.hinge.pivot_b = vec3_t_c(0.0, 0.0, 0.0);
 
-        parent_def->constraint_count++;
+//        parent_def->constraint_count++;
     }
 }
 
 void ed_e_RemoveConstraint(struct e_constraint_t *constraint, struct e_ent_def_t *parent_def)
 {
-    if(constraint)
+    if(constraint && parent_def)
     {
         if(constraint->prev)
         {
@@ -135,7 +196,7 @@ void ed_e_RemoveConstraint(struct e_constraint_t *constraint, struct e_ent_def_t
 
         e_DeallocConstraint(constraint);
 
-        parent_def->constraint_count--;
+//        parent_def->constraint_count--;
     }
 }
 
@@ -145,6 +206,9 @@ void ed_e_AddEntDefChild(struct e_ent_def_t *parent_def)
     new_child->position = vec3_t_c(0.0, 0.0, 0.0);
     new_child->scale = vec3_t_c(1.0, 1.0, 1.0);
     new_child->orientation = mat3_t_c_id();
+    new_child->node_count = 1;
+    new_child->collider.type = P_COLLIDER_TYPE_LAST;
+    new_child->collider.passive.shape_count = 0;
 
     new_child->next = parent_def->children;
     if(parent_def->children)
@@ -153,7 +217,7 @@ void ed_e_AddEntDefChild(struct e_ent_def_t *parent_def)
     }
     parent_def->children = new_child;
 
-    parent_def->children_count++;
+//    parent_def->children_count++;
 }
 
 void ed_e_RemoveEntDefChild(struct e_ent_def_t *child_def, struct e_ent_def_t *parent_def)
@@ -190,7 +254,7 @@ void ed_e_RemoveEntDefChild(struct e_ent_def_t *child_def, struct e_ent_def_t *p
 
     e_DeallocEntDef(child_def);
 
-    parent_def->children_count--;
+//    parent_def->children_count--;
 }
 
 uint32_t ed_e_EntDefHierarchyUI(struct e_ent_def_t *ent_def, struct e_ent_def_t *parent_def)
@@ -258,8 +322,11 @@ uint32_t ed_e_EntDefHierarchyUI(struct e_ent_def_t *ent_def, struct e_ent_def_t 
 
         igSeparator();
         igText("Collider");
-        if(ent_def->collider.shape_count)
+        ent_def->collider_count = 0;
+
+        if(ent_def->collider.passive.shape_count)
         {
+            ent_def->collider_count = 1;
             igSameLine(0, -1);
 
             struct e_constraint_t *constraint = NULL;
@@ -272,9 +339,10 @@ uint32_t ed_e_EntDefHierarchyUI(struct e_ent_def_t *ent_def, struct e_ent_def_t 
             if(igButton("Remove##collider", (ImVec2){0, 0}))
             {
                 refresh_entity = 1;
-                struct p_shape_def_t *shape = ent_def->collider.shape;
-                ent_def->collider.shape_count = 0;
-                ent_def->collider.shape = NULL;
+                struct p_shape_def_t *shape = ent_def->collider.passive.shape;
+                ent_def->collider.passive.shape_count = 0;
+                ent_def->collider.passive.shape = NULL;
+                ent_def->collider.type = P_COLLIDER_TYPE_LAST;
 
                 while(shape)
                 {
@@ -284,12 +352,22 @@ uint32_t ed_e_EntDefHierarchyUI(struct e_ent_def_t *ent_def, struct e_ent_def_t 
                 }
 
                 ed_e_RemoveConstraint(constraint, parent_def);
+
+                struct e_constraint_t *constraint = ent_def->constraints;
+                while(constraint)
+                {
+                    struct e_constraint_t *next_constraint = constraint->next;
+                    ed_e_RemoveConstraint(constraint, ent_def);
+                    constraint = next_constraint;
+                }
             }
 
             igNewLine();
             igIndent(0.0);
 
-            refresh_entity |= igSliderFloat("Mass", &ent_def->collider.mass, 0.0, 100.0, "%0.2f", 0);
+            refresh_entity |= igSliderFloat("Mass", &ent_def->collider.passive.mass, 0.0, 100.0, "%0.2f", 0);
+
+            ent_def->constraint_count = 0;
 
             if(parent_def)
             {
@@ -324,13 +402,19 @@ uint32_t ed_e_EntDefHierarchyUI(struct e_ent_def_t *ent_def, struct e_ent_def_t 
                             refresh_entity |= igSliderAngle("High limit", &constraint->constraint.hinge.limit_high, -180.0, 180.0, "%0.2f", 0);
                         break;
                     }
+
+                    ent_def->constraint_count = 1;
                 }
                 else
                 {
                     if(igButton("Add constraint", (ImVec2){0, 0}))
                     {
-                        refresh_entity = 1;
-                        ed_e_AddConstraint(ent_def, parent_def);
+                        if(parent_def->collider.passive.shape_count)
+                        {
+                            refresh_entity = 1;
+                            ed_e_AddConstraint(ent_def, parent_def);
+                            ent_def->constraint_count = 1;
+                        }
                     }
                 }
             }
@@ -344,27 +428,17 @@ uint32_t ed_e_EntDefHierarchyUI(struct e_ent_def_t *ent_def, struct e_ent_def_t 
 
         if(igButton("Add shape", (ImVec2){0, 0}))
         {
-            struct p_shape_def_t *new_shape = p_AllocShapeDef(0);
-            new_shape->type = P_COL_SHAPE_TYPE_BOX;
-            new_shape->box.size = vec3_t_c(1.0, 1.0, 1.0);
-            new_shape->position = vec3_t_c(0.0, 0.0, 0.0);
-            new_shape->orientation = mat3_t_c_id();
-
-            new_shape->next = ent_def->collider.shape;
-            if(!ent_def->collider.shape_count)
-            {
-                ent_def->collider.mass = 1.0;
-                ent_def->collider.type = P_COLLIDER_TYPE_DYNAMIC;
-            }
-            ent_def->collider.shape = new_shape;
-            ent_def->collider.shape_count++;
-
+            ed_e_AddCollisionShape(ent_def);
             refresh_entity = 1;
         }
 
-        refresh_entity |= ed_e_CollisionShapeUI(&ent_def->collider);
+        refresh_entity |= ed_e_CollisionShapeUI(ent_def);
         igUnindent(0.0);
         igNewLine();
+
+        ent_def->node_count = 1;
+        ent_def->shape_count = ent_def->collider.passive.shape_count;
+
 
         igSeparator();
         igText("Children");
@@ -374,37 +448,18 @@ uint32_t ed_e_EntDefHierarchyUI(struct e_ent_def_t *ent_def, struct e_ent_def_t 
             ed_e_AddEntDefChild(ent_def);
             refresh_entity = 1;
         }
-        struct e_ent_def_t *child = ent_def->children;
-        while(child)
+        struct e_ent_def_t *child_def = ent_def->children;
+        while(child_def)
         {
-            uint32_t child_count = child->children_count;
-            uint32_t constraint_count = child->constraint_count;
-
-            refresh_entity |= ed_e_EntDefHierarchyUI(child, ent_def);
-
-            if(child_count > child->children_count)
-            {
-                ent_def->children_count -= child_count - child->children_count;
-            }
-            else if(child_count < child->children_count)
-            {
-                ent_def->children_count += child->children_count - child_count;
-            }
-
-            if(constraint_count > child->constraint_count)
-            {
-                ent_def->constraint_count -= constraint_count - child->constraint_count;
-            }
-            else if(constraint_count < child->constraint_count)
-            {
-                ent_def->constraint_count += child->constraint_count - constraint_count;
-            }
-
-            child = child->next;
+            refresh_entity |= ed_e_EntDefHierarchyUI(child_def, ent_def);
+            ent_def->node_count += child_def->node_count;
+            ent_def->shape_count += child_def->shape_count;
+            ent_def->constraint_count += child_def->constraint_count;
+            ent_def->collider_count += child_def->collider_count;
+            child_def = child_def->next;
         }
 
         igUnindent(0.0);
-//        igTreePop();
     }
 
     igPopID();
@@ -412,14 +467,21 @@ uint32_t ed_e_EntDefHierarchyUI(struct e_ent_def_t *ent_def, struct e_ent_def_t 
     return refresh_entity;
 }
 
-uint32_t ed_e_CollisionShapeUI(struct p_col_def_t *col_def)
+uint32_t ed_e_CollisionShapeUI(struct e_ent_def_t *ent_def)
 {
     uint32_t refresh_shape = 0;
-    struct p_shape_def_t *shape = col_def->shape;
+    struct p_col_def_t *col_def = &ent_def->collider;
+    struct p_shape_def_t *shape = col_def->passive.shape;
 
     while(shape)
     {
         igPushID_Ptr(shape);
+
+        if(igButton("Remove", (ImVec2){0, 0}))
+        {
+            ed_e_RemoveCollisionShape(ent_def, shape);
+            refresh_shape = 1;
+        }
 
         if(igBeginCombo("Shape type", p_col_shape_names[shape->type], 0))
         {
@@ -477,8 +539,10 @@ void ed_e_UpdateUI()
         if(igBegin("##ent_defs_data", NULL, 0))
         {
             igInputText("Name", ent_def->name, sizeof(ent_def->name), 0, 0, NULL);
-            igText("Total child nodes: %d", ent_def->children_count);
-            igText("Total child constraints: %d", ent_def->constraint_count);
+            igText("Nodes: %d", ent_def->node_count);
+            igText("Constraints: %d", ent_def->constraint_count);
+            igText("Colliders: %d\n", ent_def->collider_count);
+            igText("Collision shapes: %d\n", ent_def->shape_count);
 
             igSeparator();
             igText("Hierarchy");
@@ -501,6 +565,12 @@ void ed_e_UpdateUI()
             if(igSelectable_Bool("New", 0, 0, (ImVec2){50, 50}))
             {
                 struct e_ent_def_t *ent_def = e_AllocEntDef(E_ENT_DEF_TYPE_ROOT);
+                ent_def->scale = vec3_t_c(1.0, 1.0, 1.0);
+                ent_def->position = vec3_t_c(0.0, 0.0, 0.0);
+                ent_def->orientation = mat3_t_c_id();
+                ent_def->node_count = 1;
+                ent_def->collider.type = P_COLLIDER_TYPE_LAST;
+
                 ed_e_SelectEntDef(ent_def);
                 ed_entity_state.ent_def_window_open = 0;
             }
@@ -651,65 +721,125 @@ void ed_e_SerializeEntDefRecursive(char *start_out_buffer, char **out_buffer, st
 {
     char *cur_out_buffer = *out_buffer;
     struct e_ent_def_record_t *record = (struct e_ent_def_record_t *)cur_out_buffer;
+
+    record->position = ent_def->position;
+    record->orientation = ent_def->orientation;
+    record->scale = ent_def->scale;
+    record->record_size = cur_out_buffer;
+
     cur_out_buffer += sizeof(struct e_ent_def_record_t);
 
-    if(ent_def->collider.shape_count)
+    if(ent_def->constraints)
+    {
+        record->constraint_start = cur_out_buffer - start_out_buffer;
+        struct e_constraint_t *constraint = ent_def->constraints;
+
+        while(constraint)
+        {
+//            record->constraint_count++;
+            cur_out_buffer += sizeof(struct e_constraint_record_t);
+            constraint = constraint->next;
+        }
+    }
+
+    if(ent_def->collider.type != P_COLLIDER_TYPE_LAST)
     {
         record->collider_start = cur_out_buffer - start_out_buffer;
 
         struct p_col_def_record_t *collider_record = (struct p_col_def_record_t *)cur_out_buffer;
-//        collider_record->shape_count = ent_def->collider.shape_count;
+        cur_out_buffer += sizeof(struct p_col_def_record_t);
+
         collider_record->type = ent_def->collider.type;
-        collider_record->mass = ent_def->collider.mass;
-        cur_out_buffer += sizeof(struct p_col_def_record_t) + sizeof(struct p_shape_def_fields_t) * ent_def->collider.shape_count;
 
-        struct p_shape_def_t *shape = ent_def->collider.shape;
-
-        while(shape)
+        if(ent_def->collider.type == P_COLLIDER_TYPE_CHARACTER)
         {
-//            struct p_shape_data_t *shape_data = collider_record->shape + collider_record->shape_count;
-//            collider_record->shape_count++;
-//            shape_data->type = shape->type;
-//            shape = shape->next;
+            collider_record->character.crouch_height = ent_def->collider.character.crouch_height;
+            collider_record->character.step_height = ent_def->collider.character.step_height;
+            collider_record->character.radius = ent_def->collider.character.radius;
+            collider_record->character.height = ent_def->collider.character.height;
+        }
+        else
+        {
+            collider_record->passive.mass = ent_def->collider.passive.mass;
+            collider_record->shape_start = cur_out_buffer - start_out_buffer;
+            cur_out_buffer += sizeof(struct p_shape_def_fields_t) * ent_def->collider.passive.shape_count;
+
+            struct p_shape_def_t *shape = ent_def->collider.passive.shape;
+            while(shape)
+            {
+                collider_record->passive.shape[collider_record->passive.shape_count] = shape->fields;
+                collider_record->passive.shape_count++;
+                shape = shape->next;
+            }
         }
     }
 
-//    struct e_ent_def_record_t *record = records + section->record_count;
-//    section->record_count++;
-//
-//    record->orientation = ent_def->orientation;
-//    record->position = ent_def->position;
-//    record->scale = ent_def->scale;
-//    record->shape_start = 0;
-//    record->child_start = 0;
-//
-//    if(ent_def->model)
-//    {
-//        strncpy(record->model, ent_def->model->name, sizeof(record->model));
-//    }
-//
-//    struct e_ent_def_t *child_def = ent_def->children;
-//    while(child_def)
-//    {
-//        ed_SerializeEntDefRecursive(child_def, section, records);
-//        child_def = child_def->next;
-//        record->child_count++;
-//    }
+    if(ent_def->model)
+    {
+        strcpy(record->model, ent_def->model->name);
+    }
+
+    struct e_ent_def_t *child_def = ent_def->children;
+
+    if(child_def)
+    {
+        record->child_start = cur_out_buffer - start_out_buffer;
+        struct e_constraint_record_t *constraint_records = NULL;
+
+        if(record->constraint_start)
+        {
+            constraint_records = (struct e_constraint_record_t *)(start_out_buffer + record->constraint_start);
+
+            while(child_def)
+            {
+                struct e_constraint_t *constraint = ent_def->constraints;
+
+                while(constraint)
+                {
+                    if(constraint->child_def == child_def)
+                    {
+                        struct e_constraint_record_t *constraint_record = constraint_records + record->constraint_count;
+                        record->constraint_count++;
+
+                        constraint_record->fields = constraint->constraint.fields;
+                        constraint_record->child_index = record->child_count;
+
+                        break;
+                    }
+                    constraint = constraint->next;
+                }
+
+                ed_e_SerializeEntDefRecursive(start_out_buffer, &cur_out_buffer, child_def);
+
+                record->child_count++;
+                child_def = child_def->next;
+            }
+        }
+        else
+        {
+            while(child_def)
+            {
+                ed_e_SerializeEntDefRecursive(start_out_buffer, &cur_out_buffer, child_def);
+                record->child_count++;
+                child_def = child_def->next;
+            }
+        }
+    }
+
+    record->record_size = cur_out_buffer - record->record_size;
+    *out_buffer = cur_out_buffer;
 }
 
 void ed_e_SerializeEntDef(void **buffer, size_t *buffer_size, struct e_ent_def_t *ent_def)
 {
     char *start_out_buffer;
     size_t out_size = 0;
-    size_t record_count = 1 + ent_def->children_count;
-    out_size = sizeof(struct e_ent_def_section_t);
-    out_size += sizeof(struct e_ent_def_record_t) * record_count;
 
-    if(ent_def->collider.shape_count)
-    {
-        out_size += sizeof(struct p_col_def_record_t);
-        out_size += sizeof(struct p_shape_def_fields_t) * ent_def->collider.shape_count;
-    }
+    out_size = sizeof(struct e_ent_def_section_t);
+    out_size += sizeof(struct e_ent_def_record_t) * ent_def->node_count;
+    out_size += sizeof(struct p_col_def_record_t) * ent_def->collider_count;
+    out_size += sizeof(struct p_shape_def_fields_t) * ent_def->shape_count;
+    out_size += sizeof(struct e_constraint_record_t) * ent_def->constraint_count;
 
     start_out_buffer = mem_Calloc(1, out_size);
     *buffer = start_out_buffer;
@@ -719,15 +849,12 @@ void ed_e_SerializeEntDef(void **buffer, size_t *buffer_size, struct e_ent_def_t
 
     struct e_ent_def_section_t *ent_def_section = (struct e_ent_def_section_t *)cur_out_buffer;
     cur_out_buffer += sizeof(struct e_ent_def_section_t);
-    ent_def_section->record_start = cur_out_buffer - start_out_buffer;
-    ent_def_section->record_count = record_count;
+    ent_def_section->data_start = cur_out_buffer - start_out_buffer;
+    ent_def_section->node_count = ent_def->node_count;
+    ent_def_section->shape_count = ent_def->shape_count;
+    ent_def_section->constraint_count = ent_def->constraint_count;
 
     ed_e_SerializeEntDefRecursive(start_out_buffer, &cur_out_buffer, ent_def);
-
-//    struct e_ent_def_record_t *ent_def_records = (struct e_ent_def_record_t *)cur_out_buffer;
-//    cur_out_buffer += sizeof(struct e_ent_def_record_t) * record_count;
-
-//    ed_SerializeEntDefRecursive(ent_def, ent_def_section, ent_def_records);
 }
 
 //void ed_SaveEntDef(char *file_name, struct e_ent_def_t *ent_def)

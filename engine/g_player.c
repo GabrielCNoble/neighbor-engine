@@ -7,9 +7,16 @@ struct g_player_state_t g_player;
 
 void g_InitPlayer()
 {
+    struct p_col_def_t col_def = {};
+
+    col_def.type = P_COLLIDER_TYPE_CHARACTER;
+    col_def.character.step_height = 0.3;
+    col_def.character.height = 1.7;
+    col_def.character.radius = 0.3;
+    col_def.character.crouch_height = 0.9;
     g_player.pitch = 0.0;
     g_player.yaw = 0.0;
-    g_player.collider = p_CreateCharacterCollider(&vec3_t_c(0.0, 4.0, 0.0), 0.3, 1.7, 0.3, 0.9);
+    g_player.collider = (struct p_character_collider_t *)p_CreateCollider(&col_def, &vec3_t_c(0.0, 4.0, 0.0), &mat3_t_c_id());
 }
 
 void g_UpdatePlayer()

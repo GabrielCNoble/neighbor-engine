@@ -7,6 +7,8 @@ void e_Shutdown();
 
 struct e_ent_def_t *e_AllocEntDef(uint32_t type);
 
+struct e_ent_def_t *e_DeserializeEntDef(void *buffer, size_t buffer_size);
+
 struct e_ent_def_t *e_LoadEntDef(char *file_name);
 
 struct e_ent_def_t *e_GetEntDef(uint32_t type, uint32_t index);
@@ -14,6 +16,8 @@ struct e_ent_def_t *e_GetEntDef(uint32_t type, uint32_t index);
 struct e_ent_def_t *e_FindEntDef(uint32_t type, char *name);
 
 void e_DeallocEntDef(struct e_ent_def_t *ent_def);
+
+struct e_ent_def_t *e_AddChildEntDef(struct e_ent_def_t *parent_def);
 
 struct e_constraint_t *e_AllocConstraint();
 

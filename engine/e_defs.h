@@ -8,8 +8,10 @@
 
 struct e_ent_def_section_t
 {
-    size_t record_start;
-    size_t record_count;
+    size_t data_start;
+    size_t node_count;
+    size_t constraint_count;
+    size_t shape_count;
     size_t reserved[32];
 };
 
@@ -18,13 +20,23 @@ struct e_ent_def_record_t
     size_t child_start;
     size_t child_count;
 
+    size_t constraint_start;
+    size_t constraint_count;
+
     size_t collider_start;
+    size_t record_size;
 
     char model[128];
 
     mat3_t orientation;
     vec3_t position;
     vec3_t scale;
+};
+
+struct e_constraint_record_t
+{
+    size_t child_index;
+    struct p_constraint_fields_t fields;
 };
 
 enum E_ENT_DEF_TYPES
@@ -54,15 +66,19 @@ struct e_ent_def_t
     struct e_ent_def_t *next;
     struct e_ent_def_t *prev;
     struct e_ent_def_t *children;
-    /* all child nodes, including children of children */
-    uint32_t children_count;
+    /* number of nodes in the hierarchy */
+    uint32_t node_count;
 
     struct e_constraint_t *constraints;
-    /* all constraints, including those of children */
+    /* number of constraints in the hierarchy */
     uint32_t constraint_count;
 
     struct r_model_t *model;
     struct p_col_def_t collider;
+    /* number of colliders in the hierarchy */
+    uint32_t collider_count;
+    /* number of collision shapes in the hierarchy */
+    uint32_t shape_count;
 
     mat3_t orientation;
     vec3_t position;

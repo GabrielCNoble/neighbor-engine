@@ -1,8 +1,11 @@
+#include <stdio.h>
 #include "ent.h"
 #include "phys.h"
 #include "r_defs.h"
 #include "r_draw.h"
+#include "game.h"
 #include "../lib/dstuff/ds_slist.h"
+#include "../lib/dstuff/ds_path.h"
 
 struct ds_list_t e_components[E_COMPONENT_TYPE_LAST];
 struct ds_slist_t e_ent_defs[E_ENT_DEF_TYPE_LAST];
@@ -44,19 +47,165 @@ struct e_ent_def_t *e_AllocEntDef(uint32_t type)
 
     ent_def->index = index;
     ent_def->type = type;
-    ent_def->collider.shape_count = 0;
+    ent_def->collider.passive.shape_count = 0;
+    ent_def->collider.passive.shape = NULL;
     ent_def->children = NULL;
     ent_def->next = NULL;
     ent_def->prev = NULL;
     ent_def->model = NULL;
 
+    return ent_def;
+}
+
+void e_DeserializeEntDefRecursive(char *start_in_buffer, struct e_ent_def_t *ent_def, struct e_ent_def_record_t *record)
+{
+    ent_def->node_count = 1;
+    ent_def->position = record->position;
+    ent_def->orientation = record->orientation;
+    ent_def->scale = record->scale;
+
+    if(record->model[0])
+    {
+        ent_def->model = r_FindModel(record->model);
+        if(!ent_def->model)
+        {
+            char full_path[PATH_MAX];
+            ds_path_append_end("models", record->model, full_path, PATH_MAX);
+            ds_path_set_ext(full_path, "mof", full_path, PATH_MAX);
+            ent_def->model = r_LoadModel(full_path);
+        }
+    }
+
+    if(record->collider_start)
+    {
+        struct p_col_def_record_t *collider_record = (struct p_col_def_record_t *)(start_in_buffer + record->collider_start);
+
+        ent_def->collider.type = collider_record->type;
+
+        if(collider_record->type == P_COLLIDER_TYPE_CHARACTER)
+        {
+            ent_def->collider.character.step_height = collider_record->character.step_height;
+            ent_def->collider.character.crouch_height = collider_record->character.crouch_height;
+            ent_def->collider.character.radius = collider_record->character.radius;
+            ent_def->collider.character.height = collider_record->character.height;
+        }
+        else
+        {
+            ent_def->collider.passive.mass = collider_record->passive.mass;
+            ent_def->collider.passive.shape_count = collider_record->passive.shape_count;
+
+            for(uint32_t shape_index = 0; shape_index < collider_record->passive.shape_count; shape_index++)
+            {
+                struct p_shape_def_fields_t *shape_fields = collider_record->passive.shape + shape_index;
+                struct p_shape_def_t *shape_def = p_AllocShapeDef();
+                shape_def->fields = *shape_fields;
+                shape_def->next = ent_def->collider.passive.shape;
+                ent_def->collider.passive.shape = shape_def;
+            }
+
+            ent_def->shape_count = ent_def->collider.passive.shape_count;
+        }
+    }
+    else
+    {
+        ent_def->collider.type = P_COLLIDER_TYPE_LAST;
+    }
+
+    if(record->child_count)
+    {
+        char *children = start_in_buffer + record->child_start;
+
+        if(record->constraint_count)
+        {
+            struct e_constraint_record_t *constraint_records = (struct e_constraint_record_t *)(start_in_buffer + record->constraint_start);
+            ent_def->constraint_count = record->constraint_count;
+
+            for(uint32_t child_index = 0; child_index < record->child_count; child_index++)
+            {
+                struct e_ent_def_record_t *child_record = (struct e_ent_def_record_t *)children;
+                struct e_ent_def_t *child_def = e_AddChildEntDef(ent_def);
+                e_DeserializeEntDefRecursive(start_in_buffer, child_def, child_record);
+                children += child_record->record_size;
+                ent_def->node_count += child_def->node_count;
+                ent_def->constraint_count += child_def->constraint_count;
+                ent_def->shape_count += child_def->shape_count;
+
+                for(uint32_t constraint_index = 0; constraint_index < record->constraint_count; constraint_index++)
+                {
+                    struct e_constraint_record_t *constraint_record = constraint_records + constraint_index;
+
+                    if(constraint_record->child_index == child_index)
+                    {
+                        struct e_constraint_t *constraint = e_AllocConstraint();
+                        constraint->child_def = child_def;
+                        constraint->constraint.fields = constraint_record->fields;
+
+                        constraint->next = ent_def->constraints;
+                        if(ent_def->constraints)
+                        {
+                            ent_def->constraints->prev = constraint;
+                        }
+                        ent_def->constraints = constraint;
+                        ent_def->constraint_count++;
+
+                        break;
+                    }
+                }
+            }
+        }
+        else
+        {
+            for(uint32_t child_index = 0; child_index < record->child_count; child_index++)
+            {
+                struct e_ent_def_record_t *child_record = (struct e_ent_def_record_t *)children;
+                struct e_ent_def_t *child_def = e_AddChildEntDef(ent_def);
+                e_DeserializeEntDefRecursive(start_in_buffer, child_def, child_record);
+                children += child_record->record_size;
+                ent_def->node_count += child_def->node_count;
+                ent_def->constraint_count += child_def->constraint_count;
+                ent_def->shape_count += child_def->shape_count;
+            }
+        }
+    }
+}
+
+struct e_ent_def_t *e_DeserializeEntDef(void *buffer, size_t buffer_size)
+{
+    char *in_buffer = buffer;
+    struct e_ent_def_section_t *section = (struct e_ent_def_section_t *)in_buffer;
+    struct e_ent_def_t *ent_def = e_AllocEntDef(E_ENT_DEF_TYPE_ROOT);
+    struct e_ent_def_record_t *record = (struct e_ent_def_record_t *)(in_buffer + section->data_start);
+
+    e_DeserializeEntDefRecursive(in_buffer, ent_def, record);
 
     return ent_def;
 }
 
 struct e_ent_def_t *e_LoadEntDef(char *file_name)
 {
+    void *buffer;
+    size_t buffer_size;
+    struct e_ent_def_t *ent_def;
+    char full_path[PATH_MAX];
 
+    g_ResourcePath(file_name, full_path, PATH_MAX);
+
+    FILE *file = fopen(full_path, "rb");
+
+    if(!file)
+    {
+        printf("e_LoadEntDef: couldn't open file %s\n", file_name);
+        return NULL;
+    }
+
+    read_file(file, &buffer, &buffer_size);
+    ent_def = e_DeserializeEntDef(buffer, buffer_size);
+    free(buffer);
+
+    ds_path_get_end(file_name, ent_def->name, sizeof(ent_def->name));
+    ds_path_drop_ext(ent_def->name, ent_def->name, sizeof(ent_def->name));
+
+    return ent_def;
 }
 
 struct e_ent_def_t *e_GetEntDef(uint32_t type, uint32_t index)
@@ -101,6 +250,27 @@ void e_DeallocEntDef(struct e_ent_def_t *ent_def)
         ds_slist_remove_element(&e_ent_defs[ent_def->type], ent_def->index);
         ent_def->index = 0xffffffff;
     }
+}
+
+struct e_ent_def_t *e_AddChildEntDef(struct e_ent_def_t *parent_def)
+{
+    struct e_ent_def_t *child_def = NULL;
+
+    if(parent_def)
+    {
+        child_def = e_AllocEntDef(E_ENT_DEF_TYPE_CHILD);
+        child_def->collider.type = P_COLLIDER_TYPE_LAST;
+        child_def->collider.passive.shape_count = 0;
+
+        child_def->next = parent_def->children;
+        if(parent_def->children)
+        {
+            parent_def->children->prev = child_def;
+        }
+        parent_def->children = child_def;
+    }
+
+    return child_def;
 }
 
 struct e_constraint_t *e_AllocConstraint()
@@ -296,10 +466,10 @@ struct e_collider_t *e_AllocCollider(struct p_col_def_t *col_def, struct e_entit
 {
     struct e_collider_t *component = (struct e_collider_t *)e_AllocComponent(E_COMPONENT_TYPE_COLLIDER, entity);
 
-    if(col_def->shape_count == 1)
+    if(col_def->type != P_COLLIDER_TYPE_CHARACTER && col_def->passive.shape_count == 1)
     {
-        component->offset_position = col_def->shape->position;
-        component->offset_rotation = col_def->shape->orientation;
+        component->offset_position = col_def->passive.shape->position;
+        component->offset_rotation = col_def->passive.shape->orientation;
     }
     else
     {
@@ -374,7 +544,7 @@ struct e_entity_t *e_SpawnEntityRecursive(struct e_ent_def_t *ent_def, vec3_t *p
         entity->model = e_AllocModel(ent_def->model, entity);
     }
 
-    if(ent_def->collider.shape_count)
+    if(ent_def->collider.type != P_COLLIDER_TYPE_LAST)
     {
         entity->collider = e_AllocCollider(&ent_def->collider, entity);
         ent_def->entity = entity;
@@ -422,16 +592,10 @@ struct e_entity_t *e_SpawnEntity(struct e_ent_def_t *ent_def, vec3_t *position, 
     struct e_entity_t *entity = e_SpawnEntityRecursive(ent_def, position, scale, &ent_def->scale, orientation, NULL);
     entity->node->root_index = ds_list_add_element(&e_root_transforms, &entity->node);
 
-//    entity->node->scale.x *= ent_def->scale.x;
-//    entity->node->scale.y *= ent_def->scale.y;
-//    entity->node->scale.z *= ent_def->scale.z;
-
     if(ent_def->type == E_ENT_DEF_TYPE_ROOT)
     {
         entity->def = ent_def;
     }
-
-//    e_UpdateEntityNode(entity->node, &mat4_t_c_id());
 
     return entity;
 }

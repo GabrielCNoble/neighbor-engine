@@ -368,23 +368,22 @@ size_t ds_path_get_ext(char *path, char *out, size_t out_size)
 
 size_t ds_path_drop_ext(char *path, char *out, size_t out_size)
 {
-    // static char stripped_path[PATH_MAX];
-    // uint32_t length = strlen(path);
-    // uint32_t index = length;
+     char new_path[PATH_MAX];
+     uint32_t length = strlen(path);
+     uint32_t index = length;
 
-    // path = ds_path_FormatPath(path);
+     ds_path_format_path(path, new_path, PATH_MAX);
 
-    // while(index && path[index] != '.')index--;
+     while(index && new_path[index] != '.')index--;
 
-    // if(!index)
-    // {
-    //     return path;
-    // }
+     if(index)
+     {
+         new_path[index] = '\0';
+     }
 
-    // strncpy(stripped_path, path, index);
-    // stripped_path[index] = '\0';
+     strncpy(out, new_path, out_size);
 
-    // return stripped_path;
+     return DS_PATH_NO_ERROR;
 }
 
 size_t ds_path_set_ext(char *path, char *ext, char *out, size_t out_size)
@@ -434,7 +433,7 @@ size_t ds_path_set_ext(char *path, char *ext, char *out, size_t out_size)
     }
 
     strncpy(out, new_path, path_length);
-    
+
     if(ext_length)
     {
         strncat(out, ".", 2);

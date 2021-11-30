@@ -109,9 +109,9 @@ void ed_l_SurfaceUnderMouse(int32_t mouse_x, int32_t mouse_y, vec3_t *plane_poin
 
 void ed_l_LinearSnapValueOnSurface(vec3_t *plane_point, mat3_t *plane_orientation, vec3_t *snapped_value);
 
-void ed_l_SaveLevel(char *path, char *file);
+uint32_t ed_l_SaveLevel(char *path, char *file);
 
-void ed_l_LoadLevel(char *path, char *file);
+uint32_t ed_l_LoadLevel(char *path, char *file);
 
 void ed_l_ClearBrushEntities();
 

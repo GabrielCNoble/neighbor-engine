@@ -4,7 +4,7 @@
 #include "ed_level_defs.h"
 #include "dstuff/ds_buffer.h"
 #include "../engine/r_main.h"
-#include "../engine/game.h"
+#include "../engine/g_main.h"
 #include "../engine/phys.h"
 #include "../engine/ent.h"
 #include "ed_bsp.h"
@@ -104,7 +104,7 @@ struct ed_brush_t *ed_CreateBrush(vec3_t *position, mat3_t *orientation, vec3_t 
 //    brush->vertices = ds_slist_create(sizeof(struct ed_vert_t), 8);
 //    brush->vert_transforms = ds_list_create(sizeof(struct ed_vert_transform_t), 32);
     brush->main_brush = brush;
-    brush->flags |= ED_BRUSH_FLAG_GEOMETRY_MODIFIED;
+    brush->update_flags |= ED_BRUSH_UPDATE_FLAG_FACE_POLYGONS;
 
     for(uint32_t vert_index = 0; vert_index < brush->vertices.size; vert_index++)
     {
@@ -962,6 +962,13 @@ void ed_UpdateBrush(struct ed_brush_t *brush)
     struct ed_polygon_t *polygons = NULL;
     uint32_t rebuild_bsp = 1;
 
+    vec3_t axes[] =
+    {
+        vec3_t_c(1.0, 0.0, 0.0),
+        vec3_t_c(0.0, 1.0, 0.0),
+        vec3_t_c(0.0, 0.0, 1.0),
+    };
+
     brush->clipped_vert_count = 0;
     brush->clipped_index_count = 0;
     brush->clipped_polygon_count = 0;
@@ -1000,12 +1007,13 @@ void ed_UpdateBrush(struct ed_brush_t *brush)
 
         /* we touched the vertices, so we'll need to do a bunch of updating now... */
         brush->flags |= ED_BRUSH_FLAG_GEOMETRY_MODIFIED;
+        brush->update_flags |= ED_BRUSH_UPDATE_FLAG_FACE_POLYGONS;
     }
 
     brush->vert_transforms.cursor = 0;
     struct ed_face_t *face = NULL;
 
-    if(brush->flags & ED_BRUSH_FLAG_GEOMETRY_MODIFIED)
+    if(brush->update_flags & ED_BRUSH_UPDATE_FLAG_FACE_POLYGONS)
     {
         face = brush->faces;
 
@@ -1040,9 +1048,6 @@ void ed_UpdateBrush(struct ed_brush_t *brush)
                 face_polygon->tangent = edge0_vec;
                 vec3_t_normalize(&face_polygon->tangent, &face_polygon->tangent);
 
-//                vec3_t bitangent;
-//                vec3_t_cross(&bitangent, &face_polygon->)
-
                 face_polygon->center = vec3_t_c(0.0, 0.0, 0.0);
 
                 while(first_edge)
@@ -1058,6 +1063,7 @@ void ed_UpdateBrush(struct ed_brush_t *brush)
                 vec3_t_add(&face->center, &face->center, &face_polygon->center);
                 point_count++;
 
+
                 face_polygon = face_polygon->next;
             }
 
@@ -1066,6 +1072,11 @@ void ed_UpdateBrush(struct ed_brush_t *brush)
             face = face->next;
         }
 
+        brush->update_flags |= ED_BRUSH_UPDATE_FLAG_CLIPPED_POLYGONS;
+    }
+
+    if(brush->update_flags & ED_BRUSH_UPDATE_FLAG_CLIPPED_POLYGONS)
+    {
         face = brush->faces;
 
         while(face)
@@ -1092,9 +1103,73 @@ void ed_UpdateBrush(struct ed_brush_t *brush)
 
             face = face->next;
         }
+
+        brush->update_flags |= ED_BRUSH_UPDATE_FLAG_UV_COORDS;
     }
 
-    if(brush->flags & ED_BRUSH_FLAG_GEOMETRY_MODIFIED)
+    if(brush->update_flags & ED_BRUSH_UPDATE_FLAG_UV_COORDS)
+    {
+        struct ed_face_t *face = brush->faces;
+
+        mat3_t inverse_orientation;
+        mat3_t_transpose(&inverse_orientation, &brush->orientation);
+
+        while(face)
+        {
+            struct ed_bsp_polygon_t *clipped_polygon = face->clipped_polygons;
+
+            while(clipped_polygon)
+            {
+                vec3_t plane_origin;
+                mat3_t plane_orientation;
+                float max_axis_proj = -FLT_MAX;
+                uint32_t j_axis_index = 0;
+
+                plane_orientation.rows[1] = clipped_polygon->normal;
+                mat3_t_vec3_t_mul(&plane_orientation.rows[1], &plane_orientation.rows[1], &brush->orientation);
+
+                for(uint32_t comp_index = 0; comp_index < 3; comp_index++)
+                {
+                    float axis_proj = fabsf(plane_orientation.rows[1].comps[comp_index]);
+
+                    if(axis_proj > max_axis_proj)
+                    {
+                        max_axis_proj = axis_proj;
+                        j_axis_index = comp_index;
+                    }
+                }
+
+                uint32_t k_axis_index = (j_axis_index + 1) % 3;
+                vec3_t_cross(&plane_orientation.rows[0], &axes[k_axis_index], &plane_orientation.rows[1]);
+                vec3_t_normalize(&plane_orientation.rows[0], &plane_orientation.rows[0]);
+
+                vec3_t_cross(&plane_orientation.rows[2], &plane_orientation.rows[1], &plane_orientation.rows[0]);
+                vec3_t_normalize(&plane_orientation.rows[2], &plane_orientation.rows[2]);
+                vec3_t_mul(&plane_origin, &plane_orientation.rows[1], vec3_t_dot(&plane_orientation.rows[1], &clipped_polygon->face_polygon->center));
+                vec3_t_sub(&plane_origin, &plane_origin, &brush->position);
+                mat3_t_mul(&plane_orientation, &plane_orientation, &inverse_orientation);
+                mat3_t_vec3_t_mul(&plane_origin, &plane_origin, &inverse_orientation);
+
+                for(uint32_t vert_index = 0; vert_index < clipped_polygon->vertices.cursor; vert_index++)
+                {
+                    struct r_vert_t *vert = ds_list_get_element(&clipped_polygon->vertices, vert_index);
+                    vec3_t vert_vec;
+
+                    vec3_t_sub(&vert_vec, &vert->pos, &plane_origin);
+                    vert->tex_coords.x = vec3_t_dot(&vert_vec, &plane_orientation.rows[0]);
+                    vert->tex_coords.y = vec3_t_dot(&vert_vec, &plane_orientation.rows[2]);
+                }
+
+                clipped_polygon = clipped_polygon->next;
+            }
+
+            face = face->next;
+        }
+
+        brush->update_flags |= ED_BRUSH_UPDATE_FLAG_DRAW_GEOMETRY;
+    }
+
+    if(brush->update_flags & ED_BRUSH_UPDATE_FLAG_UV_COORDS)
     {
         struct ds_buffer_t *batch_buffer;
         struct ds_buffer_t *vertex_buffer;
@@ -1316,117 +1391,12 @@ void ed_UpdateBrush(struct ed_brush_t *brush)
         }
     }
 
-//    mat4_t transform;
-//    mat4_t_comp(&transform, &brush->orientation, &brush->position);
+    brush->update_flags = 0;
 
-//    if(!brush->entity)
-//    {
-//        struct e_ent_def_t ent_def = {.index = 0xffffffff};
-//        ent_def.model = brush->model;
-//        brush->entity = e_SpawnEntity(&ent_def, &brush->position, &vec3_t_c(1.0, 1.0, 1.0), &brush->orientation);
-//    }
-//    else
-//    {
-//        struct e_local_transform_component_t *transform = brush->entity->local_transform_component;
-//
-//        transform->local_position = brush->position;
-//        transform->local_orientation = brush->orientation;
-//    }
     ed_UpdateBrushEntity(brush);
 
     brush->flags = 0;
 }
-
-//void ed_BuildWorldGeometry()
-//{
-//    struct ds_buffer_t col_verts_buffer = ds_buffer_create(sizeof(vec3_t), ed_level_state.brush.brush_model_vert_count);
-//    struct ds_buffer_t draw_verts_buffer = ds_buffer_create(sizeof(struct r_vert_t), ed_level_state.brush.brush_model_vert_count);
-//    struct ds_buffer_t indices_buffer = ds_buffer_create(sizeof(uint32_t), ed_level_state.brush.brush_model_index_count);
-//
-//    uint32_t vert_offset = 0;
-//    uint32_t index_offset = 0;
-//
-//    vec3_t *col_verts = col_verts_buffer.buffer;
-//    uint32_t *indices = indices_buffer.buffer;
-//
-//    for(uint32_t brush_index = 0; brush_index < ed_level_state.brush.brushes.cursor; brush_index++)
-//    {
-//        struct ed_brush_t *brush = ed_GetBrush(brush_index);
-//
-//        if(brush)
-//        {
-//            struct r_vert_t *model_verts = brush->model->verts.buffer;
-//            uint32_t *model_indices = brush->model->indices.buffer;
-//
-//            for(uint32_t index = 0; index < brush->model->indices.buffer_size; index++)
-//            {
-//                indices[index_offset] = model_indices[index] + vert_offset;
-//                index_offset++;
-//            }
-//
-//            for(uint32_t vert_index = 0; vert_index < brush->model->verts.buffer_size; vert_index++)
-//            {
-//                col_verts[vert_offset] = model_verts[vert_index].pos;
-//                mat3_t_vec3_t_mul(&col_verts[vert_offset], &col_verts[vert_offset], &brush->orientation);
-//                vec3_t_add(&col_verts[vert_offset], &col_verts[vert_offset], &brush->position);
-//                vert_offset++;
-//            }
-//        }
-//    }
-//
-//    vec3_t position = {};
-//    mat3_t orientation = {};
-//    mat3_t_identity(&orientation);
-//
-//    if(l_world_shape)
-//    {
-//        p_DestroyCollisionShape((struct p_col_shape_t *)l_world_shape);
-//        p_DestroyCollider(l_world_collider);
-//    }
-////
-////    l_world_shape = p_CreateTriMeshCollisionShape(col_verts, indices, index_offset);
-////    l_world_collider = p_CreateCollider(P_COLLIDER_TYPE_STATIC, &position, &orientation, (struct p_col_shape_t *)l_world_shape);
-//
-//    ds_buffer_destroy(&col_verts_buffer);
-//    ds_buffer_destroy(&draw_verts_buffer);
-//    ds_buffer_destroy(&indices_buffer);
-//
-////    struct ds_buffer_t batches = ds_buffer_create(sizeof(struct r_batch_t), ed_level_state.brush.brush_batches.cursor);
-////
-////    for(uint32_t global_batch_index = 0; global_batch_index < batches.buffer_size; global_batch_index++)
-////    {
-////        struct r_batch_t *batch = (struct r_batch_t *)batches.buffer + global_batch_index;
-////        struct ed_brush_batch_t *brush_batch = ds_list_get_element(&ed_level_state.brush.brush_batches, global_batch_index);
-////
-////        *batch = brush_batch->batch;
-////
-////        if(global_batch_index)
-////        {
-////            struct r_batch_t *prev_batch = (struct r_batch_t *)batches.buffer + (global_batch_index - 1);
-////            batch->start = prev_batch->start + prev_batch->count;
-////        }
-////
-////        batch->count = 0;
-////
-////        for(uint32_t brush_index = 0; brush_index < ed_level_state.brush.brushes.cursor; brush_index++)
-////        {
-////            struct ed_brush_t *brush = ed_GetBrush(brush_index);
-////
-////            if(brush)
-////            {
-////                for(uint32_t model_batch_index = 0; model_batch_index < brush->model->batches.buffer_size; model_batch_index++)
-////                {
-////                    struct r_batch_t *model_batch = (struct r_batch_t *)brush->model->batches.buffer + model_batch_index;
-////
-////                    if(model_batch->material == batch->material)
-////                    {
-////
-////                    }
-////                }
-////            }
-////        }
-////    }
-//}
 
 /*
 =============================================================
@@ -1469,6 +1439,15 @@ struct ed_bsp_polygon_t *ed_BspPolygonFromBrushFace(struct ed_face_t *face)
 
     dummy_polygon.next = face->clipped_polygons;
 
+//    vec3_t axes[] =
+//    {
+//        vec3_t_c(1.0, 0.0, 0.0),
+//        vec3_t_c(0.0, 1.0, 0.0),
+//        vec3_t_c(0.0, 0.0, 1.0),
+//    };
+
+//    mat3_t plane_orientation;
+
     while(face_polygon)
     {
         if(!bsp_polygon->next)
@@ -1492,6 +1471,34 @@ struct ed_bsp_polygon_t *ed_BspPolygonFromBrushFace(struct ed_face_t *face)
         uint32_t polygon_side = edge->polygons[1].polygon == face_polygon;
         struct ed_vert_t *first_vert = edge->verts[polygon_side].vert;
 
+
+//        float max_axis_proj = -FLT_MAX;
+//        uint32_t j_axis_index = 0;
+//
+//        plane_orientation.rows[1] = face_polygon->normal;
+//
+//        for(uint32_t comp_index = 0; comp_index < 3; comp_index++)
+//        {
+//            float axis_proj = fabsf(plane_orientation.rows[1].comps[comp_index]);
+//
+//            if(axis_proj > max_axis_proj)
+//            {
+//                max_axis_proj = axis_proj;
+//                j_axis_index = comp_index;
+//            }
+//        }
+//
+//        uint32_t k_axis_index = (j_axis_index + 1) % 3;
+//        vec3_t_cross(&plane_orientation.rows[0], &axes[k_axis_index], &plane_orientation.rows[1]);
+//        vec3_t_normalize(&plane_orientation.rows[0], &plane_orientation.rows[0]);
+//
+//        vec3_t_cross(&plane_orientation.rows[2], &plane_orientation.rows[1], &plane_orientation.rows[0]);
+//        vec3_t_normalize(&plane_orientation.rows[2], &plane_orientation.rows[2]);
+//
+//
+//        vec3_t plane_origin;
+//        vec3_t_mul(&plane_origin, &plane_orientation.rows[1], vec3_t_dot(&plane_orientation.rows[1], &face_polygon->center));
+
         while(edge)
         {
             polygon_side = edge->polygons[1].polygon == face_polygon;
@@ -1500,10 +1507,16 @@ struct ed_bsp_polygon_t *ed_BspPolygonFromBrushFace(struct ed_face_t *face)
 
             vec3_t_add(&bsp_polygon->point, &bsp_polygon->point, &brush_vert->vert);
 
+//            vec3_t vert_vec = brush_vert->vert;
+//            mat3_t_vec3_t_mul(&vert_vec, &vert_vec, &face->brush->orientation);
+//            vec3_t_add(&vert_vec, &vert_vec, &face->brush->position);
+//            vec3_t_sub(&vert_vec, &vert_vec, &plane_origin);
+
             polygon_vert->pos = brush_vert->vert;
             polygon_vert->normal.xyz = face_polygon->normal;
             polygon_vert->tangent = face_polygon->tangent;
-            polygon_vert->tex_coords = vec2_t_c(0.0, 0.0);
+//            polygon_vert->tex_coords.x = vec3_t_dot(&vert_vec, &plane_orientation.rows[0]);
+//            polygon_vert->tex_coords.y = vec3_t_dot(&vert_vec, &plane_orientation.rows[2]);
 
             edge = edge->polygons[polygon_side].next;
         }

@@ -1,6 +1,6 @@
 #include "r_vis.h"
 #include "ent.h"
-#include "game.h"
+#include "g_main.h"
 
 extern struct ds_list_t r_visible_lights;
 extern mat4_t r_camera_matrix;
@@ -558,16 +558,19 @@ void r_VisibleLights()
             break;
         }
 
-        if(light->shadow_map_res != R_SHADOW_BUCKET_RESOLUTION(shadow_maps[0]))
+        if(light->type != R_LIGHT_TYPE_SPOT)
         {
-            r_FreeShadowMaps(light);
-            r_AllocShadowMaps(light, light->shadow_map_res);
-        }
+            if(light->shadow_map_res != R_SHADOW_BUCKET_RESOLUTION(shadow_maps[0]))
+            {
+                r_FreeShadowMaps(light);
+                r_AllocShadowMaps(light, light->shadow_map_res);
+            }
 
-        for(uint32_t shadow_map_index = 0; shadow_map_index < shadow_map_count; shadow_map_index++)
-        {
-            struct r_shadow_map_t *shadow_map = r_GetShadowMap(shadow_maps[shadow_map_index]);
-            r_shadow_map_buffer[light->shadow_map_buffer_index + shadow_map_index] = *shadow_map;
+            for(uint32_t shadow_map_index = 0; shadow_map_index < shadow_map_count; shadow_map_index++)
+            {
+                struct r_shadow_map_t *shadow_map = r_GetShadowMap(shadow_maps[shadow_map_index]);
+                r_shadow_map_buffer[light->shadow_map_buffer_index + shadow_map_index] = *shadow_map;
+            }
         }
 
         for(uint32_t slice_index = light->min.z; slice_index <= light->max.z; slice_index++)

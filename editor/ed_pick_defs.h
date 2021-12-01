@@ -5,9 +5,13 @@
 
 enum ED_PICKABLE_TYPE
 {
-    ED_PICKABLE_TYPE_BRUSH = 0,
-    ED_PICKABLE_TYPE_ENTITY,
+    /* game specific pickables */
+    ED_PICKABLE_TYPE_ENTITY = 0,
     ED_PICKABLE_TYPE_LIGHT,
+    ED_PICKABLE_TYPE_LAST_GAME_PICKABLE,
+
+    /* level editor specific pickables */
+    ED_PICKABLE_TYPE_BRUSH = ED_PICKABLE_TYPE_LAST_GAME_PICKABLE,
     ED_PICKABLE_TYPE_FACE,
     ED_PICKABLE_TYPE_EDGE,
     ED_PICKABLE_TYPE_VERT,
@@ -64,7 +68,7 @@ struct ed_pickable_t
     struct ds_slist_t *list;
     uint32_t selection_index;
     uint32_t modified_index;
-//    struct ed_pick_dep_t *deps;
+    uint32_t game_pickable_index;
 
     uint32_t transform_flags;
     uint32_t draw_render_flags;

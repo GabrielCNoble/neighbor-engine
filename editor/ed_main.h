@@ -46,6 +46,8 @@ void ed_OpenExplorerSave();
 
 void ed_OpenExplorerLoad();
 
+void ed_OpenExplorerSelectFolder();
+
 void ed_CloseExplorer();
 
 void ed_EnumerateExplorerDrives();
@@ -61,6 +63,8 @@ void ed_ClearExplorerExtFilters();
 uint32_t ed_ExplorerSaveFile(char *path, char *file);
 
 uint32_t ed_ExplorerLoadFile(char *path, char *file);
+
+uint32_t ed_ExplorerSelectFolder(char *path, char *file);
 
 #endif // ED_H
 

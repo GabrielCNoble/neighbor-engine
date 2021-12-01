@@ -3,7 +3,7 @@
 #include "ed_pick.h"
 #include "ed_brush.h"
 #include "ed_level.h"
-#include "../engine/game.h"
+#include "../engine/g_main.h"
 #include "../engine/r_main.h"
 #include "../engine/ent.h"
 
@@ -356,6 +356,7 @@ struct ed_pickable_t *ed_CreatePickableOnList(uint32_t type, struct ds_slist_t *
     pickable->selection_index = 0xffffffff;
     pickable->modified_index = 0xffffffff;
     pickable->update_index = 0xffffffff;
+    pickable->game_pickable_index = 0xffffffff;
     pickable->ranges = NULL;
     pickable->range_count = 0;
 
@@ -366,8 +367,13 @@ struct ed_pickable_t *ed_CreatePickableOnList(uint32_t type, struct ds_slist_t *
 
 struct ed_pickable_t *ed_CreatePickable(uint32_t type)
 {
-//    struct ds_slist_t *list = ed_PickableListFromType(type);
     struct ed_pickable_t *pickable = ed_CreatePickableOnList(type, &ed_level_state.pickables.pickables);
+
+    if(type < ED_PICKABLE_TYPE_LAST_GAME_PICKABLE)
+    {
+        pickable->game_pickable_index = ds_list_add_element(&ed_level_state.pickables.game_pickables[type], &pickable);
+    }
+
     return pickable;
 }
 
@@ -441,6 +447,18 @@ void ed_DestroyPickable(struct ed_pickable_t *pickable)
             pickable->ranges = next;
         }
 
+        if(pickable->type < ED_PICKABLE_TYPE_LAST_GAME_PICKABLE)
+        {
+            struct ds_list_t *game_pickables = &ed_level_state.pickables.game_pickables[pickable->type];
+            ds_list_remove_element(game_pickables, pickable->game_pickable_index);
+
+            if(pickable->game_pickable_index < game_pickables->cursor)
+            {
+                struct ed_pickable_t *moved_pickable = *(struct ed_pickable_t **)ds_list_get_element(game_pickables, pickable->game_pickable_index);
+                moved_pickable->game_pickable_index = pickable->game_pickable_index;
+            }
+        }
+
         ds_slist_remove_element(&ed_level_state.pickables.pickables, pickable->index);
         pickable->index = 0xffffffff;
     }
@@ -480,6 +498,13 @@ struct ed_pickable_t *ed_CopyPickable(struct ed_pickable_t *src_pickable)
         {
             struct r_light_t *src_light = r_GetLight(src_pickable->primary_index);
             copy = ed_CreateLightPickable(NULL, NULL, 0, 0, 0, r_CopyLight(src_light));
+        }
+        break;
+
+        case ED_PICKABLE_TYPE_ENTITY:
+        {
+            struct e_entity_t *src_entity = e_GetEntity(src_pickable->primary_index);
+            copy = ed_CreateEntityPickable(NULL, NULL, NULL, NULL, e_CopyEntity(src_entity));
         }
         break;
     }

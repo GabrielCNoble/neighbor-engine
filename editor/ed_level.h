@@ -113,6 +113,8 @@ uint32_t ed_l_SaveLevel(char *path, char *file);
 
 uint32_t ed_l_LoadLevel(char *path, char *file);
 
+uint32_t ed_l_SelectFolder(char *path, char *file);
+
 void ed_l_OpenExplorerSave(struct ed_explorer_state_t *explorer_state);
 
 void ed_l_OpenExplorerLoad(struct ed_explorer_state_t *explorer_state);

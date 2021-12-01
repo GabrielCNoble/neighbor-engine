@@ -431,7 +431,7 @@ struct a_mask_player_t *a_GetMaskPlayer(struct a_mask_t *mask, char *name)
     return NULL;
 }
 
-void a_UpdateAnimations(float delta_time)
+void a_StepAnimations(float delta_time)
 {
     for(uint32_t mixer_index = 0; mixer_index < a_mixers.cursor; mixer_index++)
     {

@@ -2,6 +2,7 @@
 #define ED_LEVEL_DEFS_H
 
 #include "ed_defs.h"
+#include "ed_pick_defs.h"
 
 enum ED_LEVEL_EDIT_MODES
 {
@@ -76,6 +77,7 @@ struct ed_level_state_t
         uint32_t ignore_types;
         uint32_t secondary_click_function;
         uint32_t selections_window_open;
+        struct ds_list_t game_pickables[ED_PICKABLE_TYPE_LAST_GAME_PICKABLE];
         struct ds_slist_t pickables;
         struct ds_list_t selections;
         struct ds_list_t modified_brushes;

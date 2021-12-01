@@ -1,7 +1,7 @@
 #ifndef MAIN_H
 #define MAIN_H
 
-#include "game.h"
+#include "g_main.h"
 #include "r_main.h"
 #include "sound.h"
 #include "level.h"

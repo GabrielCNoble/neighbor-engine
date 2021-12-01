@@ -14,9 +14,9 @@ struct g_player_state_t
     struct p_character_collider_t *collider;
 };
 
-void g_InitPlayer();
+void g_PlayerInit();
 
-void g_UpdatePlayer();
+void g_StepPlayer(float delta_time);
 
 
 #endif // G_PLAYER_H

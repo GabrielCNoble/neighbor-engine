@@ -238,7 +238,7 @@ struct a_player_t *a_GetMixerPlayer(struct a_mixer_t *mixer, char *name);
 
 struct a_mask_player_t *a_GetMaskPlayer(struct a_mask_t *mask, char *name);
 
-void a_UpdateAnimations(float delta_time);
+void a_StepAnimations(float delta_time);
 
 void a_UpdateMixer(struct a_mixer_t *mixer, float delta_time);
 

@@ -77,7 +77,20 @@ void l_DeserializeLevel(void *level_buffer, size_t buffer_size, uint32_t data_fl
         for(uint32_t record_index = 0; record_index < light_section->record_count; record_index++)
         {
             struct l_light_record_t *record = light_records + record_index;
-            struct r_light_t *light = r_CreateLight(record->type, &record->position, &record->color, record->radius, record->energy);
+            struct r_light_t *light;
+
+            switch(record->type)
+            {
+                case R_LIGHT_TYPE_POINT:
+                    light = (struct r_light_t *)r_CreatePointLight(&record->position, &record->color, record->radius, record->energy);
+                break;
+
+                case R_LIGHT_TYPE_SPOT:
+                    light = (struct r_light_t *)r_CreateSpotLight(&record->position, &record->color, &record->orientation, record->radius, record->energy, record->angle, record->softness);
+                break;
+            }
+
+//            struct r_light_t *light = r_CreateLight(record->type, &record->position, &record->color, record->radius, record->energy);
             record->d_index = light->index;
         }
     }
@@ -99,13 +112,13 @@ void l_DeserializeLevel(void *level_buffer, size_t buffer_size, uint32_t data_fl
             diffuse_texture = r_FindTexture(record->diffuse_texture);
             if(!diffuse_texture)
             {
-                diffuse_texture = r_default_albedo_texture;
+                diffuse_texture = r_LoadTexture(record->diffuse_texture);
             }
 
             normal_texture = r_FindTexture(record->normal_texture);
             if(!normal_texture)
             {
-                normal_texture = r_default_normal_texture;
+                normal_texture = r_LoadTexture(record->normal_texture);
             }
 
             roughness_texture = r_FindTexture(record->roughness_texture);
@@ -133,9 +146,7 @@ void l_DeserializeLevel(void *level_buffer, size_t buffer_size, uint32_t data_fl
 
             if(!record->def)
             {
-                ds_path_append_end("entities", record->name, full_path, PATH_MAX);
-                ds_path_set_ext(full_path, "ent", full_path, PATH_MAX);
-                record->def = e_LoadEntDef(full_path);
+                record->def = e_LoadEntDef(record->name);
             }
         }
 

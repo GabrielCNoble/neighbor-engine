@@ -654,7 +654,7 @@ void ed_e_Update()
     ed_entity_state.light->position = forward_vec;
     ed_LevelEditorDrawGrid();
 
-    p_UpdateColliders(0.0);
+    p_StepPhysics(0.0);
 }
 
 void ed_e_ResetEditor()

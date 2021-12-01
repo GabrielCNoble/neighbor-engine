@@ -1,5 +1,5 @@
-#ifndef GAME_H
-#define GAME_H
+#ifndef G_MAIN_H
+#define G_MAIN_H
 
 #include "../lib/dstuff/ds_vector.h"
 #include "../lib/dstuff/ds_matrix.h"

@@ -39,6 +39,8 @@ struct e_model_t *e_AllocModel(struct r_model_t *model, struct e_entity_t *entit
 
 struct e_entity_t *e_SpawnEntity(struct e_ent_def_t *ent_def, vec3_t *position, vec3_t *scale, mat3_t *orientation);
 
+struct e_entity_t *e_CopyEntity(struct e_entity_t *entity);
+
 struct e_entity_t *e_GetEntity(uint32_t index);
 
 void e_DestroyEntity(struct e_entity_t *entity);

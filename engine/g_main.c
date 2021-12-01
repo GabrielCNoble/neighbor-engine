@@ -4,13 +4,14 @@
 #include "dstuff/ds_vector.h"
 #include "dstuff/ds_path.h"
 #include "stb/stb_image.h"
-#include "game.h"
+#include "g_main.h"
 #include "input.h"
 #include "anim.h"
 #include "phys.h"
 #include "../editor/ed_main.h"
 #include "ent.h"
 #include "g_player.h"
+#include "g_game.h"
 #include "level.h"
 #include "sound.h"
 #include "gui.h"
@@ -24,9 +25,9 @@ extern mat4_t r_inv_view_matrix;
 extern mat4_t r_view_projection_matrix;
 uint32_t g_editor = 0;
 
-struct ds_slist_t g_entities;
-struct ds_list_t g_projectiles;
-struct ds_slist_t g_triggers;
+//struct ds_slist_t g_entities;
+//struct ds_list_t g_projectiles;
+//struct ds_slist_t g_triggers;
 
 #define G_CAMERA_Z 8.0
 #define G_SCREEN_Y_OFFSET 20.0
@@ -41,113 +42,113 @@ float g_camera_yaw = 0.0;
 char g_base_path[PATH_MAX] = "";
 
 
-struct r_model_t *g_player_model;
-struct r_model_t *g_floor_tile_model;
-struct r_model_t *g_wall_tile_model;
-struct r_model_t *g_cube_model;
-struct r_model_t *g_wiggle_model;
-struct r_model_t *g_gun_model;
-struct r_model_t *g_boy_model;
-struct r_model_t *g_sponza_model;
-
-struct g_entity_t *wiggle_entity;
-struct g_entity_t *g_player_entity;
-struct g_entity_t *g_gun_entity;
-struct a_animation_t *g_run_animation;
-struct a_animation_t *g_idle_animation;
-struct a_animation_t *g_jump_animation;
-struct a_animation_t *g_fall_animation;
-struct a_animation_t *g_shoot_animation;
-struct a_animation_t *g_dance_animation;
-struct s_sound_t *g_jump_sound;
-struct s_sound_t *g_land_sound;
-struct s_sound_t *g_footstep_sounds[5];
-struct s_sound_t *g_ric_sounds[10];
-struct s_sound_t *g_shot_sound;
-struct r_light_t *g_player_light;
+//struct r_model_t *g_player_model;
+//struct r_model_t *g_floor_tile_model;
+//struct r_model_t *g_wall_tile_model;
+//struct r_model_t *g_cube_model;
+//struct r_model_t *g_wiggle_model;
+//struct r_model_t *g_gun_model;
+//struct r_model_t *g_boy_model;
+//struct r_model_t *g_sponza_model;
+//
+//struct g_entity_t *wiggle_entity;
+//struct g_entity_t *g_player_entity;
+//struct g_entity_t *g_gun_entity;
+//struct a_animation_t *g_run_animation;
+//struct a_animation_t *g_idle_animation;
+//struct a_animation_t *g_jump_animation;
+//struct a_animation_t *g_fall_animation;
+//struct a_animation_t *g_shoot_animation;
+//struct a_animation_t *g_dance_animation;
+//struct s_sound_t *g_jump_sound;
+//struct s_sound_t *g_land_sound;
+//struct s_sound_t *g_footstep_sounds[5];
+//struct s_sound_t *g_ric_sounds[10];
+//struct s_sound_t *g_shot_sound;
+//struct r_light_t *g_player_light;
 //struct r_light_t *g_lights[3];
-struct r_light_t *g_lights[8];
-uint32_t g_hook_index;
-mat4_t *g_hook_transform;
+//struct r_light_t *g_lights[8];
+//uint32_t g_hook_index;
+//mat4_t *g_hook_transform;
 
 uint32_t g_game_state = G_GAME_STATE_LOADING;
-char *upper_body_bones[] =
-{
-    "head",
-    "neck",
-    "KTF.R",
-    "KTF.L",
-    "chest",
-    "hip",
+//char *upper_body_bones[] =
+//{
+//    "head",
+//    "neck",
+//    "KTF.R",
+//    "KTF.L",
+//    "chest",
+//    "hip",
+//
+//    "upperarm.R",
+//    "upperarm.L",
+//    "lowerarm.R",
+//    "lowerarm.L",
+//    "hand.R",
+//    "hand.L",
+//
+//    "tooseup.R",
+//    "toosemid.R",
+//    "lowertoose.R",
+//    "upfinger4.R",
+//    "midfinger4.R",
+//    "lowerfinger4.R",
+//    "upfinger3.R",
+//    "midfinger3.R",
+//    "lowerfinger3.R",
+//    "upfinger2.R",
+//    "midfinger2.R",
+//    "lowerfinger2.R",
+//    "upfinger.R",
+//    "midfinger.R",
+//    "lowerfinger.R",
+//
+//    "tooseup.L",
+//    "toosemid.L",
+//    "lowertoose.L",
+//    "upfinger4.L",
+//    "midfinger4.L",
+//    "lowerfinger4.L",
+//    "upfinger3.L",
+//    "midfinger3.L",
+//    "lowerfinger3.L",
+//    "upfinger2.L",
+//    "midfinger2.L",
+//    "lowerfinger2.L",
+//    "upfinger.L",
+//    "midfinger.L",
+//    "lowerfinger.L",
+//};
+//uint32_t upper_body_bone_count = sizeof(upper_body_bones) / sizeof(upper_body_bones[0]);
+//char *upper_body_players[] = {"shoot_player", "run_player", "jump_player", "idle_player", "fall_player"};
+//
+//char *lower_body_bones[] =
+//{
+//    "wiest",
+//    "upperleg.R",
+//    "upperleg.L",
+//    "lowerleg.R",
+//    "lowerleg.L",
+//    "foot.R",
+//    "foot.L",
+//    "toose.R",
+//    "toose.L",
+//    "hellikk.R",
+//    "hellikk.L",
+//    "Bone",
+//};
+//uint32_t lower_body_bone_count = sizeof(lower_body_bones) / sizeof(lower_body_bones[0]);
+//char *lower_body_players[] = {"run_player", "jump_player", "idle_player", "fall_player"};
 
-    "upperarm.R",
-    "upperarm.L",
-    "lowerarm.R",
-    "lowerarm.L",
-    "hand.R",
-    "hand.L",
-
-    "tooseup.R",
-    "toosemid.R",
-    "lowertoose.R",
-    "upfinger4.R",
-    "midfinger4.R",
-    "lowerfinger4.R",
-    "upfinger3.R",
-    "midfinger3.R",
-    "lowerfinger3.R",
-    "upfinger2.R",
-    "midfinger2.R",
-    "lowerfinger2.R",
-    "upfinger.R",
-    "midfinger.R",
-    "lowerfinger.R",
-
-    "tooseup.L",
-    "toosemid.L",
-    "lowertoose.L",
-    "upfinger4.L",
-    "midfinger4.L",
-    "lowerfinger4.L",
-    "upfinger3.L",
-    "midfinger3.L",
-    "lowerfinger3.L",
-    "upfinger2.L",
-    "midfinger2.L",
-    "lowerfinger2.L",
-    "upfinger.L",
-    "midfinger.L",
-    "lowerfinger.L",
-};
-uint32_t upper_body_bone_count = sizeof(upper_body_bones) / sizeof(upper_body_bones[0]);
-char *upper_body_players[] = {"shoot_player", "run_player", "jump_player", "idle_player", "fall_player"};
-
-char *lower_body_bones[] =
-{
-    "wiest",
-    "upperleg.R",
-    "upperleg.L",
-    "lowerleg.R",
-    "lowerleg.L",
-    "foot.R",
-    "foot.L",
-    "toose.R",
-    "toose.L",
-    "hellikk.R",
-    "hellikk.L",
-    "Bone",
-};
-uint32_t lower_body_bone_count = sizeof(lower_body_bones) / sizeof(lower_body_bones[0]);
-char *lower_body_players[] = {"run_player", "jump_player", "idle_player", "fall_player"};
-
-struct p_character_collider_t *character_collider;
+//struct p_character_collider_t *character_collider;
 
 extern struct r_renderer_state_t r_renderer_state;
 
-struct e_ent_def_t *g_ent_def;
+//struct e_ent_def_t *g_ent_def;
 
-void g_TestCallback(void *data, float delta_time)
-{
+//void g_TestCallback(void *data, float delta_time)
+//{
 //    struct g_entity_t *entity = (struct g_entity_t *)data;
 //    struct p_movable_collider_t *collider = (struct p_movable_collider_t *)entity->collider;
 //    if(collider->flags & P_COLLIDER_FLAG_ON_GROUND)
@@ -155,16 +156,16 @@ void g_TestCallback(void *data, float delta_time)
 ////        uint32_t index = rand() % 5;
 //        s_PlaySound(g_footstep_sounds[0], &vec3_t_c(0.0, 0.0, 0.0), 1.0, 0);
 //    }
-}
+//}
 
 void g_Init(uint32_t editor_active)
 {
     g_editor = editor_active;
 //    g_entities = ds_slist_create(sizeof(struct g_entity_t), 512);
-    g_projectiles = ds_list_create(sizeof(struct g_projectile_t), 512);
-    r_SetViewPitchYaw(g_camera_pitch, g_camera_yaw);
-    r_SetViewPos(&g_camera_pos);
-
+//    g_projectiles = ds_list_create(sizeof(struct g_projectile_t), 512);
+//    r_SetViewPitchYaw(g_camera_pitch, g_camera_yaw);
+//    r_SetViewPos(&g_camera_pos);
+    g_GameInit();
     g_game_state = G_GAME_STATE_MAIN_MENU;
 
     if(g_editor)
@@ -172,7 +173,7 @@ void g_Init(uint32_t editor_active)
         ed_Init();
     }
 
-    g_cube_model = r_LoadModel("models/Cube.mof");
+//    g_cube_model = r_LoadModel("models/Cube.mof");
 }
 
 void g_Shutdown()
@@ -234,7 +235,7 @@ void g_GameMain(float delta_time)
     }
     else
     {
-//        g_UpdatePlayer();
+        g_StepGame(delta_time);
     }
 }
 

@@ -6,8 +6,9 @@
 #include "../engine/r_main.h"
 #include "dstuff/ds_buffer.h"
 #include "../lib/dstuff/ds_path.h"
+#include "../lib/dstuff/ds_dir.h"
 #include "../engine/gui.h"
-#include "../engine/game.h"
+#include "../engine/g_main.h"
 #include "../engine/input.h"
 #include "../engine/l_defs.h"
 #include "../engine/ent.h"
@@ -95,7 +96,7 @@ vec4_t ed_selection_outline_colors[][2] =
     [ED_PICKABLE_TYPE_FACE][1] = vec4_t_c(0.3, 0.4, 1.0, 1.0),
 };
 
-extern struct e_ent_def_t *g_ent_def;
+//extern struct e_ent_def_t *g_ent_def;
 
 char *ed_l_project_folders[] =
 {
@@ -123,6 +124,12 @@ void ed_l_Init(struct ed_editor_t *editor)
     ed_level_state.pickables.modified_brushes = ds_list_create(sizeof(struct ed_brush_t *), 512);
     ed_level_state.pickables.modified_pickables = ds_list_create(sizeof(struct ed_pickable_t *), 512);
     ed_level_state.pickables.secondary_click_function = ED_LEVEL_SECONDARY_CLICK_FUNC_BRUSH;
+
+    for(uint32_t game_pickable_type = ED_PICKABLE_TYPE_ENTITY; game_pickable_type < ED_PICKABLE_TYPE_LAST_GAME_PICKABLE; game_pickable_type++)
+    {
+        ed_level_state.pickables.game_pickables[game_pickable_type] = ds_list_create(sizeof(struct ed_pickable_t *), 512);
+    }
+
 
     ed_level_state.pickable_ranges = ds_slist_create(sizeof(struct ed_pickable_range_t), 512);
     ed_level_state.widgets = ds_slist_create(sizeof(struct ed_widget_t), 16);
@@ -713,7 +720,7 @@ void ed_w_UpdateUI()
         igSeparatorEx(ImGuiSeparatorFlags_Vertical);
         igSameLine(0.0, -1.0);
 
-        if(igBeginChild_Str("Tool buttons", (ImVec2){36, 0}, 0, 0))
+        if(igBeginChild_Str("Tool buttons", (ImVec2){48, 0}, 0, 0))
         {
             uint32_t func = ed_level_state.pickables.secondary_click_function;
 
@@ -1126,6 +1133,8 @@ void ed_w_UpdatePickableObjects()
                         {
                             mat3_t_mul(&brush->orientation, &brush->orientation, &pickable->rotation);
                         }
+
+                        brush->update_flags |= ED_BRUSH_UPDATE_FLAG_UV_COORDS;
 
                         /* update brush to update its entity transform */
                         ed_w_MarkBrushModified(brush);
@@ -1840,10 +1849,10 @@ void ed_LevelEditorIdle(uint32_t just_changed)
         ed_level_state.manipulator.mode = ED_LEVEL_MANIP_MODE_ROTATION;
     }
 
-    else if(in_GetKeyState(SDL_SCANCODE_L) & IN_KEY_STATE_JUST_PRESSED)
-    {
-        ed_CreateEntityPickable(g_ent_def, &vec3_t_c(0.0, 0.0, 0.0), &vec3_t_c(1.0, 1.0, 1.0), &mat3_t_c_id(), NULL);
-    }
+//    else if(in_GetKeyState(SDL_SCANCODE_L) & IN_KEY_STATE_JUST_PRESSED)
+//    {
+//        ed_CreateEntityPickable(g_ent_def, &vec3_t_c(0.0, 0.0, 0.0), &vec3_t_c(1.0, 1.0, 1.0), &mat3_t_c_id(), NULL);
+//    }
 }
 
 void ed_LevelEditorFlyCamera(uint32_t just_changed)
@@ -2450,6 +2459,9 @@ void ed_SerializeLevel(void **level_buffer, size_t *buffer_size, uint32_t serial
     size_t out_buffer_size = sizeof(struct ed_level_section_t);
     size_t brush_section_size = 0;
 
+    struct ds_list_t *light_list = &ed_level_state.pickables.game_pickables[ED_PICKABLE_TYPE_LIGHT];
+    struct ds_list_t *entity_list = &ed_level_state.pickables.game_pickables[ED_PICKABLE_TYPE_ENTITY];
+
     if(serialize_brushes)
     {
         brush_section_size = sizeof(struct ed_brush_section_t);
@@ -2462,16 +2474,22 @@ void ed_SerializeLevel(void **level_buffer, size_t *buffer_size, uint32_t serial
         brush_section_size += sizeof(struct ed_face_t) * ed_level_state.brush.brush_faces.used;
     }
 
-    size_t light_section_size = sizeof(struct l_light_section_t);
-    light_section_size += sizeof(struct l_light_record_t) * r_lights[R_LIGHT_TYPE_POINT].used;
-    light_section_size += sizeof(struct l_light_record_t) * r_lights[R_LIGHT_TYPE_SPOT].used;
+//    size_t light_section_size = sizeof(struct l_light_section_t);
+//    light_section_size += sizeof(struct l_light_record_t) * r_lights[R_LIGHT_TYPE_POINT].used;
+//    light_section_size += sizeof(struct l_light_record_t) * r_lights[R_LIGHT_TYPE_SPOT].used;
 
-    size_t entity_section_size = sizeof(struct l_entity_section_t);
+    size_t light_section_size = sizeof(struct l_light_section_t);
+    light_section_size += sizeof(struct l_light_record_t) * light_list->cursor;
+
+//    size_t entity_section_size = sizeof(struct l_entity_section_t);
     /* the reason we use the amount of root transforms here instead of the total amount of entities
     is that an entity gets spawned from an entity def, which defines the hierarchical structure of
     an entity. Child entities shouldn't have an entity record because they'll get spawned from the
     ent def. Only one record is necessary for the root entity. */
-    entity_section_size += sizeof(struct l_entity_record_t) * e_root_transforms.cursor;
+//    entity_section_size += sizeof(struct l_entity_record_t) * e_root_transforms.cursor;
+
+    size_t entity_section_size = sizeof(struct l_entity_section_t);
+    entity_section_size += sizeof(struct l_entity_record_t) * entity_list->cursor;
 
     size_t ent_def_section_size = sizeof(struct l_ent_def_section_t);
     ent_def_section_size += sizeof(struct l_ent_def_record_t) * e_ent_defs[E_ENT_DEF_TYPE_ROOT].used;
@@ -2665,9 +2683,12 @@ void ed_SerializeLevel(void **level_buffer, size_t *buffer_size, uint32_t serial
     cur_out_buffer += sizeof(struct l_light_record_t) * r_lights[R_LIGHT_TYPE_POINT].used;
     cur_out_buffer += sizeof(struct l_light_record_t) * r_lights[R_LIGHT_TYPE_SPOT].used;
 
-    for(uint32_t light_index = 0; light_index < r_lights[R_LIGHT_TYPE_POINT].cursor; light_index++)
+//    for(uint32_t light_index = 0; light_index < r_lights[R_LIGHT_TYPE_POINT].cursor; light_index++)
+//    struct ds_list_t *light_list = ed_level_state.pickables.game_pickables[ED_PICKABLE_TYPE_LIGHT];
+    for(uint32_t light_index = 0; light_index < light_list->cursor; light_index++)
     {
-        struct r_light_t *light = r_GetLight(light_index);
+        struct ed_pickable_t *pickable = *(struct ed_pickable_t **)ds_list_get_element(light_list, light_index);
+        struct r_light_t *light = r_GetLight(pickable->primary_index);
 
         if(light)
         {
@@ -2683,6 +2704,14 @@ void ed_SerializeLevel(void **level_buffer, size_t *buffer_size, uint32_t serial
             light_record->vert_count = 0;
             light_record->type = light->type;
             light_record->s_index = light->index;
+
+            if(light->type == R_LIGHT_TYPE_SPOT)
+            {
+                struct r_spot_light_t *spot_light = (struct r_spot_light_t *)light;
+                light_record->softness = spot_light->softness;
+                light_record->angle = spot_light->angle;
+                light_record->orientation = spot_light->orientation;
+            }
         }
     }
 
@@ -2743,11 +2772,14 @@ void ed_SerializeLevel(void **level_buffer, size_t *buffer_size, uint32_t serial
     cur_out_buffer += sizeof(struct l_entity_section_t);
     entity_section->record_start = cur_out_buffer - start_out_buffer;
     struct l_entity_record_t *entity_records = (struct l_entity_record_t *)cur_out_buffer;
+//    struct ds_list_t *entity_list = &ed_level_state.pickables.game_pickables[ED_PICKABLE_TYPE_ENTITY];
 
-    for(uint32_t entity_index = 0; entity_index < e_root_transforms.cursor; entity_index++)
+    for(uint32_t entity_index = 0; entity_index < entity_list->cursor; entity_index++)
     {
-        struct e_node_t *transform;
-        transform = *(struct e_node_t **)ds_list_get_element(&e_root_transforms, entity_index);
+        struct ed_pickable_t *pickable = *(struct ed_pickable_t **)ds_list_get_element(entity_list, entity_index);
+        struct e_entity_t *entity = e_GetEntity(pickable->primary_index);
+        struct e_node_t *transform = entity->node;
+//        transform = *(struct e_node_t **)ds_list_get_element(&e_root_transforms, entity_index);
 
         /* don't serialize entities without a valid ent def (mostly brush entities) */
         if(transform->entity->def)
@@ -2818,13 +2850,16 @@ void ed_DeserializeLevel(void *level_buffer, size_t buffer_size)
 
     l_DeserializeLevel(level_buffer, buffer_size, L_LEVEL_DATA_ALL);
 
-    for(uint32_t light_index = 0; light_index < r_lights[R_LIGHT_TYPE_POINT].cursor; light_index++)
+    for(uint32_t light_type = R_LIGHT_TYPE_POINT; light_type < R_LIGHT_TYPE_LAST; light_type++)
     {
-        struct r_light_t *light = r_GetLight(light_index);
-
-        if(light)
+        for(uint32_t light_index = 0; light_index < r_lights[light_type].cursor; light_index++)
         {
-            ed_CreateLightPickable(NULL, NULL, 0.0, 0.0, 0, light);
+            struct r_light_t *light = r_GetLight(R_LIGHT_INDEX(light_type, light_index));
+
+            if(light)
+            {
+                ed_CreateLightPickable(NULL, NULL, 0.0, 0.0, 0, light);
+            }
         }
     }
 
@@ -2857,7 +2892,7 @@ void ed_DeserializeLevel(void *level_buffer, size_t buffer_size)
         struct ed_face_record_t *face_records = (struct ed_face_record_t *)(start_in_buffer + brush_record->face_start);
 
         struct ed_brush_t *brush = ed_AllocBrush();
-        brush->flags |= ED_BRUSH_FLAG_GEOMETRY_MODIFIED;
+        brush->update_flags |= ED_BRUSH_UPDATE_FLAG_FACE_POLYGONS;
         brush->position = brush_record->position;
         brush->orientation = brush_record->orientation;
         brush->main_brush = brush;
@@ -3143,13 +3178,24 @@ uint32_t ed_l_LoadLevel(char *path, char *file)
     return 0;
 }
 
+uint32_t ed_l_SelectFolder(char *path, char *file)
+{
+    ds_path_append_end(path, file, ed_level_state.project.base_folder, PATH_MAX);
+    g_SetBasePath(ed_level_state.project.base_folder);
+    return 1;
+}
+
 void ed_l_OpenExplorerSave(struct ed_explorer_state_t *explorer_state)
 {
     if(ed_level_state.project.base_folder[0])
     {
         ds_path_append_end(ed_level_state.project.base_folder, "levels", explorer_state->current_path, PATH_MAX);
-        strcpy(explorer_state->current_file, ed_level_state.project.level_name);
-        ds_path_set_ext(explorer_state->current_file, "nlf", explorer_state->current_file, PATH_MAX);
+
+        if(ed_level_state.project.level_name[0])
+        {
+            strcpy(explorer_state->current_file, ed_level_state.project.level_name);
+            ds_path_set_ext(explorer_state->current_file, "nlf", explorer_state->current_file, PATH_MAX);
+        }
     }
 }
 
@@ -3208,55 +3254,102 @@ void ed_l_LoadGameLevelSnapshot()
         struct l_entity_section_t *entity_section = (struct l_entity_section_t *)(level_buffer + level_section->entity_section_start);
         struct l_entity_record_t *entity_records = (struct l_entity_record_t *)(level_buffer + entity_section->record_start);
 
-        for(uint32_t pickable_index = 0; pickable_index < ed_level_state.pickables.pickables.cursor; pickable_index++)
+        struct ds_list_t *light_list = &ed_level_state.pickables.game_pickables[ED_PICKABLE_TYPE_LIGHT];
+        struct ds_list_t *entity_list = &ed_level_state.pickables.game_pickables[ED_PICKABLE_TYPE_ENTITY];
+
+        for(uint32_t light_index = 0; light_index < light_list->cursor; light_index++)
         {
-            struct ed_pickable_t *pickable = ed_GetPickable(pickable_index);
-
-            if(pickable)
+            struct ed_pickable_t *pickable = *(struct ed_pickable_t **)ds_list_get_element(light_list, light_index);
+            for(uint32_t record_index = 0; record_index < light_section->record_count; record_index++)
             {
-                switch(pickable->type)
+                struct l_light_record_t *record = light_records + record_index;
+                if(pickable->primary_index == record->s_index)
                 {
-                    case ED_PICKABLE_TYPE_LIGHT:
-                        for(uint32_t record_index = 0; record_index < light_section->record_count; record_index++)
-                        {
-                            struct l_light_record_t *record = light_records + record_index;
-                            if(pickable->primary_index == record->s_index)
-                            {
-                                pickable->primary_index = record->d_index;
+                    pickable->primary_index = record->d_index;
 
-                                if(record_index < light_section->record_count - 1)
-                                {
-                                    *record = light_records[light_section->record_count - 1];
-                                }
-                                light_section->record_count--;
-                                break;
-                            }
-                        }
-                    break;
-
-                    case ED_PICKABLE_TYPE_ENTITY:
-                        for(uint32_t record_index = 0; record_index < entity_section->record_count; record_index++)
-                        {
-                            struct l_entity_record_t *record = entity_records + record_index;
-
-                            if(pickable->primary_index == record->s_index)
-                            {
-                                pickable->primary_index = record->d_index;
-                                /* FIXME: this will break once the level format allows to store
-                                child entities in entity records that were parented in the level
-                                editor */
-                                if(record_index < entity_section->record_count - 1)
-                                {
-                                    *record = entity_records[entity_section->record_count - 1];
-                                }
-                                entity_section->record_count--;
-                                break;
-                            }
-                        }
+                    if(record_index < light_section->record_count - 1)
+                    {
+                        *record = light_records[light_section->record_count - 1];
+                    }
+                    light_section->record_count--;
                     break;
                 }
             }
         }
+
+        for(uint32_t entity_index = 0; entity_index < entity_list->cursor; entity_index++)
+        {
+            struct ed_pickable_t *pickable = *(struct ed_pickable_t **)ds_list_get_element(entity_list, entity_index);
+
+            for(uint32_t record_index = 0; record_index < entity_section->record_count; record_index++)
+            {
+                struct l_entity_record_t *record = entity_records + record_index;
+
+                if(pickable->primary_index == record->s_index)
+                {
+                    pickable->primary_index = record->d_index;
+                    /* FIXME: this will break once the level format allows to store
+                    child entities in entity records that were parented in the level
+                    editor */
+                    if(record_index < entity_section->record_count - 1)
+                    {
+                        *record = entity_records[entity_section->record_count - 1];
+                    }
+                    entity_section->record_count--;
+                    break;
+                }
+            }
+        }
+
+//        for(uint32_t pickable_index = 0; pickable_index < ed_level_state.pickables.pickables.cursor; pickable_index++)
+//        {
+//            struct ed_pickable_t *pickable = ed_GetPickable(pickable_index);
+//
+//            if(pickable)
+//            {
+//                switch(pickable->type)
+//                {
+//                    case ED_PICKABLE_TYPE_LIGHT:
+//                        for(uint32_t record_index = 0; record_index < light_section->record_count; record_index++)
+//                        {
+//                            struct l_light_record_t *record = light_records + record_index;
+//                            if(pickable->primary_index == record->s_index)
+//                            {
+//                                pickable->primary_index = record->d_index;
+//
+//                                if(record_index < light_section->record_count - 1)
+//                                {
+//                                    *record = light_records[light_section->record_count - 1];
+//                                }
+//                                light_section->record_count--;
+//                                break;
+//                            }
+//                        }
+//                    break;
+//
+//                    case ED_PICKABLE_TYPE_ENTITY:
+//                        for(uint32_t record_index = 0; record_index < entity_section->record_count; record_index++)
+//                        {
+//                            struct l_entity_record_t *record = entity_records + record_index;
+//
+//                            if(pickable->primary_index == record->s_index)
+//                            {
+//                                pickable->primary_index = record->d_index;
+//                                /* FIXME: this will break once the level format allows to store
+//                                child entities in entity records that were parented in the level
+//                                editor */
+//                                if(record_index < entity_section->record_count - 1)
+//                                {
+//                                    *record = entity_records[entity_section->record_count - 1];
+//                                }
+//                                entity_section->record_count--;
+//                                break;
+//                            }
+//                        }
+//                    break;
+//                }
+//            }
+//        }
 
         mem_Free(ed_level_state.game_level_buffer);
         ed_level_state.game_level_buffer = NULL;

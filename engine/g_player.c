@@ -5,7 +5,7 @@
 
 struct g_player_state_t g_player;
 
-void g_InitPlayer()
+void g_PlayerInit()
 {
     struct p_col_def_t col_def = {};
 
@@ -19,7 +19,7 @@ void g_InitPlayer()
     g_player.collider = (struct p_character_collider_t *)p_CreateCollider(&col_def, &vec3_t_c(0.0, 4.0, 0.0), &mat3_t_c_id());
 }
 
-void g_UpdatePlayer()
+void g_StepPlayer(float delta_time)
 {
     float dx;
     float dy;

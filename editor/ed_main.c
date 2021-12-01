@@ -11,7 +11,7 @@
 #include "dstuff/ds_path.h"
 #include "dstuff/ds_dir.h"
 #include "dstuff/ds_buffer.h"
-#include "../engine/game.h"
+#include "../engine/g_main.h"
 #include "../engine/input.h"
 #include "../engine/gui.h"
 #include "../engine/r_draw.h"
@@ -134,6 +134,7 @@ void ed_Init()
         .resume = ed_l_Resume,
         .open_explorer_save = ed_l_OpenExplorerSave,
         .open_explorer_load = ed_l_OpenExplorerLoad,
+        .explorer_select_folder = ed_l_SelectFolder,
         .explorer_load = ed_l_LoadLevel,
         .explorer_save = ed_l_SaveLevel,
         .explorer_new = ed_l_ResetEditor
@@ -147,6 +148,7 @@ void ed_Init()
         .resume = ed_e_Resume,
         .open_explorer_save = ed_e_OpenExplorerSave,
         .open_explorer_load = ed_e_OpenExplorerLoad,
+        .explorer_select_folder = ed_l_SelectFolder,
         .explorer_load = ed_e_LoadEntDef,
         .explorer_save = ed_e_SaveEntDef,
         .explorer_new = ed_e_ResetEditor
@@ -247,16 +249,6 @@ void ed_UpdateEditor()
                 if(ed_active_editor->explorer_save)
                 {
                     ed_OpenExplorerSave();
-//                    ed_SetExplorerSaveCallback(ed_active_editor->explorer_save);
-//
-//                    if(ed_active_editor->explorer_open_save)
-//                    {
-//                        ed_active_editor->explorer_open_save(ed_explorer_state.current_path, ed_explorer_state.current_file);
-//                    }
-//                    else
-//                    {
-//                        ed_OpenExplorer(ed_explorer_state.current_path, ED_EXPLORER_FLAG_SAVE);
-//                    }
                 }
             }
 
@@ -265,17 +257,14 @@ void ed_UpdateEditor()
                 if(ed_active_editor->explorer_load)
                 {
                     ed_OpenExplorerLoad();
-//                    ed_SetExplorerLoadCallback(ed_active_editor->explorer_load);
-//
-//                    if(ed_active_editor->explorer_open_load)
-//                    {
-//                        ed_active_editor->explorer_open_load(ed_explorer_state.current_path, ed_explorer_state.current_file);
-//                    }
-//                    else
-//                    {
-//                        ed_OpenExplorer(ed_explorer_state.current_path, ED_EDITOR_EXPLORER_MODE_OPEN);
-//                    }
+                }
+            }
 
+            if(igMenuItem_Bool("Select folder", NULL, 0, 1))
+            {
+                if(ed_active_editor->explorer_select_folder)
+                {
+                    ed_OpenExplorerSelectFolder();
                 }
             }
 
@@ -461,7 +450,7 @@ void ed_UpdateExplorer()
                             {
                                 ed_explorer_state.selected_entry = entry;
 
-                                if(entry->type == DS_DIR_ENTRY_TYPE_FILE)
+                                if(entry->type == DS_DIR_ENTRY_TYPE_FILE || ed_explorer_state.mode == ED_EDITOR_EXPLORER_MODE_SELECT_FOLDER)
                                 {
                                     strcpy(ed_explorer_state.current_file, entry->name);
                                 }
@@ -502,6 +491,14 @@ void ed_UpdateExplorer()
                             if(igButton("Open", (ImVec2){100.0, 0.0}) && ed_explorer_state.load_callback)
                             {
                                 ed_ExplorerLoadFile(ed_explorer_state.current_path, ed_explorer_state.current_file);
+                                ed_CloseExplorer();
+                            }
+                        break;
+
+                        case ED_EDITOR_EXPLORER_MODE_SELECT_FOLDER:
+                            if(igButton("Select", (ImVec2){100.0, 0.0}) && ed_explorer_state.select_dir_callback)
+                            {
+                                ed_ExplorerSelectFolder(ed_explorer_state.current_path, ed_explorer_state.current_file);
                                 ed_CloseExplorer();
                             }
                         break;
@@ -556,7 +553,6 @@ void ed_OpenExplorerSave()
         ed_active_editor->open_explorer_save(&ed_explorer_state);
     }
 
-//    ed_explorer_state.mode &= ~(ED_EXPLORER_FLAG_LOAD);
     ed_explorer_state.mode = ED_EDITOR_EXPLORER_MODE_SAVE;
     ed_OpenExplorer(ed_explorer_state.current_path);
 }
@@ -573,8 +569,18 @@ void ed_OpenExplorerLoad()
         ed_active_editor->open_explorer_load(&ed_explorer_state);
     }
 
-//    ed_explorer_state.mode &= ~(ED_EXPLORER_FLAG_SAVE);
     ed_explorer_state.mode = ED_EDITOR_EXPLORER_MODE_OPEN;
+    ed_OpenExplorer(ed_explorer_state.current_path);
+}
+
+void ed_OpenExplorerSelectFolder()
+{
+    ed_AddExplorerExtFilter("shitass");
+    if(ed_active_editor->explorer_select_folder)
+    {
+        ed_explorer_state.select_dir_callback = ed_active_editor->explorer_select_folder;
+    }
+    ed_explorer_state.mode = ED_EDITOR_EXPLORER_MODE_SELECT_FOLDER;
     ed_OpenExplorer(ed_explorer_state.current_path);
 }
 
@@ -583,6 +589,9 @@ void ed_CloseExplorer()
     ed_explorer_state.open = 0;
     ed_explorer_state.load_callback = NULL;
     ed_explorer_state.save_callback = NULL;
+    ed_explorer_state.select_dir_callback = NULL;
+
+    ed_ClearExplorerExtFilters();
 }
 
 void ed_EnumerateExplorerDrives()
@@ -718,31 +727,43 @@ uint32_t ed_ExplorerSaveFile(char *path, char *file)
 
 uint32_t ed_ExplorerLoadFile(char *path, char *file)
 {
+    char full_path[PATH_MAX];
     char file_name[PATH_MAX];
-    ds_path_append_end(path, file, file_name, PATH_MAX);
+
+    ds_path_append_end(path, file, full_path, PATH_MAX);
+    ds_path_drop_ext(file, file_name, PATH_MAX);
 
     if(!ed_explorer_state.load_callback(path, file))
     {
         if(strstr(file, ".mof"))
         {
-            if(!r_FindModel(file))
+            if(!r_FindModel(file_name))
             {
-                r_LoadModel(file_name);
+                r_LoadModel(full_path);
             }
         }
         else if(strstr(file, ".ent"))
         {
-            e_LoadEntDef(file_name);
+            if(!e_FindEntDef(E_ENT_DEF_TYPE_ROOT, file_name))
+            {
+                e_LoadEntDef(full_path);
+            }
         }
         else if(strstr(file, ".png") || strstr(file, ".jpg") ||
                 strstr(file, ".jpeg") || strstr(file, ".tga"))
         {
-            if(!r_FindTexture(file))
+            if(!r_FindTexture(file_name))
             {
-                r_LoadTexture(file_name);
+                r_LoadTexture(full_path);
             }
         }
     }
+}
+
+uint32_t ed_ExplorerSelectFolder(char *path, char *file)
+{
+    ed_explorer_state.select_dir_callback(path, file);
+    ed_ClearExplorerExtFilters();
 }
 
 

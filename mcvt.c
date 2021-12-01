@@ -811,12 +811,14 @@ int main(int argc, char *argv[])
 
                     if(aiGetMaterialString(material, AI_MATKEY_TEXTURE_DIFFUSE(0), &name) == aiReturn_SUCCESS)
                     {
-                        strcpy(material_record.diffuse_texture, name.data);
+                        ds_path_get_end(name.data, material_record.diffuse_texture, sizeof(material_record.diffuse_texture));
+//                        strcpy(material_record.diffuse_texture, name.data);
                     }
 
                     if(aiGetMaterialString(material, AI_MATKEY_TEXTURE_NORMALS(0), &name) == aiReturn_SUCCESS)
                     {
-                        strcpy(material_record.normal_texture, name.data);
+                        ds_path_get_end(name.data, material_record.normal_texture, sizeof(material_record.normal_texture));
+//                        strcpy(material_record.normal_texture, name.data);
                     }
 
                     ds_append_data(&material_section, sizeof(struct r_material_record_t), &material_record);

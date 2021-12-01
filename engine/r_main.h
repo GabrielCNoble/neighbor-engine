@@ -28,7 +28,7 @@ void r_FreeVisItem(struct r_vis_item_t *item);
 
 struct r_texture_t *r_LoadTexture(char *file_name);
 
-struct r_texture_t *r_CreateTexture(char *name, uint32_t width, uint32_t height, uint32_t internal_format, void *data);
+struct r_texture_t *r_CreateTexture(char *name, uint32_t width, uint32_t height, uint32_t internal_format, uint32_t min_filter, uint32_t mag_filter, void *data);
 
 struct r_texture_t *r_GetTexture(uint32_t index);
 

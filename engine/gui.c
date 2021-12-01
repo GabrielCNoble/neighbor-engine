@@ -49,7 +49,7 @@ void gui_Init()
     int width;
     int height;
     ImFontAtlas_GetTexDataAsRGBA32(io->Fonts, &pixels, &width, &height, NULL);
-    gui_font_atlas = r_CreateTexture("font_atlas", width, height, GL_RGBA8, pixels);
+    gui_font_atlas = r_CreateTexture("font_atlas", width, height, GL_RGBA8, GL_LINEAR, GL_LINEAR, pixels);
     ImFontAtlas_SetTexID(io->Fonts, (ImTextureID)gui_font_atlas);
 
     gui_shader = r_LoadShader("shaders/r_ui.vert", "shaders/r_ui.frag");

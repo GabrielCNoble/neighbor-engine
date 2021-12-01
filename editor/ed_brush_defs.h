@@ -151,6 +151,15 @@ enum ED_BRUSH_FLAGS
     ED_BRUSH_FLAG_MATERIAL_MODIFIED = 1 << 1,
 };
 
+enum ED_BRUSH_UPDATE_FLAGS
+{
+    ED_BRUSH_UPDATE_FLAG_TRANSFORM_VERTS = 1,
+    ED_BRUSH_UPDATE_FLAG_FACE_POLYGONS = 1 << 1,
+    ED_BRUSH_UPDATE_FLAG_CLIPPED_POLYGONS = 1 << 2,
+    ED_BRUSH_UPDATE_FLAG_UV_COORDS = 1 << 3,
+    ED_BRUSH_UPDATE_FLAG_DRAW_GEOMETRY = 1 << 4,
+};
+
 struct ed_brush_t
 {
     struct ed_brush_t *next;
@@ -179,6 +188,7 @@ struct ed_brush_t
     uint32_t clipped_index_count;
     uint32_t clipped_polygon_count;
     uint32_t flags;
+    uint32_t update_flags;
 
     uint32_t modified_index;
 };

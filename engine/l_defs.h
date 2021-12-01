@@ -37,6 +37,8 @@ struct l_light_record_t
     vec2_t size;
     float energy;
     float radius;
+    float softness;
+    uint32_t angle;
     uint32_t type;
     uint32_t s_index;
     uint32_t d_index;

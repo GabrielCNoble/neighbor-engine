@@ -3,7 +3,7 @@
 #include "phys.h"
 #include "r_defs.h"
 #include "r_draw.h"
-#include "game.h"
+#include "g_main.h"
 #include "../lib/dstuff/ds_slist.h"
 #include "../lib/dstuff/ds_path.h"
 
@@ -73,10 +73,7 @@ void e_DeserializeEntDefRecursive(char *start_in_buffer, struct e_ent_def_t *ent
         ent_def->model = r_FindModel(record->model);
         if(!ent_def->model)
         {
-            char full_path[PATH_MAX];
-            ds_path_append_end("models", record->model, full_path, PATH_MAX);
-            ds_path_set_ext(full_path, "mof", full_path, PATH_MAX);
-            ent_def->model = r_LoadModel(full_path);
+            ent_def->model = r_LoadModel(record->model);
         }
     }
 
@@ -194,13 +191,25 @@ struct e_ent_def_t *e_LoadEntDef(char *file_name)
     struct e_ent_def_t *ent_def;
     char full_path[PATH_MAX];
 
-    g_ResourcePath(file_name, full_path, PATH_MAX);
+    strcpy(full_path, file_name);
+
+    if(!strstr(full_path, "entities"))
+    {
+        ds_path_append_end("entities", full_path, full_path, PATH_MAX);
+    }
+
+    if(!strstr(full_path, ".ent"))
+    {
+        ds_path_set_ext(full_path, "ent", full_path, PATH_MAX);
+    }
+
+    g_ResourcePath(full_path, full_path, PATH_MAX);
 
     FILE *file = fopen(full_path, "rb");
 
     if(!file)
     {
-        printf("e_LoadEntDef: couldn't open file %s\n", file_name);
+        printf("e_LoadEntDef: couldn't open file [%s]\n", full_path);
         return NULL;
     }
 
@@ -210,6 +219,8 @@ struct e_ent_def_t *e_LoadEntDef(char *file_name)
 
     ds_path_get_end(file_name, ent_def->name, sizeof(ent_def->name));
     ds_path_drop_ext(ent_def->name, ent_def->name, sizeof(ent_def->name));
+
+    printf("e_LoadEntDef: ent def [%s] loaded\n", ent_def->name);
 
     return ent_def;
 }
@@ -616,6 +627,13 @@ struct e_entity_t *e_SpawnEntity(struct e_ent_def_t *ent_def, vec3_t *position, 
     return entity;
 }
 
+struct e_entity_t *e_CopyEntity(struct e_entity_t *entity)
+{
+    struct e_node_t *node = entity->node;
+    struct e_entity_t *copy = e_SpawnEntity(entity->def, &node->position, &node->scale, &node->orientation);
+    return copy;
+}
+
 struct e_entity_t *e_GetEntity(uint32_t index)
 {
     struct e_entity_t *entity = ds_slist_get_element(&e_entities, index);
@@ -678,10 +696,7 @@ void e_TranslateEntity(struct e_entity_t *entity, vec3_t *translation)
 
         if(entity->collider)
         {
-            vec3_t collider_position = entity->collider->offset_position;
-            mat3_t_vec3_t_mul(&collider_position, &collider_position, &entity->node->orientation);
-            vec3_t_add(&collider_position, &entity->node->position, &collider_position);
-            p_SetColliderPosition(entity->collider->collider, &collider_position);
+            p_TransformCollider(entity->collider->collider, translation, &mat3_t_c_id());
         }
     }
 }
@@ -699,8 +714,7 @@ void e_RotateEntity(struct e_entity_t *entity, mat3_t *rotation)
             mat3_t_vec3_t_mul(&end_pos, &start_pos, rotation);
             vec3_t_sub(&translation, &end_pos, &start_pos);
             mat3_t_mul(&entity->node->orientation, &entity->node->orientation, rotation);
-            p_SetColliderOrientation(entity->collider->collider, &entity->node->orientation);
-            p_TranslateCollider(entity->collider->collider, &translation);
+            p_TransformCollider(entity->collider->collider, &translation, rotation);
         }
         else
         {

@@ -21,13 +21,7 @@ enum ED_EDITOR_EXPLORER_MODE
 {
     ED_EDITOR_EXPLORER_MODE_OPEN = 0,
     ED_EDITOR_EXPLORER_MODE_SAVE,
-};
-
-enum ED_EXPLORER_FLAGS
-{
-    ED_EXPLORER_FLAG_LOAD = 1,
-    ED_EXPLORER_FLAG_SAVE = 1 << 1,
-    ED_EXPLORER_FLAG_SELECT_FOLDER = 1 << 2,
+    ED_EDITOR_EXPLORER_MODE_SELECT_FOLDER,
 };
 
 struct ed_explorer_state_t
@@ -45,6 +39,7 @@ struct ed_explorer_state_t
     struct ds_list_t drives;
 
     uint32_t (*load_callback)(char *path, char *file);
+    uint32_t (*select_dir_callback)(char *path, char *file);
     uint32_t (*save_callback)(char *path, char *file);
 };
 
@@ -79,6 +74,7 @@ struct ed_editor_t
     void (*update)();
     void (*open_explorer_save)(struct ed_explorer_state_t *explorer_state);
     void (*open_explorer_load)(struct ed_explorer_state_t *explorer_state);
+    uint32_t (*explorer_select_folder)(char *path, char *file);
     uint32_t (*explorer_load)(char *path, char *file);
     uint32_t (*explorer_save)(char *path, char *file);
     void (*explorer_new)();

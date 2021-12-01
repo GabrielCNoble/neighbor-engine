@@ -264,11 +264,11 @@ void r_Init()
         0xff777777, 0xff444444, 0xff777777, 0xff444444,
         0xff444444, 0xff777777, 0xff444444, 0xff777777,
     };
-    r_default_albedo_texture = r_CreateTexture("default_albedo", 4, 4, GL_RGBA8, pixels);
+    r_default_albedo_texture = r_CreateTexture("default_albedo", 4, 4, GL_RGBA8, GL_NEAREST, GL_NEAREST, pixels);
     pixels[0] = 0x00ff7f7f;
-    r_default_normal_texture = r_CreateTexture("default_normal", 1, 1, GL_RGBA8, pixels);
+    r_default_normal_texture = r_CreateTexture("default_normal", 1, 1, GL_RGBA8, GL_LINEAR, GL_LINEAR, pixels);
     pixels[0] = 0x0000003f;
-    r_default_roughness_texture = r_CreateTexture("default_roughness", 1, 1, GL_RGBA8, pixels);
+    r_default_roughness_texture = r_CreateTexture("default_roughness", 1, 1, GL_RGBA8, GL_LINEAR, GL_LINEAR, pixels);
 
 //    r_default_material.diffuse_texture = r_default_albedo_texture;
 //    r_default_material.normal_texture = r_default_normal_texture;
@@ -831,23 +831,38 @@ struct r_texture_t *r_LoadTexture(char *file_name)
     struct r_texture_t *texture = NULL;
     char full_path[PATH_MAX];
 
-    g_ResourcePath(file_name, full_path, PATH_MAX);
+    strcpy(full_path, file_name);
 
-    if(file_exists(full_path))
+    if(!strstr(full_path, "textures"))
     {
-        int32_t width;
-        int32_t height;
-        int32_t channels;
-        unsigned char *pixels = stbi_load(full_path, &width, &height, &channels, STBI_rgb_alpha);
-
-        ds_path_get_end(full_path, full_path, PATH_MAX);
-        ds_path_drop_ext(full_path, full_path, PATH_MAX);
-
-        texture = r_CreateTexture(full_path, width, height, GL_RGBA8, pixels);
-        mem_Free(pixels);
-
-        printf("r_LoadTexture: texture %s loaded\n", full_path);
+        ds_path_append_end("textures", full_path, full_path, PATH_MAX);
     }
+
+    if(!strstr(full_path, ".png"))
+    {
+        ds_path_set_ext(full_path, "png", full_path, PATH_MAX);
+    }
+
+    g_ResourcePath(full_path, full_path, PATH_MAX);
+
+    if(!file_exists(full_path))
+    {
+        printf("r_LoadTexture: couldn't load texture [%s]\n", full_path);
+        return NULL;
+    }
+
+    int32_t width;
+    int32_t height;
+    int32_t channels;
+    unsigned char *pixels = stbi_load(full_path, &width, &height, &channels, STBI_rgb_alpha);
+
+    ds_path_get_end(full_path, full_path, PATH_MAX);
+    ds_path_drop_ext(full_path, full_path, PATH_MAX);
+
+    texture = r_CreateTexture(full_path, width, height, GL_RGBA8, GL_LINEAR, GL_LINEAR, pixels);
+    mem_Free(pixels);
+
+    printf("r_LoadTexture: texture [%s] loaded\n", full_path);
 
     return texture;
 }
@@ -858,7 +873,7 @@ struct r_texture_t *r_LoadTexture(char *file_name)
 ============================================================================
 */
 
-struct r_texture_t *r_CreateTexture(char *name, uint32_t width, uint32_t height, uint32_t internal_format, void *data)
+struct r_texture_t *r_CreateTexture(char *name, uint32_t width, uint32_t height, uint32_t internal_format, uint32_t min_filter, uint32_t mag_filter, void *data)
 {
     uint32_t texture_index;
     struct r_texture_t *texture;
@@ -905,8 +920,8 @@ struct r_texture_t *r_CreateTexture(char *name, uint32_t width, uint32_t height,
 
     glGenTextures(1, &texture->handle);
     glBindTexture(GL_TEXTURE_2D, texture->handle);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, min_filter);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, mag_filter);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 4);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
@@ -1117,9 +1132,19 @@ struct r_model_t *r_LoadModel(char *file_name)
     struct r_model_t *model = NULL;
     char full_path[PATH_MAX];
 
-//    ds_path_append_end(g_base_path, file_name, full_path, PATH_MAX);
+    strcpy(full_path, file_name);
 
-    g_ResourcePath(file_name, full_path, PATH_MAX);
+    if(!strstr(full_path, "models"))
+    {
+        ds_path_append_end("models", full_path, full_path, PATH_MAX);
+    }
+
+    if(!strstr(full_path, ".mof"))
+    {
+        ds_path_set_ext(full_path, "mof", full_path, PATH_MAX);
+    }
+
+    g_ResourcePath(full_path, full_path, PATH_MAX);
 
     if(file_exists(full_path))
     {
@@ -1243,11 +1268,11 @@ struct r_model_t *r_LoadModel(char *file_name)
         mem_Free(batches);
         mem_Free(file_buffer);
 
-        printf("r_LoadModel: model %s loaded\n", full_path);
+        printf("r_LoadModel: model [%s] loaded\n", full_path);
     }
     else
     {
-        printf("r_LoadModel: couldn't load model %s\n", full_path);
+        printf("r_LoadModel: couldn't load model [%s]\n", full_path);
     }
 
     return model;
@@ -1877,6 +1902,16 @@ void r_DestroyAllLighs()
     for(uint32_t light_index = 0; light_index < r_lights[R_LIGHT_TYPE_POINT].cursor; light_index++)
     {
         struct r_light_t *light = r_GetLight(R_LIGHT_INDEX(R_LIGHT_TYPE_POINT, light_index));
+
+        if(light)
+        {
+            r_DestroyLight(light);
+        }
+    }
+
+    for(uint32_t light_index = 0; light_index < r_lights[R_LIGHT_TYPE_SPOT].cursor; light_index++)
+    {
+        struct r_light_t *light = r_GetLight(R_LIGHT_INDEX(R_LIGHT_TYPE_SPOT, light_index));
 
         if(light)
         {

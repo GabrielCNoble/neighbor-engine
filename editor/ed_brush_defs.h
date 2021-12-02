@@ -10,6 +10,7 @@ struct ed_bsp_polygon_t
     struct ed_bsp_polygon_t *prev;
     struct ed_face_polygon_t *face_polygon;
     struct ds_list_t vertices;
+    uint32_t used;
     uint32_t model_start;
     uint32_t model_count;
     uint32_t index;
@@ -122,7 +123,8 @@ struct ed_face_t
 
     struct ed_pickable_t *pickable;
 
-    struct r_material_t *material;
+//    struct r_material_t *material;
+    struct ed_brush_batch_t *material;
     struct ed_face_polygon_t *polygons;
     struct ed_face_polygon_t *last_polygon;
     struct ed_bsp_polygon_t *clipped_polygons;

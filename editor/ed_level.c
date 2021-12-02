@@ -3404,13 +3404,42 @@ void ed_l_BuildWorldData()
     if((ed_level_state.world_data_stale || !l_world_collider) && ed_level_state.brush.brushes.used)
     {
         printf("ed_l_BuildWorldData\n");
-//        ed_l_ClearWorldData();
-
         ed_level_state.world_data_stale = 0;
 
-        struct ds_buffer_t world_col_verts_buffer = ds_buffer_create(sizeof(vec3_t), ed_level_state.brush.brush_model_vert_count);
-        struct ds_buffer_t world_draw_verts_buffer = ds_buffer_create(sizeof(struct r_vert_t), ed_level_state.brush.brush_model_vert_count);
-        struct ds_buffer_t world_indices_buffer = ds_buffer_create(sizeof(uint32_t), ed_level_state.brush.brush_model_index_count);
+        struct ed_bsp_polygon_t *clipped_polygons = NULL;
+        for(uint32_t global_batch_index = 0; global_batch_index < ed_level_state.brush.brush_batches.cursor; global_batch_index++)
+        {
+            struct ed_brush_batch_t *global_batch = ds_list_get_element(&ed_level_state.brush.brush_batches, global_batch_index);
+            global_batch->batch.start = 0;
+            global_batch->batch.count = 0;
+        }
+
+        for(uint32_t brush_index = 0; brush_index < ed_level_state.brush.brushes.cursor; brush_index++)
+        {
+            struct ed_brush_t *brush = ed_GetBrush(brush_index);
+
+            if(brush)
+            {
+                struct ed_bsp_polygon_t *brush_polygons = ed_BspPolygonsFromBrush(brush);
+                clipped_polygons = ed_ClipPolygonLists(clipped_polygons, brush_polygons);
+            }
+        }
+
+        struct ed_bsp_polygon_t *polygon = clipped_polygons;
+        uint32_t index_count = 0;
+        uint32_t vert_count = 0;
+        while(polygon)
+        {
+            uint32_t polygon_index_count = (polygon->vertices.cursor - 2) * 3;
+            index_count += polygon_index_count;
+            vert_count += polygon->vertices.cursor;
+            polygon->face_polygon->face->material->batch.count += polygon_index_count;
+            polygon = polygon->next;
+        }
+
+        struct ds_buffer_t world_col_verts_buffer = ds_buffer_create(sizeof(vec3_t), vert_count);
+        struct ds_buffer_t world_draw_verts_buffer = ds_buffer_create(sizeof(struct r_vert_t), vert_count);
+        struct ds_buffer_t world_indices_buffer = ds_buffer_create(sizeof(uint32_t), index_count);
 
         uint32_t vert_offset = 0;
         uint32_t index_offset = 0;
@@ -3518,6 +3547,8 @@ void ed_l_ClearWorldData()
     printf("ed_l_ClearWorldData\n");
     l_DestroyWorld();
 }
+
+
 
 
 

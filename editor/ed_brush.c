@@ -126,8 +126,7 @@ struct ed_brush_t *ed_CreateBrush(vec3_t *position, mat3_t *orientation, vec3_t 
     {
         struct ed_face_t *face = ed_AllocFace(brush);
 
-        face->material = r_GetDefaultMaterial();
-//        face->material = r_GetMaterial("oakfloor");
+        face->material = ed_GetGlobalBrushBatch(r_GetDefaultMaterial());
         face->tex_coords_scale = vec2_t_c(1.0, 1.0);
         face->tex_coords_rot = 0.0;
 
@@ -181,7 +180,7 @@ struct ed_brush_t *ed_CopyBrush(struct ed_brush_t *src_brush)
 //    dst_brush->vertices = ds_slist_create(sizeof(struct ed_vert_t), 8);
 //    dst_brush->vert_transforms = ds_list_create(sizeof(struct ed_vert_transform_t), 32);
     dst_brush->main_brush = dst_brush;
-    dst_brush->flags |= ED_BRUSH_FLAG_GEOMETRY_MODIFIED;
+    dst_brush->update_flags |= ED_BRUSH_UPDATE_FLAG_FACE_POLYGONS;
 
     for(uint32_t vert_index = 0; vert_index < src_brush->vertices.cursor; vert_index++)
     {
@@ -290,15 +289,15 @@ void ed_DestroyBrush(struct ed_brush_t *brush)
 {
     if(brush)
     {
-        ed_level_state.brush.brush_model_vert_count -= brush->model->verts.buffer_size;
-        ed_level_state.brush.brush_model_index_count -= brush->model->indices.buffer_size;
+//        ed_level_state.brush.brush_model_vert_count -= brush->model->verts.buffer_size;
+//        ed_level_state.brush.brush_model_index_count -= brush->model->indices.buffer_size;
 
-        for(uint32_t batch_index = 0; batch_index < brush->model->batches.buffer_size; batch_index++)
-        {
-            struct r_batch_t *batch = (struct r_batch_t *)brush->model->batches.buffer + batch_index;
-            struct ed_brush_batch_t *global_batch = ed_GetGlobalBrushBatch(batch->material);
-            global_batch->batch.count -= batch->count;
-        }
+//        for(uint32_t batch_index = 0; batch_index < brush->model->batches.buffer_size; batch_index++)
+//        {
+//            struct r_batch_t *batch = (struct r_batch_t *)brush->model->batches.buffer + batch_index;
+//            struct ed_brush_batch_t *global_batch = ed_GetGlobalBrushBatch(batch->material);
+//            global_batch->batch.count -= batch->count;
+//        }
 
         struct ed_face_t *face = brush->faces;
 
@@ -828,12 +827,12 @@ void ed_DeleteBrushFace(struct ed_brush_t *brush, uint32_t face_index)
 
 }
 
-void ed_SetFaceMaterial(struct ed_brush_t *brush, uint32_t face_index, struct r_material_t *material)
+void ed_SetFaceMaterial(struct ed_brush_t *brush, uint32_t face_index, struct ed_brush_batch_t *material)
 {
     if(brush)
     {
         struct ed_face_t *face = ed_GetFace(face_index);
-        face->flags |= ED_FACE_FLAG_MATERIAL_MODIFIED;
+        face->brush->update_flags |= ED_BRUSH_UPDATE_FLAG_FACE_POLYGONS;
         face->material = material;
     }
 }
@@ -844,7 +843,7 @@ void ed_TranslateBrushFace(struct ed_brush_t *brush, uint32_t face_index, vec3_t
 
     if(face)
     {
-        face->flags |= ED_FACE_FLAG_GEOMETRY_MODIFIED;
+        face->brush->update_flags |= ED_BRUSH_UPDATE_FLAG_TRANSFORM_VERTS;
         struct ed_face_polygon_t *polygon = face->polygons;
         struct ed_brush_t *brush = face->brush;
 
@@ -899,7 +898,7 @@ void ed_RotateBrushFace(struct ed_brush_t *brush, uint32_t face_index, mat3_t *r
 
     if(face)
     {
-        face->flags |= ED_FACE_FLAG_GEOMETRY_MODIFIED;
+        face->brush->update_flags |= ED_BRUSH_UPDATE_FLAG_TRANSFORM_VERTS;
         struct ed_face_polygon_t *polygon = face->polygons;
         struct ed_brush_t *brush = face->brush;
 
@@ -1238,7 +1237,7 @@ void ed_UpdateBrush(struct ed_brush_t *brush)
             {
                 struct r_batch_t *batch = batches + polygon_batch_index;
 
-                if(batch->material == polygon->face_polygon->face->material)
+                if(batch->material == polygon->face_polygon->face->material->batch.material)
                 {
                     polygon_batch = batch;
                     break;
@@ -1367,28 +1366,28 @@ void ed_UpdateBrush(struct ed_brush_t *brush)
         }
         else
         {
-            ed_level_state.brush.brush_model_vert_count -= brush->model->verts.buffer_size;
-            ed_level_state.brush.brush_model_index_count -= brush->model->indices.buffer_size;
-
-            for(uint32_t batch_index = 0; batch_index < brush->model->batches.buffer_size; batch_index++)
-            {
-                struct r_batch_t *batch = (struct r_batch_t *)brush->model->batches.buffer + batch_index;
-                struct ed_brush_batch_t *global_batch = ed_GetGlobalBrushBatch(batch->material);
-                global_batch->batch.count -= batch->count;
-            }
+//            ed_level_state.brush.brush_model_vert_count -= brush->model->verts.buffer_size;
+//            ed_level_state.brush.brush_model_index_count -= brush->model->indices.buffer_size;
+//
+//            for(uint32_t batch_index = 0; batch_index < brush->model->batches.buffer_size; batch_index++)
+//            {
+//                struct r_batch_t *batch = (struct r_batch_t *)brush->model->batches.buffer + batch_index;
+//                struct ed_brush_batch_t *global_batch = ed_GetGlobalBrushBatch(batch->material);
+//                global_batch->batch.count -= batch->count;
+//            }
 
             r_UpdateModelGeometry(brush->model, &geometry);
         }
 
-        ed_level_state.brush.brush_model_vert_count += brush->model->verts.buffer_size;
-        ed_level_state.brush.brush_model_index_count += brush->model->indices.buffer_size;
-
-        for(uint32_t batch_index = 0; batch_index < brush->model->batches.buffer_size; batch_index++)
-        {
-            struct r_batch_t *batch = (struct r_batch_t *)brush->model->batches.buffer + batch_index;
-            struct ed_brush_batch_t *global_batch = ed_GetGlobalBrushBatch(batch->material);
-            global_batch->batch.count += batch->count;
-        }
+//        ed_level_state.brush.brush_model_vert_count += brush->model->verts.buffer_size;
+//        ed_level_state.brush.brush_model_index_count += brush->model->indices.buffer_size;
+//
+//        for(uint32_t batch_index = 0; batch_index < brush->model->batches.buffer_size; batch_index++)
+//        {
+//            struct r_batch_t *batch = (struct r_batch_t *)brush->model->batches.buffer + batch_index;
+//            struct ed_brush_batch_t *global_batch = ed_GetGlobalBrushBatch(batch->material);
+//            global_batch->batch.count += batch->count;
+//        }
     }
 
     brush->update_flags = 0;
@@ -1429,6 +1428,69 @@ void ed_FreeBspNode(struct ed_bsp_node_t *node)
     }
 }
 
+void ed_FreeBspTree(struct ed_bsp_node_t *bsp)
+{
+    if(bsp->front)
+    {
+        ed_FreeBspTree(bsp->front);
+    }
+
+    if(bsp->back)
+    {
+        ed_FreeBspTree(bsp->back);
+    }
+
+    ed_FreeBspPolygon(bsp->splitter, 1);
+    ed_FreeBspNode(bsp);
+}
+
+struct ed_bsp_polygon_t *ed_BspPolygonsFromBrush(struct ed_brush_t *brush)
+{
+    struct ed_face_t *face = brush->faces;
+    struct ed_bsp_polygon_t *polygons = NULL;
+
+    while(face)
+    {
+        struct ed_bsp_polygon_t *face_polygons = ed_CopyBspPolygons(face->clipped_polygons);
+        struct ed_bsp_polygon_t *last_polygon = NULL;
+        struct ed_bsp_polygon_t *next_last_polygon = face_polygons;
+
+        do
+        {
+            for(uint32_t vert_index = 0; vert_index < next_last_polygon->vertices.cursor; vert_index++)
+            {
+                struct r_vert_t *vert = ds_list_get_element(&next_last_polygon->vertices, vert_index);
+
+                mat3_t_vec3_t_mul(&vert->pos, &vert->pos, &brush->orientation);
+                vec3_t_add(&vert->pos, &vert->pos, &brush->position);
+
+                mat3_t_vec3_t_mul(&vert->normal.xyz, &vert->normal.xyz, &brush->orientation);
+                mat3_t_vec3_t_mul(&vert->tangent, &vert->tangent, &brush->orientation);
+            }
+
+            mat3_t_vec3_t_mul(&next_last_polygon->point, &next_last_polygon->point, &brush->orientation);
+            vec3_t_add(&next_last_polygon->point, &next_last_polygon->point, &brush->position);
+            mat3_t_vec3_t_mul(&next_last_polygon->normal, &next_last_polygon->normal, &brush->orientation);
+
+            last_polygon = next_last_polygon;
+            next_last_polygon = next_last_polygon->next;
+        }
+        while(next_last_polygon);
+
+        last_polygon->next = polygons;
+
+        if(polygons)
+        {
+            polygons->prev = last_polygon;
+        }
+        polygons = face_polygons;
+
+        face = face->next;
+    }
+
+    return polygons;
+}
+
 struct ed_bsp_polygon_t *ed_BspPolygonFromBrushFace(struct ed_face_t *face)
 {
     struct ed_face_polygon_t *face_polygon = face->polygons;
@@ -1438,15 +1500,6 @@ struct ed_bsp_polygon_t *ed_BspPolygonFromBrushFace(struct ed_face_t *face)
     struct ed_bsp_polygon_t *bsp_polygon = &dummy_polygon;
 
     dummy_polygon.next = face->clipped_polygons;
-
-//    vec3_t axes[] =
-//    {
-//        vec3_t_c(1.0, 0.0, 0.0),
-//        vec3_t_c(0.0, 1.0, 0.0),
-//        vec3_t_c(0.0, 0.0, 1.0),
-//    };
-
-//    mat3_t plane_orientation;
 
     while(face_polygon)
     {
@@ -1471,34 +1524,6 @@ struct ed_bsp_polygon_t *ed_BspPolygonFromBrushFace(struct ed_face_t *face)
         uint32_t polygon_side = edge->polygons[1].polygon == face_polygon;
         struct ed_vert_t *first_vert = edge->verts[polygon_side].vert;
 
-
-//        float max_axis_proj = -FLT_MAX;
-//        uint32_t j_axis_index = 0;
-//
-//        plane_orientation.rows[1] = face_polygon->normal;
-//
-//        for(uint32_t comp_index = 0; comp_index < 3; comp_index++)
-//        {
-//            float axis_proj = fabsf(plane_orientation.rows[1].comps[comp_index]);
-//
-//            if(axis_proj > max_axis_proj)
-//            {
-//                max_axis_proj = axis_proj;
-//                j_axis_index = comp_index;
-//            }
-//        }
-//
-//        uint32_t k_axis_index = (j_axis_index + 1) % 3;
-//        vec3_t_cross(&plane_orientation.rows[0], &axes[k_axis_index], &plane_orientation.rows[1]);
-//        vec3_t_normalize(&plane_orientation.rows[0], &plane_orientation.rows[0]);
-//
-//        vec3_t_cross(&plane_orientation.rows[2], &plane_orientation.rows[1], &plane_orientation.rows[0]);
-//        vec3_t_normalize(&plane_orientation.rows[2], &plane_orientation.rows[2]);
-//
-//
-//        vec3_t plane_origin;
-//        vec3_t_mul(&plane_origin, &plane_orientation.rows[1], vec3_t_dot(&plane_orientation.rows[1], &face_polygon->center));
-
         while(edge)
         {
             polygon_side = edge->polygons[1].polygon == face_polygon;
@@ -1506,17 +1531,9 @@ struct ed_bsp_polygon_t *ed_BspPolygonFromBrushFace(struct ed_face_t *face)
             struct r_vert_t *polygon_vert = ds_list_get_element(polygon_verts, ds_list_add_element(polygon_verts, NULL));
 
             vec3_t_add(&bsp_polygon->point, &bsp_polygon->point, &brush_vert->vert);
-
-//            vec3_t vert_vec = brush_vert->vert;
-//            mat3_t_vec3_t_mul(&vert_vec, &vert_vec, &face->brush->orientation);
-//            vec3_t_add(&vert_vec, &vert_vec, &face->brush->position);
-//            vec3_t_sub(&vert_vec, &vert_vec, &plane_origin);
-
             polygon_vert->pos = brush_vert->vert;
             polygon_vert->normal.xyz = face_polygon->normal;
             polygon_vert->tangent = face_polygon->tangent;
-//            polygon_vert->tex_coords.x = vec3_t_dot(&vert_vec, &plane_orientation.rows[0]);
-//            polygon_vert->tex_coords.y = vec3_t_dot(&vert_vec, &plane_orientation.rows[2]);
 
             edge = edge->polygons[polygon_side].next;
         }
@@ -1569,6 +1586,36 @@ struct ed_bsp_polygon_t *ed_AllocBspPolygon(uint32_t vert_count)
     return polygon;
 }
 
+struct ed_bsp_polygon_t *ed_CopyBspPolygons(struct ed_bsp_polygon_t *src_polygons)
+{
+    struct ed_bsp_polygon_t *dst_polygons = NULL;
+    struct ed_bsp_polygon_t *src_polygon = src_polygons;
+
+    while(src_polygon)
+    {
+        struct ed_bsp_polygon_t *dst_polygon = ed_AllocBspPolygon(0);
+        for(uint32_t vert_index = 0; vert_index < src_polygon->vertices.cursor; vert_index++)
+        {
+            struct r_vert_t *vert = ds_list_get_element(&src_polygon->vertices, vert_index);
+            ds_list_add_element(&dst_polygon->vertices, vert);
+        }
+
+        dst_polygon->face_polygon = src_polygon->face_polygon;
+        dst_polygon->point = src_polygon->point;
+        dst_polygon->normal = src_polygon->normal;
+
+        dst_polygon->next = dst_polygons;
+        if(dst_polygons)
+        {
+            dst_polygons->prev = dst_polygon;
+        }
+        dst_polygons = dst_polygon;
+        src_polygon = src_polygon->next;
+    }
+
+    return dst_polygons;
+}
+
 void ed_FreeBspPolygon(struct ed_bsp_polygon_t *polygon, uint32_t free_verts)
 {
     if(polygon && polygon->index != 0xffffffff)
@@ -1581,6 +1628,16 @@ void ed_FreeBspPolygon(struct ed_bsp_polygon_t *polygon, uint32_t free_verts)
 
         ds_slist_remove_element(&ed_level_state.brush.bsp_polygons, polygon->index);
         polygon->index = 0xffffffff;
+    }
+}
+
+void ed_FreeBspPolygons(struct ed_bsp_polygon_t *polygons)
+{
+    while(polygons)
+    {
+        struct ed_bsp_polygon_t *next_polygon = polygons->next;
+        ed_FreeBspPolygon(polygons, 1);
+        polygons = next_polygon;
     }
 }
 
@@ -1617,7 +1674,7 @@ uint32_t ed_PolygonOnSplitter(struct ed_bsp_polygon_t *polygon, vec3_t *point, v
     float prev_dist = 0.0;
     int32_t sides = 0;
 
-    for(uint32_t vert_index = 0; vert_index < polygon->vertices.buffer_size; vert_index++)
+    for(uint32_t vert_index = 0; vert_index < polygon->vertices.cursor; vert_index++)
     {
         struct r_vert_t *vertex = ds_list_get_element(&polygon->vertices, vert_index);
         vec3_t polygon_splitter_vec;
@@ -1658,6 +1715,25 @@ uint32_t ed_PolygonOnSplitter(struct ed_bsp_polygon_t *polygon, vec3_t *point, v
     return ED_SPLITTER_SIDE_ON_BACK;
 }
 
+uint32_t ed_PointOnSplitter(vec3_t *point, vec3_t *plane_point, vec3_t *plane_normal)
+{
+    vec3_t point_vec;
+    vec3_t_sub(&point_vec, point, plane_point);
+
+    float dist = vec3_t_dot(&point_vec, plane_normal);
+
+    if(dist > ED_BSP_DELTA)
+    {
+        return ED_SPLITTER_SIDE_FRONT;
+    }
+    else if(dist < -ED_BSP_DELTA)
+    {
+        return ED_SPLITTER_SIDE_BACK;
+    }
+
+    return ED_SPLITTER_SIDE_ON_FRONT;
+}
+
 struct ed_bsp_polygon_t *ed_BestSplitter(struct ed_bsp_polygon_t *polygons)
 {
     struct ed_bsp_polygon_t *splitter = polygons;
@@ -1692,7 +1768,79 @@ struct ed_bsp_polygon_t *ed_BestSplitter(struct ed_bsp_polygon_t *polygons)
     return best_splitter;
 }
 
-struct ed_bsp_node_t *ed_BrushBspFromPolygons(struct ed_bsp_polygon_t *polygons)
+void ed_SplitPolygon(struct ed_bsp_polygon_t *polygon, vec3_t *point, vec3_t *normal, struct ed_bsp_polygon_t **front, struct ed_bsp_polygon_t **back)
+{
+    struct ds_list_t *verts = &polygon->vertices;
+
+    struct ed_bsp_polygon_t *side_polygons[2];
+
+    side_polygons[0] = ed_AllocBspPolygon(1);
+    side_polygons[1] = ed_AllocBspPolygon(1);
+
+    struct ed_bsp_polygon_t *cur_side_polygon;
+    uint32_t cur_side_index;
+
+    for(uint32_t vert_index = 0; vert_index < verts->cursor; vert_index++)
+    {
+        struct r_vert_t *vert0 = ds_list_get_element(verts, vert_index);
+        struct r_vert_t *vert1 = ds_list_get_element(verts, (vert_index + 1) % verts->cursor);
+
+        vec3_t vert_vec;
+        vec3_t_sub(&vert_vec, &vert0->pos, point);
+        float dist0 = vec3_t_dot(&vert_vec, normal);
+
+        vec3_t_sub(&vert_vec, &vert1->pos, point);
+        float dist1 = vec3_t_dot(&vert_vec, normal);
+
+        if(dist0 >= 0.0)
+        {
+            cur_side_index = 0;
+        }
+        else
+        {
+            cur_side_index = 1;
+        }
+
+        cur_side_polygon = side_polygons[cur_side_index];
+
+        if(dist0 * dist1 <= 0)
+        {
+            float denom = dist1 - dist0;
+            float time = fabs(dist0) / fabs(denom);
+
+            struct r_vert_t new_vert = {};
+
+            vec3_t_lerp(&new_vert.pos, &vert0->pos, &vert1->pos, time);
+            vec4_t_lerp(&new_vert.normal, &vert0->normal, &vert1->normal, time);
+            vec3_t_lerp(&new_vert.tangent, &vert0->tangent, &vert1->tangent, time);
+            vec2_t_lerp(&new_vert.tex_coords, &vert0->tex_coords, &vert1->tex_coords, time);
+
+            ds_list_add_element(&cur_side_polygon->vertices, vert0);
+            ds_list_add_element(&cur_side_polygon->vertices, &new_vert);
+            cur_side_polygon = side_polygons[!cur_side_index];
+            ds_list_add_element(&cur_side_polygon->vertices, &new_vert);
+            ds_list_add_element(&cur_side_polygon->vertices, vert1);
+        }
+        else
+        {
+            ds_list_add_element(&cur_side_polygon->vertices, vert0);
+        }
+    }
+
+    for(uint32_t polygon_index = 0; polygon_index < 2; polygon_index++)
+    {
+        side_polygons[polygon_index]->face_polygon = polygon->face_polygon;
+        side_polygons[polygon_index]->normal = polygon->normal;
+        side_polygons[polygon_index]->point = polygon->point;
+        side_polygons[polygon_index]->used = polygon->used;
+    }
+
+
+    *front = side_polygons[0];
+    *back = side_polygons[1];
+}
+
+struct ed_bsp_node_t *ed_SolidBspFromPolygons(struct ed_bsp_polygon_t *polygons)
 {
     struct ed_bsp_polygon_t *splitter = NULL;
     struct ed_bsp_polygon_t *last_splitter = NULL;
@@ -1718,10 +1866,14 @@ struct ed_bsp_node_t *ed_BrushBspFromPolygons(struct ed_bsp_polygon_t *polygons)
 
             switch(side)
             {
+                case ED_SPLITTER_SIDE_ON_FRONT:
+                case ED_SPLITTER_SIDE_ON_BACK:
+                    side = ED_SPLITTER_SIDE_FRONT;
                 case ED_SPLITTER_SIDE_FRONT:
                 case ED_SPLITTER_SIDE_BACK:
                 {
                     struct ed_bsp_polygon_t *side_list = side_lists[side];
+
                     if(side_list)
                     {
                         side_list->prev = polygon;
@@ -1732,25 +1884,188 @@ struct ed_bsp_node_t *ed_BrushBspFromPolygons(struct ed_bsp_polygon_t *polygons)
                 }
                 break;
 
-                case ED_SPLITTER_SIDE_ON_FRONT:
-                case ED_SPLITTER_SIDE_ON_BACK:
-                    last_splitter->next = polygon;
-                    polygon->prev = last_splitter;
-                    last_splitter = polygon;
+                case ED_SPLITTER_SIDE_STRADDLE:
+                {
+                    struct ed_bsp_polygon_t *front;
+                    struct ed_bsp_polygon_t *back;
+                    ed_SplitPolygon(splitter, &splitter->point, &splitter->normal, &front, &back);
+                    ed_FreeBspPolygon(polygon, 1);
+
+                    front->next = side_lists[ED_SPLITTER_SIDE_FRONT];
+                    if(side_lists[ED_SPLITTER_SIDE_FRONT])
+                    {
+                        side_lists[ED_SPLITTER_SIDE_FRONT]->prev = front;
+                    }
+                    side_lists[ED_SPLITTER_SIDE_FRONT] = front;
+
+                    back->next = side_lists[ED_SPLITTER_SIDE_BACK];
+                    if(side_lists[ED_SPLITTER_SIDE_BACK])
+                    {
+                        side_lists[ED_SPLITTER_SIDE_BACK]->prev = back;
+                    }
+                    side_lists[ED_SPLITTER_SIDE_BACK] = back;
+                }
                 break;
             }
         }
 
         if(side_lists[ED_SPLITTER_SIDE_FRONT])
         {
-            node->front = ed_BrushBspFromPolygons(side_lists[ED_SPLITTER_SIDE_FRONT]);
+            node->front = ed_SolidBspFromPolygons(side_lists[ED_SPLITTER_SIDE_FRONT]);
         }
 
         if(side_lists[ED_SPLITTER_SIDE_BACK])
         {
-            node->back = ed_BrushBspFromPolygons(side_lists[ED_SPLITTER_SIDE_BACK]);
+            node->back = ed_SolidBspFromPolygons(side_lists[ED_SPLITTER_SIDE_BACK]);
         }
     }
 
     return node;
 }
+
+struct ed_bsp_polygon_t *ed_ClipPolygonToBsp(struct ed_bsp_polygon_t *polygons, struct ed_bsp_node_t *bsp)
+{
+    struct ed_bsp_polygon_t *side_lists[2] = {NULL, NULL};
+    struct ed_bsp_polygon_t *splitter = bsp->splitter;
+    struct ed_bsp_polygon_t *clipped_polygons = NULL;
+
+    while(polygons)
+    {
+        struct ed_bsp_polygon_t *polygon = polygons;
+        ed_UnlinkPolygon(polygon, &polygons);
+        uint32_t side = ed_PolygonOnSplitter(polygon, &splitter->point, &splitter->normal);
+
+        switch(side)
+        {
+            case ED_SPLITTER_SIDE_ON_FRONT:
+            case ED_SPLITTER_SIDE_ON_BACK:
+                side = ED_SPLITTER_SIDE_FRONT;
+            case ED_SPLITTER_SIDE_FRONT:
+            case ED_SPLITTER_SIDE_BACK:
+                polygon->next = side_lists[side];
+                if(side_lists[side])
+                {
+                    side_lists[side]->prev = polygon;
+                }
+                side_lists[side] = polygon;
+            break;
+
+            case ED_SPLITTER_SIDE_STRADDLE:
+            {
+                struct ed_bsp_polygon_t *front;
+                struct ed_bsp_polygon_t *back;
+
+                ed_SplitPolygon(polygon, &splitter->point, &splitter->normal, &front, &back);
+                ed_FreeBspPolygon(polygon, 1);
+
+                front->next = side_lists[ED_SPLITTER_SIDE_FRONT];
+                if(side_lists[ED_SPLITTER_SIDE_FRONT])
+                {
+                    side_lists[ED_SPLITTER_SIDE_FRONT]->prev = front;
+                }
+                side_lists[ED_SPLITTER_SIDE_FRONT] = front;
+
+                back->next = side_lists[ED_SPLITTER_SIDE_BACK];
+                if(side_lists[ED_SPLITTER_SIDE_BACK])
+                {
+                    side_lists[ED_SPLITTER_SIDE_BACK]->prev = back;
+                }
+                side_lists[ED_SPLITTER_SIDE_BACK] = back;
+            }
+            break;
+        }
+    }
+
+    if(side_lists[ED_SPLITTER_SIDE_FRONT])
+    {
+        if(bsp->front)
+        {
+            clipped_polygons = ed_ClipPolygonToBsp(side_lists[ED_SPLITTER_SIDE_FRONT], bsp->front);
+        }
+        else
+        {
+            clipped_polygons = side_lists[ED_SPLITTER_SIDE_FRONT];
+        }
+    }
+
+    struct ed_bsp_polygon_t *back_clipped_polygons = NULL;
+    if(side_lists[ED_SPLITTER_SIDE_BACK])
+    {
+        if(bsp->back)
+        {
+            back_clipped_polygons = ed_ClipPolygonToBsp(side_lists[ED_SPLITTER_SIDE_BACK], bsp->back);
+        }
+        else
+        {
+            back_clipped_polygons = side_lists[ED_SPLITTER_SIDE_BACK];
+            while(back_clipped_polygons)
+            {
+                struct ed_bsp_polygon_t *next_back_polygon = back_clipped_polygons->next;
+                ed_FreeBspPolygon(back_clipped_polygons, 1);
+                back_clipped_polygons = next_back_polygon;
+            }
+        }
+    }
+
+    if(back_clipped_polygons)
+    {
+        struct ed_bsp_polygon_t *last_back_polygon = back_clipped_polygons;
+        while(last_back_polygon->next)
+        {
+            last_back_polygon = last_back_polygon->next;
+        }
+        last_back_polygon->next = clipped_polygons;
+        if(clipped_polygons)
+        {
+            clipped_polygons->prev = last_back_polygon;
+        }
+        clipped_polygons = back_clipped_polygons;
+    }
+
+
+    return clipped_polygons;
+}
+
+struct ed_bsp_polygon_t *ed_ClipPolygonLists(struct ed_bsp_polygon_t *polygons_a, struct ed_bsp_polygon_t *polygons_b)
+{
+    struct ed_bsp_polygon_t *clipped_polygons = polygons_a;
+
+    if(polygons_a && polygons_b)
+    {
+        struct ed_bsp_node_t *bsp_a = ed_SolidBspFromPolygons(ed_CopyBspPolygons(polygons_a));
+        struct ed_bsp_node_t *bsp_b = ed_SolidBspFromPolygons(ed_CopyBspPolygons(polygons_b));
+
+        struct ed_bsp_polygon_t *clipped_a = ed_ClipPolygonToBsp(polygons_a, bsp_b);
+        struct ed_bsp_polygon_t *clipped_b = ed_ClipPolygonToBsp(polygons_b, bsp_a);
+
+        clipped_polygons = clipped_a;
+
+        if(clipped_a)
+        {
+            struct ed_bsp_polygon_t *last_clipped = clipped_a;
+            while(last_clipped->next)
+            {
+                last_clipped = last_clipped->next;
+            }
+            last_clipped->next = clipped_b;
+        }
+        else
+        {
+            clipped_polygons = clipped_b;
+        }
+
+        ed_FreeBspTree(bsp_a);
+        ed_FreeBspTree(bsp_b);
+    }
+    else if(polygons_b)
+    {
+        clipped_polygons = polygons_b;
+    }
+
+    return clipped_polygons;
+}
+
+
+
+
+

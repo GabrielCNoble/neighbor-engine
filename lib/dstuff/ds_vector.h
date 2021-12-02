@@ -38,6 +38,8 @@ void vec2_t_normalize(vec2_t *r, vec2_t *v);
 
 float vec2_t_length(vec2_t *v);
 
+void vec2_t_lerp(vec2_t *r, vec2_t *a, vec2_t *b, float s);
+
 #ifdef __cplusplus
 }
 #endif
@@ -210,7 +212,11 @@ float vec2_t_length(vec2_t *v)
     return sqrt(v->x * v->x + v->y * v->y);
 }
 
-
+void vec2_t_lerp(vec2_t *r, vec2_t *a, vec2_t *b, float s)
+{
+    r->x = a->x * (1.0 - s) + b->x * s;
+    r->y = a->y * (1.0 - s) + b->y * s;
+}
 
 
 

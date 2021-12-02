@@ -57,7 +57,7 @@ void ed_ExtrudeBrushFace(struct ed_brush_t *brush, uint32_t face_index);
 
 void ed_DeleteBrushFace(struct ed_brush_t *brush, uint32_t face_index);
 
-void ed_SetFaceMaterial(struct ed_brush_t *brush, uint32_t face_index, struct r_material_t *material);
+void ed_SetFaceMaterial(struct ed_brush_t *brush, uint32_t face_index, struct ed_brush_batch_t *material);
 
 void ed_TranslateBrushFace(struct ed_brush_t *brush, uint32_t face_index, vec3_t *translation);
 
@@ -81,19 +81,35 @@ struct ed_bsp_node_t *ed_AllocBspNode();
 
 void ed_FreeBspNode(struct ed_bsp_node_t *node);
 
+void ed_FreeBspTree(struct ed_bsp_node_t *bsp);
+
+struct ed_bsp_polygon_t *ed_BspPolygonsFromBrush(struct ed_brush_t *brush);
+
 struct ed_bsp_polygon_t *ed_BspPolygonFromBrushFace(struct ed_face_t *face);
 
 struct ed_bsp_polygon_t *ed_AllocBspPolygon(uint32_t vert_count);
 
+struct ed_bsp_polygon_t *ed_CopyBspPolygons(struct ed_bsp_polygon_t *src_polygons);
+
 void ed_FreeBspPolygon(struct ed_bsp_polygon_t *polygon, uint32_t free_verts);
+
+void ed_FreeBspPolygons(struct ed_bsp_polygon_t *polygons);
 
 void ed_UnlinkPolygon(struct ed_bsp_polygon_t *polygon, struct ed_bsp_polygon_t **first_polygon);
 
 uint32_t ed_PolygonOnSplitter(struct ed_bsp_polygon_t *polygon, vec3_t *point, vec3_t *normal);
 
+uint32_t ed_PointOnSplitter(vec3_t *point, vec3_t *plane_point, vec3_t *plane_normal);
+
 struct ed_bsp_polygon_t *ed_BestSplitter(struct ed_bsp_polygon_t *polygons);
 
-struct ed_bsp_node_t *ed_BrushBspFromPolygons(struct ed_bsp_polygon_t *polygons);
+void ed_SplitPolygon(struct ed_bsp_polygon_t *polygon, vec3_t *point, vec3_t *normal, struct ed_bsp_polygon_t **front, struct ed_bsp_polygon_t **back);
+
+struct ed_bsp_node_t *ed_SolidBspFromPolygons(struct ed_bsp_polygon_t *polygons);
+
+struct ed_bsp_polygon_t *ed_ClipPolygonToBsp(struct ed_bsp_polygon_t *polygons, struct ed_bsp_node_t *bsp);
+
+struct ed_bsp_node_t *ed_ClipBspToBsp(struct ed_bsp_node_t *bsp_a, struct ed_bsp_node_t *bsp_b);
 
 
 

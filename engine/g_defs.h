@@ -25,7 +25,6 @@ struct g_entity_t
     G_ENTITY_FIELDS;
 };
 
-
 struct g_camera_t
 {
     G_ENTITY_FIELDS;

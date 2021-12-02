@@ -7,4 +7,6 @@ void g_EnemyInit();
 
 void g_StepEnemies(float delta_time);
 
+//struct g_entity_t *g_Create
+
 #endif // G_ENEMY_H

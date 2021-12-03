@@ -2499,7 +2499,7 @@ void ed_SerializeLevel(void **level_buffer, size_t *buffer_size, uint32_t serial
 
 
     size_t world_section_size = 0;
-    if(l_world_collider)
+    if(l_world_model)
     {
         world_section_size = sizeof(struct l_world_section_t);
         world_section_size += sizeof(struct l_batch_record_t) * l_world_model->batches.buffer_size;
@@ -3406,13 +3406,8 @@ void ed_l_BuildWorldData()
         printf("ed_l_BuildWorldData\n");
         ed_level_state.world_data_stale = 0;
 
+        float start = g_GetDeltaTime();
         struct ed_bsp_polygon_t *clipped_polygons = NULL;
-        for(uint32_t global_batch_index = 0; global_batch_index < ed_level_state.brush.brush_batches.cursor; global_batch_index++)
-        {
-            struct ed_brush_batch_t *global_batch = ds_list_get_element(&ed_level_state.brush.brush_batches, global_batch_index);
-            global_batch->batch.start = 0;
-            global_batch->batch.count = 0;
-        }
 
         for(uint32_t brush_index = 0; brush_index < ed_level_state.brush.brushes.cursor; brush_index++)
         {
@@ -3425,118 +3420,212 @@ void ed_l_BuildWorldData()
             }
         }
 
+        float end = g_GetDeltaTime();
+        printf("bsp took %f seconds\n", end - start);
+
+        struct ds_buffer_t *polygon_buffer = &ed_level_state.brush.polygon_buffer;
+        struct ds_buffer_t *batch_buffer = &ed_level_state.brush.batch_buffer;
+        struct ds_buffer_t *vertex_buffer = &ed_level_state.brush.vertex_buffer;
+        struct ds_buffer_t *index_buffer = &ed_level_state.brush.index_buffer;
+
         struct ed_bsp_polygon_t *polygon = clipped_polygons;
+        uint32_t polygon_count = 0;
         uint32_t index_count = 0;
         uint32_t vert_count = 0;
+
         while(polygon)
         {
-            uint32_t polygon_index_count = (polygon->vertices.cursor - 2) * 3;
-            index_count += polygon_index_count;
+            if(polygon_count >= polygon_buffer->buffer_size)
+            {
+                ds_buffer_resize(polygon_buffer, polygon_buffer->buffer_size + 16);
+            }
+
+            ((struct ed_bsp_polygon_t **)polygon_buffer->buffer)[polygon_count] = polygon;
+            index_count += (polygon->vertices.cursor - 2) * 3;
             vert_count += polygon->vertices.cursor;
-            polygon->face_polygon->face->material->batch.count += polygon_index_count;
+            polygon_count++;
             polygon = polygon->next;
         }
 
-        struct ds_buffer_t world_col_verts_buffer = ds_buffer_create(sizeof(vec3_t), vert_count);
-        struct ds_buffer_t world_draw_verts_buffer = ds_buffer_create(sizeof(struct r_vert_t), vert_count);
-        struct ds_buffer_t world_indices_buffer = ds_buffer_create(sizeof(uint32_t), index_count);
+        qsort(polygon_buffer->buffer, polygon_count, polygon_buffer->elem_size, ed_CompareBspPolygons);
 
-        uint32_t vert_offset = 0;
-        uint32_t index_offset = 0;
-
-        vec3_t *world_col_verts = world_col_verts_buffer.buffer;
-        struct r_vert_t *world_draw_verts = world_draw_verts_buffer.buffer;
-        uint32_t *world_indices = world_indices_buffer.buffer;
-
-        struct ds_buffer_t world_batches_buffer = ds_buffer_create(sizeof(struct r_batch_t), ed_level_state.brush.brush_batches.cursor);
-        struct r_batch_t *world_batches = world_batches_buffer.buffer;
-        struct ds_list_t *global_batches = &ed_level_state.brush.brush_batches;
-
-        for(uint32_t global_batch_index = 0; global_batch_index < global_batches->cursor; global_batch_index++)
+        if(index_count > index_buffer->buffer_size)
         {
-            struct r_batch_t *world_batch = world_batches + global_batch_index;
-            struct ed_brush_batch_t *global_batch = ds_list_get_element(global_batches, global_batch_index);
-
-            world_batch->start = 0;
-            world_batch->count = global_batch->batch.count;
-            world_batch->material = global_batch->batch.material;
-
-            if(global_batch_index)
-            {
-                struct r_batch_t *prev_batch = world_batches + (global_batch_index - 1);
-                world_batch->start = prev_batch->start + prev_batch->count;
-                prev_batch->count = 0;
-            }
+            ds_buffer_resize(index_buffer, index_count);
         }
 
-        world_batches[global_batches->cursor - 1].count = 0;
-
-        for(uint32_t brush_index = 0; brush_index < ed_level_state.brush.brushes.cursor; brush_index++)
+        if(vert_count > vertex_buffer->buffer_size)
         {
-            struct ed_brush_t *brush = ed_GetBrush(brush_index);
-
-            if(brush)
-            {
-                struct r_batch_t *brush_batches = brush->model->batches.buffer;
-                struct r_vert_t *brush_verts = brush->model->verts.buffer;
-                uint32_t *brush_indices = brush->model->indices.buffer;
-
-                for(uint32_t vert_index = 0; vert_index < brush->model->verts.buffer_size; vert_index++)
-                {
-                    struct r_vert_t *brush_vert = brush_verts + vert_index;
-                    struct r_vert_t *draw_vert = world_draw_verts + vert_offset + vert_index;
-                    *draw_vert = *brush_vert;
-
-                    mat3_t_vec3_t_mul(&draw_vert->pos, &draw_vert->pos, &brush->orientation);
-                    mat3_t_vec3_t_mul(&draw_vert->normal.xyz, &draw_vert->normal.xyz, &brush->orientation);
-                    mat3_t_vec3_t_mul(&draw_vert->tangent, &draw_vert->tangent, &brush->orientation);
-                    vec3_t_add(&draw_vert->pos, &draw_vert->pos, &brush->position);
-
-                    world_col_verts[vert_offset + vert_index] = draw_vert->pos;
-                }
-
-                for(uint32_t brush_batch_index = 0; brush_batch_index < brush->model->batches.buffer_size; brush_batch_index++)
-                {
-                    struct r_batch_t *brush_batch = brush_batches + brush_batch_index;
-
-                    for(uint32_t world_batch_index = 0; world_batch_index < world_batches_buffer.buffer_size; world_batch_index++)
-                    {
-                        struct r_batch_t *world_batch = world_batches + world_batch_index;
-
-                        if(brush_batch->material == world_batch->material)
-                        {
-                            for(uint32_t index = 0; index < brush_batch->count; index++)
-                            {
-                                uint32_t world_indice_index = world_batch->start + world_batch->count;
-                                uint32_t brush_indice_index = brush_batch->start - brush->model->model_start + index;
-                                world_indices[world_indice_index] = brush_indices[brush_indice_index];
-                                world_indices[world_indice_index] += vert_offset;
-                                world_batch->count++;
-                            }
-                        }
-                    }
-                }
-
-                vert_offset += brush->model->verts.buffer_size;
-            }
+            ds_buffer_resize(vertex_buffer, vert_count);
         }
 
-        if(vert_offset)
+        uint32_t batch_count = 0;
+        struct r_material_t *cur_material = NULL;
+        struct ds_buffer_t col_vertex_buffer = ds_buffer_create(sizeof(vec3_t), vert_count);
+
+        uint32_t *world_indices = index_buffer->buffer;
+        struct r_vert_t *world_verts = vertex_buffer->buffer;
+        vec3_t *world_col_verts = col_vertex_buffer.buffer;
+
+
+        vert_count = 0;
+
+        struct r_batch_t *batch = NULL;
+
+        for(uint32_t polygon_index = 0; polygon_index < polygon_count; polygon_index++)
+        {
+            struct ed_bsp_polygon_t *polygon = ((struct ed_bsp_polygon_t **)polygon_buffer->buffer)[polygon_index];
+
+            if(polygon->face_polygon->face->material != cur_material)
+            {
+                cur_material = polygon->face_polygon->face->material;
+
+                if(batch_count >= ed_level_state.brush.batch_buffer.buffer_size)
+                {
+                    ds_buffer_resize(&ed_level_state.brush.batch_buffer, batch_count + 1);
+                }
+
+                batch = ((struct r_batch_t *)ed_level_state.brush.batch_buffer.buffer) + batch_count;
+                batch->material = cur_material;
+                batch->count = 0;
+                batch->start = 0;
+
+                if(batch_count)
+                {
+                    struct r_batch_t *prev_batch = ((struct r_batch_t *)ed_level_state.brush.batch_buffer.buffer) + batch_count - 1;
+                    batch->start = prev_batch->start + prev_batch->count;
+                }
+
+                batch_count++;
+            }
+
+            for(uint32_t vert_index = 1; vert_index < polygon->vertices.cursor - 1;)
+            {
+                world_indices[batch->start + batch->count] = vert_count;
+                batch->count++;
+
+                world_indices[batch->start + batch->count] = vert_count + vert_index;
+                vert_index++;
+                batch->count++;
+
+                world_indices[batch->start + batch->count] = vert_count + vert_index;
+                batch->count++;
+            }
+
+            for(uint32_t vert_index = 0; vert_index < polygon->vertices.cursor; vert_index++)
+            {
+                struct r_vert_t *vert = ds_list_get_element(&polygon->vertices, vert_index);
+                world_verts[vert_index + vert_count] = *vert;
+                world_col_verts[vert_index + vert_count] = vert->pos;
+            }
+
+            vert_count += polygon->vertices.cursor;
+            polygon = polygon->next;
+        }
+
+        struct ds_buffer_t col_index_buffer = ds_buffer_copy(index_buffer);
+
+//        struct ds_buffer_t world_col_verts_buffer = ds_buffer_create(sizeof(vec3_t), vert_count);
+//        struct ds_buffer_t
+//        struct ds_buffer_t world_draw_verts_buffer = ds_buffer_create(sizeof(struct r_vert_t), vert_count);
+//        struct ds_buffer_t world_indices_buffer = ds_buffer_create(sizeof(uint32_t), index_count);
+
+//        uint32_t vert_offset = 0;
+//        uint32_t index_offset = 0;
+
+//        vec3_t *world_col_verts = world_col_verts_buffer.buffer;
+//        struct r_vert_t *world_draw_verts = world_draw_verts_buffer.buffer;
+//        uint32_t *world_indices = world_indices_buffer.buffer;
+
+//        struct ds_buffer_t world_batches_buffer = ds_buffer_create(sizeof(struct r_batch_t), ed_level_state.brush.brush_batches.cursor);
+//        struct r_batch_t *world_batches = world_batches_buffer.buffer;
+//        struct ds_list_t *global_batches = &ed_level_state.brush.brush_batches;
+
+//        for(uint32_t global_batch_index = 0; global_batch_index < global_batches->cursor; global_batch_index++)
+//        {
+//            struct r_batch_t *world_batch = world_batches + global_batch_index;
+//            struct ed_brush_batch_t *global_batch = ds_list_get_element(global_batches, global_batch_index);
+//
+//            world_batch->start = 0;
+//            world_batch->count = global_batch->batch.count;
+//            world_batch->material = global_batch->batch.material;
+//
+//            if(global_batch_index)
+//            {
+//                struct r_batch_t *prev_batch = world_batches + (global_batch_index - 1);
+//                world_batch->start = prev_batch->start + prev_batch->count;
+//                prev_batch->count = 0;
+//            }
+//        }
+//
+//        world_batches[global_batches->cursor - 1].count = 0;
+//
+//        for(uint32_t brush_index = 0; brush_index < ed_level_state.brush.brushes.cursor; brush_index++)
+//        {
+//            struct ed_brush_t *brush = ed_GetBrush(brush_index);
+//
+//            if(brush)
+//            {
+//                struct r_batch_t *brush_batches = brush->model->batches.buffer;
+//                struct r_vert_t *brush_verts = brush->model->verts.buffer;
+//                uint32_t *brush_indices = brush->model->indices.buffer;
+//
+//                for(uint32_t vert_index = 0; vert_index < brush->model->verts.buffer_size; vert_index++)
+//                {
+//                    struct r_vert_t *brush_vert = brush_verts + vert_index;
+//                    struct r_vert_t *draw_vert = world_draw_verts + vert_offset + vert_index;
+//                    *draw_vert = *brush_vert;
+//
+//                    mat3_t_vec3_t_mul(&draw_vert->pos, &draw_vert->pos, &brush->orientation);
+//                    mat3_t_vec3_t_mul(&draw_vert->normal.xyz, &draw_vert->normal.xyz, &brush->orientation);
+//                    mat3_t_vec3_t_mul(&draw_vert->tangent, &draw_vert->tangent, &brush->orientation);
+//                    vec3_t_add(&draw_vert->pos, &draw_vert->pos, &brush->position);
+//
+//                    world_col_verts[vert_offset + vert_index] = draw_vert->pos;
+//                }
+//
+//                for(uint32_t brush_batch_index = 0; brush_batch_index < brush->model->batches.buffer_size; brush_batch_index++)
+//                {
+//                    struct r_batch_t *brush_batch = brush_batches + brush_batch_index;
+//
+//                    for(uint32_t world_batch_index = 0; world_batch_index < world_batches_buffer.buffer_size; world_batch_index++)
+//                    {
+//                        struct r_batch_t *world_batch = world_batches + world_batch_index;
+//
+//                        if(brush_batch->material == world_batch->material)
+//                        {
+//                            for(uint32_t index = 0; index < brush_batch->count; index++)
+//                            {
+//                                uint32_t world_indice_index = world_batch->start + world_batch->count;
+//                                uint32_t brush_indice_index = brush_batch->start - brush->model->model_start + index;
+//                                world_indices[world_indice_index] = brush_indices[brush_indice_index];
+//                                world_indices[world_indice_index] += vert_offset;
+//                                world_batch->count++;
+//                            }
+//                        }
+//                    }
+//                }
+//
+//                vert_offset += brush->model->verts.buffer_size;
+//            }
+//        }
+
+        if(vert_count)
         {
             l_world_shape->itri_mesh.verts = world_col_verts;
-            l_world_shape->itri_mesh.vert_count = vert_offset;
-            l_world_shape->itri_mesh.indices = world_indices;
-            l_world_shape->itri_mesh.index_count = world_indices_buffer.buffer_size;
+            l_world_shape->itri_mesh.vert_count = vert_count;
+            l_world_shape->itri_mesh.indices = col_index_buffer.buffer;
+            l_world_shape->itri_mesh.index_count = index_count;
             l_world_collider = p_CreateCollider(&l_world_col_def, &vec3_t_c(0.0, 0.0, 0.0), &mat3_t_c_id());
 
             struct r_model_geometry_t model_geometry = {};
 
-            model_geometry.batches = world_batches;
-            model_geometry.batch_count = world_batches_buffer.buffer_size;
-            model_geometry.verts = world_draw_verts;
-            model_geometry.vert_count = world_draw_verts_buffer.buffer_size;
-            model_geometry.indices = world_indices;
-            model_geometry.index_count = world_indices_buffer.buffer_size;
+            model_geometry.batches = batch_buffer->buffer;
+            model_geometry.batch_count = batch_count;
+            model_geometry.verts = vertex_buffer->buffer;
+            model_geometry.vert_count = vert_count;
+            model_geometry.indices = index_buffer->buffer;
+            model_geometry.index_count = index_count;
             l_world_model = r_CreateModel(&model_geometry, NULL, "world_model");
         }
     }

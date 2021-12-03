@@ -47,6 +47,7 @@ struct g_intel_t
 
 struct g_spawn_point_t
 {
+    uint32_t index;
     vec3_t position;
 };
 

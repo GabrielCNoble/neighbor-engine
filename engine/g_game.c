@@ -19,6 +19,6 @@ void g_GameInit()
 
 void g_StepGame(float delta_time)
 {
-    g_StepPlayer(delta_time);
+//    g_StepPlayer(delta_time);
     g_StepEnemies(delta_time);
 }

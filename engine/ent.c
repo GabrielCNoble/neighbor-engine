@@ -688,6 +688,12 @@ void e_DestroyAllEntities()
     }
 }
 
+void e_SetEntityPosition(struct e_entity_t *entity, vec3_t *position)
+{
+    vec3_t *translation;
+    struct e_node_t *node = entity->node;
+}
+
 void e_TranslateEntity(struct e_entity_t *entity, vec3_t *translation)
 {
     if(entity && entity->index != 0xffffffff)
@@ -696,7 +702,8 @@ void e_TranslateEntity(struct e_entity_t *entity, vec3_t *translation)
 
         if(entity->collider)
         {
-            p_TransformCollider(entity->collider->collider, translation, &mat3_t_c_id());
+            p_SetColliderTransform(entity->collider->collider, &entity->node->position, &entity->node->orientation);
+//            p_TransformCollider(entity->collider->collider, translation, &mat3_t_c_id());
         }
     }
 }
@@ -708,13 +715,12 @@ void e_RotateEntity(struct e_entity_t *entity, mat3_t *rotation)
         if(entity->collider)
         {
             vec3_t start_pos = entity->collider->offset_position;
-            vec3_t end_pos;
-            vec3_t translation;
+            vec3_t collider_pos;
             mat3_t_vec3_t_mul(&start_pos, &start_pos, &entity->node->orientation);
-            mat3_t_vec3_t_mul(&end_pos, &start_pos, rotation);
-            vec3_t_sub(&translation, &end_pos, &start_pos);
+            mat3_t_vec3_t_mul(&collider_pos, &start_pos, rotation);
+            vec3_t_add(&collider_pos, &collider_pos, &entity->node->position);
             mat3_t_mul(&entity->node->orientation, &entity->node->orientation, rotation);
-            p_TransformCollider(entity->collider->collider, &translation, rotation);
+            p_SetColliderTransform(entity->collider->collider, &entity->node->position, &entity->node->orientation);
         }
         else
         {

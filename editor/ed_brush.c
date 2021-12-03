@@ -126,7 +126,7 @@ struct ed_brush_t *ed_CreateBrush(vec3_t *position, mat3_t *orientation, vec3_t 
     {
         struct ed_face_t *face = ed_AllocFace(brush);
 
-        face->material = ed_GetGlobalBrushBatch(r_GetDefaultMaterial());
+        face->material = r_GetDefaultMaterial();
         face->tex_coords_scale = vec2_t_c(1.0, 1.0);
         face->tex_coords_rot = 0.0;
 
@@ -684,7 +684,7 @@ struct ed_vert_transform_t *ed_FindVertTransform(struct ed_brush_t *brush, uint3
     return transform;
 }
 
-int compare_polygons(const void *a, const void *b)
+int ed_CompareBspPolygons(const void *a, const void *b)
 {
     struct ed_bsp_polygon_t *polygon_a = *(struct ed_bsp_polygon_t **)a;
     struct ed_bsp_polygon_t *polygon_b = *(struct ed_bsp_polygon_t **)b;
@@ -827,7 +827,7 @@ void ed_DeleteBrushFace(struct ed_brush_t *brush, uint32_t face_index)
 
 }
 
-void ed_SetFaceMaterial(struct ed_brush_t *brush, uint32_t face_index, struct ed_brush_batch_t *material)
+void ed_SetFaceMaterial(struct ed_brush_t *brush, uint32_t face_index, struct r_material_t *material)
 {
     if(brush)
     {
@@ -1168,7 +1168,7 @@ void ed_UpdateBrush(struct ed_brush_t *brush)
         brush->update_flags |= ED_BRUSH_UPDATE_FLAG_DRAW_GEOMETRY;
     }
 
-    if(brush->update_flags & ED_BRUSH_UPDATE_FLAG_UV_COORDS)
+    if(brush->update_flags & ED_BRUSH_UPDATE_FLAG_DRAW_GEOMETRY)
     {
         struct ds_buffer_t *batch_buffer;
         struct ds_buffer_t *vertex_buffer;
@@ -1218,7 +1218,7 @@ void ed_UpdateBrush(struct ed_brush_t *brush)
             face = face->next;
         }
 
-        qsort(bsp_polygons, polygon_count, polygon_buffer->elem_size, compare_polygons);
+        qsort(bsp_polygons, polygon_count, polygon_buffer->elem_size, ed_CompareBspPolygons);
 
         uint32_t *indices = (uint32_t *)index_buffer->buffer;
         struct r_vert_t *vertices = (struct r_vert_t *)vertex_buffer->buffer;
@@ -1237,7 +1237,7 @@ void ed_UpdateBrush(struct ed_brush_t *brush)
             {
                 struct r_batch_t *batch = batches + polygon_batch_index;
 
-                if(batch->material == polygon->face_polygon->face->material->batch.material)
+                if(batch->material == polygon->face_polygon->face->material)
                 {
                     polygon_batch = batch;
                     break;
@@ -1681,7 +1681,7 @@ uint32_t ed_PolygonOnSplitter(struct ed_bsp_polygon_t *polygon, vec3_t *point, v
         vec3_t_sub(&polygon_splitter_vec, &vertex->pos, point);
         float cur_dist = vec3_t_dot(&polygon_splitter_vec, normal);
 
-        if(cur_dist * prev_dist < -(ED_BSP_DELTA * ED_BSP_DELTA))
+        if(cur_dist * prev_dist < -ED_BSP_DELTA)
         {
             return ED_SPLITTER_SIDE_STRADDLE;
         }
@@ -1742,13 +1742,13 @@ struct ed_bsp_polygon_t *ed_BestSplitter(struct ed_bsp_polygon_t *polygons)
 
     while(splitter)
     {
-        struct r_vert_t *splitter_vertex = ds_list_get_element(&splitter->vertices, 0);
+//        struct r_vert_t *splitter_vertex = ds_list_get_element(&splitter->vertices, 0);
         struct ed_bsp_polygon_t *polygon = splitter->next;
         uint32_t split_count = 0;
 
         while(polygon)
         {
-            if(ed_PolygonOnSplitter(polygon, &splitter_vertex->pos, &splitter->normal) == ED_SPLITTER_SIDE_STRADDLE)
+            if(ed_PolygonOnSplitter(polygon, &splitter->point, &splitter->normal) == ED_SPLITTER_SIDE_STRADDLE)
             {
                 split_count++;
             }
@@ -1792,6 +1792,17 @@ void ed_SplitPolygon(struct ed_bsp_polygon_t *polygon, vec3_t *point, vec3_t *no
         vec3_t_sub(&vert_vec, &vert1->pos, point);
         float dist1 = vec3_t_dot(&vert_vec, normal);
 
+//        if(dist0 == 0.0)
+//        {
+//            if(dist1 >= 0.0)
+//            {
+//                cur_side_index = 0;
+//            }
+//            else
+//            {
+//                cur_side_index = 1;
+//            }
+//        }
         if(dist0 >= 0.0)
         {
             cur_side_index = 0;
@@ -1816,9 +1827,15 @@ void ed_SplitPolygon(struct ed_bsp_polygon_t *polygon, vec3_t *point, vec3_t *no
             vec2_t_lerp(&new_vert.tex_coords, &vert0->tex_coords, &vert1->tex_coords, time);
 
             ds_list_add_element(&cur_side_polygon->vertices, vert0);
-            ds_list_add_element(&cur_side_polygon->vertices, &new_vert);
+            if(time)
+            {
+                ds_list_add_element(&cur_side_polygon->vertices, &new_vert);
+            }
             cur_side_polygon = side_polygons[!cur_side_index];
-            ds_list_add_element(&cur_side_polygon->vertices, &new_vert);
+            if(time < 1.0)
+            {
+                ds_list_add_element(&cur_side_polygon->vertices, &new_vert);
+            }
             ds_list_add_element(&cur_side_polygon->vertices, vert1);
         }
         else
@@ -1835,6 +1852,17 @@ void ed_SplitPolygon(struct ed_bsp_polygon_t *polygon, vec3_t *point, vec3_t *no
         side_polygons[polygon_index]->used = polygon->used;
     }
 
+    if(!side_polygons[0]->vertices.cursor)
+    {
+        ed_FreeBspPolygon(side_polygons[0], 0);
+        side_polygons[0] = NULL;
+    }
+
+    if(!side_polygons[1]->vertices.cursor)
+    {
+        ed_FreeBspPolygon(side_polygons[1], 0);
+        side_polygons[1] = NULL;
+    }
 
     *front = side_polygons[0];
     *back = side_polygons[1];
@@ -1849,8 +1877,8 @@ struct ed_bsp_node_t *ed_SolidBspFromPolygons(struct ed_bsp_polygon_t *polygons)
 
     if(polygons)
     {
-        splitter = ed_BestSplitter(polygons);
-        struct r_vert_t *splitter_vert = ds_list_get_element(&splitter->vertices, 0);
+//        splitter = ed_BestSplitter(polygons);
+        splitter = polygons;
         ed_UnlinkPolygon(splitter, &polygons);
 
         node = ed_AllocBspNode();
@@ -1862,7 +1890,7 @@ struct ed_bsp_node_t *ed_SolidBspFromPolygons(struct ed_bsp_polygon_t *polygons)
             struct ed_bsp_polygon_t *polygon = polygons;
             ed_UnlinkPolygon(polygon, &polygons);
 
-            uint32_t side = ed_PolygonOnSplitter(polygon, &splitter_vert->pos, &splitter->normal);
+            uint32_t side = ed_PolygonOnSplitter(polygon, &splitter->point, &splitter->normal);
 
             switch(side)
             {
@@ -1888,7 +1916,7 @@ struct ed_bsp_node_t *ed_SolidBspFromPolygons(struct ed_bsp_polygon_t *polygons)
                 {
                     struct ed_bsp_polygon_t *front;
                     struct ed_bsp_polygon_t *back;
-                    ed_SplitPolygon(splitter, &splitter->point, &splitter->normal, &front, &back);
+                    ed_SplitPolygon(polygon, &splitter->point, &splitter->normal, &front, &back);
                     ed_FreeBspPolygon(polygon, 1);
 
                     front->next = side_lists[ED_SPLITTER_SIDE_FRONT];
@@ -1938,10 +1966,15 @@ struct ed_bsp_polygon_t *ed_ClipPolygonToBsp(struct ed_bsp_polygon_t *polygons, 
         switch(side)
         {
             case ED_SPLITTER_SIDE_ON_FRONT:
-            case ED_SPLITTER_SIDE_ON_BACK:
                 side = ED_SPLITTER_SIDE_FRONT;
+                goto _add_polygon_to_side_list;
+            case ED_SPLITTER_SIDE_ON_BACK:
+                side = ED_SPLITTER_SIDE_BACK;
+                goto _add_polygon_to_side_list;
+
             case ED_SPLITTER_SIDE_FRONT:
             case ED_SPLITTER_SIDE_BACK:
+                _add_polygon_to_side_list:
                 polygon->next = side_lists[side];
                 if(side_lists[side])
                 {
@@ -1956,21 +1989,27 @@ struct ed_bsp_polygon_t *ed_ClipPolygonToBsp(struct ed_bsp_polygon_t *polygons, 
                 struct ed_bsp_polygon_t *back;
 
                 ed_SplitPolygon(polygon, &splitter->point, &splitter->normal, &front, &back);
-                ed_FreeBspPolygon(polygon, 1);
+                ed_FreeBspPolygon(polygon, 0);
 
-                front->next = side_lists[ED_SPLITTER_SIDE_FRONT];
-                if(side_lists[ED_SPLITTER_SIDE_FRONT])
+                if(front)
                 {
-                    side_lists[ED_SPLITTER_SIDE_FRONT]->prev = front;
+                    front->next = side_lists[ED_SPLITTER_SIDE_FRONT];
+                    if(side_lists[ED_SPLITTER_SIDE_FRONT])
+                    {
+                        side_lists[ED_SPLITTER_SIDE_FRONT]->prev = front;
+                    }
+                    side_lists[ED_SPLITTER_SIDE_FRONT] = front;
                 }
-                side_lists[ED_SPLITTER_SIDE_FRONT] = front;
 
-                back->next = side_lists[ED_SPLITTER_SIDE_BACK];
-                if(side_lists[ED_SPLITTER_SIDE_BACK])
+                if(back)
                 {
-                    side_lists[ED_SPLITTER_SIDE_BACK]->prev = back;
+                    back->next = side_lists[ED_SPLITTER_SIDE_BACK];
+                    if(side_lists[ED_SPLITTER_SIDE_BACK])
+                    {
+                        side_lists[ED_SPLITTER_SIDE_BACK]->prev = back;
+                    }
+                    side_lists[ED_SPLITTER_SIDE_BACK] = back;
                 }
-                side_lists[ED_SPLITTER_SIDE_BACK] = back;
             }
             break;
         }

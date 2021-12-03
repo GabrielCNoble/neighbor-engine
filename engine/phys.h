@@ -28,19 +28,7 @@ struct p_collider_t *p_CreateCollider(struct p_col_def_t *col_def, vec3_t *posit
 
 void p_UpdateColliderTransform(struct p_collider_t *collider);
 
-//struct p_character_collider_t *p_CreateCharacterCollider(vec3_t *position, float step_height, float height, float radius, float crouch_height);
-
-//void p_TranslateCollider(struct p_collider_t *collider, vec3_t *disp);
-
-//void p_RotateCollider(struct p_collider_t *collider, mat3_t *rot);
-
-//void p_SetColliderPosition(struct p_collider_t *collider, vec3_t *position);
-
-//void p_SetColliderOrientation(struct p_collider_t *collider, mat3_t *orientation);
-
-//void p_SetColliderTransform(struct p_collider_t *collider, vec3_t *position, mat3_t *orientation);
-
-//void p_TransformLinkedColliders(struct p_collider_t *collider, vec3_t *position, mat3_t *orientation);
+void p_SetColliderTransform(struct p_collider_t *collider, vec3_t *position, mat3_t *orientation);
 
 void p_TransformCollider(struct p_collider_t *collider, vec3_t *translation, mat3_t *rotation);
 
@@ -61,18 +49,9 @@ void p_DestroyConstraint(struct p_constraint_t *constraint);
 
 
 
-
-//void p_SetColliderOrientation(struct p_collider_t *collider, mat3_t *orientation);
-
 void p_MoveCharacterCollider(struct p_character_collider_t *collider, vec3_t *direction);
 
 void p_JumpCharacterCollider(struct p_character_collider_t *collider);
-
-//void p_RotateColliderX(struct p_collider_t *collider, float angle);
-//
-//void p_RotateColliderY(struct p_collider_t *collider, float angle);
-//
-//void p_RotateColliderZ(struct p_collider_t *collider, float angle);
 
 void p_StepPhysics(float delta_time);
 

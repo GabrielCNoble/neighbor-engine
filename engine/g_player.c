@@ -2,8 +2,10 @@
 #include "phys.h"
 #include "r_main.h"
 #include "input.h"
+#include "ent.h"
 
 struct g_player_state_t g_player;
+extern struct ds_list_t g_spawn_points;
 
 void g_PlayerInit()
 {
@@ -38,15 +40,6 @@ void g_StepPlayer(float delta_time)
     {
         g_player.pitch = -0.5;
     }
-
-//    if(g_player.yaw < -1.0)
-//    {
-//        g_player.yaw = 0.0;
-//    }
-//    else if(g_player.yaw > 1.0)
-//    {
-//        g_player.yaw = 0.0;
-//    }
 
     mat3_t rotation = mat3_t_c_id();
     mat3_t_rotate_y(&rotation, g_player.yaw);
@@ -87,6 +80,25 @@ void g_StepPlayer(float delta_time)
 
     r_SetViewPos(&camera_pos);
     r_SetViewPitchYaw(g_player.pitch, g_player.yaw);
+}
+
+void g_SpawnPlayer(struct g_spawn_point_t *spawn_point)
+{
+//    e_
+}
+
+struct g_spawn_point_t *g_CreateSpawnPoint(vec3_t *position)
+{
+    uint32_t index = ds_slist_add_element(&g_spawn_points, NULL);
+    struct g_spawn_point_t *spawn_point = ds_slist_get_element(&g_spawn_points, index);
+//    spawn_point->index = index;
+//    spawn_point->position = *position;
+    return spawn_point;
+}
+
+void g_DestroySpawnPoint(struct g_spawn_point_t *spawn_point)
+{
+
 }
 
 

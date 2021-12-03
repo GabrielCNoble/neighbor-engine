@@ -47,6 +47,8 @@ void e_DestroyEntity(struct e_entity_t *entity);
 
 void e_DestroyAllEntities();
 
+void e_SetEntityPosition(struct e_entity_t *entity, vec3_t *position);
+
 void e_TranslateEntity(struct e_entity_t *entity, vec3_t *translation);
 
 void e_RotateEntity(struct e_entity_t *entity, mat3_t *rotation);

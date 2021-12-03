@@ -424,244 +424,8 @@ void p_UpdateColliderTransform(struct p_collider_t *collider)
     collider->position = vec3_t_c(origin[0], origin[1], origin[2]);
 }
 
-//void p_TranslateCollider(struct p_collider_t *collider, vec3_t *disp)
-//{
-//    if(collider && collider->index != 0xffffffff && collider->type)
-//    {
-////        btRigidBody *rigid_body = (btRigidBody *)collider->rigid_body;
-////        rigid_body->translate(btVector3(disp->x, disp->y, disp->z));
-////        rigid_body->setLinearVelocity(btVector3(0, 0, 0));
-////        rigid_body->setAngularVelocity(btVector3(0, 0, 0));
-////
-////        vec3_t_add(&collider->position, &collider->position, disp);
-//    }
-//}
-
-//void p_RotateCollider(struct p_collider_t *collider, mat3_t *rot)
-//{
-//    if(collider && collider->index != 0xffffffff && collider->type)
-//    {
-////        btRigidBody *rigid_body = (btRigidBody *)collider->rigid_body;
-////        btTransform transform = rigid_body->getCenterOfMassTransform();
-////        btMatrix3x3 &basis = transform.getBasis();
-////        mat3_t *orientation = &collider->orientation;
-////        orientation->rows[0] = vec3_t_c(basis[0][0], basis[0][1], basis[0][2]);
-////        orientation->rows[1] = vec3_t_c(basis[1][0], basis[1][1], basis[1][2]);
-////        orientation->rows[2] = vec3_t_c(basis[2][0], basis[2][1], basis[2][2]);
-////        mat3_t transpose_rotation;
-////        mat3_t_transpose(&transpose_rotation, rot);
-////        mat3_t_mul(orientation, &transpose_rotation, orientation);
-////        basis[0] = btVector3(orientation->rows[0].x, orientation->rows[0].y, orientation->rows[0].z);
-////        basis[1] = btVector3(orientation->rows[1].x, orientation->rows[1].y, orientation->rows[1].z);
-////        basis[2] = btVector3(orientation->rows[2].x, orientation->rows[2].y, orientation->rows[2].z);
-////        transform.setBasis(basis);
-////        rigid_body->setCenterOfMassTransform(transform);
-////        rigid_body->setLinearVelocity(btVector3(0, 0, 0));
-////        rigid_body->setAngularVelocity(btVector3(0, 0, 0));
-//    }
-//}
-
-//void p_SetColliderPosition(struct p_collider_t *collider, vec3_t *position)
-//{
-//    p_SetColliderTransform(collider, position, &collider->orientation);
-//}
-//
-//void p_SetColliderOrientation(struct p_collider_t *collider, mat3_t *orientation)
-//{
-//    p_SetColliderTransform(collider, &collider->position, orientation);
-//}
-
-//void p_SetColliderTransformRecursive(struct p_collider_t *collider, vec3_t *pivot, vec3_t *position, mat3_t *orientation)
-//{
-//    if(collider->constraints)
-//    {
-//        vec3_t translation;
-//        vec3_t pivot_vec;
-//        mat3_t inv_orientation;
-//        mat3_t rotation;
-//
-//        mat3_t_transpose(&inv_orientation, &collider->orientation);
-//        mat3_t_mul(&rotation, orientation, &inv_orientation);
-//        vec3_t_sub(&translation, position, &collider->position);
-//
-////        printf("[%f %f %f]\n[%f %f %f]\n[%f %f %f]\n=======================\n[%f %f %f]\n[%f %f %f]\n[%f %f %f]\n=======================\n[%f %f %f]\n[%f %f %f]\n[%f %f %f]\n\n\n",
-////
-////                                                         collider->orientation.rows[0].x,
-////                                                         collider->orientation.rows[0].y,
-////                                                         collider->orientation.rows[0].z,
-////
-////                                                         collider->orientation.rows[1].x,
-////                                                         collider->orientation.rows[1].y,
-////                                                         collider->orientation.rows[1].z,
-////
-////                                                         collider->orientation.rows[2].x,
-////                                                         collider->orientation.rows[2].y,
-////                                                         collider->orientation.rows[2].z,
-////
-////
-////                                                         orientation->rows[0].x,
-////                                                         orientation->rows[0].y,
-////                                                         orientation->rows[0].z,
-////
-////                                                         orientation->rows[1].x,
-////                                                         orientation->rows[1].y,
-////                                                         orientation->rows[1].z,
-////
-////                                                         orientation->rows[2].x,
-////                                                         orientation->rows[2].y,
-////                                                         orientation->rows[2].z,
-////
-////                                                         rotation.rows[0].x,
-////                                                         rotation.rows[0].y,
-////                                                         rotation.rows[0].z,
-////
-////                                                         rotation.rows[1].x,
-////                                                         rotation.rows[1].y,
-////                                                         rotation.rows[1].z,
-////
-////                                                         rotation.rows[2].x,
-////                                                         rotation.rows[2].y,
-////                                                         rotation.rows[2].z);
-//
-//        vec3_t_sub(&pivot_vec, &collider->position, pivot);
-//        mat3_t_vec3_t_mul(&pivot_vec, &pivot_vec, &rotation);
-//        vec3_t_add(&pivot_vec, &pivot_vec, pivot);
-//
-//
-//        vec3_t_add(&collider->position, &pivot_vec, &translation);
-//        mat3_t_mul(&collider->orientation, &rotation, &collider->orientation);
-//
-//
-//
-////        struct p_constraint_t *constraint = collider->constraints;
-////
-////        while(constraint)
-////        {
-////            uint32_t collider_side = constraint->colliders[1].collider == collider;
-////            constraint->colliders[collider_side].transform_set = 1;
-////
-////            if(!constraint->colliders[!collider_side].transform_set)
-////            {
-////                struct p_collider_t *linked_collider = constraint->colliders[!collider_side].collider;
-////                constraint->colliders[!collider_side].transform_set = 1;
-////
-////                vec3_t linked_position;
-////                mat3_t linked_orientation;
-////                vec3_t collider_vec;
-////
-////                vec3_t_sub(&collider_vec, &linked_collider->position, &collider->position);
-////                mat3_t_vec3_t_mul(&collider_vec, &collider_vec, &rotation);
-////                vec3_t_add(&collider_vec, &collider_vec, &collider->position);
-////
-////                vec3_t_add(&linked_position, &translation, &collider_vec);
-////                mat3_t_mul(&linked_orientation, &rotation, &linked_collider->orientation);
-////                p_SetColliderTransform(linked_collider, &linked_position, &linked_orientation);
-////            }
-////            else
-////            {
-////                constraint->colliders[0].transform_set = 0;
-////                constraint->colliders[1].transform_set = 0;
-////            }
-////
-////            constraint = constraint->colliders[collider_side].next;
-////        }
-//    }
-//    else
-//    {
-//        collider->orientation = *orientation;
-//        collider->position = *position;
-//    }
-//
-//    btRigidBody *rigid_body = (btRigidBody *)collider->rigid_body;
-//    btVector3 origin = btVector3(collider->position.x, collider->position.y, collider->position.z);
-//    btMatrix3x3 basis;
-//    basis[0] = btVector3(collider->orientation.rows[0].x, collider->orientation.rows[1].x, collider->orientation.rows[2].x);
-//    basis[1] = btVector3(collider->orientation.rows[0].y, collider->orientation.rows[1].y, collider->orientation.rows[2].y);
-//    basis[2] = btVector3(collider->orientation.rows[0].z, collider->orientation.rows[1].z, collider->orientation.rows[2].z);
-//
-//    btTransform dst_transform;
-//    dst_transform.setBasis(basis);
-//    dst_transform.setOrigin(origin);
-//
-//    rigid_body->setWorldTransform(dst_transform);
-//}
-
-//void p_SetColliderTransform(struct p_collider_t *collider, vec3_t *position, mat3_t *orientation)
-//{
-//    if(collider && collider->index != 0xffffffff)
-//    {
-////        p_SetColliderTransformRecursive(collider, &collider->position, position, orientation);
-//    }
-//}
-
-//void p_TransformLinkedColliders(struct p_collider_t *collider, vec3_t *translation, mat3_t *rotation)
-//{
-//    if(collider && collider->index != 0xffffffff)
-//    {
-//        if(collider->constraints)
-//        {
-//            struct p_constraint_t *constraint = collider->constraints;
-//
-//            while(constraint)
-//            {
-//                uint32_t collider_side = constraint->colliders[1].collider == collider;
-//                constraint->colliders[collider_side].transform_set = 1;
-//
-//                if(!constraint->colliders[!collider_side].transform_set)
-//                {
-//                    struct p_collider_t *linked_collider = constraint->colliders[!collider_side].collider;
-//                    constraint->colliders[!collider_side].transform_set = 1;
-//
-//                    vec3_t linked_translation;
-//                    vec3_t collider_vec;
-//
-//                    vec3_t_sub(&collider_vec, &linked_collider->position, &collider->position);
-//                    mat3_t_vec3_t_mul(&collider_vec, &collider_vec, rotation);
-//                    vec3_t_add(&collider_vec, &collider_vec, &collider->position);
-//
-//                    vec3_t_add(&collider_vec, translation, &collider_vec);
-//                    vec3_t_sub(&linked_translation, &collider_vec, &linked_collider->position);
-//                    p_TransformLinkedColliders(linked_collider, &linked_translation, rotation);
-//                }
-//                else
-//                {
-//                    constraint->colliders[0].transform_set = 0;
-//                    constraint->colliders[1].transform_set = 0;
-//                }
-//
-//                constraint = constraint->colliders[collider_side].next;
-//            }
-//        }
-//
-//        mat3_t_mul(&collider->orientation, &collider->orientation, rotation);
-//        vec3_t_add(&collider->position, translation, &collider->position);
-//
-//        btRigidBody *rigid_body = (btRigidBody *)collider->rigid_body;
-//        btVector3 origin = btVector3(collider->position.x, collider->position.y, collider->position.z);
-//        btMatrix3x3 basis;
-//        basis[0] = btVector3(collider->orientation.rows[0].x, collider->orientation.rows[1].x, collider->orientation.rows[2].x);
-//        basis[1] = btVector3(collider->orientation.rows[0].y, collider->orientation.rows[1].y, collider->orientation.rows[2].y);
-//        basis[2] = btVector3(collider->orientation.rows[0].z, collider->orientation.rows[1].z, collider->orientation.rows[2].z);
-//
-//        btTransform dst_transform;
-//        dst_transform.setBasis(basis);
-//        dst_transform.setOrigin(origin);
-//
-//        rigid_body->setWorldTransform(dst_transform);
-//    }
-//}
-
-void p_TransformColliderRecursive(struct p_collider_t *collider, vec3_t *pivot, vec3_t *translation, mat3_t *rotation)
+void p_SetColliderTransformRecursive(struct p_collider_t *collider, vec3_t *position, mat3_t *orientation, struct p_collider_t *src_collider)
 {
-    vec3_t pivot_vec;
-
-    vec3_t_sub(&pivot_vec, &collider->position, pivot);
-    mat3_t_vec3_t_mul(&pivot_vec, &pivot_vec, rotation);
-    vec3_t_add(&collider->position, &pivot_vec, pivot);
-
-    vec3_t_add(&collider->position, &collider->position, translation);
-    mat3_t_mul(&collider->orientation, &collider->orientation, rotation);
-
     if(collider->constraints)
     {
         struct p_constraint_t *constraint = collider->constraints;
@@ -675,7 +439,7 @@ void p_TransformColliderRecursive(struct p_collider_t *collider, vec3_t *pivot, 
             {
                 struct p_collider_t *linked_collider = constraint->colliders[!collider_side].collider;
                 constraint->colliders[!collider_side].transform_set = 1;
-                p_TransformColliderRecursive(linked_collider, pivot, translation, rotation);
+                p_SetColliderTransformRecursive(linked_collider, position, orientation, src_collider);
             }
             else
             {
@@ -685,6 +449,28 @@ void p_TransformColliderRecursive(struct p_collider_t *collider, vec3_t *pivot, 
 
             constraint = constraint->colliders[collider_side].next;
         }
+    }
+
+    if(src_collider == collider)
+    {
+        collider->orientation = *orientation;
+        collider->position = *position;
+    }
+    else
+    {
+        mat3_t linked_orientation;
+        vec3_t linked_translation;
+
+        vec3_t_sub(&linked_translation, position, &src_collider->position);
+
+        mat3_t_transpose(&linked_orientation, &src_collider->orientation);
+        mat3_t_mul(&linked_orientation, &linked_orientation, orientation);
+        vec3_t_sub(&collider->position, &collider->position, &src_collider->position);
+
+        mat3_t_vec3_t_mul(&collider->position, &collider->position, &linked_orientation);
+        mat3_t_mul(&collider->orientation, &collider->orientation, &linked_orientation);
+        vec3_t_add(&collider->position, &collider->position, &src_collider->position);
+        vec3_t_add(&collider->position, &collider->position, &linked_translation);
     }
 
     btRigidBody *rigid_body = (btRigidBody *)collider->rigid_body;
@@ -701,11 +487,20 @@ void p_TransformColliderRecursive(struct p_collider_t *collider, vec3_t *pivot, 
     rigid_body->setWorldTransform(dst_transform);
 }
 
+void p_SetColliderTransform(struct p_collider_t *collider, vec3_t *position, mat3_t *orientation)
+{
+    p_SetColliderTransformRecursive(collider, position, orientation, collider);
+}
+
 void p_TransformCollider(struct p_collider_t *collider, vec3_t *translation, mat3_t *rotation)
 {
     if(collider && collider->index != 0xffffffff)
     {
-        p_TransformColliderRecursive(collider, &collider->position, translation, rotation);
+        vec3_t position;
+        mat3_t orientation;
+        vec3_t_add(&position, translation, &collider->position);
+        mat3_t_mul(&orientation, &collider->orientation, rotation);
+        p_SetColliderTransform(collider, &position, &orientation);
     }
 }
 
@@ -895,33 +690,6 @@ void p_JumpCharacterCollider(struct p_character_collider_t *collider)
     }
 }
 
-//void p_RotateColliderX(struct p_collider_t *collider, float angle)
-//{
-//    mat3_t_rotate_x(&collider->orientation, angle);
-//    p_UpdateColliderNode(collider);
-////    p_GenColPlanes(collider);
-//}
-//
-//void p_RotateColliderY(struct p_collider_t *collider, float angle)
-//{
-//    mat3_t_rotate_y(&collider->orientation, angle);
-//    p_UpdateColliderNode(collider);
-////    p_GenColPlanes(collider);
-//}
-//
-//void p_RotateColliderZ(struct p_collider_t *collider, float angle)
-//{
-//    mat3_t_rotate_z(&collider->orientation, angle);
-//    p_UpdateColliderNode(collider);
-////    p_GenColPlanes(collider);
-//}
-
-//uint32_t p_BoxIntersect(vec3_t *box_a0, vec3_t *box_a1, vec3_t *box_b0, vec3_t *box_b1)
-//{
-////    return box_a0->x < box_b1->x && box_a1->x > box_b0->x &&
-////           box_a0->y < box_b1->y && box_a1->y > box_b0->y &&
-////           box_a0->z < box_b1->z && box_a1->z > box_b0->z;
-//}
 
 void p_StepPhysics(float delta_time)
 {

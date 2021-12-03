@@ -53,11 +53,13 @@ void ed_FreeVert(struct ed_brush_t *brush, uint32_t index);
 
 struct ed_vert_transform_t *ed_FindVertTransform(struct ed_brush_t *brush, uint32_t vert_index);
 
+int ed_CompareBspPolygons(const void *a, const void *b);
+
 void ed_ExtrudeBrushFace(struct ed_brush_t *brush, uint32_t face_index);
 
 void ed_DeleteBrushFace(struct ed_brush_t *brush, uint32_t face_index);
 
-void ed_SetFaceMaterial(struct ed_brush_t *brush, uint32_t face_index, struct ed_brush_batch_t *material);
+void ed_SetFaceMaterial(struct ed_brush_t *brush, uint32_t face_index, struct r_material_t *material);
 
 void ed_TranslateBrushFace(struct ed_brush_t *brush, uint32_t face_index, vec3_t *translation);
 
@@ -109,7 +111,7 @@ struct ed_bsp_node_t *ed_SolidBspFromPolygons(struct ed_bsp_polygon_t *polygons)
 
 struct ed_bsp_polygon_t *ed_ClipPolygonToBsp(struct ed_bsp_polygon_t *polygons, struct ed_bsp_node_t *bsp);
 
-struct ed_bsp_node_t *ed_ClipBspToBsp(struct ed_bsp_node_t *bsp_a, struct ed_bsp_node_t *bsp_b);
+struct ed_bsp_polygon_t *ed_ClipPolygonLists(struct ed_bsp_polygon_t *polygons_a, struct ed_bsp_polygon_t *polygons_b);
 
 
 

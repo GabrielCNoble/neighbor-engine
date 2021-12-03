@@ -123,8 +123,8 @@ struct ed_face_t
 
     struct ed_pickable_t *pickable;
 
-//    struct r_material_t *material;
-    struct ed_brush_batch_t *material;
+    struct r_material_t *material;
+//    struct ed_brush_batch_t *material;
     struct ed_face_polygon_t *polygons;
     struct ed_face_polygon_t *last_polygon;
     struct ed_bsp_polygon_t *clipped_polygons;

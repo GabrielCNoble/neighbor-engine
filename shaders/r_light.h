@@ -23,17 +23,17 @@ struct r_index_t
 
 uniform r_point_lights
 {
-    r_point_data_t point_lights[];
+    r_point_data_t point_lights[8192];
 };
 
 uniform r_spot_lights
 {
-    r_spot_data_t spot_lights[];
+    r_spot_data_t spot_lights[8192];
 };
 
 uniform r_light_indices
 {
-    r_index_t indices[];
+    r_index_t indices[8192];
 };
 
 #endif

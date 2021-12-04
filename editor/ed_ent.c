@@ -428,10 +428,30 @@ uint32_t ed_e_EntDefHierarchyUI(struct e_ent_def_t *ent_def, struct e_ent_def_t 
                     switch(constraint->constraint.type)
                     {
                         case P_CONSTRAINT_TYPE_HINGE:
+                        {
                             refresh_entity |= igInputFloat3("Pivot A", constraint->constraint.hinge.pivot_a.comps, "%0.6f", 0);
                             refresh_entity |= igInputFloat3("Pivot B", constraint->constraint.hinge.pivot_b.comps, "%0.6f", 0);
                             refresh_entity |= igSliderAngle("Low limit", &constraint->constraint.hinge.limit_low, -180.0, 180.0, "%0.2f", 0);
                             refresh_entity |= igSliderAngle("High limit", &constraint->constraint.hinge.limit_high, -180.0, 180.0, "%0.2f", 0);
+                            char preview[32];
+                            sprintf(preview, "[%f %f %f]", constraint->constraint.hinge.axis.x, constraint->constraint.hinge.axis.y, constraint->constraint.hinge.axis.z);
+                            if(igBeginCombo("Axis", preview, 0))
+                            {
+                                if(igMenuItem_Bool("[1.0, 0.0, 0.0]", 0, 0, 1))
+                                {
+                                    constraint->constraint.hinge.axis = vec3_t_c(1.0, 0.0, 0.0);
+                                }
+                                if(igMenuItem_Bool("[0.0, 1.0, 0.0]", 0, 0, 1))
+                                {
+                                    constraint->constraint.hinge.axis = vec3_t_c(0.0, 1.0, 0.0);
+                                }
+                                if(igMenuItem_Bool("[0.0, 0.0, 1.0]", 0, 0, 1))
+                                {
+                                    constraint->constraint.hinge.axis = vec3_t_c(0.0, 0.0, 1.0);
+                                }
+                                igEndCombo();
+                            }
+                        }
                         break;
                     }
 

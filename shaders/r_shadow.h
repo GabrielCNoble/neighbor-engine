@@ -36,7 +36,7 @@ uniform vec2 r_point_proj_params;
 
 uniform r_shadow_maps
 {
-    r_shadow_map_t shadow_maps[];
+    r_shadow_map_t shadow_maps[1];
 };
 
 float r_CubeShadow(uint shadow_map, vec3 direction)

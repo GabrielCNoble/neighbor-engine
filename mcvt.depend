@@ -15,7 +15,7 @@
 	"dstuff/ds_obj.h"
 	"stb/stb_image.h"
 
-1638000923 c:\users\gabri\documents\compiler\metroid_thingy\lib\dstuff\ds_vector.h
+1638500001 c:\users\gabri\documents\compiler\metroid_thingy\lib\dstuff\ds_vector.h
 	<math.h>
 	<intrin.h>
 
@@ -66,7 +66,7 @@
 	"ds_list.h"
 	<stdint.h>
 
-1638250901 c:\users\gabri\documents\compiler\metroid_thingy\lib\dstuff\ds_path.h
+1638500001 c:\users\gabri\documents\compiler\metroid_thingy\lib\dstuff\ds_path.h
 	"ds_path.h"
 	<string.h>
 	<limits.h>

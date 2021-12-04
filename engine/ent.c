@@ -528,6 +528,7 @@ struct e_collider_t *e_AllocCollider(struct p_col_def_t *col_def, struct e_entit
     mat3_t_mul(&entity_orientation, &offset_orientation, &entity_orientation);
 
     component->collider = p_CreateCollider(col_def, &entity_position, &entity_orientation);
+    component->collider->user_pointer = component;
     mat3_t_transpose(&component->offset_rotation, &component->offset_rotation);
 
     return component;
@@ -727,6 +728,19 @@ void e_RotateEntity(struct e_entity_t *entity, mat3_t *rotation)
             mat3_t_mul(&entity->node->orientation, &entity->node->orientation, rotation);
         }
     }
+}
+
+struct e_entity_t *e_Raycast(vec3_t *from, vec3_t *to, float *time)
+{
+    struct p_collider_t *collider = p_Raycast(from, to, time);
+
+    if(collider && collider->user_pointer)
+    {
+        struct e_collider_t *entity_collider = (struct e_collider_t *)collider->user_pointer;
+        return entity_collider->entity;
+    }
+
+    return NULL;
 }
 
 void e_UpdateEntityNode(struct e_node_t *local_transform, mat4_t *parent_transform)

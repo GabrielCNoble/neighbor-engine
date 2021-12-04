@@ -91,15 +91,15 @@ void ed_l_PlacementCrosshair(uint32_t just_changed);
 
 void ed_LevelEditorBrushBox(uint32_t just_changed);
 
-void ed_LevelEditorPickObjectOrWidget(uint32_t just_changed);
+void ed_l_PickObjectOrWidget(uint32_t just_changed);
 
-void ed_LevelEditorPickObject(uint32_t just_changed);
+void ed_l_PickObject(uint32_t just_changed);
 
 void ed_l_PlaceEntityAtCursor(uint32_t just_changed);
 
 void ed_l_PlaceLightAtCursor(uint32_t just_changed);
 
-void ed_LevelEditorTransformSelections(uint32_t just_changed);
+void ed_l_TransformSelections(uint32_t just_changed);
 
 void ed_SerializeLevel(void **level_buffer, size_t *buffer_size, uint32_t serialize_brushes);
 

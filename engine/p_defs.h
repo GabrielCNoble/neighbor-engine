@@ -98,8 +98,9 @@ enum P_COLLIDER_FLAGS
     vec3_t position;                        \
     void *rigid_body;                       \
     uint32_t index;                         \
-    uint32_t type                           \
-//    uint16_t flags
+    uint32_t type;                          \
+    void *user_pointer                      \
+
 
 
 struct p_collider_t
@@ -115,6 +116,8 @@ struct p_static_collider_t
 struct p_dynamic_collider_t
 {
     P_BASE_COLLIDER_FIELDS;
+    vec3_t linear_velocity;
+    vec3_t angular_velocity;
     float mass;
 };
 

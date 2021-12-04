@@ -11,11 +11,19 @@ enum ED_LEVEL_EDIT_MODES
     ED_LEVEL_EDIT_MODE_LAST
 };
 
-enum ED_LEVEL_MANIP_MODES
+enum ED_L_TRANSFORM_TYPES
 {
-    ED_LEVEL_MANIP_MODE_TRANSLATION = 0,
-    ED_LEVEL_MANIP_MODE_ROTATION,
-    ED_LEVEL_MANIP_MODE_SCALE,
+    ED_L_TRANSFORM_TYPE_TRANSLATION = 0,
+    ED_L_TRANSFORM_TYPE_ROTATION,
+    ED_L_TRANSFORM_TYPE_SCALE,
+    ED_L_TRANSFORM_TYPE_LAST
+};
+
+enum ED_L_TRANSFORM_MODES
+{
+    ED_L_TRANSFORM_MODE_WORLD = 0,
+    ED_L_TRANSFORM_MODE_LOCAL = 1,
+    ED_L_TRANSFORM_MODE_LAST
 };
 
 enum ED_LEVEL_SECONDARY_CLICK_FUNCS
@@ -91,7 +99,9 @@ struct ed_level_state_t
 
     struct
     {
-        uint32_t mode;
+        uint32_t transform_type;
+        uint32_t transform_mode;
+        uint32_t space;
         uint32_t visible;
         float prev_angle;
         vec3_t start_pos;

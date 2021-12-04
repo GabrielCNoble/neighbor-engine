@@ -330,7 +330,7 @@ struct p_collider_t *p_CreateCollider(struct p_col_def_t *col_def, vec3_t *posit
     btRigidBody::btRigidBodyConstructionInfo info(mass, motion_state, collision_shape, inertia_tensor);
     btRigidBody *rigid_body = new btRigidBody(info);
     collider->rigid_body = rigid_body;
-
+    rigid_body->setUserPointer(collider);
     p_dynamics_world->addRigidBody(rigid_body);
 
     switch(col_def->type)
@@ -501,6 +501,47 @@ void p_TransformCollider(struct p_collider_t *collider, vec3_t *translation, mat
         vec3_t_add(&position, translation, &collider->position);
         mat3_t_mul(&orientation, &collider->orientation, rotation);
         p_SetColliderTransform(collider, &position, &orientation);
+    }
+}
+
+void p_SetColliderVelocity(struct p_collider_t *collider, vec3_t *linear_velocity, vec3_t *angular_velocity)
+{
+    if(collider)
+    {
+        btRigidBody *rigid_body = (btRigidBody *)collider->rigid_body;
+        rigid_body->activate();
+
+        if(linear_velocity)
+        {
+            rigid_body->setLinearVelocity(btVector3(linear_velocity->x, linear_velocity->y, linear_velocity->z));
+        }
+
+        if(angular_velocity)
+        {
+            rigid_body->setAngularVelocity(btVector3(angular_velocity->x, angular_velocity->y, angular_velocity->z));
+        }
+    }
+}
+
+void p_ApplyForce(struct p_collider_t *collider, vec3_t *force, vec3_t *relative_pos)
+{
+    if(collider)
+    {
+        btRigidBody *rigid_body = (btRigidBody *)collider->rigid_body;
+        rigid_body->activate();
+        rigid_body->applyForce(btVector3(force->x, force->x, force->z),
+                               btVector3(relative_pos->x, relative_pos->y, relative_pos->z));
+    }
+}
+
+void p_ApplyImpulse(struct p_collider_t *collider, vec3_t *impulse, vec3_t *relative_pos)
+{
+    if(collider)
+    {
+        btRigidBody *rigid_body = (btRigidBody *)collider->rigid_body;
+        rigid_body->activate();
+        rigid_body->applyImpulse(btVector3(impulse->x, impulse->x, impulse->z),
+                               btVector3(relative_pos->x, relative_pos->y, relative_pos->z));
     }
 }
 
@@ -690,6 +731,22 @@ void p_JumpCharacterCollider(struct p_character_collider_t *collider)
     }
 }
 
+struct p_collider_t *p_Raycast(vec3_t *from, vec3_t *to, float *time)
+{
+    btVector3 ray_from(from->x, from->y, from->z);
+    btVector3 ray_to(to->x, to->y, to->z);
+    btCollisionWorld::ClosestRayResultCallback ray_test(ray_from, ray_to);
+
+    p_dynamics_world->rayTest(ray_from, ray_to, ray_test);
+    if(ray_test.m_closestHitFraction < 1.0)
+    {
+        *time = ray_test.m_closestHitFraction;
+        btRigidBody *rigid_body = (btRigidBody *)ray_test.m_collisionObject;
+        return (struct p_collider_t *)rigid_body->getUserPointer();
+    }
+
+    return NULL;
+}
 
 void p_StepPhysics(float delta_time)
 {
@@ -705,6 +762,10 @@ void p_StepPhysics(float delta_time)
         if(collider)
         {
             p_UpdateColliderTransform(collider);
+            struct p_dynamic_collider_t *dynamic_collider = (struct p_dynamic_collider_t *)collider;
+            btRigidBody *rigid_body = (btRigidBody *)collider->rigid_body;
+            btVector3 linear_velocity = rigid_body->getLinearVelocity();
+            dynamic_collider->linear_velocity = vec3_t_c(linear_velocity[0], linear_velocity[1], linear_velocity[2]);
         }
     }
 

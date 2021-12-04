@@ -50,6 +50,18 @@ extern uint32_t r_height;
 extern float r_fov;
 extern float r_z_near;
 
+char *ed_l_transform_type_texts[] =
+{
+    [ED_L_TRANSFORM_TYPE_TRANSLATION] = "Translation",
+    [ED_L_TRANSFORM_TYPE_ROTATION] = "Rotation"
+};
+
+char *ed_l_transform_mode_texts[] =
+{
+    [ED_L_TRANSFORM_MODE_WORLD] = "World",
+    [ED_L_TRANSFORM_MODE_LOCAL] = "Local",
+};
+
 float ed_w_linear_snap_values[] =
 {
     0.0,
@@ -160,9 +172,10 @@ void ed_l_Init(struct ed_editor_t *editor)
 
     mat4_t_identity(&ed_level_state.manipulator.transform);
     ed_level_state.manipulator.linear_snap = 0.25;
-    ed_level_state.manipulator.mode = ED_LEVEL_MANIP_MODE_TRANSLATION;
-    ed_level_state.manipulator.widgets[ED_LEVEL_MANIP_MODE_TRANSLATION] = ed_CreateWidget(NULL);
-    struct ed_widget_t *widget = ed_level_state.manipulator.widgets[ED_LEVEL_MANIP_MODE_TRANSLATION];
+    ed_level_state.manipulator.transform_type = ED_L_TRANSFORM_TYPE_TRANSLATION;
+//    ed_level_state.manipulator.transform_space = ED_L_TRANSFORM_SPACE_WORLD;
+    ed_level_state.manipulator.widgets[ED_L_TRANSFORM_TYPE_TRANSLATION] = ed_CreateWidget(NULL);
+    struct ed_widget_t *widget = ed_level_state.manipulator.widgets[ED_L_TRANSFORM_TYPE_TRANSLATION];
     widget->setup_ds_fn = ed_w_ManipulatorWidgetSetupPickableDrawState;
 
     struct ed_pickable_t *translation_axis;
@@ -220,8 +233,8 @@ void ed_l_Init(struct ed_editor_t *editor)
 
 
 
-    ed_level_state.manipulator.widgets[ED_LEVEL_MANIP_MODE_ROTATION] = ed_CreateWidget(NULL);
-    widget = ed_level_state.manipulator.widgets[ED_LEVEL_MANIP_MODE_ROTATION];
+    ed_level_state.manipulator.widgets[ED_L_TRANSFORM_TYPE_ROTATION] = ed_CreateWidget(NULL);
+    widget = ed_level_state.manipulator.widgets[ED_L_TRANSFORM_TYPE_ROTATION];
     widget->setup_ds_fn = ed_w_ManipulatorWidgetSetupPickableDrawState;
 
     struct ed_pickable_t *rotation_axis;
@@ -749,18 +762,30 @@ void ed_w_UpdateUI()
     igSetNextWindowPos((ImVec2){0.0, r_height}, 0, (ImVec2){0, 1});
     if(igBegin("Footer window", NULL, window_flags))
     {
-        char *transform_mode_text = NULL;
+//        char *transform_type_text = NULL;
+//        char *transform_mode_text = NULL;
 
-        switch(ed_level_state.manipulator.mode)
-        {
-            case ED_LEVEL_MANIP_MODE_TRANSLATION:
-                transform_mode_text = "Translation";
-            break;
-
-            case ED_LEVEL_MANIP_MODE_ROTATION:
-                transform_mode_text = "Rotation";
-            break;
-        }
+//        switch(ed_level_state.manipulator.transform_type)
+//        {
+//            case ED_L_TRANSFORM_TYPE_TRANSLATION:
+//                transform_type_text = "Translation";
+//            break;
+//
+//            case ED_L_TRANSFORM_TYPE_ROTATION:
+//                transform_type_text = "Rotation";
+//            break;
+//        }
+//
+//        switch(ed_level_state.manipulator.transform_mode)
+//        {
+//            case ED_L_TRANSFORM_MODE_WORLD:
+//                transform_mode_text = "World";
+//            break;
+//
+//            case ED_L_TRANSFORM_MODE_LOCAL:
+//                transform_mode_text = "Local";
+//            break;
+//        }
 
 
 //        if(igBeginChild_Str("left_side", (ImVec2){0, 24}, 0, 0))
@@ -781,15 +806,30 @@ void ed_w_UpdateUI()
                     ed_level_state.pickables.selections_window_open = !ed_level_state.pickables.selections_window_open;
                 }
 
+                uint32_t transform_type = ed_level_state.manipulator.transform_type;
+                uint32_t transform_mode = ed_level_state.manipulator.transform_mode;
+
                 igTableNextColumn();
-                igText("Manipulator: %s  ", transform_mode_text);
+                igText("Manipulator: %s", ed_l_transform_type_texts[transform_type]);
+                igSameLine(0, -1);
+                if(igBeginCombo("##tranfsorm_mode", ed_l_transform_mode_texts[transform_mode], 0))
+                {
+                    for(uint32_t mode = ED_L_TRANSFORM_MODE_WORLD; mode < ED_L_TRANSFORM_MODE_LAST; mode++)
+                    {
+                        if(igSelectable_Bool(ed_l_transform_mode_texts[mode], 0, 0, (ImVec2){0, 0}))
+                        {
+                            ed_level_state.manipulator.transform_mode = mode;
+                        }
+                    }
+                    igEndCombo();
+                }
                 igTableNextColumn();
 
                 char snap_label[32];
                 char snap_preview[32];
                 igText("Snap: ");
                 igSameLine(0.0, -1.0);
-                if(ed_level_state.manipulator.mode == ED_LEVEL_MANIP_MODE_ROTATION)
+                if(ed_level_state.manipulator.transform_type == ED_L_TRANSFORM_TYPE_ROTATION)
                 {
                     sprintf(snap_preview, "%0.4f deg", ed_level_state.manipulator.angular_snap * 180.0);
                     igSetNextItemWidth(120.0);
@@ -874,98 +914,6 @@ void ed_w_UpdateUI()
 //                igEndTable();
             }
             igPopStyleVar(1);
-//        }
-//        igEndChild();
-
-//        igSameLine(0.0, -1.0);
-//
-//        if(igBeginChild_Str("right_side", (ImVec2){0, 24}, 0, 0))
-//        {
-//            if(igBeginTabBar("Tools", 0))
-//            {
-//                if(igBeginTabItem("Brush", NULL, 0))
-//                {
-//                    ed_level_state.pickables.secondary_click_function = ED_LEVEL_SECONDARY_CLICK_FUNC_BRUSH;
-//                    igEndTabItem();
-//                }
-//                if(igBeginTabItem("Light", NULL, 0))
-//                {
-//                    ed_level_state.pickables.secondary_click_function = ED_LEVEL_SECONDARY_CLICK_FUNC_BRUSH;
-//                    igEndTabItem();
-//                }
-//                igEndTabBar();
-//            }
-//        }
-//        igEndChild();
-
-
-//        if(igButton("Brush", (ImVec2){0.0, 20.0}))
-//        {
-//            ed_level_state.pickables.secondary_click_function = ED_LEVEL_SECONDARY_CLICK_FUNC_BRUSH;
-//        }
-//
-//        igSameLine(0.0, -1.0);
-//
-//        if(igButton("Light", (ImVec2){0.0, 20.0}))
-//        {
-//            ed_level_state.pickables.secondary_click_function = ED_LEVEL_SECONDARY_CLICK_FUNC_LIGHT;
-//        }
-
-//        struct ds_list_t *selections = &ed_level_state.pickables.selections;
-
-//        if(selections->cursor)
-//        {
-//            char node_label[32];
-//
-//            igSetNextWindowSizeConstraints((ImVec2){-1.0, 20.0}, (ImVec2){-1.0, 250.0}, NULL, NULL);
-//            if(igBeginChild_Str("Selections", (ImVec2){0.0, 0.0}, 0, ImGuiWindowFlags_))
-//            {
-//                for(uint32_t selection_index = 0; selection_index < selections->cursor; selection_index++)
-//                {
-//                    struct ed_pickable_t *pickable = *(struct ed_pickable_t **)ds_list_get_element(selections, selection_index);
-//                    char *pickable_label = "Object";
-//
-//                    switch(pickable->type)
-//                    {
-//                        case ED_PICKABLE_TYPE_BRUSH:
-//                            pickable_label = "Brush";
-//                        break;
-//
-//                        case ED_PICKABLE_TYPE_LIGHT:
-//                            pickable_label = "Light";
-//                        break;
-//
-//                        case ED_PICKABLE_TYPE_ENTITY:
-//                            pickable_label = "Entity";
-//                        break;
-//
-//                        case ED_PICKABLE_TYPE_FACE:
-//                            pickable_label = "Face";
-//                        break;
-//
-//                        case ED_PICKABLE_TYPE_EDGE:
-//                            pickable_label = "Edge";
-//                        break;
-//
-//                        case ED_PICKABLE_TYPE_VERT:
-//                            pickable_label = "Vertex";
-//                        break;
-//                    }
-//
-//                    sprintf(node_label, "%s##%d", pickable_label, selection_index);
-//
-//                    if(igTreeNode_Str(node_label))
-//                    {
-//                        igText("blah");
-//                        igTreePop();
-//                    }
-//                }
-//            }
-//
-//            igEndChild();
-//        }
-
-//        igPopStyleVar(1);
     }
     igEnd();
     igPopStyleVar(1);
@@ -1001,11 +949,13 @@ void ed_w_UpdateManipulator()
 {
     struct ds_list_t *selections = &ed_level_state.pickables.selections;
     ed_level_state.manipulator.visible = selections->cursor;
+    mat4_t *transform = &ed_level_state.manipulator.transform;
 
     if(ed_level_state.manipulator.visible)
     {
-        mat4_t_identity(&ed_level_state.manipulator.transform);
-        vec3_t *translation = &ed_level_state.manipulator.transform.rows[3].xyz;
+        mat4_t_identity(transform);
+        vec3_t *translation = &transform->rows[3].xyz;
+
         for(uint32_t selection_index = 0; selection_index < selections->cursor; selection_index++)
         {
             struct ed_pickable_t *pickable = *(struct ed_pickable_t **)ds_list_get_element(selections, selection_index);
@@ -1014,26 +964,13 @@ void ed_w_UpdateManipulator()
 
         vec3_t_div(translation, translation, (float)selections->cursor);
 
-//        printf("manip pos: [%f %f %f]\n", translation->x, translation->y, translation->z);
-
-
-//        mat4_t view_projection_matrix;
-//        struct ed_widget_t *manipulator = ed_level_state.manipulator.widgets[ed_level_state.manipulator.mode];
-//
-//        manipulator->mvp_mat_fn(&view_projection_matrix, &ed_level_state.manipulator.transform);
-//        vec3_t manipulator_min = vec3_t_c(FLT_MAX, FLT_MAX, FLT_MAX);
-//        vec3_t manipulator_max = vec3_t_c(-FLT_MAX, -FLT_MAX, -FLT_MAX);
-//
-//        for(uint32_t pickable_index = 0; pickable_index < manipulator->pickables.cursor; pickable_index++)
-//        {
-//            struct ed_pickable_t *pickable = ed_GetPickableOnList(pickable_index, &manipulator->pickables);
-//
-//            if(pickable)
-//            {
-////                vec3_t min = pickable->mo
-//                vec3_t corners[8];
-//            }
-//        }
+        if(selections->cursor == 1 && ed_level_state.manipulator.transform_mode == ED_L_TRANSFORM_MODE_LOCAL)
+        {
+            struct ed_pickable_t *pickable = *(struct ed_pickable_t **)ds_list_get_element(selections, 0);
+            transform->rows[0].xyz = pickable->transform.rows[0].xyz;
+            transform->rows[1].xyz = pickable->transform.rows[1].xyz;
+            transform->rows[2].xyz = pickable->transform.rows[2].xyz;
+        }
     }
 }
 
@@ -1451,7 +1388,7 @@ void ed_LevelEditorDrawManipulator()
 {
     if(ed_level_state.manipulator.visible)
     {
-        struct ed_widget_t *manipulator = ed_level_state.manipulator.widgets[ed_level_state.manipulator.mode];
+        struct ed_widget_t *manipulator = ed_level_state.manipulator.widgets[ed_level_state.manipulator.transform_type];
         ed_DrawWidget(manipulator, &ed_level_state.manipulator.transform);
     }
 }
@@ -1841,12 +1778,12 @@ void ed_LevelEditorIdle(uint32_t just_changed)
 
     if(in_GetKeyState(SDL_SCANCODE_G) & IN_KEY_STATE_JUST_PRESSED)
     {
-        ed_level_state.manipulator.mode = ED_LEVEL_MANIP_MODE_TRANSLATION;
+        ed_level_state.manipulator.transform_type = ED_L_TRANSFORM_TYPE_TRANSLATION;
     }
 
     else if(in_GetKeyState(SDL_SCANCODE_R) & IN_KEY_STATE_JUST_PRESSED)
     {
-        ed_level_state.manipulator.mode = ED_LEVEL_MANIP_MODE_ROTATION;
+        ed_level_state.manipulator.transform_type = ED_L_TRANSFORM_TYPE_ROTATION;
     }
 
 //    else if(in_GetKeyState(SDL_SCANCODE_L) & IN_KEY_STATE_JUST_PRESSED)
@@ -1913,7 +1850,7 @@ void ed_LevelEditorRightClick(uint32_t just_changed)
     {
         case ED_LEVEL_SECONDARY_CLICK_FUNC_BRUSH:
             context_data->pickables.ignore_types = ED_PICKABLE_OBJECT_MASK;
-            ed_LevelEditorPickObjectOrWidget(just_changed);
+            ed_l_PickObjectOrWidget(just_changed);
         break;
 
 //        case ED_LEVEL_SECONDARY_CLICK_FUNC_LIGHT:
@@ -2006,7 +1943,7 @@ void ed_LevelEditorLeftClick(uint32_t just_changed)
 {
     struct ed_level_state_t *context_data = &ed_level_state;
     context_data->pickables.ignore_types = ED_PICKABLE_BRUSH_PART_MASK;
-    ed_LevelEditorPickObjectOrWidget(just_changed);
+    ed_l_PickObjectOrWidget(just_changed);
 }
 
 void ed_LevelEditorBrushBox(uint32_t just_changed)
@@ -2185,7 +2122,7 @@ void ed_LevelEditorBrushBox(uint32_t just_changed)
     }
 }
 
-void ed_LevelEditorPickObjectOrWidget(uint32_t just_changed)
+void ed_l_PickObjectOrWidget(uint32_t just_changed)
 {
     struct ed_level_state_t *context_data = &ed_level_state;
     int32_t mouse_x;
@@ -2199,7 +2136,7 @@ void ed_LevelEditorPickObjectOrWidget(uint32_t just_changed)
 
         if(context_data->pickables.selections.cursor)
         {
-            struct ed_widget_t *manipulator = context_data->manipulator.widgets[context_data->manipulator.mode];
+            struct ed_widget_t *manipulator = context_data->manipulator.widgets[context_data->manipulator.transform_type];
             context_data->pickables.last_selected = ed_SelectWidget(mouse_x, mouse_y, manipulator, &context_data->manipulator.transform);
         }
     }
@@ -2208,7 +2145,7 @@ void ed_LevelEditorPickObjectOrWidget(uint32_t just_changed)
     {
         if(context_data->pickables.last_selected->type == ED_PICKABLE_TYPE_WIDGET)
         {
-            ed_SetNextState(ed_LevelEditorTransformSelections);
+            ed_SetNextState(ed_l_TransformSelections);
         }
         else
         {
@@ -2217,11 +2154,11 @@ void ed_LevelEditorPickObjectOrWidget(uint32_t just_changed)
     }
     else
     {
-        ed_SetNextState(ed_LevelEditorPickObject);
+        ed_SetNextState(ed_l_PickObject);
     }
 }
 
-void ed_LevelEditorPickObject(uint32_t just_changed)
+void ed_l_PickObject(uint32_t just_changed)
 {
     struct ed_level_state_t *context_data = &ed_level_state;
     uint32_t button_state = in_GetMouseButtonState(SDL_BUTTON_LEFT) | in_GetMouseButtonState(SDL_BUTTON_RIGHT);
@@ -2299,14 +2236,14 @@ void ed_l_PlaceLightAtCursor(uint32_t just_changed)
     ed_SetNextState(ed_LevelEditorIdle);
 }
 
-void ed_LevelEditorTransformSelections(uint32_t just_changed)
+void ed_l_TransformSelections(uint32_t just_changed)
 {
     struct ed_level_state_t *context_data = &ed_level_state;
     uint32_t mouse_state = in_GetMouseButtonState(SDL_BUTTON_LEFT);
 
     if(mouse_state & IN_KEY_STATE_PRESSED)
     {
-        struct ed_widget_t *manipulator = context_data->manipulator.widgets[context_data->manipulator.mode];
+        struct ed_widget_t *manipulator = context_data->manipulator.widgets[context_data->manipulator.transform_type];
 
         uint32_t axis_index = context_data->pickables.last_selected->index;
         mat4_t *manipulator_transform = &ed_level_state.manipulator.transform;
@@ -2327,9 +2264,9 @@ void ed_LevelEditorTransformSelections(uint32_t just_changed)
         r_i_SetViewProjectionMatrix(NULL);
         r_i_SetModelMatrix(NULL);
 
-        switch(context_data->manipulator.mode)
+        switch(context_data->manipulator.transform_type)
         {
-            case ED_LEVEL_MANIP_MODE_TRANSLATION:
+            case ED_L_TRANSFORM_TYPE_TRANSLATION:
             {
                 vec3_t manipulator_cam_vec;
                 vec3_t_sub(&manipulator_cam_vec, &r_camera_matrix.rows[3].xyz, &manipulator_transform->rows[3].xyz);
@@ -2363,9 +2300,6 @@ void ed_LevelEditorTransformSelections(uint32_t just_changed)
                     }
                 }
 
-
-//                r_i_DrawLine(&context_data->manipulator.start_pos, &manipulator_transform->rows[3].xyz, &axis_color[axis_index], 2.0);
-//
                 int32_t window_x;
                 int32_t window_y;
                 vec3_t disp;
@@ -2387,7 +2321,7 @@ void ed_LevelEditorTransformSelections(uint32_t just_changed)
             }
             break;
 
-            case ED_LEVEL_MANIP_MODE_ROTATION:
+            case ED_L_TRANSFORM_TYPE_ROTATION:
             {
                 ed_w_IntersectPlaneFromCamera(mouse_x, mouse_y, &manipulator_transform->rows[3].xyz, &axis_vec, &intersection);
 

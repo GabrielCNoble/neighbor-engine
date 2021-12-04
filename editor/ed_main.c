@@ -15,46 +15,23 @@
 #include "../engine/input.h"
 #include "../engine/gui.h"
 #include "../engine/r_draw.h"
+#include <Shlobj.h>
+
+#define WINAPI_FAMILY WINAPI_FAMILY_DESKTOP_APP
+#define INITGUID
+#include <knownfolders.h>
+#include <combaseapi.h>
 #include <limits.h>
 #include <string.h>
 #include <float.h>
-
-//struct ds_slist_t ed_brushes;
-//uint32_t ed_global_brush_vert_count;
-//uint32_t ed_global_brush_index_count;
-//struct ds_list_t ed_global_brush_batches;
-
-//struct ds_slist_t ed_objects;
+#include <stdlib.h>
 
 struct ed_context_t *ed_active_context;
-//struct ed_context_t ed_contexts[ED_CONTEXT_LAST];
 struct ed_editor_t ed_editors[ED_EDITOR_LAST];
 struct ed_editor_t *ed_active_editor;
-//uint32_t ed_grid_vert_count;
-//struct r_vert_t *ed_grid;
-//struct r_i_verts_t *ed_grid;
 struct ds_slist_t ed_polygons;
 struct ds_slist_t ed_bsp_nodes;
-
-//struct r_shader_t *ed_center_grid_shader;
-//struct r_shader_t *ed_picking_shader;
-//uint32_t ed_picking_shader_type_uniform;
-//uint32_t ed_picking_shader_index_uniform;
-
-//struct r_shader_t *ed_outline_shader;
-//uint32_t ed_outline_shader_color_uniform;
-
-
-
-//float ed_camera_pitch;
-//float ed_camera_yaw;
-//vec3_t ed_camera_pos;
-//uint32_t ed_picking_framebuffer;
-//uint32_t ed_picking_depth_texture;
-//uint32_t ed_picking_object_texture;
 uint32_t ed_show_renderer_info_window;
-
-//struct r_model_t *ed_translation_widget_model;
 
 extern uint32_t g_game_state;
 extern mat4_t r_camera_matrix;
@@ -68,62 +45,11 @@ extern uint32_t r_index_buffer;
 extern struct ds_slist_t r_lights[];
 extern uint32_t r_prev_draw_call_count;
 
-//extern struct r_renderer_stats_t r_renderer_stats;
 extern struct r_renderer_state_t r_renderer_state;
-
-
-//#define ED_GRID_DIVS 301
-//#define ED_GRID_QUAD_SIZE 500.0
-
-//struct ed_state_t ed_world_context_states[] =
-//{
-//    [ED_WORLD_CONTEXT_STATE_IDLE] = ed_WorldContextIdleState,
-//    [ED_WORLD_CONTEXT_STATE_LEFT_CLICK] = ed_WorldContextLeftClickState,
-//    [ED_WORLD_CONTEXT_STATE_BRUSH_BOX] = ed_WorldContextStateBrushBox,
-//    [ED_WORLD_CONTEXT_STATE_CREATE_BRUSH] = ed_WorldContextCreateBrush,
-//    [ED_WORLD_CONTEXT_STATE_PROCESS_SELECTION] = ed_WorldContextProcessSelection,
-//};
-
-//struct ed_world_context_data_t ed_world_context_data;
-
-//struct ed_explorer_ext_filter_t
-//{
-//    char extension[8];
-//};
-//
-//struct ed_explorer_drive_t
-//{
-//    char drive[4];
-//};
-//
-//enum ED_EDITOR_EXPLORER_MODE
-//{
-//    ED_EDITOR_EXPLORER_MODE_OPEN = 0,
-//    ED_EDITOR_EXPLORER_MODE_SAVE,
-//};
-
 struct ed_explorer_state_t ed_explorer_state;
-
-//uint32_t ed_explorer_open = 0;
-
-//void test_load_callback(char *path, char *file)
-//{
-//    printf("load file %s/%s\n", path, file);
-//}
-//
-//void test_save_callback(char *path, char *file)
-//{
-//    printf("save file %s/%s\n", path, file);
-//}
 
 void ed_Init()
 {
-//    SDL_DisplayMode desktop_display_mode;
-
-//    ed_editors = ds_slist_create(sizeof(struct ed_editor_t), 8);
-
-//    SDL_GetDesktopDisplayMode(0, &desktop_display_mode);
-
     ed_PickingInit();
 
     ed_editors[ED_EDITOR_LEVEL] = (struct ed_editor_t ){
@@ -178,15 +104,26 @@ void ed_Init()
     ed_explorer_state.ext_filters = ds_list_create(sizeof(struct ed_explorer_ext_filter_t), 64);
     ed_explorer_state.drives = ds_list_create(sizeof(struct ed_explorer_drive_t), 8);
 
-//    strcpy(ed_explorer_state.current_path, "C:\\Users\\gabri\\Documents");
 
-    ed_ChangeExplorerPath("C:/Users/gabri/Documents");
+    PWSTR folder_path;
+
+    HRESULT result = SHGetKnownFolderPath(FOLDERID_Documents, 0, NULL, &folder_path);
+
+    if(SUCCEEDED(result))
+    {
+        char path[PATH_MAX];
+        wcstombs(path, folder_path, PATH_MAX - 1);
+        CoTaskMemFree(folder_path);
+        ds_path_format_path(path, path, PATH_MAX);
+        ed_ChangeExplorerPath(path);
+    }
+    else
+    {
+        ed_ChangeExplorerPath("C:/Users/gabri/Documents");
+    }
+
     ed_EnumerateExplorerDrives();
-//    ed_SetExplorerLoadCallback(test_load_callback);
-//    ed_SetExplorerSaveCallback(test_save_callback);
-
     in_SetMouseRelative(0);
-
     ed_SwitchToEditor(ed_editors + ED_EDITOR_LEVEL);
 }
 

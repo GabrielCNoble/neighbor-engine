@@ -97,8 +97,10 @@ void ed_PickableModelViewProjectionMatrix(struct ed_pickable_t *pickable, mat4_t
     if(pickable->draw_transf_flags & ED_PICKABLE_DRAW_TRANSF_FLAG_FIXED_CAM_DIST)
     {
         transform = pickable->transform;
-
-        *model_view_projection_matrix = r_camera_matrix;
+        mat4_t parent_rotation = *parent_transform;
+        parent_rotation.rows[3].xyz = vec3_t_c(0.0, 0.0, 0.0);
+        mat4_t_transpose(&parent_rotation, &parent_rotation);
+        mat4_t_mul(model_view_projection_matrix, &r_camera_matrix, &parent_rotation);
         vec3_t_sub(&model_view_projection_matrix->rows[3].xyz, &model_view_projection_matrix->rows[3].xyz, &parent_transform->rows[3].xyz);
         vec3_t_normalize(&model_view_projection_matrix->rows[3].xyz, &model_view_projection_matrix->rows[3].xyz);
         vec3_t_mul(&model_view_projection_matrix->rows[3].xyz, &model_view_projection_matrix->rows[3].xyz, pickable->camera_distance);

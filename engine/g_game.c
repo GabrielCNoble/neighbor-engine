@@ -13,7 +13,7 @@ void g_GameInit()
     g_entities[G_ENTITY_TYPE_INTEL] = ds_slist_create(sizeof(struct g_intel_t), 32);
     g_spawn_points = ds_list_create(sizeof(struct g_spawn_point_t), 8);
 
-    g_PlayerInit();
+//    g_PlayerInit();
     g_EnemyInit();
 }
 

@@ -53,6 +53,8 @@ void e_TranslateEntity(struct e_entity_t *entity, vec3_t *translation);
 
 void e_RotateEntity(struct e_entity_t *entity, mat3_t *rotation);
 
+struct e_entity_t *e_Raycast(vec3_t *from, vec3_t *to, float *time);
+
 
 void e_UpdateEntityNode(struct e_node_t *local_transform, mat4_t *parent_transform);
 

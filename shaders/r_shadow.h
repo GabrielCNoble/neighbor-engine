@@ -34,9 +34,9 @@ uniform usamplerCube r_indirect_texture;
 uniform sampler2D r_tex_shadow_atlas;
 uniform vec2 r_point_proj_params;
 
-uniform r_shadow_maps
+layout(std430) buffer r_shadow_maps
 {
-    r_shadow_map_t shadow_maps[1];
+    r_shadow_map_t shadow_maps[];
 };
 
 float r_CubeShadow(uint shadow_map, vec3 direction)

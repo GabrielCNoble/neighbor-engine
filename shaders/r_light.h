@@ -21,19 +21,19 @@ struct r_index_t
     uint index;
 };
 
-uniform r_point_lights
+layout(std430) buffer r_point_lights
 {
-    r_point_data_t point_lights[8192];
+    r_point_data_t point_lights[];
 };
 
-uniform r_spot_lights
+layout(std430) buffer r_spot_lights
 {
-    r_spot_data_t spot_lights[8192];
+    r_spot_data_t spot_lights[];
 };
 
-uniform r_light_indices
+layout(std430) buffer r_light_indices
 {
-    r_index_t indices[8192];
+    r_index_t indices[];
 };
 
 #endif

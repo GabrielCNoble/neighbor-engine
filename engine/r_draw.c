@@ -124,29 +124,29 @@ void r_BeginFrame()
 
     if(r_point_light_buffer_cursor)
     {
-        glBindBuffer(GL_UNIFORM_BUFFER, r_point_light_data_uniform_buffer);
-        glBufferSubData(GL_UNIFORM_BUFFER, 0, r_point_light_buffer_cursor * sizeof(struct r_point_data_t), r_point_light_buffer);
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, r_point_light_data_uniform_buffer);
+        glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, r_point_light_buffer_cursor * sizeof(struct r_point_data_t), r_point_light_buffer);
     }
 
     if(r_spot_light_buffer_cursor)
     {
-        glBindBuffer(GL_UNIFORM_BUFFER, r_spot_light_data_uniform_buffer);
-        glBufferSubData(GL_UNIFORM_BUFFER, 0, r_spot_light_buffer_cursor * sizeof(struct r_spot_data_t), r_spot_light_buffer);
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, r_spot_light_data_uniform_buffer);
+        glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, r_spot_light_buffer_cursor * sizeof(struct r_spot_data_t), r_spot_light_buffer);
     }
 
-    glBindBuffer(GL_UNIFORM_BUFFER, r_light_index_uniform_buffer);
-    glBufferSubData(GL_UNIFORM_BUFFER, 0, R_MAX_CLUSTER_LIGHTS * R_CLUSTER_COUNT * sizeof(uint32_t), r_light_index_buffer);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, r_light_index_uniform_buffer);
+    glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, R_MAX_CLUSTER_LIGHTS * R_CLUSTER_COUNT * sizeof(uint32_t), r_light_index_buffer);
 
-    glBindBuffer(GL_UNIFORM_BUFFER, r_shadow_map_uniform_buffer);
-    glBufferSubData(GL_UNIFORM_BUFFER, 0, r_shadow_map_buffer_cursor * sizeof(struct r_shadow_map_t), r_shadow_map_buffer);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, r_shadow_map_uniform_buffer);
+    glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, r_shadow_map_buffer_cursor * sizeof(struct r_shadow_map_t), r_shadow_map_buffer);
 
     glActiveTexture(GL_TEXTURE0 + R_CLUSTERS_TEX_UNIT);
     glBindTexture(GL_TEXTURE_3D, r_cluster_texture);
     glTexSubImage3D(GL_TEXTURE_3D, 0, 0, 0, 0, R_CLUSTER_ROW_WIDTH, R_CLUSTER_ROWS, R_CLUSTER_SLICES, GL_RGB_INTEGER, GL_UNSIGNED_INT, r_clusters);
-    glBindBufferBase(GL_UNIFORM_BUFFER, R_POINT_LIGHT_UNIFORM_BUFFER_BINDING, r_point_light_data_uniform_buffer);
-    glBindBufferBase(GL_UNIFORM_BUFFER, R_SPOT_LIGHT_UNIFORM_BUFFER_BINDING, r_spot_light_data_uniform_buffer);
-    glBindBufferBase(GL_UNIFORM_BUFFER, R_LIGHT_INDICES_UNIFORM_BUFFER_BINDING, r_light_index_uniform_buffer);
-    glBindBufferBase(GL_UNIFORM_BUFFER, R_SHADOW_INDICES_BUFFER_BINDING, r_shadow_map_uniform_buffer);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, R_POINT_LIGHT_UNIFORM_BUFFER_BINDING, r_point_light_data_uniform_buffer);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, R_SPOT_LIGHT_UNIFORM_BUFFER_BINDING, r_spot_light_data_uniform_buffer);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, R_LIGHT_INDICES_UNIFORM_BUFFER_BINDING, r_light_index_uniform_buffer);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, R_SHADOW_INDICES_BUFFER_BINDING, r_shadow_map_uniform_buffer);
 
     glActiveTexture(GL_TEXTURE0 + R_SHADOW_ATLAS_TEX_UNIT);
     glBindTexture(GL_TEXTURE_2D, r_shadow_atlas_texture);

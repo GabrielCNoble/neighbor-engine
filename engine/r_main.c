@@ -504,22 +504,22 @@ void r_Init()
     glTexImage3D(GL_TEXTURE_3D, 0, GL_RGB32UI, R_CLUSTER_ROW_WIDTH, R_CLUSTER_ROWS, R_CLUSTER_SLICES, 0, GL_RGB_INTEGER, GL_UNSIGNED_INT, NULL);
 
     glGenBuffers(1, &r_point_light_data_uniform_buffer);
-    glBindBuffer(GL_UNIFORM_BUFFER, r_point_light_data_uniform_buffer);
-    glBufferData(GL_UNIFORM_BUFFER, R_MAX_LIGHTS * sizeof(struct r_point_data_t), NULL, GL_DYNAMIC_DRAW);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, r_point_light_data_uniform_buffer);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, R_MAX_LIGHTS * sizeof(struct r_point_data_t), NULL, GL_DYNAMIC_DRAW);
 
     glGenBuffers(1, &r_spot_light_data_uniform_buffer);
-    glBindBuffer(GL_UNIFORM_BUFFER, r_spot_light_data_uniform_buffer);
-    glBufferData(GL_UNIFORM_BUFFER, R_MAX_LIGHTS * sizeof(struct r_spot_data_t), NULL, GL_DYNAMIC_DRAW);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, r_spot_light_data_uniform_buffer);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, R_MAX_LIGHTS * sizeof(struct r_spot_data_t), NULL, GL_DYNAMIC_DRAW);
 
     glGenBuffers(1, &r_light_index_uniform_buffer);
-    glBindBuffer(GL_UNIFORM_BUFFER, r_light_index_uniform_buffer);
-    glBufferData(GL_UNIFORM_BUFFER, R_CLUSTER_COUNT * R_MAX_CLUSTER_LIGHTS * sizeof(uint32_t), NULL, GL_DYNAMIC_DRAW);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, r_light_index_uniform_buffer);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, R_CLUSTER_COUNT * R_MAX_CLUSTER_LIGHTS * sizeof(uint32_t), NULL, GL_DYNAMIC_DRAW);
 
     width = R_SHADOW_MAP_ATLAS_WIDTH / R_SHADOW_BUCKET0_RES;
     height = R_SHADOW_MAP_ATLAS_HEIGHT / R_SHADOW_BUCKET0_RES;
     glGenBuffers(1, &r_shadow_map_uniform_buffer);
-    glBindBuffer(GL_UNIFORM_BUFFER, r_shadow_map_uniform_buffer);
-    glBufferData(GL_UNIFORM_BUFFER, sizeof(struct r_shadow_map_t) * R_MAX_LIGHTS * 6, NULL, GL_DYNAMIC_DRAW);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, r_shadow_map_uniform_buffer);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(struct r_shadow_map_t) * R_MAX_LIGHTS * 6, NULL, GL_DYNAMIC_DRAW);
 
     glGenTextures(1, &r_indirect_texture);
     glBindTexture(GL_TEXTURE_CUBE_MAP, r_indirect_texture);
@@ -2054,29 +2054,29 @@ struct r_shader_t *r_LoadShader(char *vertex_file_name, char *fragment_file_name
         shader->uniforms[uniform_index].location = glGetUniformLocation(shader_program, r_default_uniforms[uniform_index].name);
     }
 
-    uint32_t point_light_uniform_block = glGetUniformBlockIndex(shader_program, "r_point_lights");
-    uint32_t spot_light_uniform_block = glGetUniformBlockIndex(shader_program, "r_spot_lights");
-    uint32_t light_indices_uniform_block = glGetUniformBlockIndex(shader_program, "r_light_indices");
-    uint32_t shadow_indices_uniform_block = glGetUniformBlockIndex(shader_program, "r_shadow_maps");
+    uint32_t point_light_uniform_block = glGetProgramResourceIndex(shader_program, GL_SHADER_STORAGE_BLOCK, "r_point_lights");
+    uint32_t spot_light_uniform_block = glGetProgramResourceIndex(shader_program, GL_SHADER_STORAGE_BLOCK, "r_spot_lights");
+    uint32_t light_indices_uniform_block = glGetProgramResourceIndex(shader_program, GL_SHADER_STORAGE_BLOCK, "r_light_indices");
+    uint32_t shadow_indices_uniform_block = glGetProgramResourceIndex(shader_program, GL_SHADER_STORAGE_BLOCK, "r_shadow_maps");
 
     if(point_light_uniform_block != 0xffffffff)
     {
-        glUniformBlockBinding(shader_program, point_light_uniform_block, R_POINT_LIGHT_UNIFORM_BUFFER_BINDING);
+        glShaderStorageBlockBinding(shader_program, point_light_uniform_block, R_POINT_LIGHT_UNIFORM_BUFFER_BINDING);
     }
 
     if(spot_light_uniform_block != 0xffffffff)
     {
-        glUniformBlockBinding(shader_program, spot_light_uniform_block, R_SPOT_LIGHT_UNIFORM_BUFFER_BINDING);
+        glShaderStorageBlockBinding(shader_program, spot_light_uniform_block, R_SPOT_LIGHT_UNIFORM_BUFFER_BINDING);
     }
 
     if(light_indices_uniform_block != 0xffffffff)
     {
-        glUniformBlockBinding(shader_program, light_indices_uniform_block, R_LIGHT_INDICES_UNIFORM_BUFFER_BINDING);
+        glShaderStorageBlockBinding(shader_program, light_indices_uniform_block, R_LIGHT_INDICES_UNIFORM_BUFFER_BINDING);
     }
 
     if(shadow_indices_uniform_block != 0xffffffff)
     {
-        glUniformBlockBinding(shader_program, shadow_indices_uniform_block, R_SHADOW_INDICES_BUFFER_BINDING);
+        glShaderStorageBlockBinding(shader_program, shadow_indices_uniform_block, R_SHADOW_INDICES_BUFFER_BINDING);
     }
 
     shader->attribs = 0;

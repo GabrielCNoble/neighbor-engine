@@ -4,7 +4,7 @@
 #include "input.h"
 #include "ent.h"
 
-struct g_player_state_t g_player;
+struct g_player_t g_player;
 extern struct ds_list_t g_spawn_points;
 extern mat4_t r_camera_matrix;
 

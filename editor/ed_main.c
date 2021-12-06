@@ -15,6 +15,7 @@
 #include "../engine/input.h"
 #include "../engine/gui.h"
 #include "../engine/r_draw.h"
+#include "../engine/log.h"
 #include <Shlobj.h>
 
 #define WINAPI_FAMILY WINAPI_FAMILY_DESKTOP_APP
@@ -50,6 +51,7 @@ struct ed_explorer_state_t ed_explorer_state;
 
 void ed_Init()
 {
+    log_ScopedLogMessage(LOG_TYPE_NOTICE, "Initializing editors...");
     ed_PickingInit();
 
     ed_editors[ED_EDITOR_LEVEL] = (struct ed_editor_t ){
@@ -107,7 +109,7 @@ void ed_Init()
 
     PWSTR folder_path;
 
-    HRESULT result = SHGetKnownFolderPath(FOLDERID_Documents, 0, NULL, &folder_path);
+    HRESULT result = SHGetKnownFolderPath(&FOLDERID_Documents, 0, NULL, &folder_path);
 
     if(SUCCEEDED(result))
     {
@@ -125,6 +127,8 @@ void ed_Init()
     ed_EnumerateExplorerDrives();
     in_SetMouseRelative(0);
     ed_SwitchToEditor(ed_editors + ED_EDITOR_LEVEL);
+
+    log_ScopedLogMessage(LOG_TYPE_NOTICE, "Editors initialized!");
 }
 
 void ed_Shutdown()

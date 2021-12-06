@@ -29,6 +29,7 @@ extern struct r_shadow_map_t *r_shadow_map_buffer;
 extern uint32_t r_shadow_map_buffer_cursor;
 extern float r_spot_light_tan_lut[];
 extern float r_spot_light_cos_lut[];
+extern uint32_t r_light_shadow_map_count[];
 extern mat4_t r_point_shadow_view_projection_matrices[6];
 extern vec3_t r_point_light_frustum_planes[6];
 extern uint16_t r_point_light_frustum_masks[6];
@@ -406,11 +407,19 @@ void r_VisibleLights()
 //            r_i_DrawLine(&vec3_t_c(extents[0].x, extents[1].y, -0.5), &vec3_t_c(extents[0].x, extents[1].x, -0.5), &vec4_t_c(0.0, 1.0, 0.0, 1.0), 1.0);
 //            r_i_DrawLine(&vec3_t_c(extents[0].x, extents[1].x, -0.5), &vec3_t_c(extents[0].y, extents[1].x, -0.5), &vec4_t_c(0.0, 1.0, 0.0, 1.0), 1.0);
 
+            float spot_fovy = ((float)light->angle / 180.0) * 3.14159265;
+            mat4_t_persp(&light->projection_matrix, spot_fovy, 1.0, 0.01, light->range);
 
             struct r_spot_data_t *data = r_spot_light_buffer + r_spot_light_buffer_cursor;
             light->light_buffer_index = r_spot_light_buffer_cursor;
+            light->shadow_map_buffer_index = r_shadow_map_buffer_cursor;
             ds_list_add_element(&r_visible_lights, &light);
             r_spot_light_buffer_cursor++;
+
+            union { uint32_t i; float f; }i_to_f;
+            uint32_t shadow_resolution = R_SHADOW_BUCKET2_RES;
+            i_to_f.i = (shadow_resolution << 16) | (r_shadow_map_buffer_cursor & 0xffff);
+            r_shadow_map_buffer_cursor++;
 
             vec4_t pos_rad = vec4_t_c(light->position.x, light->position.y, light->position.z, 1.0);
             mat4_t_vec4_t_mul(&pos_rad, &r_view_matrix, &pos_rad);
@@ -426,9 +435,10 @@ void r_VisibleLights()
             data->pos_rad = pos_rad;
 
             data->pos_rad.w = light->range;
-            data->col_res.x = light->color.x * light->energy;
-            data->col_res.y = light->color.y * light->energy;
-            data->col_res.z = light->color.z * light->energy;
+            data->col_shd.x = light->color.x * light->energy;
+            data->col_shd.y = light->color.y * light->energy;
+            data->col_shd.z = light->color.z * light->energy;
+            data->col_shd.w = i_to_f.f;
 
             data->rot0_angle.xyz = light->orientation.rows[0];
             data->rot0_angle.w = 0.0;
@@ -530,8 +540,6 @@ void r_VisibleLights()
         }
     }
 
-//    printf("%d\n", r_visible_lights.cursor);
-
     for(uint32_t visible_index = 0; visible_index < r_visible_lights.cursor; visible_index++)
     {
         struct r_light_t *light = *(struct r_light_t **)ds_list_get_element(&r_visible_lights, visible_index);
@@ -558,21 +566,22 @@ void r_VisibleLights()
             break;
         }
 
-        if(light->type != R_LIGHT_TYPE_SPOT)
+        if(light->shadow_map_res != R_SHADOW_BUCKET_RESOLUTION(shadow_maps[0]))
         {
-            if(light->shadow_map_res != R_SHADOW_BUCKET_RESOLUTION(shadow_maps[0]))
-            {
-                r_FreeShadowMaps(light);
-                r_AllocShadowMaps(light, light->shadow_map_res);
-            }
-
-            for(uint32_t shadow_map_index = 0; shadow_map_index < shadow_map_count; shadow_map_index++)
-            {
-                struct r_shadow_map_t *shadow_map = r_GetShadowMap(shadow_maps[shadow_map_index]);
-                r_shadow_map_buffer[light->shadow_map_buffer_index + shadow_map_index] = *shadow_map;
-            }
+            r_FreeShadowMaps(light);
+            r_AllocShadowMaps(light, light->shadow_map_res);
         }
 
+        for(uint32_t shadow_map_index = 0; shadow_map_index < shadow_map_count; shadow_map_index++)
+        {
+            struct r_shadow_map_t *shadow_map = r_GetShadowMap(shadow_maps[shadow_map_index]);
+            r_shadow_map_buffer[light->shadow_map_buffer_index + shadow_map_index] = *shadow_map;
+        }
+
+        /* FIXME: this whole loop could be duplicated inside each switch statement, instead
+        of having it inside the loop. The light type won't change for all its duration, so
+        it's useless to keep retesting every time. The branch predictor will do a good job,
+        but still, unnecessary branching. */
         for(uint32_t slice_index = light->min.z; slice_index <= light->max.z; slice_index++)
         {
             uint32_t slice_offset = slice_index * R_CLUSTER_ROWS * R_CLUSTER_ROW_WIDTH;
@@ -689,10 +698,28 @@ void r_VisibleEntitiesOnLights()
         uint32_t *shadow_maps;
         uint32_t shadow_map_count;
 
+        mat4_t light_view_projection_matrices[6];
+
         switch(light->type)
         {
             case R_LIGHT_TYPE_SPOT:
-                continue;
+            {
+                struct r_spot_light_t *spot_light = (struct r_spot_light_t *)light;
+                shadow_maps = &spot_light->shadow_map;
+                shadow_map_count = 1;
+//                mat4_t_identity(&light_view_projection_matrices[0]);
+
+//                for(uint32_t face_index = 0; face_index < shadow_map_count; face_index++)
+//                {
+//                    mat4_t_identity(&light_view_projection_matrices[face_index]);
+//                    light_view_projection_matrices[face_index].rows[3].x = -light->position.x;
+//                    light_view_projection_matrices[face_index].rows[3].y = -light->position.y;
+//                    light_view_projection_matrices[face_index].rows[3].z = -light->position.z;
+//                    mat4_t_mul(&light_view_projection_matrices[face_index],
+//                               &light_view_projection_matrices[face_index],
+//                               &r_point_shadow_view_projection_matrices[face_index]);
+//                }
+            }
             break;
 
             case R_LIGHT_TYPE_POINT:
@@ -700,87 +727,83 @@ void r_VisibleEntitiesOnLights()
                 struct r_point_light_t *point_light = (struct r_point_light_t *)light;
                 shadow_maps = point_light->shadow_maps;
                 shadow_map_count = 6;
-            }
-            break;
-        }
 
-        mat4_t light_view_projection_matrices[6];
-
-        for(uint32_t face_index = 0; face_index < shadow_map_count; face_index++)
-        {
-            mat4_t_identity(&light_view_projection_matrices[face_index]);
-            light_view_projection_matrices[face_index].rows[3].x = -light->position.x;
-            light_view_projection_matrices[face_index].rows[3].y = -light->position.y;
-            light_view_projection_matrices[face_index].rows[3].z = -light->position.z;
-            mat4_t_mul(&light_view_projection_matrices[face_index],
-                       &light_view_projection_matrices[face_index],
-                       &r_point_shadow_view_projection_matrices[face_index]);
-        }
-
-        float light_radius = light->range;
-        for(uint32_t transform_index = 0; transform_index < e_components[E_COMPONENT_TYPE_TRANSFORM].cursor; transform_index++)
-        {
-            struct e_transform_t *transform = (struct e_transform_t *)e_GetComponent(E_COMPONENT_TYPE_TRANSFORM, transform_index);
-            struct e_model_t *model = transform->entity->model;
-
-            if(model)
-            {
-                vec3_t light_entity_vec;
-                vec3_t normalized_light_entity_vec;
-                vec3_t model_extents;
-                uint16_t side_mask = 0;
-
-                vec3_t_mul(&model_extents, &transform->extents, 0.5);
-                vec3_t_sub(&light_entity_vec, &transform->transform.rows[3].xyz, &light->position);
-                float light_entity_dist = vec3_t_length(&light_entity_vec);
-                vec3_t_normalize(&normalized_light_entity_vec, &light_entity_vec);
-                vec3_t_fabs(&normalized_light_entity_vec, &normalized_light_entity_vec);
-
-                float box_radius = vec3_t_dot(&normalized_light_entity_vec, &model_extents);
-
-                if(box_radius + light_radius > light_entity_dist)
+                for(uint32_t face_index = 0; face_index < shadow_map_count; face_index++)
                 {
-                    for(uint32_t plane_index = 0; plane_index < 6; plane_index++)
+                    mat4_t_identity(&light_view_projection_matrices[face_index]);
+                    light_view_projection_matrices[face_index].rows[3].x = -light->position.x;
+                    light_view_projection_matrices[face_index].rows[3].y = -light->position.y;
+                    light_view_projection_matrices[face_index].rows[3].z = -light->position.z;
+                    mat4_t_mul(&light_view_projection_matrices[face_index],
+                               &light_view_projection_matrices[face_index],
+                               &r_point_shadow_view_projection_matrices[face_index]);
+                }
+
+
+                float light_radius = light->range;
+                for(uint32_t transform_index = 0; transform_index < e_components[E_COMPONENT_TYPE_TRANSFORM].cursor; transform_index++)
+                {
+                    struct e_transform_t *transform = (struct e_transform_t *)e_GetComponent(E_COMPONENT_TYPE_TRANSFORM, transform_index);
+                    struct e_model_t *model = transform->entity->model;
+
+                    if(model)
                     {
-                        side_mask <<= 2;
+                        vec3_t light_entity_vec;
+                        vec3_t normalized_light_entity_vec;
+                        vec3_t model_extents;
+                        uint16_t side_mask = 0;
 
-                        vec3_t abs_plane_normal = r_point_light_frustum_planes[plane_index];
-                        vec3_t_fabs(&abs_plane_normal, &abs_plane_normal);
-                        box_radius = vec3_t_dot(&abs_plane_normal, &model_extents);
-                        float dist_to_plane = vec3_t_dot(&r_point_light_frustum_planes[plane_index], &light_entity_vec);
+                        vec3_t_mul(&model_extents, &transform->extents, 0.5);
+                        vec3_t_sub(&light_entity_vec, &transform->transform.rows[3].xyz, &light->position);
+                        float light_entity_dist = vec3_t_length(&light_entity_vec);
+                        vec3_t_normalize(&normalized_light_entity_vec, &light_entity_vec);
+                        vec3_t_fabs(&normalized_light_entity_vec, &normalized_light_entity_vec);
 
-                        if(fabs(dist_to_plane) < box_radius)
-                        {
-                            side_mask |= R_POINT_LIGHT_FRUSTUM_PLANE_FRONT | R_POINT_LIGHT_FRUSTUM_PLANE_BACK;
-                        }
-                        else if(dist_to_plane > 0.0)
-                        {
-                            side_mask |= R_POINT_LIGHT_FRUSTUM_PLANE_FRONT;
-                        }
-                        else
-                        {
-                            side_mask |= R_POINT_LIGHT_FRUSTUM_PLANE_BACK;
-                        }
-                    }
+                        float box_radius = vec3_t_dot(&normalized_light_entity_vec, &model_extents);
 
-                    for(uint32_t face_index = 0; face_index < shadow_map_count; face_index++)
-                    {
-                        uint16_t mask = r_point_light_frustum_masks[face_index];
-
-                        if((mask & side_mask) == mask)
+                        if(box_radius + light_radius > light_entity_dist)
                         {
-                            struct r_batch_t *batch = (struct r_batch_t *)model->model->batches.buffer;
-                            uint32_t count = model->model->indices.buffer_size;
-                            mat4_t model_view_projection_matrix;
-                            mat4_t_mul(&model_view_projection_matrix, &transform->transform, &light_view_projection_matrices[face_index]);
-                            r_DrawShadow(&model_view_projection_matrix, shadow_maps[face_index], batch->start, count);
+                            for(uint32_t plane_index = 0; plane_index < 6; plane_index++)
+                            {
+                                side_mask <<= 2;
+
+                                vec3_t abs_plane_normal = r_point_light_frustum_planes[plane_index];
+                                vec3_t_fabs(&abs_plane_normal, &abs_plane_normal);
+                                box_radius = vec3_t_dot(&abs_plane_normal, &model_extents);
+                                float dist_to_plane = vec3_t_dot(&r_point_light_frustum_planes[plane_index], &light_entity_vec);
+
+                                if(fabs(dist_to_plane) < box_radius)
+                                {
+                                    side_mask |= R_POINT_LIGHT_FRUSTUM_PLANE_FRONT | R_POINT_LIGHT_FRUSTUM_PLANE_BACK;
+                                }
+                                else if(dist_to_plane > 0.0)
+                                {
+                                    side_mask |= R_POINT_LIGHT_FRUSTUM_PLANE_FRONT;
+                                }
+                                else
+                                {
+                                    side_mask |= R_POINT_LIGHT_FRUSTUM_PLANE_BACK;
+                                }
+                            }
+
+                            for(uint32_t face_index = 0; face_index < shadow_map_count; face_index++)
+                            {
+                                uint16_t mask = r_point_light_frustum_masks[face_index];
+
+                                if((mask & side_mask) == mask)
+                                {
+                                    struct r_batch_t *batch = (struct r_batch_t *)model->model->batches.buffer;
+                                    uint32_t count = model->model->indices.buffer_size;
+                                    mat4_t model_view_projection_matrix;
+                                    mat4_t_mul(&model_view_projection_matrix, &transform->transform, &light_view_projection_matrices[face_index]);
+                                    r_DrawShadow(&model_view_projection_matrix, shadow_maps[face_index], batch->start, count);
+                                }
+                            }
                         }
                     }
                 }
             }
-
-
-
+            break;
         }
     }
 }

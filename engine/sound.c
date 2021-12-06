@@ -10,7 +10,7 @@
 #include "codec.h"
 #include "vorbisfile.h"
 #include "tinycthread.h"
-
+#include "log.h"
 
 ALCdevice *s_device;
 ALCcontext *s_context;
@@ -25,7 +25,9 @@ struct ds_list_t s_active_sources;
 
 void s_Init()
 {
+    log_ScopedLogMessage(LOG_TYPE_NOTICE, "Initializing sound...");
     s_device = alcOpenDevice(NULL);
+
     s_context = alcCreateContext(s_device, (ALCint []){ALC_STEREO_SOURCES, 350, 0});
     alcMakeContextCurrent(s_context);
     s_sound_thread = SDL_CreateThread(s_SoundThread, "sound thread", NULL);
@@ -42,11 +44,18 @@ void s_Init()
     };
     alListener3f(AL_POSITION, 0.0, 0.0, 0.0);
     alListenerfv(AL_ORIENTATION, listener_orientation);
+
+    log_ScopedLogMessage(LOG_TYPE_NOTICE, "Vendor: %s", alGetString(AL_VENDOR));
+    log_ScopedLogMessage(LOG_TYPE_NOTICE, "Version: %s", alGetString(AL_VERSION));
+    log_ScopedLogMessage(LOG_TYPE_NOTICE, "Renderer: %s", alGetString(AL_RENDERER));
+
+    log_ScopedLogMessage(LOG_TYPE_NOTICE, "Sound initialized!");
 }
 
 void s_Shutdown()
 {
-
+    log_ScopedLogMessage(LOG_TYPE_NOTICE, "Shutting down sound...");
+    log_ScopedLogMessage(LOG_TYPE_NOTICE, "Sound shut down!");
 }
 
 struct s_sound_t *s_LoadSound(char *file_name)

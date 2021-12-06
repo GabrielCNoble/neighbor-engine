@@ -10,7 +10,7 @@ struct r_point_data_t
 struct r_spot_data_t
 {
     vec4 pos_rad;
-    vec4 col_res;
+    vec4 col_shd;
     vec4 rot0_angle;
     vec4 rot1_soft;
     vec4 rot2;

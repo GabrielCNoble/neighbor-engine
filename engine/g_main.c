@@ -15,6 +15,7 @@
 #include "level.h"
 #include "sound.h"
 #include "gui.h"
+#include "log.h"
 #include <string.h>
 #include <stdio.h>
 #include <float.h>
@@ -71,6 +72,7 @@ char g_base_path[PATH_MAX] = "";
 //uint32_t g_hook_index;
 //mat4_t *g_hook_transform;
 
+FILE *g_log_file;
 uint32_t g_game_state = G_GAME_STATE_LOADING;
 //char *upper_body_bones[] =
 //{
@@ -165,25 +167,24 @@ float g_frame_delta;
 
 void g_Init(uint32_t editor_active)
 {
+    log_ScopedLogMessage(LOG_TYPE_NOTICE, "Initializing game stuff...");
     g_editor = editor_active;
-//    g_entities = ds_slist_create(sizeof(struct g_entity_t), 512);
-//    g_projectiles = ds_list_create(sizeof(struct g_projectile_t), 512);
-//    r_SetViewPitchYaw(g_camera_pitch, g_camera_yaw);
-//    r_SetViewPos(&g_camera_pos);
     g_GameInit();
     g_game_state = G_GAME_STATE_MAIN_MENU;
 
     if(g_editor)
     {
+//        log_ScopedLogMessage(LOG_TYPE_NOTICE, "Editor is active")
         ed_Init();
     }
 
-//    g_cube_model = r_LoadModel("models/Cube.mof");
+    log_ScopedLogMessage(LOG_TYPE_NOTICE, "Game stuff initialized!");
 }
 
 void g_Shutdown()
 {
-
+    log_ScopedLogMessage(LOG_TYPE_NOTICE, "Shutting down game stuff...");
+    log_ScopedLogMessage(LOG_TYPE_NOTICE, "Game stuff shut down!");
 }
 
 void g_SetGameState(uint32_t game_state)
@@ -267,7 +268,7 @@ void g_MainMenu()
 void g_SetBasePath(char *path)
 {
     strcpy(g_base_path, path);
-    printf("base path set to %s\n", g_base_path);
+    log_ScopedLogMessage(LOG_TYPE_NOTICE, "Set path to %s", path);
 }
 
 void g_ResourcePath(char *path, char *out_path, uint32_t out_size)
@@ -294,3 +295,17 @@ float g_GetDeltaTime()
     uint64_t cur_counter = SDL_GetPerformanceCounter();
     return (float)(cur_counter - g_cur_counter) / (float)counter_frequency;
 }
+
+void g_FlushLog()
+{
+
+}
+
+void g_LogMessage(uint32_t type, char *format, ...)
+{
+
+}
+
+
+
+

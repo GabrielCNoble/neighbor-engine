@@ -6,6 +6,7 @@
 #include "g_main.h"
 #include "../lib/dstuff/ds_slist.h"
 #include "../lib/dstuff/ds_path.h"
+#include "log.h"
 
 struct ds_list_t e_components[E_COMPONENT_TYPE_LAST];
 struct ds_slist_t e_ent_defs[E_ENT_DEF_TYPE_LAST];
@@ -19,6 +20,7 @@ extern struct r_renderer_state_t r_renderer_state;
 
 void e_Init()
 {
+    log_ScopedLogMessage(LOG_TYPE_NOTICE, "Initializing entities...");
     e_components[E_COMPONENT_TYPE_NODE] = ds_list_create(sizeof(struct e_node_t), 512);
     e_components[E_COMPONENT_TYPE_TRANSFORM] = ds_list_create(sizeof(struct e_transform_t), 512);
     e_components[E_COMPONENT_TYPE_COLLIDER] = ds_list_create(sizeof(struct e_collider_t), 512);
@@ -30,11 +32,13 @@ void e_Init()
     e_entities = ds_slist_create(sizeof(struct e_entity_t), 512);
     e_root_transforms = ds_list_create(sizeof(struct e_node_t *), 512);
     e_constraints = ds_slist_create(sizeof(struct e_constraint_t), 512);
+    log_ScopedLogMessage(LOG_TYPE_NOTICE, "Entities initialized!");
 }
 
 void e_Shutdown()
 {
-
+    log_ScopedLogMessage(LOG_TYPE_NOTICE, "Shutting down entities...");
+    log_ScopedLogMessage(LOG_TYPE_NOTICE, "Entities shut down!");
 }
 
 struct e_ent_def_t *e_AllocEntDef(uint32_t type)
@@ -203,13 +207,11 @@ struct e_ent_def_t *e_LoadEntDef(char *file_name)
         ds_path_set_ext(full_path, "ent", full_path, PATH_MAX);
     }
 
-    g_ResourcePath(full_path, full_path, PATH_MAX);
-
     FILE *file = fopen(full_path, "rb");
 
     if(!file)
     {
-        printf("e_LoadEntDef: couldn't open file [%s]\n", full_path);
+        log_ScopedLogMessage(LOG_TYPE_ERROR, "Couldn't load ent def [%s]!", full_path);
         return NULL;
     }
 
@@ -220,7 +222,7 @@ struct e_ent_def_t *e_LoadEntDef(char *file_name)
     ds_path_get_end(file_name, ent_def->name, sizeof(ent_def->name));
     ds_path_drop_ext(ent_def->name, ent_def->name, sizeof(ent_def->name));
 
-    printf("e_LoadEntDef: ent def [%s] loaded\n", ent_def->name);
+    log_ScopedLogMessage(LOG_TYPE_NOTICE, "Ent def [%s] loaded!", full_path);
 
     return ent_def;
 }

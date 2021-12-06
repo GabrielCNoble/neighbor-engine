@@ -28,6 +28,7 @@
 #include "LinearMath/btTransform.h"
 #include "LinearMath/btVector3.h"
 #include "LinearMath/btIDebugDraw.h"
+#include "log.h"
 
 class p_DebugDraw : public btIDebugDraw
 {
@@ -107,6 +108,7 @@ extern "C"
 
 void p_Init()
 {
+    log_ScopedLogMessage(LOG_TYPE_NOTICE, "Initializing physics...");
     p_colliders[P_COLLIDER_TYPE_DYNAMIC] = ds_slist_create(sizeof(struct p_dynamic_collider_t), 512);
     p_colliders[P_COLLIDER_TYPE_STATIC] = ds_slist_create(sizeof(struct p_static_collider_t), 512);
     p_colliders[P_COLLIDER_TYPE_CHARACTER] = ds_slist_create(sizeof(struct p_character_collider_t), 512);
@@ -122,11 +124,14 @@ void p_Init()
     p_debug_drawer = new p_DebugDraw();
     p_dynamics_world->setDebugDrawer(p_debug_drawer);
     p_dynamics_world->getDebugDrawer()->setDebugMode(btIDebugDraw::DBG_DrawWireframe | btIDebugDraw::DBG_DrawConstraints | btIDebugDraw::DBG_DrawConstraintLimits);
+
+    log_ScopedLogMessage(LOG_TYPE_NOTICE, "Physics initialized!");
 }
 
 void p_Shutdown()
 {
-
+    log_ScopedLogMessage(LOG_TYPE_NOTICE, "Shutting down physics...");
+    log_ScopedLogMessage(LOG_TYPE_NOTICE, "Physics shut down!");
 }
 
 struct p_shape_def_t *p_AllocShapeDef()

@@ -250,7 +250,7 @@ struct r_point_data_t
 struct r_spot_data_t
 {
     vec4_t pos_rad;
-    vec4_t col_res;
+    vec4_t col_shd;
     vec4_t rot0_angle;
     vec4_t rot1_soft;
     vec4_t rot2;
@@ -290,10 +290,11 @@ struct r_point_light_t
 struct r_spot_light_t
 {
     R_LIGHT_FIELDS;
-    mat3_t orientation;
-    uint32_t angle;
-    float softness;
     uint32_t shadow_map;
+    float softness;
+    uint32_t angle;
+    mat3_t orientation;
+    mat4_t projection_matrix;
 };
 
 #define R_LIGHT_TYPE_INDEX_SHIFT 28

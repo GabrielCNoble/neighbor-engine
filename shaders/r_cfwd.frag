@@ -47,7 +47,7 @@ void main()
         uint index = indices[spot_light_start + light_index].index;
         r_spot_data_t light = spot_lights[index];
 
-        vec4 light_color = vec4(light.col_res.xyz, 0.0);
+        vec4 light_color = vec4(light.col_shd.xyz, 0.0);
         vec3 light_vec = light.pos_rad.xyz - r_var_position.xyz;
         float dist = length(light_vec);
         float limit = light.pos_rad.w - dist;

@@ -45,7 +45,12 @@ enum G_PLAYER_FLAGS
     G_PLAYER_FLAG_TURNING_LEFT = 1 << 2,
 };
 
-
+enum G_LOG_TYPES
+{
+    G_LOG_TYPE_NORMAL,
+    G_LOG_TYPE_WARNING,
+    G_LOG_TYPE_ERROR,
+};
 
 enum G_GAME_STATE
 {

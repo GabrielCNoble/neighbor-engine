@@ -2412,8 +2412,12 @@ void ed_SerializeLevel(void **level_buffer, size_t *buffer_size, uint32_t serial
 //    light_section_size += sizeof(struct l_light_record_t) * r_lights[R_LIGHT_TYPE_POINT].used;
 //    light_section_size += sizeof(struct l_light_record_t) * r_lights[R_LIGHT_TYPE_SPOT].used;
 
-    size_t light_section_size = sizeof(struct l_light_section_t);
-    light_section_size += sizeof(struct l_light_record_t) * light_list->cursor;
+    size_t light_section_size = 0;
+    if(light_list->cursor)
+    {
+        sizeof(struct l_light_section_t);
+        light_section_size += sizeof(struct l_light_record_t) * light_list->cursor;
+    }
 
 //    size_t entity_section_size = sizeof(struct l_entity_section_t);
     /* the reason we use the amount of root transforms here instead of the total amount of entities
@@ -2606,49 +2610,49 @@ void ed_SerializeLevel(void **level_buffer, size_t *buffer_size, uint32_t serial
         }
     }
 
-    /* light stuff */
-    level_section->light_section_size = light_section_size;
-    level_section->light_section_start = cur_out_buffer - start_out_buffer;
-
-    struct l_light_section_t *light_section = (struct l_light_section_t *)cur_out_buffer;
-    cur_out_buffer += sizeof(struct l_light_section_t);
-    light_section->record_start = cur_out_buffer - start_out_buffer;
-    struct l_light_record_t *light_records = (struct l_light_record_t *)cur_out_buffer;
-    cur_out_buffer += sizeof(struct l_light_record_t) * r_lights[R_LIGHT_TYPE_POINT].used;
-    cur_out_buffer += sizeof(struct l_light_record_t) * r_lights[R_LIGHT_TYPE_SPOT].used;
-
-//    for(uint32_t light_index = 0; light_index < r_lights[R_LIGHT_TYPE_POINT].cursor; light_index++)
-//    struct ds_list_t *light_list = ed_level_state.pickables.game_pickables[ED_PICKABLE_TYPE_LIGHT];
-    for(uint32_t light_index = 0; light_index < light_list->cursor; light_index++)
+    if(light_section_size)
     {
-        struct ed_pickable_t *pickable = *(struct ed_pickable_t **)ds_list_get_element(light_list, light_index);
-        struct r_light_t *light = r_GetLight(pickable->primary_index);
+        /* light stuff */
+        level_section->light_section_size = light_section_size;
+        level_section->light_section_start = cur_out_buffer - start_out_buffer;
 
-        if(light)
+        struct l_light_section_t *light_section = (struct l_light_section_t *)cur_out_buffer;
+        cur_out_buffer += sizeof(struct l_light_section_t);
+        light_section->record_start = cur_out_buffer - start_out_buffer;
+        struct l_light_record_t *light_records = (struct l_light_record_t *)cur_out_buffer;
+        cur_out_buffer += sizeof(struct l_light_record_t) * r_lights[R_LIGHT_TYPE_POINT].used;
+        cur_out_buffer += sizeof(struct l_light_record_t) * r_lights[R_LIGHT_TYPE_SPOT].used;
+
+        for(uint32_t light_index = 0; light_index < light_list->cursor; light_index++)
         {
-            struct l_light_record_t *light_record = light_records + light_section->record_count;
-            light_section->record_count++;
-            mat3_t_identity(&light_record->orientation);
-            light_record->position = light->position;
-            light_record->color = light->color;
-            light_record->energy = light->energy;
-            light_record->radius = light->range;
-            light_record->size = vec2_t_c(0.0, 0.0);
-            light_record->vert_start = 0;
-            light_record->vert_count = 0;
-            light_record->type = light->type;
-            light_record->s_index = light->index;
+            struct ed_pickable_t *pickable = *(struct ed_pickable_t **)ds_list_get_element(light_list, light_index);
+            struct r_light_t *light = r_GetLight(pickable->primary_index);
 
-            if(light->type == R_LIGHT_TYPE_SPOT)
+            if(light)
             {
-                struct r_spot_light_t *spot_light = (struct r_spot_light_t *)light;
-                light_record->softness = spot_light->softness;
-                light_record->angle = spot_light->angle;
-                light_record->orientation = spot_light->orientation;
+                struct l_light_record_t *light_record = light_records + light_section->record_count;
+                light_section->record_count++;
+                mat3_t_identity(&light_record->orientation);
+                light_record->position = light->position;
+                light_record->color = light->color;
+                light_record->energy = light->energy;
+                light_record->radius = light->range;
+                light_record->size = vec2_t_c(0.0, 0.0);
+                light_record->vert_start = 0;
+                light_record->vert_count = 0;
+                light_record->type = light->type;
+                light_record->s_index = light->index;
+
+                if(light->type == R_LIGHT_TYPE_SPOT)
+                {
+                    struct r_spot_light_t *spot_light = (struct r_spot_light_t *)light;
+                    light_record->softness = spot_light->softness;
+                    light_record->angle = spot_light->angle;
+                    light_record->orientation = spot_light->orientation;
+                }
             }
         }
     }
-
 
     level_section->material_section_start = cur_out_buffer - start_out_buffer;
     level_section->material_section_size = material_section_size;
@@ -3458,91 +3462,6 @@ void ed_l_BuildWorldData()
         }
 
         struct ds_buffer_t col_index_buffer = ds_buffer_copy(index_buffer);
-
-//        struct ds_buffer_t world_col_verts_buffer = ds_buffer_create(sizeof(vec3_t), vert_count);
-//        struct ds_buffer_t
-//        struct ds_buffer_t world_draw_verts_buffer = ds_buffer_create(sizeof(struct r_vert_t), vert_count);
-//        struct ds_buffer_t world_indices_buffer = ds_buffer_create(sizeof(uint32_t), index_count);
-
-//        uint32_t vert_offset = 0;
-//        uint32_t index_offset = 0;
-
-//        vec3_t *world_col_verts = world_col_verts_buffer.buffer;
-//        struct r_vert_t *world_draw_verts = world_draw_verts_buffer.buffer;
-//        uint32_t *world_indices = world_indices_buffer.buffer;
-
-//        struct ds_buffer_t world_batches_buffer = ds_buffer_create(sizeof(struct r_batch_t), ed_level_state.brush.brush_batches.cursor);
-//        struct r_batch_t *world_batches = world_batches_buffer.buffer;
-//        struct ds_list_t *global_batches = &ed_level_state.brush.brush_batches;
-
-//        for(uint32_t global_batch_index = 0; global_batch_index < global_batches->cursor; global_batch_index++)
-//        {
-//            struct r_batch_t *world_batch = world_batches + global_batch_index;
-//            struct ed_brush_batch_t *global_batch = ds_list_get_element(global_batches, global_batch_index);
-//
-//            world_batch->start = 0;
-//            world_batch->count = global_batch->batch.count;
-//            world_batch->material = global_batch->batch.material;
-//
-//            if(global_batch_index)
-//            {
-//                struct r_batch_t *prev_batch = world_batches + (global_batch_index - 1);
-//                world_batch->start = prev_batch->start + prev_batch->count;
-//                prev_batch->count = 0;
-//            }
-//        }
-//
-//        world_batches[global_batches->cursor - 1].count = 0;
-//
-//        for(uint32_t brush_index = 0; brush_index < ed_level_state.brush.brushes.cursor; brush_index++)
-//        {
-//            struct ed_brush_t *brush = ed_GetBrush(brush_index);
-//
-//            if(brush)
-//            {
-//                struct r_batch_t *brush_batches = brush->model->batches.buffer;
-//                struct r_vert_t *brush_verts = brush->model->verts.buffer;
-//                uint32_t *brush_indices = brush->model->indices.buffer;
-//
-//                for(uint32_t vert_index = 0; vert_index < brush->model->verts.buffer_size; vert_index++)
-//                {
-//                    struct r_vert_t *brush_vert = brush_verts + vert_index;
-//                    struct r_vert_t *draw_vert = world_draw_verts + vert_offset + vert_index;
-//                    *draw_vert = *brush_vert;
-//
-//                    mat3_t_vec3_t_mul(&draw_vert->pos, &draw_vert->pos, &brush->orientation);
-//                    mat3_t_vec3_t_mul(&draw_vert->normal.xyz, &draw_vert->normal.xyz, &brush->orientation);
-//                    mat3_t_vec3_t_mul(&draw_vert->tangent, &draw_vert->tangent, &brush->orientation);
-//                    vec3_t_add(&draw_vert->pos, &draw_vert->pos, &brush->position);
-//
-//                    world_col_verts[vert_offset + vert_index] = draw_vert->pos;
-//                }
-//
-//                for(uint32_t brush_batch_index = 0; brush_batch_index < brush->model->batches.buffer_size; brush_batch_index++)
-//                {
-//                    struct r_batch_t *brush_batch = brush_batches + brush_batch_index;
-//
-//                    for(uint32_t world_batch_index = 0; world_batch_index < world_batches_buffer.buffer_size; world_batch_index++)
-//                    {
-//                        struct r_batch_t *world_batch = world_batches + world_batch_index;
-//
-//                        if(brush_batch->material == world_batch->material)
-//                        {
-//                            for(uint32_t index = 0; index < brush_batch->count; index++)
-//                            {
-//                                uint32_t world_indice_index = world_batch->start + world_batch->count;
-//                                uint32_t brush_indice_index = brush_batch->start - brush->model->model_start + index;
-//                                world_indices[world_indice_index] = brush_indices[brush_indice_index];
-//                                world_indices[world_indice_index] += vert_offset;
-//                                world_batch->count++;
-//                            }
-//                        }
-//                    }
-//                }
-//
-//                vert_offset += brush->model->verts.buffer_size;
-//            }
-//        }
 
         if(vert_count)
         {

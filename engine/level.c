@@ -5,6 +5,7 @@
 #include "r_draw.h"
 #include "ent.h"
 #include "phys.h"
+#include "log.h"
 
 struct r_model_t *l_world_model;
 struct ds_dbvn_t l_world_dbvt;
@@ -20,6 +21,7 @@ extern struct r_texture_t *r_default_roughness_texture;
 
 void l_Init()
 {
+    log_ScopedLogMessage(LOG_TYPE_NOTICE, "Initializing level...");
     l_world_shape = p_AllocShapeDef();
     l_world_shape->type = P_COL_SHAPE_TYPE_ITRI_MESH;
 
@@ -27,11 +29,14 @@ void l_Init()
     l_world_col_def.passive.shape = l_world_shape;
     l_world_col_def.passive.mass = 0.0;
     l_world_col_def.type = P_COLLIDER_TYPE_STATIC;
+
+    log_ScopedLogMessage(LOG_TYPE_NOTICE, "Level initialized!");
 }
 
 void l_Shutdown()
 {
-
+    log_ScopedLogMessage(LOG_TYPE_NOTICE, "Shutting down level...");
+    log_ScopedLogMessage(LOG_TYPE_NOTICE, "Level shut down!");
 }
 
 void l_DestroyWorld()
@@ -58,8 +63,8 @@ void l_DestroyWorld()
 
 void l_ClearLevel()
 {
-    r_DestroyAllLighs();
-    e_DestroyAllEntities();
+//    r_DestroyAllLighs();
+//    e_DestroyAllEntities();
     l_DestroyWorld();
 }
 
@@ -90,7 +95,6 @@ void l_DeserializeLevel(void *level_buffer, size_t buffer_size, uint32_t data_fl
                 break;
             }
 
-//            struct r_light_t *light = r_CreateLight(record->type, &record->position, &record->color, record->radius, record->energy);
             record->d_index = light->index;
         }
     }

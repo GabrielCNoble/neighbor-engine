@@ -1,15 +1,21 @@
 #define SDL_MAIN_HANDLED
 #include "SDL2/SDL.h"
 #include "main.h"
+#include "../lib/backtrace/include/backtrace.h"
 
 extern uint32_t g_editor;
 extern uint32_t g_game_state;
 
 int main(int argc, char *argv[])
 {
+    log_Init(argv[0], 1);
+    log_LogMessage(LOG_TYPE_NOTICE, "Starting neighbor engine...");
+
     if(SDL_Init(SDL_INIT_EVERYTHING) < 0)
     {
-        printf("oh, shit...\n");
+        const char *error = SDL_GetError();
+        log_LogMessage(LOG_TYPE_FATAL, "Couldn't initialize SDL!\nError message: %s", error);
+        exit(-1);
     }
 
     uint32_t editor = 0;
@@ -26,7 +32,7 @@ int main(int argc, char *argv[])
         }
     }
 
-    g_SetBasePath("");
+//    g_SetBasePath("");
 
     r_Init();
     p_Init();
@@ -37,20 +43,6 @@ int main(int argc, char *argv[])
     gui_Init();
     e_Init();
     g_Init(editor);
-
-//    struct ed_bsp_polygon_t *polygon = ed_AllocBspPolygon(0);
-//
-//    struct r_vert_t vert = {};
-//
-//    vert.pos = vec3_t_c(-1.0, 1.0, -1.0);
-//    ds_list_add_element(&polygon->vertices, &vert);
-//    vert.pos = vec3_t_c(-1.0, 1.0,  1.0);
-//    ds_list_add_element(&polygon->vertices, &vert);
-//    vert.pos = vec3_t_c( 1.0, 1.0,  1.0);
-//    ds_list_add_element(&polygon->vertices, &vert);
-//    vert.pos = vec3_t_c( 1.0, 1.0, -1.0);
-//    ds_list_add_element(&polygon->vertices, &vert);
-
 
     while(g_game_state != G_GAME_STATE_QUIT)
     {
@@ -77,42 +69,6 @@ int main(int argc, char *argv[])
             break;
         }
 
-//        struct ed_brush_t *brush = ed_GetBrush(0);
-//
-//        if(brush && brush->faces)
-//        {
-//            r_i_SetShader(NULL);
-//            r_i_SetViewProjectionMatrix(NULL);
-//            r_i_SetModelMatrix(NULL);
-//
-//            struct ed_bsp_polygon_t *polygon_copy = ed_CopyBspPolygons(polygon);
-//            struct ed_bsp_polygon_t *brush_polygons = ed_BspPolygonsFromBrush(brush);
-//            struct ed_bsp_polygon_t *poly = brush_polygons;
-//            while(poly)
-//            {
-//                printf("%f %f %f -- %x\n", poly->normal.x, poly->normal.y, poly->normal.z, poly);
-//                poly = poly->next;
-//            }
-//            printf("\n");
-//
-//            struct ed_bsp_node_t *bsp = ed_SolidBspFromPolygons(brush_polygons);
-//
-//            struct ed_bsp_polygon_t *clipped_polygons = ed_ClipPolygonToBsp(polygon_copy, bsp);
-//
-//            struct ed_bsp_polygon_t *clipped_polygon = clipped_polygons;
-//            while(clipped_polygon)
-//            {
-//                for(uint32_t vert_index = 0; vert_index < clipped_polygon->vertices.cursor; vert_index++)
-//                {
-//                    struct r_vert_t *vert0 = ds_list_get_element(&clipped_polygon->vertices, vert_index);
-//                    struct r_vert_t *vert1 = ds_list_get_element(&clipped_polygon->vertices, (vert_index + 1) % clipped_polygon->vertices.cursor);
-//
-//                    r_i_DrawLine(&vert0->pos, &vert1->pos, &vec4_t_c(1.0, 0.0, 0.0, 1.0), 1.0);
-//                }
-//                clipped_polygon = clipped_polygon->next;
-//            }
-//        }
-
         e_UpdateEntities();
         r_VisibleWorld();
         r_VisibleLights();
@@ -123,4 +79,18 @@ int main(int argc, char *argv[])
         r_DrawCmds();
         r_EndFrame();
     }
+
+    log_LogMessage(LOG_TYPE_NOTICE, "Shutting down neighbor engine...");
+
+    g_Shutdown();
+    e_Shutdown();
+    gui_Shutdown();
+    s_Shutdown();
+    l_Shutdown();
+    a_Shutdown();
+    p_Shutdown();
+    r_Shutdown();
+
+    log_LogMessage(LOG_TYPE_NOTICE, "Neighbor engine shut down!");
+    log_Shutdown();
 }

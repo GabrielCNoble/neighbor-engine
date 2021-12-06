@@ -10,6 +10,7 @@
 #include "input.h"
 #include "gui.h"
 #include "ent.h"
+#include "log.h"
 #include "../editor/ed_main.h"
 
 #include <stdio.h>

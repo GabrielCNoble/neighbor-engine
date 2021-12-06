@@ -11,6 +11,7 @@
 #include "r_draw.h"
 #include "stb/stb_include.h"
 #include "anim.h"
+#include "log.h"
 
 //extern struct stack_list_t d_shaders;
 //extern struct stack_list_t d_textures;
@@ -168,6 +169,11 @@ struct r_named_uniform_t r_default_uniforms[] =
 
 float r_spot_light_tan_lut[1 + (R_SPOT_LIGHT_MAX_ANGLE - R_SPOT_LIGHT_MIN_ANGLE)];
 float r_spot_light_cos_lut[1 + (R_SPOT_LIGHT_MAX_ANGLE - R_SPOT_LIGHT_MIN_ANGLE)];
+uint32_t r_light_shadow_map_count[] =
+{
+    [R_LIGHT_TYPE_POINT] = 6,
+    [R_LIGHT_TYPE_SPOT] = 1
+};
 
 uint32_t r_uniform_type_sizes[] =
 {
@@ -184,6 +190,8 @@ uint32_t r_uniform_type_sizes[] =
 
 void r_Init()
 {
+    log_ScopedLogMessage(LOG_TYPE_NOTICE, "Initializing renderer...");
+
     r_world_cmds = ds_list_create(sizeof(struct r_world_cmd_t), 8192);
     r_entity_cmds = ds_list_create(sizeof(struct r_entity_cmd_t), 8192);
     r_shadow_cmds = ds_list_create(sizeof(struct r_shadow_cmd_t), 8192);
@@ -212,20 +220,22 @@ void r_Init()
     GLenum status = glewInit();
     if(status != GLEW_OK)
     {
-        printf("oh, fuck...\n");
-        printf("%s\n", glewGetErrorString(status));
+        log_ScopedLogMessage(LOG_TYPE_FATAL, "Couldn't initialize GLEW!\nError message: %s");
+        exit(-1);
     }
+
+    log_ScopedLogMessage(LOG_TYPE_NOTICE, "Vendor: %s", glGetString(GL_VENDOR));
+    log_ScopedLogMessage(LOG_TYPE_NOTICE, "Renderer: %s", glGetString(GL_RENDERER));
+    log_ScopedLogMessage(LOG_TYPE_NOTICE, "Version: %s", glGetString(GL_VERSION));
+    log_ScopedLogMessage(LOG_TYPE_NOTICE, "GLSL: %s", glGetString(GL_SHADING_LANGUAGE_VERSION));
 
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
-
-//    glClearColor(0.01, 0.01, 0.01, 1.0);
 
     r_SetClearColor(0.0, 0.0, 0.0, 1.0);
 
     glClearDepth(1.0);
     glClearStencil(0x00);
-//    glClipControl(GL_LOWER_LEFT, GL_ZERO_TO_ONE);
 
     glGenBuffers(1, &r_vertex_buffer);
     glBindBuffer(GL_ARRAY_BUFFER, r_vertex_buffer);
@@ -787,11 +797,14 @@ void r_Init()
     r_renderer_state.use_z_prepass = 1;
     r_renderer_state.max_shadow_res = 8;
     r_renderer_state.draw_lights = 1;
+
+    log_ScopedLogMessage(LOG_TYPE_NOTICE, "Renderer initialized!");
 }
 
 void r_Shutdown()
 {
-
+    log_ScopedLogMessage(LOG_TYPE_NOTICE, "Shutting down renderer...");
+    log_ScopedLogMessage(LOG_TYPE_NOTICE, "Renderer shut down!");
 }
 
 /*
@@ -843,11 +856,9 @@ struct r_texture_t *r_LoadTexture(char *file_name)
         ds_path_set_ext(full_path, "png", full_path, PATH_MAX);
     }
 
-    g_ResourcePath(full_path, full_path, PATH_MAX);
-
     if(!file_exists(full_path))
     {
-        printf("r_LoadTexture: couldn't load texture [%s]\n", full_path);
+        log_ScopedLogMessage(LOG_TYPE_ERROR, "Couldn't load texture [%s]", full_path);
         return NULL;
     }
 
@@ -862,7 +873,7 @@ struct r_texture_t *r_LoadTexture(char *file_name)
     texture = r_CreateTexture(full_path, width, height, GL_RGBA8, GL_LINEAR, GL_LINEAR, pixels);
     mem_Free(pixels);
 
-    printf("r_LoadTexture: texture [%s] loaded\n", full_path);
+    log_ScopedLogMessage(LOG_TYPE_NOTICE, "Texture [%s] loaded!", full_path);
 
     return texture;
 }
@@ -1144,8 +1155,6 @@ struct r_model_t *r_LoadModel(char *file_name)
         ds_path_set_ext(full_path, "mof", full_path, PATH_MAX);
     }
 
-    g_ResourcePath(full_path, full_path, PATH_MAX);
-
     if(file_exists(full_path))
     {
         void *file_buffer;
@@ -1247,6 +1256,8 @@ struct r_model_t *r_LoadModel(char *file_name)
         geometry_data.min = verts->min;
         geometry_data.max = verts->max;
 
+        log_ScopedLogMessage(LOG_TYPE_NOTICE, "Model [%s] loaded!", full_path);
+
         ds_path_get_end(full_path, full_path, PATH_MAX);
         ds_path_drop_ext(full_path, full_path, PATH_MAX);
 
@@ -1267,12 +1278,10 @@ struct r_model_t *r_LoadModel(char *file_name)
 
         mem_Free(batches);
         mem_Free(file_buffer);
-
-        printf("r_LoadModel: model [%s] loaded\n", full_path);
     }
     else
     {
-        printf("r_LoadModel: couldn't load model [%s]\n", full_path);
+        log_ScopedLogMessage(LOG_TYPE_ERROR, "Couldn't load model [%s]", full_path);
     }
 
     return model;
@@ -1941,21 +1950,39 @@ struct r_shader_t *r_LoadShader(char *vertex_file_name, char *fragment_file_name
     char vertex_full_path[PATH_MAX];
     char fragment_full_path[PATH_MAX];
 
-//    ds_path_append_end(g_base_path, vertex_file_name, vertex_full_path, PATH_MAX);
-//    ds_path_append_end(g_base_path, fragment_file_name, fragment_full_path, PATH_MAX);
+    strcpy(vertex_full_path, vertex_file_name);
+    strcpy(fragment_full_path, fragment_file_name);
 
-    g_ResourcePath(vertex_file_name, vertex_full_path, PATH_MAX);
-    g_ResourcePath(fragment_file_name, fragment_full_path, PATH_MAX);
+    if(!strstr(vertex_full_path, "shaders"))
+    {
+        ds_path_append_end("shaders", vertex_full_path, vertex_full_path, PATH_MAX);
+    }
+
+    if(!strstr(vertex_full_path, ".vert"))
+    {
+        ds_path_set_ext(vertex_full_path, "vert", vertex_full_path, PATH_MAX);
+    }
 
     if(!file_exists(vertex_full_path))
     {
-        printf("r_LoadShader: couldn't load vertex shader %s\n", vertex_full_path);
+        log_ScopedLogMessage(LOG_TYPE_ERROR, "Couldn't load vertex shader %s", vertex_full_path);
         return NULL;
+    }
+
+
+    if(!strstr(fragment_full_path, "shaders"))
+    {
+        ds_path_append_end("shaders", fragment_full_path, fragment_full_path, PATH_MAX);
+    }
+
+    if(!strstr(fragment_full_path, ".frag"))
+    {
+        ds_path_set_ext(fragment_full_path, "frag", fragment_full_path, PATH_MAX);
     }
 
     if(!file_exists(fragment_full_path))
     {
-        printf("r_LoadShader: couldn't load fragment shader %s\n", fragment_full_path);
+        log_ScopedLogMessage(LOG_TYPE_ERROR, "Couldn't load fragment shader %s", fragment_full_path);
         return NULL;
     }
 
@@ -1968,7 +1995,8 @@ struct r_shader_t *r_LoadShader(char *vertex_file_name, char *fragment_file_name
 
     if(!preprocessed_shader_source)
     {
-        printf("r_LoadShader: preprocessor error: %s\n", include_error);
+//        printf("r_LoadShader: preprocessor error: %s\n", include_error);
+        log_ScopedLogMessage(LOG_TYPE_ERROR, "Preprocessor error: %s", include_error);
         mem_Free(shader_source);
         return NULL;
     }
@@ -1985,8 +2013,7 @@ struct r_shader_t *r_LoadShader(char *vertex_file_name, char *fragment_file_name
         glGetShaderiv(vertex_shader, GL_INFO_LOG_LENGTH, &info_log_length);
         info_log = mem_Calloc(1, info_log_length);
         glGetShaderInfoLog(vertex_shader, info_log_length, NULL, info_log);
-        printf("r_LoadShader: vertex shader compilation for shader %s failed!\n", vertex_full_path);
-        printf("info log:\n %s\n", info_log);
+        log_ScopedLogMessage(LOG_TYPE_ERROR, "Shader [%s] vertex stage compilation failed!\n Info log: %s", vertex_full_path, info_log);
         mem_Free(info_log);
         glDeleteShader(vertex_shader);
         return NULL;
@@ -1999,7 +2026,7 @@ struct r_shader_t *r_LoadShader(char *vertex_file_name, char *fragment_file_name
 
     if(!preprocessed_shader_source)
     {
-        printf("r_LoadShader: preprocessor error: %s\n", include_error);
+        log_ScopedLogMessage(LOG_TYPE_ERROR, "Preprocessor error: %s", include_error);
         glDeleteShader(vertex_shader);
         mem_Free(shader_source);
     }
@@ -2016,8 +2043,7 @@ struct r_shader_t *r_LoadShader(char *vertex_file_name, char *fragment_file_name
         glGetShaderiv(fragment_shader, GL_INFO_LOG_LENGTH, &info_log_length);
         info_log = mem_Calloc(1, info_log_length);
         glGetShaderInfoLog(fragment_shader, info_log_length, NULL, info_log);
-        printf("r_LoadShader: fragment shader compilation for shader %s failed!\n", fragment_full_path);
-        printf("info log:\n %s\n", info_log);
+        log_ScopedLogMessage(LOG_TYPE_ERROR, "Shader [%s] fragment stage compilation failed!\n Info log: %s", fragment_full_path, info_log);
         mem_Free(info_log);
         glDeleteShader(vertex_shader);
         glDeleteShader(fragment_shader);
@@ -2037,8 +2063,9 @@ struct r_shader_t *r_LoadShader(char *vertex_file_name, char *fragment_file_name
         glGetProgramiv(shader_program, GL_INFO_LOG_LENGTH, &info_log_length);
         info_log = mem_Calloc(1, info_log_length);
         glGetProgramInfoLog(shader_program, info_log_length, NULL, info_log);
-        printf("r_LoadShader: program linking failed for shaders %s and %s!\n", vertex_full_path, fragment_full_path);
-        printf("info log:\n %s\n", info_log);
+        log_ScopedLogMessage(LOG_TYPE_ERROR, "Program linking for shaders [%s] and [%s] failed!\n Info log: %s", vertex_full_path, fragment_full_path, info_log);
+//        printf("r_LoadShader: program linking failed for shaders %s and %s!\n", vertex_full_path, fragment_full_path);
+//        printf("info log:\n %s\n", info_log);
         mem_Free(info_log);
         glDeleteProgram(shader_program);
         return NULL;
@@ -2111,7 +2138,7 @@ struct r_shader_t *r_LoadShader(char *vertex_file_name, char *fragment_file_name
         glBindAttribLocation(shader_program, R_COLOR_LOCATION, "r_color");
     }
 
-    printf("r_LoadShader: shaders %s and %s loaded\n", vertex_full_path, fragment_full_path);
+    log_ScopedLogMessage(LOG_TYPE_NOTICE, "Shaders [%s] and [%s] loaded!", vertex_full_path, fragment_full_path);
 
     return shader;
 }

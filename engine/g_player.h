@@ -2,20 +2,7 @@
 #define G_PLAYER_H
 
 #include <stdint.h>
-#include "e_defs.h"
-#include "p_defs.h"
-
-struct g_player_state_t
-{
-    uint32_t flags;
-    float yaw;
-    float pitch;
-    struct e_entity_t *entity;
-    float grab_time;
-    vec3_t relative_grab_offset;
-    struct e_entity_t *grabbed_entity;
-    struct p_character_collider_t *collider;
-};
+#include "g_defs.h"
 
 void g_PlayerInit();
 

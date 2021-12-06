@@ -5,6 +5,7 @@
 #include "dstuff/ds_file.h"
 #include "dstuff/ds_slist.h"
 #include "dstuff/ds_mem.h"
+#include "log.h"
 
 struct ds_slist_t a_skeletons;
 struct ds_slist_t a_animations;
@@ -14,16 +15,20 @@ struct ds_slist_t a_masks;
 
 void a_Init()
 {
+    log_ScopedLogMessage(LOG_TYPE_NOTICE, "Initializing animation...");
     a_skeletons = ds_slist_create(sizeof(struct a_skeleton_t), 512);
     a_animations = ds_slist_create(sizeof(struct a_animation_t), 128);
     a_players = ds_slist_create(sizeof(struct a_player_t), 64);
     a_mixers = ds_slist_create(sizeof(struct a_mixer_t), 16);
     a_masks = ds_slist_create(sizeof(struct a_mask_t), 128);
+
+    log_ScopedLogMessage(LOG_TYPE_NOTICE, "Animation initialized!");
 }
 
 void a_Shutdown()
 {
-
+    log_ScopedLogMessage(LOG_TYPE_NOTICE, "Shutting down animation...");
+    log_ScopedLogMessage(LOG_TYPE_NOTICE, "Animation shut down!");
 }
 
 struct a_animation_t *a_LoadAnimation(char *file_name)

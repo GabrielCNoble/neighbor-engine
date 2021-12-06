@@ -3,6 +3,7 @@
 #include "r_draw.h"
 #include "input.h"
 #include <stdint.h>
+#include "log.h"
 
 ImGuiContext *gui_context;
 struct r_texture_t *gui_font_atlas;
@@ -14,6 +15,7 @@ extern uint32_t r_height;
 
 void gui_Init()
 {
+    log_ScopedLogMessage(LOG_TYPE_NOTICE, "Initializing UI...");
     gui_context = igCreateContext(NULL);
     igSetCurrentContext(gui_context);
 
@@ -53,11 +55,13 @@ void gui_Init()
     ImFontAtlas_SetTexID(io->Fonts, (ImTextureID)gui_font_atlas);
 
     gui_shader = r_LoadShader("shaders/r_ui.vert", "shaders/r_ui.frag");
+    log_ScopedLogMessage(LOG_TYPE_NOTICE, "UI initialized!");
 }
 
 void gui_Shutdown()
 {
-
+    log_ScopedLogMessage(LOG_TYPE_NOTICE, "Shutting down UI...");
+    log_ScopedLogMessage(LOG_TYPE_NOTICE, "UI shut down!");
 }
 
 void gui_BeginFrame(float delta_time)

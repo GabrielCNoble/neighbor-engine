@@ -3408,7 +3408,6 @@ void ed_l_PlayGame()
 void ed_l_StopGame()
 {
     ed_l_LoadGameLevelSnapshot();
-//    ed_l_RestoreBrushEntities();
 }
 
 void ed_l_ResetEditor()

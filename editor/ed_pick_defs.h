@@ -8,7 +8,7 @@ enum ED_PICKABLE_TYPE
     /* game specific pickables */
     ED_PICKABLE_TYPE_ENTITY = 0,
     ED_PICKABLE_TYPE_LIGHT,
-    ED_PICKABLE_TYPE_GAME_ENTITY,
+    ED_PICKABLE_TYPE_ENEMY,
     ED_PICKABLE_TYPE_LAST_GAME_PICKABLE,
 
     /* level editor specific pickables */

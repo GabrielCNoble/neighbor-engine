@@ -7,10 +7,8 @@ struct ds_list_t g_spawn_points;
 
 void g_GameInit()
 {
-//    g_spawn_points = ds_list_create(sizeof(struct g_spawn_point_t), 8);
     g_PlayerInit();
     g_EnemyInit();
-    g_CreateCamera(&vec3_t_c(0.0, 2.0, 0.0), 0.5, -0.5, -0.6, 0.6, 0.3, 10.0);
 }
 
 struct g_entity_t *g_CreateEntity(struct ds_slist_t *list, struct e_ent_def_t *ent_def, vec3_t *position, vec3_t *scale, mat3_t *orientation)
@@ -20,8 +18,21 @@ struct g_entity_t *g_CreateEntity(struct ds_slist_t *list, struct e_ent_def_t *e
 
     entity->index = index;
     entity->entity = e_SpawnEntity(ent_def, position, scale, orientation);
+    entity->list = list;
+
+    e_UpdateEntityNode(entity->entity->node, &mat4_t_c_id());
 
     return entity;
+}
+
+void g_DestroyEntity(struct g_entity_t *entity)
+{
+    if(entity && entity->index != 0xffffffff)
+    {
+        e_DestroyEntity(entity->entity);
+        ds_slist_remove_element(entity->list, entity->index);
+        entity->index = 0xffffffff;
+    }
 }
 
 void g_StepGame(float delta_time)

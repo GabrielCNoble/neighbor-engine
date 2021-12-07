@@ -2093,8 +2093,8 @@ struct ed_bsp_polygon_t *ed_ClipPolygonLists(struct ed_bsp_polygon_t *polygons_a
             clipped_polygons = clipped_b;
         }
 
-        ed_FreeBspTree(bsp_a);
-        ed_FreeBspTree(bsp_b);
+//        ed_FreeBspTree(bsp_a);
+//        ed_FreeBspTree(bsp_b);
     }
     else if(polygons_b)
     {

@@ -99,6 +99,8 @@ void ed_l_PlaceEntityAtCursor(uint32_t just_changed);
 
 void ed_l_PlaceLightAtCursor(uint32_t just_changed);
 
+void ed_l_PlaceEnemyAtCursor(uint32_t just_changed);
+
 void ed_l_TransformSelections(uint32_t just_changed);
 
 void ed_SerializeLevel(void **level_buffer, size_t *buffer_size, uint32_t serialize_brushes);

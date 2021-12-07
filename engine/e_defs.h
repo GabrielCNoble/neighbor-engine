@@ -17,14 +17,14 @@ struct e_ent_def_section_t
 
 struct e_ent_def_record_t
 {
-    size_t child_start;
-    size_t child_count;
+    uint64_t child_start;
+    uint64_t child_count;
 
-    size_t constraint_start;
-    size_t constraint_count;
+    uint64_t constraint_start;
+    uint64_t constraint_count;
 
-    size_t collider_start;
-    size_t record_size;
+    uint64_t collider_start;
+    uint64_t record_size;
 
     char model[128];
 

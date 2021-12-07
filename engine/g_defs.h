@@ -27,7 +27,8 @@ enum G_ENTITY_TYPES
 
 #define G_ENTITY_FIELDS                         \
     uint32_t index;                             \
-    struct e_entity_t *entity
+    struct e_entity_t *entity;                  \
+    struct ds_slist_t *list
 
 struct g_entity_t
 {
@@ -46,7 +47,7 @@ enum G_ENEMY_TYPES
 {
     G_ENEMY_TYPE_CAMERA,
     G_ENEMY_TYPE_TURRET,
-    G_ENEMY_TYPE_MOTION_SENSOR,
+//    G_ENEMY_TYPE_MOTION_SENSOR,
     G_ENEMY_TYPE_LAST
 };
 
@@ -85,22 +86,32 @@ enum G_CAMERA_FLAGS
     G_CAMERA_FLAG_RELOAD_SWEEP_TIMER = 1 << 4,
 };
 
+#define G_CAMERA_FIELDS                         \
+    float max_pitch;                            \
+    float min_pitch;                            \
+    float max_yaw;                              \
+    float min_yaw;                              \
+    float idle_pitch;                           \
+    float range
+
+struct g_camera_fields_t
+{
+    G_CAMERA_FIELDS;
+};
+
 struct g_camera_t
 {
     G_ENEMY_FIELDS;
 
+    union
+    {
+        struct { G_CAMERA_FIELDS; };
+        struct g_camera_fields_t fields;
+    };
+
     uint32_t flags;
-
     uint32_t state;
-    float state_timer;
 
-    float max_pitch;
-    float min_pitch;
-
-    float max_yaw;
-    float min_yaw;
-
-    float idle_pitch;
     float startled_timer_delta;
     float startled_yaw_delta;
     float startled_yaw;
@@ -115,14 +126,28 @@ struct g_camera_t
     float startled_timer;
     float alert_timer;
 
-    float range;
     struct r_spot_light_t *light;
 };
+
+
+
 
 struct g_turret_t
 {
     G_ENEMY_FIELDS;
     uint32_t state;
+};
+
+
+struct g_enemy_record_t
+{
+    uint32_t type;
+
+    union
+    {
+        struct g_camera_fields_t camera;
+
+    };
 };
 
 /*

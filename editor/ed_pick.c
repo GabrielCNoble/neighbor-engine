@@ -6,6 +6,8 @@
 #include "../engine/g_main.h"
 #include "../engine/r_main.h"
 #include "../engine/ent.h"
+#include "../engine/g_game.h"
+#include "../engine/g_enemy.h"
 
 extern struct ed_level_state_t ed_level_state;
 extern struct r_shader_t *ed_picking_shader;
@@ -440,6 +442,10 @@ void ed_DestroyPickable(struct ed_pickable_t *pickable)
             case ED_PICKABLE_TYPE_ENTITY:
                 e_DestroyEntity(e_GetEntity(pickable->primary_index));
             break;
+
+            case ED_PICKABLE_TYPE_ENEMY:
+                g_DestroyEnemy(g_GetEnemy(pickable->secondary_index, pickable->primary_index));
+            break;
         }
 
         while(pickable->ranges)
@@ -597,11 +603,11 @@ struct ed_pickable_t *ed_CreateLightPickable(vec3_t *pos, vec3_t *color, float r
     {
         if(type == ED_LEVEL_LIGHT_TYPE_POINT)
         {
-            light = r_CreateLight(R_LIGHT_TYPE_POINT, pos, color, radius, energy);
+            light = (struct r_light_t *)r_CreatePointLight(pos, color, radius, energy);
         }
         else
         {
-            light = r_CreateSpotLight(pos, color, NULL, radius, energy, 20, 0.1);
+            light = (struct r_light_t *)r_CreateSpotLight(pos, color, NULL, radius, energy, 20, 0.1);
         }
     }
 
@@ -649,6 +655,36 @@ struct ed_pickable_t *ed_CreateEntityPickable(struct e_ent_def_t *ent_def, vec3_
     pickable->primary_index = entity->index;
     pickable->mode = GL_TRIANGLES;
     pickable->transform = entity->transform->transform;
+
+    ed_w_MarkPickableModified(pickable);
+
+    return pickable;
+}
+
+struct ed_pickable_t *ed_CreateEnemyPickable(uint32_t type, vec3_t *position, mat3_t *orientation, struct g_enemy_t *src_enemy)
+{
+    struct g_enemy_t *enemy;
+
+    if(src_enemy)
+    {
+        enemy = src_enemy;
+    }
+    else
+    {
+        switch(type)
+        {
+            case G_ENEMY_TYPE_CAMERA:
+            {
+                enemy = (struct g_enemy_t *)g_CreateCamera(position, 0.5, -0.5, -0.5, 0.5, 0.2, 10.0);
+            }
+            break;
+        }
+    }
+
+    struct ed_pickable_t *pickable = ed_CreatePickable(ED_PICKABLE_TYPE_ENEMY);
+    pickable->primary_index = enemy->index;
+    pickable->secondary_index = enemy->type;
+    pickable->transform = enemy->entity->transform->transform;
 
     ed_w_MarkPickableModified(pickable);
 

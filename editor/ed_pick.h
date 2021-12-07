@@ -4,6 +4,7 @@
 #include "ed_pick_defs.h"
 #include "ed_brush_defs.h"
 #include "../engine/r_defs.h"
+#include "../engine/g_defs.h"
 
 void ed_PickingInit();
 
@@ -59,6 +60,8 @@ struct ed_pickable_t *ed_CreateBrushPickable(vec3_t *position, mat3_t *orientati
 struct ed_pickable_t *ed_CreateLightPickable(vec3_t *pos, vec3_t *color, float radius, float energy, uint32_t type, struct r_light_t *src_light);
 
 struct ed_pickable_t *ed_CreateEntityPickable(struct e_ent_def_t *ent_def, vec3_t *position, vec3_t *scale, mat3_t *orientation, struct e_entity_t *src_entity);
+
+struct ed_pickable_t *ed_CreateEnemyPickable(uint32_t type, vec3_t *position, mat3_t *orientation, struct g_enemy_t *src_enemy);
 
 
 #endif

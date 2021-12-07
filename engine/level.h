@@ -12,6 +12,6 @@ void l_DestroyWorld();
 
 void l_ClearLevel();
 
-void l_DeserializeLevel(void *level_buffer, size_t buffer_size, uint32_t data_flags);
+uint32_t l_DeserializeLevel(void *level_buffer, size_t buffer_size);
 
 #endif

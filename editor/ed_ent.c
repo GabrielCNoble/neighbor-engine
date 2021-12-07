@@ -777,7 +777,7 @@ void ed_e_SerializeEntDefRecursive(char *start_out_buffer, char **out_buffer, st
     record->position = ent_def->position;
     record->orientation = ent_def->orientation;
     record->scale = ent_def->scale;
-    record->record_size = cur_out_buffer;
+    record->record_size = (uint64_t)cur_out_buffer;
 
     cur_out_buffer += sizeof(struct e_ent_def_record_t);
 
@@ -878,7 +878,7 @@ void ed_e_SerializeEntDefRecursive(char *start_out_buffer, char **out_buffer, st
         }
     }
 
-    record->record_size = cur_out_buffer - record->record_size;
+    record->record_size = (uint64_t)cur_out_buffer - record->record_size;
     *out_buffer = cur_out_buffer;
 }
 

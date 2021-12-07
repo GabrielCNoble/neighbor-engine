@@ -26,11 +26,19 @@ enum ED_L_TRANSFORM_MODES
     ED_L_TRANSFORM_MODE_LAST
 };
 
-enum ED_LEVEL_SECONDARY_CLICK_FUNCS
+//enum ED_LEVEL_SECONDARY_CLICK_FUNCS
+//{
+//    ED_LEVEL_SECONDARY_CLICK_FUNC_BRUSH = 0,
+//    ED_LEVEL_SECONDARY_CLICK_FUNC_LIGHT,
+//    ED_LEVEL_SECONDARY_CLICK_FUNC_ENTITY
+//};
+
+enum ED_L_TOOL_TABS
 {
-    ED_LEVEL_SECONDARY_CLICK_FUNC_BRUSH = 0,
-    ED_LEVEL_SECONDARY_CLICK_FUNC_LIGHT,
-    ED_LEVEL_SECONDARY_CLICK_FUNC_ENTITY
+    ED_L_TOOL_TAB_BRUSH = 0,
+    ED_L_TOOL_TAB_LIGHT,
+    ED_L_TOOL_TAB_ENTITY,
+    ED_L_TOOL_TAB_ENEMY
 };
 
 enum ED_LEVEL_BRUSH_TOOLS
@@ -46,7 +54,6 @@ enum ED_LEVEL_LIGHT_TYPES
 
 struct ed_level_state_t
 {
-
     struct
     {
         vec3_t box_start;
@@ -81,9 +88,9 @@ struct ed_level_state_t
         vec3_t plane_point;
         mat3_t plane_orientation;
         struct e_ent_def_t *ent_def;
+        uint32_t enemy_type;
         uint32_t light_type;
         uint32_t ignore_types;
-        uint32_t secondary_click_function;
         uint32_t selections_window_open;
         struct ds_list_t game_pickables[ED_PICKABLE_TYPE_LAST_GAME_PICKABLE];
         struct ds_slist_t pickables;
@@ -93,6 +100,8 @@ struct ed_level_state_t
         struct ed_pickable_t *last_selected;
 
     } pickables;
+
+    uint32_t selected_tools_tab;
 
     struct ds_slist_t pickable_ranges;
     struct ds_slist_t widgets;
@@ -140,65 +149,77 @@ struct ed_level_state_t
     } project;
 };
 
-enum ED_LEVEL_RESOURCE_TYPES
+//enum ED_LEVEL_RESOURCE_TYPES
+//{
+//    ED_LEVEL_RESOURCE_TYPE_TEXTURE = 0,
+//    ED_LEVEL_RESOURCE_TYPE_MODEL,
+//    ED_LEVEL_RESOURCE_TYPE_ENT_DEF,
+//    ED_LEVEL_RESOURCE_TYPE_SOUND,
+//    ED_LEVEL_RESOURCE_TYPE_MATERIAL,
+//    ED_LEVEL_RESOURCE_TYPE_LAST,
+//};
+//
+//struct ed_level_resource_t
+//{
+//    uint32_t type;
+//    uint32_t index;
+//    void *resource;
+//    char *src_path;
+//};
+
+struct ed_l_section_t
 {
-    ED_LEVEL_RESOURCE_TYPE_TEXTURE = 0,
-    ED_LEVEL_RESOURCE_TYPE_MODEL,
-    ED_LEVEL_RESOURCE_TYPE_ENT_DEF,
-    ED_LEVEL_RESOURCE_TYPE_SOUND,
-    ED_LEVEL_RESOURCE_TYPE_MATERIAL,
-    ED_LEVEL_RESOURCE_TYPE_LAST,
-};
-
-struct ed_level_resource_t
-{
-    uint32_t type;
-    uint32_t index;
-    void *resource;
-    char *src_path;
-};
-
-#define ED_LEVEL_SECTION_MAGIC0 0x4749454e
-#define ED_LEVEL_SECTION_MAGIC1 0x524f4248
-
-
-struct ed_level_section_t
-{
-    uint32_t magic0;
-    uint32_t magic1;
-
     char name[32];
 
     vec3_t camera_pos;
     float camera_pitch;
     float camera_yaw;
 
-    size_t brush_section_start;
-    size_t brush_section_size;
-
-    size_t light_section_start;
-    size_t light_section_size;
-
-    size_t entity_section_start;
-    size_t entity_section_size;
-
-    size_t ent_def_section_start;
-    size_t ent_def_section_size;
-
-    size_t material_section_start;
-    size_t material_section_size;
-
-    size_t world_section_start;
-    size_t world_section_size;
-
-    size_t waypoint_section_start;
-    size_t waypoint_section_size;
-
-    size_t game_section_start;
-    size_t game_section_size;
-
-    size_t reserved[32];
+    uint64_t brush_section_start;
+    uint64_t brush_section_size;
 };
+
+//#define ED_LEVEL_SECTION_MAGIC0 0x4749454e
+//#define ED_LEVEL_SECTION_MAGIC1 0x524f4248
+
+
+//struct ed_level_section_t
+//{
+//    uint32_t magic0;
+//    uint32_t magic1;
+//
+//    char name[32];
+//
+//    vec3_t camera_pos;
+//    float camera_pitch;
+//    float camera_yaw;
+//
+//    size_t brush_section_start;
+//    size_t brush_section_size;
+//
+//    size_t light_section_start;
+//    size_t light_section_size;
+//
+//    size_t entity_section_start;
+//    size_t entity_section_size;
+//
+//    size_t ent_def_section_start;
+//    size_t ent_def_section_size;
+//
+//    size_t material_section_start;
+//    size_t material_section_size;
+//
+//    size_t world_section_start;
+//    size_t world_section_size;
+//
+//    size_t waypoint_section_start;
+//    size_t waypoint_section_size;
+//
+//    size_t game_section_start;
+//    size_t game_section_size;
+//
+//    size_t reserved[32];
+//};
 
 #endif
 

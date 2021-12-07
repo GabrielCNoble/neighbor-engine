@@ -10,6 +10,11 @@ struct e_ent_def_t *g_enemy_ent_defs[G_ENEMY_TYPE_LAST];
 void (*g_enemy_step[G_ENEMY_TYPE_LAST])(struct g_enemy_t *enemy);
 extern float r_spot_light_cos_lut[];
 extern struct g_player_t g_player;
+char *g_enemy_names[G_ENEMY_TYPE_LAST] =
+{
+    [G_ENEMY_TYPE_CAMERA] = "Camera",
+    [G_ENEMY_TYPE_TURRET] = "Turret"
+};
 
 vec3_t g_camera_state_colors[] =
 {
@@ -31,6 +36,52 @@ struct g_enemy_t *g_CreateEnemy(uint32_t type, vec3_t *position, mat3_t *orienta
 {
     struct g_enemy_t *enemy = (struct g_enemy_t *)g_CreateEntity(&g_enemies[type], g_enemy_ent_defs[type], position, &vec3_t_c(1.0, 1.0, 1.0), orientation);
     enemy->type = type;
+    return enemy;
+}
+
+void g_DestroyEnemy(struct g_enemy_t *enemy)
+{
+    if(enemy && enemy->index != 0xffffffff)
+    {
+        switch(enemy->type)
+        {
+            case G_ENEMY_TYPE_CAMERA:
+            {
+                struct g_camera_t *camera = (struct g_camera_t *)enemy;
+                r_DestroyLight(camera->light);
+            }
+            break;
+        }
+
+        g_DestroyEntity((struct g_entity_t *)enemy);
+    }
+}
+
+void g_DestroyAllEnemies()
+{
+    for(uint32_t type = G_ENEMY_TYPE_CAMERA; type < G_ENEMY_TYPE_LAST; type++)
+    {
+        for(uint32_t index = 0; index < g_enemies[type].cursor; index++)
+        {
+            struct g_enemy_t *enemy = g_GetEnemy(type, index);
+
+            if(enemy)
+            {
+                g_DestroyEnemy(enemy);
+            }
+        }
+    }
+}
+
+struct g_enemy_t *g_GetEnemy(uint32_t type, uint32_t index)
+{
+    struct g_enemy_t *enemy = ds_slist_get_element(&g_enemies[type], index);
+
+    if(enemy && enemy->index == 0xffffffff)
+    {
+        enemy = NULL;
+    }
+
     return enemy;
 }
 
@@ -288,6 +339,7 @@ void g_StepCameras(float delta_time)
             mat3_t_rotate_y(&spot_yaw, camera->cur_yaw);
             mat3_t_mul(&spot_yaw, &spot_pitch, &spot_yaw);
             mat3_t_mul(&camera_light->orientation, &camera_node->orientation, &spot_yaw);
+            camera_light->position = camera_node->position;
             camera_light->color = g_camera_state_colors[camera->state];
         }
     }

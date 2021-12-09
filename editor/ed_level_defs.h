@@ -38,7 +38,8 @@ enum ED_L_TOOL_TABS
     ED_L_TOOL_TAB_BRUSH = 0,
     ED_L_TOOL_TAB_LIGHT,
     ED_L_TOOL_TAB_ENTITY,
-    ED_L_TOOL_TAB_ENEMY
+    ED_L_TOOL_TAB_ENEMY,
+    ED_L_TOOL_TAB_MATERIAL,
 };
 
 enum ED_LEVEL_BRUSH_TOOLS
@@ -102,6 +103,7 @@ struct ed_level_state_t
     } pickables;
 
     uint32_t selected_tools_tab;
+    struct r_material_t *selected_material;
 
     struct ds_slist_t pickable_ranges;
     struct ds_slist_t widgets;

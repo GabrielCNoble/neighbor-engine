@@ -39,9 +39,11 @@ struct r_i_verts_t *ed_grid;
 
 extern struct ds_slist_t r_lights[];
 extern struct ds_slist_t r_materials;
+extern struct ds_slist_t r_textures;
 extern struct ds_slist_t e_entities;
 extern struct ds_slist_t e_ent_defs[];
 extern struct ds_list_t e_components[];
+extern struct ds_slist_t g_enemies[];
 extern struct ds_list_t e_root_transforms;
 
 extern mat4_t r_projection_matrix;
@@ -139,6 +141,7 @@ void ed_l_Init(struct ed_editor_t *editor)
     ed_level_state.pickables.modified_brushes = ds_list_create(sizeof(struct ed_brush_t *), 512);
     ed_level_state.pickables.modified_pickables = ds_list_create(sizeof(struct ed_pickable_t *), 512);
     ed_level_state.selected_tools_tab = ED_L_TOOL_TAB_BRUSH;
+    ed_level_state.selected_material = r_GetDefaultMaterial();
 
     for(uint32_t game_pickable_type = ED_PICKABLE_TYPE_ENTITY; game_pickable_type < ED_PICKABLE_TYPE_LAST_GAME_PICKABLE; game_pickable_type++)
     {
@@ -635,7 +638,23 @@ void ed_w_UpdateUI()
                         case ED_PICKABLE_TYPE_FACE:
                         {
                             struct ed_face_t *face = ed_GetFace(pickable->secondary_index);
-                            igText("Material: %s", face->material->name);
+                            if(igBeginCombo("Face material", face->material->name, 0))
+                            {
+                                for(uint32_t material_index = 0; material_index < r_materials.cursor; material_index++)
+                                {
+                                    struct r_material_t *material = r_GetMaterial(material_index);
+                                    if(material)
+                                    {
+                                        if(igSelectable_Bool(material->name, material == face->material, 0, (ImVec2){0, 0}))
+                                        {
+                                            face->material = material;
+                                            ed_w_MarkBrushModified(face->brush);
+//                                            ed_SetFaceMaterial(face->brush, face->index, material);
+                                        }
+                                    }
+                                }
+                                igEndCombo();
+                            }
                         }
                         break;
 
@@ -683,7 +702,6 @@ void ed_w_UpdateUI()
 
             if(igBeginTabItem("Light", NULL, 0))
             {
-//                ed_level_state.pickables.secondary_click_function = ED_LEVEL_SECONDARY_CLICK_FUNC_LIGHT;
                 ed_level_state.selected_tools_tab = ED_L_TOOL_TAB_LIGHT;
                 uint32_t type = ed_level_state.pickables.light_type;
 
@@ -703,7 +721,6 @@ void ed_w_UpdateUI()
 
             if(igBeginTabItem("Entity", NULL, 0))
             {
-//                ed_level_state.pickables.secondary_click_function = ED_LEVEL_SECONDARY_CLICK_FUNC_ENTITY;
                 ed_level_state.selected_tools_tab = ED_L_TOOL_TAB_ENTITY;
                 uint32_t type = ed_level_state.pickables.light_type;
 
@@ -738,10 +755,131 @@ void ed_w_UpdateUI()
                 igEndTabItem();
             }
 
+            if(igBeginTabItem("Materials", NULL, 0))
+            {
+                ed_level_state.selected_tools_tab = ED_L_TOOL_TAB_MATERIAL;
+                struct r_material_t *selected_material = ed_level_state.selected_material;
+                struct r_material_t *default_material = r_GetDefaultMaterial();
+
+                if(igBeginCombo("##materials", selected_material->name, 0))
+                {
+                    for(uint32_t material_index = 0; material_index < r_materials.cursor; material_index++)
+                    {
+                        struct r_material_t *material = r_GetMaterial(material_index);
+
+                        if(material)
+                        {
+                            if(igSelectable_Bool(material->name, material == selected_material, ImGuiSelectableFlags_AllowItemOverlap, (ImVec2){0, 0}))
+                            {
+                                ed_level_state.selected_material = material;
+                            }
+
+                            if(material != default_material)
+                            {
+                                ImVec2 size;
+                                igGetItemRectSize(&size);
+                                igSameLine(size.x - 20, -1);
+                                igPushID_Ptr(material);
+                                if(igSmallButton("X"))
+                                {
+                                    r_DestroyMaterial(material);
+                                }
+                                igPopID();
+                            }
+                        }
+                    }
+                    igEndCombo();
+                }
+
+                igSameLine(0, -1);
+                if(igSmallButton("+"))
+                {
+                    ed_level_state.selected_material = r_CreateMaterial("", default_material->diffuse_texture, default_material->normal_texture, default_material->roughness_texture);
+                    selected_material = ed_level_state.selected_material;
+                }
+
+                igSeparator();
+
+                ImGuiInputTextFlags text_input_flags = 0;
+
+                if(selected_material == default_material)
+                {
+                    text_input_flags = ImGuiInputTextFlags_ReadOnly;
+                }
+
+                igInputText("Name", selected_material->name, sizeof(selected_material->name), text_input_flags, 0, NULL);
+
+                if(igBeginCombo("Diffuse texture", selected_material->diffuse_texture->name, 0))
+                {
+                    if(selected_material != default_material)
+                    {
+                        struct r_texture_t *selected_texture = selected_material->diffuse_texture;
+                        for(uint32_t texture_index = 0; texture_index < r_textures.cursor; texture_index++)
+                        {
+                            struct r_texture_t *texture = r_GetTexture(texture_index);
+
+                            if(texture)
+                            {
+                                if(igSelectable_Bool(texture->name, selected_texture == texture, 0, (ImVec2){0, 0}))
+                                {
+                                    selected_material->diffuse_texture = texture;
+                                }
+                            }
+                        }
+                    }
+                    igEndCombo();
+                }
+
+                if(igBeginCombo("Normal texture", selected_material->normal_texture->name, 0))
+                {
+                    if(selected_material != default_material)
+                    {
+                        struct r_texture_t *selected_texture = selected_material->normal_texture;
+                        for(uint32_t texture_index = 0; texture_index < r_textures.cursor; texture_index++)
+                        {
+                            struct r_texture_t *texture = r_GetTexture(texture_index);
+
+                            if(texture)
+                            {
+                                if(igSelectable_Bool(texture->name, selected_texture == texture, 0, (ImVec2){0, 0}))
+                                {
+                                    selected_material->normal_texture = texture;
+                                }
+                            }
+                        }
+                    }
+                    igEndCombo();
+                }
+
+                if(igBeginCombo("Roughness texture", selected_material->roughness_texture->name, 0))
+                {
+                    if(selected_material != default_material)
+                    {
+                        struct r_texture_t *selected_texture = selected_material->roughness_texture;
+                        for(uint32_t texture_index = 0; texture_index < r_textures.cursor; texture_index++)
+                        {
+                            struct r_texture_t *texture = r_GetTexture(texture_index);
+
+                            if(texture)
+                            {
+                                if(igSelectable_Bool(texture->name, selected_texture == texture, 0, (ImVec2){0, 0}))
+                                {
+                                    selected_material->roughness_texture = texture;
+                                }
+                            }
+                        }
+                    }
+                    igEndCombo();
+                }
+
+                igEndTabItem();
+            }
+
             igEndTabBar();
         }
     }
     igEnd();
+
 //    if(igBegin("Tools window", NULL, window_flags))
 //    {
 //        switch(ed_level_state.pickables.secondary_click_function)
@@ -944,48 +1082,7 @@ void ed_w_UpdateUI()
 
                 igTableNextColumn();
 
-//                if(igBeginChild_Str("tools", (ImVec2){500, 24}, 0, 0))
-//                {
-//                    if(igBeginTabBar("Tools", 0))
-//                    {
-//                        if(igBeginTabItem("Brush", NULL, 0))
-//                        {
-//                            ed_level_state.pickables.secondary_click_function = ED_LEVEL_SECONDARY_CLICK_FUNC_BRUSH;
-//                            igEndTabItem();
-//                        }
-//                        if(igBeginTabItem("Light", NULL, 0))
-//                        {
-//                            ed_level_state.pickables.secondary_click_function = ED_LEVEL_SECONDARY_CLICK_FUNC_LIGHT;
-//                            igEndTabItem();
-//                        }
-//                        if(igBeginTabItem("Entity", NULL, 0))
-//                        {
-//                            ed_level_state.pickables.secondary_click_function = ED_LEVEL_SECONDARY_CLICK_FUNC_ENTITY;
-//                            igEndTabItem();
-//                        }
-//                        igEndTabBar();
-//                    }
-//                }
-//                igEndChild();
-
                 igEndTable();
-
-    //            igTableNextColumn();
-
-
-//                if(igButton("Brush", (ImVec2){0.0, 20.0}))
-//                {
-//                    ed_level_state.pickables.secondary_click_function = ED_LEVEL_SECONDARY_CLICK_FUNC_BRUSH;
-//                }
-//
-//                igSameLine(0.0, -1.0);
-//
-//                if(igButton("Light", (ImVec2){0.0, 20.0}))
-//                {
-//                    ed_level_state.pickables.secondary_click_function = ED_LEVEL_SECONDARY_CLICK_FUNC_LIGHT;
-//                }
-//
-//                igEndTable();
             }
             igPopStyleVar(1);
     }
@@ -1048,62 +1145,62 @@ void ed_w_UpdateManipulator()
     }
 }
 
-struct ed_pickable_range_t *ed_UpdateEntityPickableRanges(struct ed_pickable_t *pickable, struct e_entity_t *entity, mat4_t *parent_transform, struct ed_pickable_range_t **cur_range)
-{
-    struct e_node_t *node = entity->node;
-    struct e_model_t *model = entity->model;
-
-    struct ed_pickable_range_t *range = *cur_range;
-    pickable->range_count++;
-
-    if(!range)
-    {
-        range = ed_AllocPickableRange();
-    }
-
-    if(!parent_transform)
-    {
-        range->offset = mat4_t_c_id();
-    }
-    else
-    {
-        mat4_t scale = mat4_t_c_id();
-
-        scale.rows[0].x = node->scale.x;
-        scale.rows[1].y = node->scale.y;
-        scale.rows[2].z = node->scale.z;
-
-        mat4_t_comp(&range->offset, &node->orientation, &node->position);
-        mat4_t_mul(&range->offset, &range->offset, parent_transform);
-        mat4_t_mul(&range->offset, &scale, &range->offset);
-    }
-
-    range->start = model->model->model_start;
-    range->count = model->model->model_count;
-
-    *cur_range = range;
-    struct e_node_t *child = node->children;
-
-    if(child)
-    {
-        struct ed_pickable_range_t *next_range = ed_UpdateEntityPickableRanges(pickable, child->entity, &range->offset, &(*cur_range)->next);
-        next_range->prev = range;
-        child = child->next;
-
-        while(child)
-        {
-            ed_UpdateEntityPickableRanges(pickable, child->entity, &range->offset, &(*cur_range)->next);
-            child = child->next;
-        }
-    }
-
-    return range;
-}
+//struct ed_pickable_range_t *ed_UpdateEntityPickableRanges(struct ed_pickable_t *pickable, struct e_entity_t *entity, mat4_t *parent_transform, struct ed_pickable_range_t **cur_range)
+//{
+//    struct e_node_t *node = entity->node;
+//    struct e_model_t *model = entity->model;
+//
+//    struct ed_pickable_range_t *range = *cur_range;
+//    pickable->range_count++;
+//
+//    if(!range)
+//    {
+//        range = ed_AllocPickableRange();
+//    }
+//
+//    if(!parent_transform)
+//    {
+//        range->offset = mat4_t_c_id();
+//    }
+//    else
+//    {
+//        mat4_t scale = mat4_t_c_id();
+//
+//        scale.rows[0].x = node->scale.x;
+//        scale.rows[1].y = node->scale.y;
+//        scale.rows[2].z = node->scale.z;
+//
+//        mat4_t_comp(&range->offset, &node->orientation, &node->position);
+//        mat4_t_mul(&range->offset, &range->offset, parent_transform);
+//        mat4_t_mul(&range->offset, &scale, &range->offset);
+//    }
+//
+//    range->start = model->model->model_start;
+//    range->count = model->model->model_count;
+//
+//    *cur_range = range;
+//    struct e_node_t *child = node->children;
+//
+//    if(child)
+//    {
+//        struct ed_pickable_range_t *next_range = ed_UpdateEntityPickableRanges(pickable, child->entity, &range->offset, &(*cur_range)->next);
+//        next_range->prev = range;
+//        child = child->next;
+//
+//        while(child)
+//        {
+//            ed_UpdateEntityPickableRanges(pickable, child->entity, &range->offset, &(*cur_range)->next);
+//            child = child->next;
+//        }
+//    }
+//
+//    return range;
+//}
 
 void ed_w_UpdatePickableObjects()
 {
     struct ds_list_t *pickables = &ed_level_state.pickables.modified_pickables;
-    struct e_entity_t *entity;
+//    struct e_entity_t *entity;
 
     uint32_t pickable_index = 0;
     uint32_t pickable_count = pickables->cursor;
@@ -1363,33 +1460,7 @@ void ed_w_UpdatePickableObjects()
                         }
                     }
 
-                    uint32_t range_count = pickable->range_count;
-                    ed_UpdateEntityPickableRanges(pickable, entity, NULL, &pickable->ranges);
-
-                    if(range_count > pickable->range_count)
-                    {
-                        /* we have more ranges than we need, so free the extra at the
-                        end of the list */
-                        struct ed_pickable_range_t *range = pickable->ranges;
-                        range_count = pickable->range_count;
-
-                        while(range_count)
-                        {
-                            /* skip all used ranges */
-                           range = range->next;
-                           range_count--;
-                        }
-
-                        range->prev->next = NULL;
-
-                        while(range)
-                        {
-                            struct ed_pickable_range_t *next_range = range->next;
-                            ed_FreePickableRange(range);
-                            range = next_range;
-                        }
-                    }
-
+                    ed_UpdateEntityPickableRanges(pickable, entity);
                     e_UpdateEntityNode(entity->node, &mat4_t_c_id());
                     pickable->transform = entity->transform->transform;
                 }
@@ -1401,44 +1472,17 @@ void ed_w_UpdatePickableObjects()
 
                     if(pickable->transform_flags & ED_PICKABLE_TRANSFORM_FLAG_TRANSLATION)
                     {
-                        e_TranslateEntity(enemy->entity, &pickable->translation);
+                        g_TranslateEnemy(enemy, &pickable->translation);
                     }
 
                     if(pickable->transform_flags & ED_PICKABLE_TRANSFORM_FLAG_ROTATION)
                     {
-                        e_RotateEntity(enemy->entity, &pickable->rotation);
+                        g_RotateEnemy(enemy, &pickable->rotation);
                     }
 
-                    uint32_t range_count = pickable->range_count;
-                    ed_UpdateEntityPickableRanges(pickable, enemy->entity, NULL, &pickable->ranges);
-
-                    if(range_count > pickable->range_count)
-                    {
-                        /* we have more ranges than we need, so free the extra at the
-                        end of the list */
-                        struct ed_pickable_range_t *range = pickable->ranges;
-                        range_count = pickable->range_count;
-
-                        while(range_count)
-                        {
-                            /* skip all used ranges */
-                           range = range->next;
-                           range_count--;
-                        }
-
-                        range->prev->next = NULL;
-
-                        while(range)
-                        {
-                            struct ed_pickable_range_t *next_range = range->next;
-                            ed_FreePickableRange(range);
-                            range = next_range;
-                        }
-                    }
-
+                    ed_UpdateEntityPickableRanges(pickable, enemy->entity);
                     e_UpdateEntityNode(enemy->entity->node, &mat4_t_c_id());
                     pickable->transform = enemy->entity->transform->transform;
-
                 }
                 break;
             }
@@ -1763,6 +1807,26 @@ void ed_LevelEditorDrawSelections()
         r_i_SetDrawMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE, 0xff);
         r_i_SetStencil(GL_FALSE, GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE);
         r_i_SetBlending(GL_FALSE, GL_NONE, GL_NONE);
+    }
+
+    struct ds_list_t *enemy_list = &ed_level_state.pickables.game_pickables[ED_PICKABLE_TYPE_ENEMY];
+
+    for(uint32_t index = 0; index < enemy_list->cursor; index++)
+    {
+        struct ed_pickable_t *pickable = *(struct ed_pickable_t **)ds_list_get_element(enemy_list, index);
+        struct g_enemy_t *enemy = g_GetEnemy(pickable->secondary_index, pickable->primary_index);
+
+        switch(enemy->type)
+        {
+            case G_ENEMY_TYPE_CAMERA:
+            {
+                struct g_camera_t *camera = (struct g_camera_t *)enemy;
+//                r_i_SetModelMatrix(&camera->entity->transform->transform);
+
+//                r_i_
+            }
+            break;
+        }
     }
 }
 
@@ -2091,11 +2155,6 @@ void ed_LevelEditorBrushBox(uint32_t just_changed)
 
             vec3_t intersection = {};
 
-//            if(!context_data->brush.drawing)
-//            {
-//                ed_l_SurfaceUnderMouse(mouse_x, mouse_y, &context_data->brush.plane_point, &context_data->brush.plane_orientation);
-//            }
-
             vec3_t plane_point = context_data->pickables.plane_point;
             mat3_t plane_orientation = context_data->pickables.plane_orientation;
 
@@ -2106,14 +2165,6 @@ void ed_LevelEditorBrushBox(uint32_t just_changed)
                 r_i_SetShader(NULL);
 
                 ed_l_LinearSnapValueOnSurface(&plane_point, &plane_orientation, &intersection);
-
-//                if(right_button_down)
-//                {
-//                    if(!context_data->brush.drawing)
-//                    {
-//                        context_data->brush.box_start = intersection;
-//                        context_data->brush.drawing |= right_button_down;
-//                    }
 
                 context_data->brush.box_end = intersection;
                 vec3_t start = context_data->brush.box_start;
@@ -2170,73 +2221,27 @@ void ed_LevelEditorBrushBox(uint32_t just_changed)
                 }
 
                 igEnd();
-//                }
-//                else
-//                {
-//                    vec3_t start = intersection;
-//                    vec3_t end = intersection;
-//                    vec3_t normal = plane_orientation.rows[1];
-//
-//                    vec3_t u_axis;
-//                    vec3_t v_axis;
-//
-//                    vec3_t_mul(&u_axis, &plane_orientation.rows[0], ED_W_BRUSH_BOX_CROSSHAIR_DIM);
-//                    vec3_t_mul(&v_axis, &plane_orientation.rows[2], ED_W_BRUSH_BOX_CROSSHAIR_DIM);
-//
-//                    int32_t window_x;
-//                    int32_t window_y;
-//
-//                    ed_w_PointPixelCoords(&window_x, &window_y, &intersection);
-//
-//                    igSetNextWindowPos((ImVec2){window_x, window_y}, 0, (ImVec2){0.0, 0.0});
-//                    igSetNextWindowBgAlpha(0.25);
-//                    if(igBegin("crosshair", NULL, ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoTitleBar |
-//                                             ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoDecoration))
-//                    {
-//                        igText("pos: [%f, %f, %f]", intersection.x, intersection.y, intersection.z);
-//                        igText("norm: [%f, %f, %f]", normal.x, normal.y, normal.z);
-//                    }
-//                    igEnd();
-//
-//                    r_i_DrawLine(&vec3_t_c(start.x + u_axis.x, start.y + u_axis.y, start.z + u_axis.z),
-//                                 &vec3_t_c(end.x - u_axis.x, end.y - u_axis.y, end.z - u_axis.z),
-//                                 &vec4_t_c(1.0, 1.0, 1.0, 1.0), 4.0);
-//
-//                    r_i_DrawLine(&vec3_t_c(start.x + v_axis.x, start.y + v_axis.y, start.z + v_axis.z),
-//                                 &vec3_t_c(end.x - v_axis.x, end.y - v_axis.y, end.z - v_axis.z),
-//                                 &vec4_t_c(1.0, 1.0, 1.0, 1.0), 4.0);
-//                }
             }
         }
     }
     else
     {
-//        if(!context_data->pickables.active_list->selections.cursor)
-//        {
-//            context_data->pickables.next_edit_mode = ED_W_CTX_EDIT_MODE_OBJECT;
-//            ed_w_SetEditMode(context, just_changed);
-//        }
+        vec3_t position;
+        vec3_t size;
 
-//        if(!context_data->brush.drawing)
-//        {
-//            ed_SetNextState(ed_LevelEditorIdle);
-//        }
-//        else
+        size.x = context_data->brush.box_size.x;
+        size.y = 1.0;
+        size.z = context_data->brush.box_size.y;
+
+        if(size.x != 0.0 || size.z != 0.0)
         {
-            vec3_t position;
-            vec3_t size;
-
-            size.x = context_data->brush.box_size.x;
-            size.y = 1.0;
-            size.z = context_data->brush.box_size.y;
-
             vec3_t_add(&position, &context_data->brush.box_start, &context_data->brush.box_end);
             vec3_t_mul(&position, &position, 0.5);
             vec3_t_fmadd(&position, &position, &context_data->pickables.plane_orientation.rows[1], size.y * 0.5);
 
             ed_CreateBrushPickable(&position, &context_data->pickables.plane_orientation, &size, NULL);
-            ed_SetNextState(ed_LevelEditorIdle);
         }
+        ed_SetNextState(ed_LevelEditorIdle);
     }
 }
 
@@ -2562,10 +2567,14 @@ void ed_SerializeLevel(void **level_buffer, size_t *buffer_size, uint32_t serial
     size_t material_section_size = sizeof(struct l_material_section_t);
     material_section_size += sizeof(struct l_material_record_t) * r_materials.used;
 
-    size_t game_section_size = sizeof(struct l_game_section_t);
+    size_t game_section_size = 0;
     if(enemy_list->cursor)
     {
         game_section_size += sizeof(struct l_enemy_record_t) * enemy_list->cursor;
+    }
+    if(game_section_size)
+    {
+        game_section_size += sizeof(struct l_game_section_t);
     }
 
     size_t world_section_size = 0;
@@ -2589,8 +2598,6 @@ void ed_SerializeLevel(void **level_buffer, size_t *buffer_size, uint32_t serial
     cur_out_buffer += sizeof(struct l_level_header_t);
     level_header->magic0 = L_LEVEL_HEADER_MAGIC0;
     level_header->magic1 = L_LEVEL_HEADER_MAGIC1;
-
-
 
     level_header->level_editor_start = cur_out_buffer - start_out_buffer;
     level_header->level_editor_size = level_editor_section_size;
@@ -2758,8 +2765,7 @@ void ed_SerializeLevel(void **level_buffer, size_t *buffer_size, uint32_t serial
         cur_out_buffer += sizeof(struct l_light_section_t);
         light_section->record_start = cur_out_buffer - start_out_buffer;
         struct l_light_record_t *light_records = (struct l_light_record_t *)cur_out_buffer;
-        cur_out_buffer += sizeof(struct l_light_record_t) * r_lights[R_LIGHT_TYPE_POINT].used;
-        cur_out_buffer += sizeof(struct l_light_record_t) * r_lights[R_LIGHT_TYPE_SPOT].used;
+        cur_out_buffer += sizeof(struct l_light_record_t ) * light_list->cursor;
 
         for(uint32_t light_index = 0; light_index < light_list->cursor; light_index++)
         {
@@ -2792,17 +2798,48 @@ void ed_SerializeLevel(void **level_buffer, size_t *buffer_size, uint32_t serial
         }
     }
 
-    level_header->game_section_start = cur_out_buffer - start_out_buffer;
-    level_header->game_section_size = game_section_size;
-    struct l_game_section_t *game_section = (struct l_game_section_t *)cur_out_buffer;
-    cur_out_buffer += sizeof(struct l_game_section_t);
+    /* enemy stuff */
+    if(game_section_size)
+    {
+        level_header->game_section_start = cur_out_buffer - start_out_buffer;
+        level_header->game_section_size = game_section_size;
+        struct l_game_section_t *game_section = (struct l_game_section_t *)cur_out_buffer;
+        cur_out_buffer += sizeof(struct l_game_section_t);
 
-//    if(enemy_list->cursor)
-//    {
-//        game_section->enemy_start = cur_out_buffer - start_out_buffer;
-//
-//        for(uint32_t enemy_index = 0; enemy_index < )
-//    }
+        if(enemy_list->cursor)
+        {
+            game_section->enemy_start = cur_out_buffer - start_out_buffer;
+            game_section->enemy_count = enemy_list->cursor;
+
+            struct l_enemy_record_t *enemy_records = (struct l_enemy_record_t *)cur_out_buffer;
+            cur_out_buffer += sizeof(struct l_enemy_record_t ) * game_section->enemy_count;
+
+            for(uint32_t enemy_index = 0; enemy_index < game_section->enemy_count; enemy_index++)
+            {
+                struct ed_pickable_t *pickable = *(struct ed_pickable_t **)ds_list_get_element(enemy_list, enemy_index);
+                struct g_enemy_t *enemy = g_GetEnemy(pickable->secondary_index, pickable->primary_index);
+                struct l_enemy_record_t *record = enemy_records + enemy_index;
+                struct e_node_t *node = enemy->entity->node;
+
+                record->position = node->position;
+                record->orientation = node->orientation;
+                record->type = enemy->type;
+                record->s_index = enemy->index;
+
+                switch(enemy->type)
+                {
+                    case G_ENEMY_TYPE_CAMERA:
+                    {
+                        struct g_camera_t *camera = (struct g_camera_t *)enemy;
+                        record->camera_fields = camera->fields;
+                    }
+                    break;
+                }
+            }
+        }
+
+
+    }
 
     level_header->material_section_start = cur_out_buffer - start_out_buffer;
     level_header->material_section_size = material_section_size;
@@ -2945,6 +2982,19 @@ void ed_DeserializeLevel(void *level_buffer, size_t buffer_size)
             if(light)
             {
                 ed_CreateLightPickable(NULL, NULL, 0.0, 0.0, 0, light);
+            }
+        }
+    }
+
+    for(uint32_t enemy_type = G_ENEMY_TYPE_CAMERA; enemy_type < G_ENEMY_TYPE_LAST; enemy_type++)
+    {
+        for(uint32_t enemy_index = 0; enemy_index < g_enemies[enemy_type].cursor; enemy_index++)
+        {
+            struct g_enemy_t *enemy = g_GetEnemy(enemy_type, enemy_index);
+
+            if(enemy)
+            {
+                ed_CreateEnemyPickable(0, NULL, NULL, enemy);
             }
         }
     }
@@ -3250,7 +3300,7 @@ uint32_t ed_l_LoadLevel(char *path, char *file)
         if(!fp)
         {
             printf("couldn't find level file %s\n", file_name);
-            return;
+            return 0;
         }
 
         ed_l_ResetEditor();
@@ -3341,54 +3391,96 @@ void ed_l_LoadGameLevelSnapshot()
 
         char *level_buffer = ed_level_state.game_level_buffer;
         struct l_level_header_t *level_header = (struct l_level_header_t *)level_buffer;
-        struct l_light_section_t *light_section = (struct l_light_section_t *)(level_buffer + level_header->light_section_start);
-        struct l_light_record_t *light_records = (struct l_light_record_t *)(level_buffer + light_section->record_start);
-        struct l_entity_section_t *entity_section = (struct l_entity_section_t *)(level_buffer + level_header->entity_section_start);
-        struct l_entity_record_t *entity_records = (struct l_entity_record_t *)(level_buffer + entity_section->record_start);
 
-        struct ds_list_t *light_list = &ed_level_state.pickables.game_pickables[ED_PICKABLE_TYPE_LIGHT];
-        struct ds_list_t *entity_list = &ed_level_state.pickables.game_pickables[ED_PICKABLE_TYPE_ENTITY];
-
-        for(uint32_t light_index = 0; light_index < light_list->cursor; light_index++)
+        if(level_header->light_section_size)
         {
-            struct ed_pickable_t *pickable = *(struct ed_pickable_t **)ds_list_get_element(light_list, light_index);
-            for(uint32_t record_index = 0; record_index < light_section->record_count; record_index++)
-            {
-                struct l_light_record_t *record = light_records + record_index;
-                if(pickable->primary_index == record->s_index)
-                {
-                    pickable->primary_index = record->d_index;
+            struct l_light_section_t *light_section = (struct l_light_section_t *)(level_buffer + level_header->light_section_start);
+            struct l_light_record_t *light_records = (struct l_light_record_t *)(level_buffer + light_section->record_start);
 
-                    if(record_index < light_section->record_count - 1)
+            struct ds_list_t *light_list = &ed_level_state.pickables.game_pickables[ED_PICKABLE_TYPE_LIGHT];
+
+            for(uint32_t light_index = 0; light_index < light_list->cursor; light_index++)
+            {
+                struct ed_pickable_t *pickable = *(struct ed_pickable_t **)ds_list_get_element(light_list, light_index);
+                for(uint32_t record_index = 0; record_index < light_section->record_count; record_index++)
+                {
+                    struct l_light_record_t *record = light_records + record_index;
+                    if(pickable->primary_index == record->s_index)
                     {
-                        *record = light_records[light_section->record_count - 1];
+                        pickable->primary_index = record->d_index;
+
+                        if(record_index < light_section->record_count - 1)
+                        {
+                            *record = light_records[light_section->record_count - 1];
+                        }
+                        light_section->record_count--;
+                        break;
                     }
-                    light_section->record_count--;
-                    break;
                 }
             }
         }
 
-        for(uint32_t entity_index = 0; entity_index < entity_list->cursor; entity_index++)
+        if(level_header->game_section_size)
         {
-            struct ed_pickable_t *pickable = *(struct ed_pickable_t **)ds_list_get_element(entity_list, entity_index);
+            struct l_game_section_t *game_section = (struct l_game_section_t *)(level_buffer + level_header->game_section_start);
 
-            for(uint32_t record_index = 0; record_index < entity_section->record_count; record_index++)
+            if(game_section->enemy_count)
             {
-                struct l_entity_record_t *record = entity_records + record_index;
+                struct ds_list_t *enemy_list = &ed_level_state.pickables.game_pickables[ED_PICKABLE_TYPE_ENEMY];
+                struct l_enemy_record_t *enemy_records = (struct l_enemy_record_t *)(level_buffer + game_section->enemy_start);
 
-                if(pickable->primary_index == record->s_index)
+                for(uint32_t enemy_index = 0; enemy_index < enemy_list->cursor; enemy_index++)
                 {
-                    pickable->primary_index = record->d_index;
-                    /* FIXME: this will break once the level format allows to store
-                    child entities in entity records that were parented in the level
-                    editor */
-                    if(record_index < entity_section->record_count - 1)
+                    struct ed_pickable_t *pickable = *(struct ed_pickable_t **)ds_list_get_element(enemy_list, enemy_index);
+
+                    for(uint32_t record_index = 0; record_index < game_section->enemy_count; record_index++)
                     {
-                        *record = entity_records[entity_section->record_count - 1];
+                        struct l_enemy_record_t *record = enemy_records + record_index;
+
+                        if(record->s_index == pickable->primary_index && record->type == pickable->secondary_index)
+                        {
+                            pickable->primary_index = record->d_index;
+
+                            if(record_index < game_section->enemy_count - 1)
+                            {
+                                *record = enemy_records[game_section->enemy_count - 1];
+                            }
+
+                            game_section->enemy_count--;
+                            break;
+                        }
                     }
-                    entity_section->record_count--;
-                    break;
+                }
+            }
+        }
+
+        if(level_header->entity_section_size)
+        {
+            struct l_entity_section_t *entity_section = (struct l_entity_section_t *)(level_buffer + level_header->entity_section_start);
+            struct l_entity_record_t *entity_records = (struct l_entity_record_t *)(level_buffer + entity_section->record_start);
+            struct ds_list_t *entity_list = &ed_level_state.pickables.game_pickables[ED_PICKABLE_TYPE_ENTITY];
+
+            for(uint32_t entity_index = 0; entity_index < entity_list->cursor; entity_index++)
+            {
+                struct ed_pickable_t *pickable = *(struct ed_pickable_t **)ds_list_get_element(entity_list, entity_index);
+
+                for(uint32_t record_index = 0; record_index < entity_section->record_count; record_index++)
+                {
+                    struct l_entity_record_t *record = entity_records + record_index;
+
+                    if(pickable->primary_index == record->s_index)
+                    {
+                        pickable->primary_index = record->d_index;
+                        /* FIXME: this will break once the level format allows to store
+                        child entities in entity records that were parented in the level
+                        editor */
+                        if(record_index < entity_section->record_count - 1)
+                        {
+                            *record = entity_records[entity_section->record_count - 1];
+                        }
+                        entity_section->record_count--;
+                        break;
+                    }
                 }
             }
         }

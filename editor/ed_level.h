@@ -135,8 +135,6 @@ void ed_l_StopGame();
 
 void ed_l_ResetEditor();
 
-struct ed_bsp_polygon_t *ed_l_BspPolygonsFromBrushes();
-
 void ed_l_BuildWorldData();
 
 void ed_l_ClearWorldData();

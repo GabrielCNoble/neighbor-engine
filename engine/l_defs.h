@@ -205,6 +205,8 @@ struct l_enemy_record_t
     uint64_t type;
     vec3_t position;
     mat3_t orientation;
+    uint32_t d_index;
+    uint32_t s_index;
 
     union
     {

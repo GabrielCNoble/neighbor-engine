@@ -61,6 +61,8 @@ struct ed_pickable_t *ed_CreateLightPickable(vec3_t *pos, vec3_t *color, float r
 
 struct ed_pickable_t *ed_CreateEntityPickable(struct e_ent_def_t *ent_def, vec3_t *position, vec3_t *scale, mat3_t *orientation, struct e_entity_t *src_entity);
 
+void ed_UpdateEntityPickableRanges(struct ed_pickable_t *pickable, struct e_entity_t *entity);
+
 struct ed_pickable_t *ed_CreateEnemyPickable(uint32_t type, vec3_t *position, mat3_t *orientation, struct g_enemy_t *src_enemy);
 
 

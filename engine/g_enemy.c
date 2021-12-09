@@ -85,20 +85,47 @@ struct g_enemy_t *g_GetEnemy(uint32_t type, uint32_t index)
     return enemy;
 }
 
-struct g_camera_t *g_CreateCamera(vec3_t *position, float min_pitch, float max_pitch, float min_yaw, float max_yaw, float idle_pitch, float range)
+void g_TranslateEnemy(struct g_enemy_t *enemy, vec3_t *translation)
 {
-    mat3_t camera_orientation = mat3_t_c_id();
-    mat3_t_rotate_x(&camera_orientation, -0.5);
+    if(enemy && enemy->index != 0xffffffff)
+    {
+        e_TranslateEntity(enemy->entity, translation);
 
-    struct g_camera_t *camera = (struct g_camera_t *)g_CreateEnemy(G_ENEMY_TYPE_CAMERA, position, &camera_orientation);
-    camera->min_pitch = min_pitch;
-    camera->max_pitch = max_pitch;
-    camera->min_yaw = min_yaw;
-    camera->max_yaw = max_yaw;
-    camera->idle_pitch = idle_pitch;
-    camera->range = range;
-    camera->cur_pitch = idle_pitch;
-    camera->cur_yaw = (max_yaw + min_yaw) * 0.5;
+        switch(enemy->type)
+        {
+            case G_ENEMY_TYPE_CAMERA:
+            {
+                struct g_camera_t *camera = (struct g_camera_t *)enemy;
+                vec3_t_add(&camera->light->position, &camera->light->position, translation);
+            }
+            break;
+        }
+    }
+}
+
+void g_RotateEnemy(struct g_enemy_t *enemy, mat3_t *rotation)
+{
+    if(enemy && enemy->index != 0xffffffff)
+    {
+        e_RotateEntity(enemy->entity, rotation);
+
+        switch(enemy->type)
+        {
+            case G_ENEMY_TYPE_CAMERA:
+            {
+                struct g_camera_t *camera = (struct g_camera_t *)enemy;
+                mat3_t_mul(&camera->light->orientation, &camera->light->orientation, rotation);
+            }
+            break;
+        }
+    }
+}
+
+struct g_camera_t *g_CreateCamera(vec3_t *position, mat3_t *orientation, struct g_camera_fields_t *fields)
+{
+    struct g_camera_t *camera = (struct g_camera_t *)g_CreateEnemy(G_ENEMY_TYPE_CAMERA, position, orientation);
+
+    camera->fields = *fields;
     camera->state = G_CAMERA_STATE_IDLE;
     camera->flags = 0;
     camera->sweep_timer = 0;
@@ -108,14 +135,15 @@ struct g_camera_t *g_CreateCamera(vec3_t *position, float min_pitch, float max_p
     mat3_t_rotate_x(&pitch, camera->cur_pitch);
     mat3_t_rotate_y(&yaw, camera->cur_yaw);
     mat3_t_mul(&yaw, &pitch, &yaw);
-    mat3_t_mul(&camera_orientation, &yaw, &camera_orientation);
+    mat3_t_mul(&yaw, &yaw, orientation);
 
-    camera->light = r_CreateSpotLight(position, &g_camera_state_colors[camera->state], &camera_orientation, camera->range, 5.0, 25, 0.1);
+    camera->light = r_CreateSpotLight(position, &g_camera_state_colors[camera->state], &yaw, camera->range, 5.0, 25, 0.1);
     return camera;
 }
 
 void g_StepCameras(float delta_time)
 {
+
     for(uint32_t camera_index = 0; camera_index < g_enemies[G_ENEMY_TYPE_CAMERA].cursor; camera_index++)
     {
         struct g_camera_t *camera = ds_slist_get_element(&g_enemies[G_ENEMY_TYPE_CAMERA], camera_index);
@@ -337,9 +365,8 @@ void g_StepCameras(float delta_time)
             mat3_t spot_yaw = mat3_t_c_id();
             mat3_t_rotate_x(&spot_pitch, camera->cur_pitch);
             mat3_t_rotate_y(&spot_yaw, camera->cur_yaw);
-            mat3_t_mul(&spot_yaw, &spot_pitch, &spot_yaw);
-            mat3_t_mul(&camera_light->orientation, &camera_node->orientation, &spot_yaw);
-            camera_light->position = camera_node->position;
+            mat3_t_mul(&camera_light->orientation, &spot_pitch, &spot_yaw);
+            mat3_t_mul(&camera_light->orientation, &camera_light->orientation, &camera_node->orientation);
             camera_light->color = g_camera_state_colors[camera->state];
         }
     }

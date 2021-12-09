@@ -212,7 +212,7 @@ vec3 r_pixel_normal()
     mat3 tbn;
     tbn[0] = normalize(r_var_tangent);
     tbn[2] = normalize(r_var_normal);
-    tbn[1] = cross(tbn[0], tbn[1]);
+    tbn[1] = cross(tbn[0], tbn[2]);
 
     return normalize(tbn * normal);
 }

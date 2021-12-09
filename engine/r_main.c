@@ -277,16 +277,28 @@ void r_Init()
     r_default_albedo_texture = r_CreateTexture("default_albedo", 4, 4, GL_RGBA8, GL_NEAREST, GL_NEAREST, pixels);
     pixels[0] = 0x00ff7f7f;
     r_default_normal_texture = r_CreateTexture("default_normal", 1, 1, GL_RGBA8, GL_LINEAR, GL_LINEAR, pixels);
+
     pixels[0] = 0x0000003f;
-    r_default_roughness_texture = r_CreateTexture("default_roughness", 1, 1, GL_RGBA8, GL_LINEAR, GL_LINEAR, pixels);
+    pixels[1] = 0x0000009f;
+    pixels[2] = 0x0000003f;
+    pixels[3] = 0x0000009f;
 
-//    r_default_material.diffuse_texture = r_default_albedo_texture;
-//    r_default_material.normal_texture = r_default_normal_texture;
-//    r_default_material.height_texture = r_default_height_texture;
-//    r_default_material.roughness_texture = r_default_roughness_texture;
-//    r_default_material.name = "default";
-//    r_default_material.index = 0xffffffff;
+    pixels[4] = 0x0000009f;
+    pixels[5] = 0x0000003f;
+    pixels[6] = 0x0000009f;
+    pixels[7] = 0x0000003f;
 
+    pixels[8] = 0x0000003f;
+    pixels[9] = 0x0000009f;
+    pixels[10] = 0x0000003f;
+    pixels[11] = 0x0000009f;
+
+    pixels[12] = 0x0000009f;
+    pixels[13] = 0x0000003f;
+    pixels[14] = 0x0000009f;
+    pixels[15] = 0x0000003f;
+
+    r_default_roughness_texture = r_CreateTexture("default_roughness", 4, 4, GL_RGBA8, GL_NEAREST, GL_NEAREST, pixels);
     r_default_material = r_CreateMaterial("default", NULL, NULL, NULL);
 
     r_clusters = mem_Calloc(R_CLUSTER_COUNT, sizeof(struct r_cluster_t));
@@ -870,7 +882,7 @@ struct r_texture_t *r_LoadTexture(char *file_name)
     ds_path_get_end(full_path, full_path, PATH_MAX);
     ds_path_drop_ext(full_path, full_path, PATH_MAX);
 
-    texture = r_CreateTexture(full_path, width, height, GL_RGBA8, GL_LINEAR, GL_LINEAR, pixels);
+    texture = r_CreateTexture(full_path, width, height, GL_RGBA8, GL_LINEAR_MIPMAP_LINEAR, GL_LINEAR_MIPMAP_LINEAR, pixels);
     mem_Free(pixels);
 
     log_ScopedLogMessage(LOG_TYPE_NOTICE, "Texture [%s] loaded!", full_path);
@@ -1009,7 +1021,8 @@ struct r_material_t *r_CreateMaterial(char *name, struct r_texture_t *diffuse_te
     }
 
     material->index = material_index;
-    material->name = strdup(name);
+//    material->name = strdup(name);
+    strncpy(material->name, name, sizeof(material->name));
     material->diffuse_texture = diffuse_texture;
     material->normal_texture = normal_texture;
     material->roughness_texture = roughness_texture;
@@ -1057,7 +1070,14 @@ struct r_material_t *r_GetDefaultMaterial()
 
 void r_DestroyMaterial(struct r_material_t *material)
 {
-
+    if(material && material->index != 0xffffffff)
+    {
+        if(material != r_default_material)
+        {
+            ds_slist_remove_element(&r_materials, material->index);
+            material->index = 0xffffffff;
+        }
+    }
 }
 
 void r_BindMaterial(struct r_material_t *material)
@@ -1566,7 +1586,6 @@ struct r_light_t *r_CopyLight(struct r_light_t *light)
 struct r_point_light_t *r_CreatePointLight(vec3_t *position, vec3_t *color, float radius, float energy)
 {
     struct r_point_light_t *light = (struct r_point_light_t *)r_CreateLight(R_LIGHT_TYPE_POINT, position, color, radius, energy);
-//    r_AllocShadowMaps((struct r_light_t *)light, 1024);
     return light;
 }
 

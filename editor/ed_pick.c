@@ -661,6 +661,88 @@ struct ed_pickable_t *ed_CreateEntityPickable(struct e_ent_def_t *ent_def, vec3_
     return pickable;
 }
 
+struct ed_pickable_range_t *ed_UpdateEntityPickableRangesRecursive(struct ed_pickable_t *pickable, struct e_entity_t *entity, mat4_t *parent_transform, struct ed_pickable_range_t **cur_range)
+{
+    struct e_node_t *node = entity->node;
+    struct e_model_t *model = entity->model;
+
+    struct ed_pickable_range_t *range = *cur_range;
+    pickable->range_count++;
+
+    if(!range)
+    {
+        range = ed_AllocPickableRange();
+    }
+
+    if(!parent_transform)
+    {
+        range->offset = mat4_t_c_id();
+    }
+    else
+    {
+        mat4_t scale = mat4_t_c_id();
+
+        scale.rows[0].x = node->scale.x;
+        scale.rows[1].y = node->scale.y;
+        scale.rows[2].z = node->scale.z;
+
+        mat4_t_comp(&range->offset, &node->orientation, &node->position);
+        mat4_t_mul(&range->offset, &range->offset, parent_transform);
+        mat4_t_mul(&range->offset, &scale, &range->offset);
+    }
+
+    range->start = model->model->model_start;
+    range->count = model->model->model_count;
+
+    *cur_range = range;
+    struct e_node_t *child = node->children;
+
+    if(child)
+    {
+        struct ed_pickable_range_t *next_range = ed_UpdateEntityPickableRangesRecursive(pickable, child->entity, &range->offset, &(*cur_range)->next);
+        next_range->prev = range;
+        child = child->next;
+
+        while(child)
+        {
+            ed_UpdateEntityPickableRangesRecursive(pickable, child->entity, &range->offset, &(*cur_range)->next);
+            child = child->next;
+        }
+    }
+
+    return range;
+}
+
+void ed_UpdateEntityPickableRanges(struct ed_pickable_t *pickable, struct e_entity_t *entity)
+{
+    uint32_t range_count = pickable->range_count;
+    ed_UpdateEntityPickableRangesRecursive(pickable, entity, NULL, &pickable->ranges);
+
+    if(range_count > pickable->range_count)
+    {
+        /* we have more ranges than we need, so free the extra at the
+        end of the list */
+        struct ed_pickable_range_t *range = pickable->ranges;
+        range_count = pickable->range_count;
+
+        while(range_count)
+        {
+            /* skip all used ranges */
+           range = range->next;
+           range_count--;
+        }
+
+        range->prev->next = NULL;
+
+        while(range)
+        {
+            struct ed_pickable_range_t *next_range = range->next;
+            ed_FreePickableRange(range);
+            range = next_range;
+        }
+    }
+}
+
 struct ed_pickable_t *ed_CreateEnemyPickable(uint32_t type, vec3_t *position, mat3_t *orientation, struct g_enemy_t *src_enemy)
 {
     struct g_enemy_t *enemy;
@@ -675,7 +757,16 @@ struct ed_pickable_t *ed_CreateEnemyPickable(uint32_t type, vec3_t *position, ma
         {
             case G_ENEMY_TYPE_CAMERA:
             {
-                enemy = (struct g_enemy_t *)g_CreateCamera(position, 0.5, -0.5, -0.5, 0.5, 0.2, 10.0);
+                struct g_camera_fields_t fields = {};
+                fields.min_pitch = -0.5;
+                fields.max_pitch = 0.5;
+                fields.min_yaw = -0.5;
+                fields.max_yaw = 0.5;
+                fields.idle_pitch = 0.2;
+                fields.range = 10.0;
+                fields.cur_pitch = 0.2;
+                fields.cur_yaw = 0.0;
+                enemy = (struct g_enemy_t *)g_CreateCamera(position, orientation, &fields);
             }
             break;
         }
@@ -690,6 +781,7 @@ struct ed_pickable_t *ed_CreateEnemyPickable(uint32_t type, vec3_t *position, ma
 
     return pickable;
 }
+
 
 
 

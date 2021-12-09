@@ -24,7 +24,7 @@ struct r_material_t
     struct r_texture_t *height_texture;
     uint32_t index;
     uint32_t s_index;
-    char *name;
+    char name[32];
 };
 
 struct r_material_record_t

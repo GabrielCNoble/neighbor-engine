@@ -834,6 +834,7 @@ void ed_SetFaceMaterial(struct ed_brush_t *brush, uint32_t face_index, struct r_
         struct ed_face_t *face = ed_GetFace(face_index);
         face->brush->update_flags |= ED_BRUSH_UPDATE_FLAG_FACE_POLYGONS;
         face->material = material;
+        ed_w_MarkBrushModified(face->brush);
     }
 }
 
@@ -1046,6 +1047,7 @@ void ed_UpdateBrush(struct ed_brush_t *brush)
 
                 face_polygon->tangent = edge0_vec;
                 vec3_t_normalize(&face_polygon->tangent, &face_polygon->tangent);
+//                vec3_t_mul(&face_polygon->tangent, &face_polygon->tangent, -1);
 
                 face_polygon->center = vec3_t_c(0.0, 0.0, 0.0);
 
@@ -1123,40 +1125,102 @@ void ed_UpdateBrush(struct ed_brush_t *brush)
                 mat3_t plane_orientation;
                 float max_axis_proj = -FLT_MAX;
                 uint32_t j_axis_index = 0;
-
+                vec3_t polygon_center;
+                vec3_t polygon_normal = clipped_polygon->normal;
+                vec3_t_add(&polygon_center, &clipped_polygon->face_polygon->center, &brush->position);
                 plane_orientation.rows[1] = clipped_polygon->normal;
-                mat3_t_vec3_t_mul(&plane_orientation.rows[1], &plane_orientation.rows[1], &brush->orientation);
+                plane_orientation.rows[0] = clipped_polygon->face_polygon->tangent;
+                vec3_t_cross(&plane_orientation.rows[2], &plane_orientation.rows[0], &plane_orientation.rows[1]);
+                mat3_t_vec3_t_mul(&polygon_normal, &polygon_normal, &brush->orientation);
+//                mat3_t_mul(&plane_orientation, &plane_orientation, &brush->orientation);
+//                mat3_t_vec3_t_mul(&plane_orientation.rows[1], &plane_orientation.rows[1], &brush->orientation);
+//
+//                for(uint32_t comp_index = 0; comp_index < 3; comp_index++)
+//                {
+//                    float axis_proj = fabsf(plane_orientation.rows[1].comps[comp_index]);
+//
+//                    if(axis_proj > max_axis_proj)
+//                    {
+//                        max_axis_proj = axis_proj;
+//                        j_axis_index = comp_index;
+//                    }
+//                }
+//
+//                vec3_t i_axis;
+//                vec3_t k_axis;
+//
+//                switch(j_axis_index)
+//                {
+//                    case 0:
+//                        if(plane_orientation.rows[1].comps[j_axis_index] > 0.0)
+//                        {
+//                            i_axis = vec3_t_c(0.0, 0.0, 1.0);
+//                            k_axis = vec3_t_c(0.0, 1.0, 0.0);
+//                        }
+//                        else
+//                        {
+//                            k_axis = vec3_t_c(0.0, 0.0, 1.0);
+//                            i_axis = vec3_t_c(0.0, 1.0, 0.0);
+//                        }
+//                    break;
+//
+//                    case 1:
+//                        if(plane_orientation.rows[1].comps[j_axis_index] > 0.0)
+//                        {
+//                            i_axis = vec3_t_c(1.0, 0.0, 0.0);
+//                            k_axis = vec3_t_c(0.0, 0.0, 1.0);
+//                        }
+//                        else
+//                        {
+//                            k_axis = vec3_t_c(1.0, 0.0, 0.0);
+//                            i_axis = vec3_t_c(0.0, 0.0, 1.0);
+//                        }
+//                    break;
+//
+//                    case 2:
+//                        if(plane_orientation.rows[1].comps[j_axis_index] > 0.0)
+//                        {
+//                            i_axis = vec3_t_c(0.0, -1.0, 0.0);
+//                            k_axis = vec3_t_c(1.0, 0.0, 0.0);
+//                        }
+//                        else
+//                        {
+//                            k_axis = vec3_t_c(0.0, 1.0, 0.0);
+//                            i_axis = vec3_t_c(1.0, 0.0, 0.0);
+//                        }
+//                    break;
+//                }
+//
+//
+//                vec3_t_cross(&plane_orientation.rows[2], &i_axis, &plane_orientation.rows[1]);
+//                vec3_t_normalize(&plane_orientation.rows[2], &plane_orientation.rows[2]);
+//                vec3_t_cross(&plane_orientation.rows[0], &plane_orientation.rows[1], &plane_orientation.rows[2]);
+//                vec3_t_normalize(&plane_orientation.rows[0], &plane_orientation.rows[0]);
 
-                for(uint32_t comp_index = 0; comp_index < 3; comp_index++)
-                {
-                    float axis_proj = fabsf(plane_orientation.rows[1].comps[comp_index]);
 
-                    if(axis_proj > max_axis_proj)
-                    {
-                        max_axis_proj = axis_proj;
-                        j_axis_index = comp_index;
-                    }
-                }
+//                vec3_t_cross(&plane_orientation.rows[0], &axes[j_axis_index], &plane_orientation.rows[1]);
+//                vec3_t_normalize(&plane_orientation.rows[0], &plane_orientation.rows[0]);
+//
+//                vec3_t_cross(&plane_orientation.rows[2], &plane_orientation.rows[1], &plane_orientation.rows[0]);
+//                vec3_t_normalize(&plane_orientation.rows[2], &plane_orientation.rows[2]);
 
-                uint32_t k_axis_index = (j_axis_index + 1) % 3;
-                vec3_t_cross(&plane_orientation.rows[0], &axes[k_axis_index], &plane_orientation.rows[1]);
-                vec3_t_normalize(&plane_orientation.rows[0], &plane_orientation.rows[0]);
 
-                vec3_t_cross(&plane_orientation.rows[2], &plane_orientation.rows[1], &plane_orientation.rows[0]);
-                vec3_t_normalize(&plane_orientation.rows[2], &plane_orientation.rows[2]);
-                vec3_t_mul(&plane_origin, &plane_orientation.rows[1], vec3_t_dot(&plane_orientation.rows[1], &clipped_polygon->face_polygon->center));
-                vec3_t_sub(&plane_origin, &plane_origin, &brush->position);
-                mat3_t_mul(&plane_orientation, &plane_orientation, &inverse_orientation);
+                vec3_t_mul(&plane_origin, &polygon_normal, vec3_t_dot(&polygon_normal, &polygon_center));
+                vec3_t_sub(&plane_origin, &plane_origin, &polygon_center);
                 mat3_t_vec3_t_mul(&plane_origin, &plane_origin, &inverse_orientation);
+                vec2_t origin_uv;
+
+                origin_uv.x = vec3_t_dot(&plane_origin, &plane_orientation.rows[0]);
+                origin_uv.y = vec3_t_dot(&plane_origin, &plane_orientation.rows[2]);
 
                 for(uint32_t vert_index = 0; vert_index < clipped_polygon->vertices.cursor; vert_index++)
                 {
-                    struct r_vert_t *vert = ds_list_get_element(&clipped_polygon->vertices, vert_index);
                     vec3_t vert_vec;
+                    struct r_vert_t *vert = ds_list_get_element(&clipped_polygon->vertices, vert_index);
+                    vec3_t_sub(&vert_vec, &vert->pos, &clipped_polygon->face_polygon->center);
 
-                    vec3_t_sub(&vert_vec, &vert->pos, &plane_origin);
-                    vert->tex_coords.x = vec3_t_dot(&vert_vec, &plane_orientation.rows[0]);
-                    vert->tex_coords.y = vec3_t_dot(&vert_vec, &plane_orientation.rows[2]);
+                    vert->tex_coords.x = vec3_t_dot(&vert_vec, &plane_orientation.rows[0]) - origin_uv.x;
+                    vert->tex_coords.y = vec3_t_dot(&vert_vec, &plane_orientation.rows[2]) - origin_uv.y;
                 }
 
                 clipped_polygon = clipped_polygon->next;
@@ -1366,28 +1430,8 @@ void ed_UpdateBrush(struct ed_brush_t *brush)
         }
         else
         {
-//            ed_level_state.brush.brush_model_vert_count -= brush->model->verts.buffer_size;
-//            ed_level_state.brush.brush_model_index_count -= brush->model->indices.buffer_size;
-//
-//            for(uint32_t batch_index = 0; batch_index < brush->model->batches.buffer_size; batch_index++)
-//            {
-//                struct r_batch_t *batch = (struct r_batch_t *)brush->model->batches.buffer + batch_index;
-//                struct ed_brush_batch_t *global_batch = ed_GetGlobalBrushBatch(batch->material);
-//                global_batch->batch.count -= batch->count;
-//            }
-
             r_UpdateModelGeometry(brush->model, &geometry);
         }
-
-//        ed_level_state.brush.brush_model_vert_count += brush->model->verts.buffer_size;
-//        ed_level_state.brush.brush_model_index_count += brush->model->indices.buffer_size;
-//
-//        for(uint32_t batch_index = 0; batch_index < brush->model->batches.buffer_size; batch_index++)
-//        {
-//            struct r_batch_t *batch = (struct r_batch_t *)brush->model->batches.buffer + batch_index;
-//            struct ed_brush_batch_t *global_batch = ed_GetGlobalBrushBatch(batch->material);
-//            global_batch->batch.count += batch->count;
-//        }
     }
 
     brush->update_flags = 0;

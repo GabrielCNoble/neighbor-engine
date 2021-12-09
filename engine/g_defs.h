@@ -91,6 +91,8 @@ enum G_CAMERA_FLAGS
     float min_pitch;                            \
     float max_yaw;                              \
     float min_yaw;                              \
+    float cur_pitch;                            \
+    float cur_yaw;                              \
     float idle_pitch;                           \
     float range
 
@@ -116,9 +118,6 @@ struct g_camera_t
     float startled_yaw_delta;
     float startled_yaw;
 
-    float cur_pitch;
-    float cur_yaw;
-
     vec3_t last_player_vec;
     float last_player_dist;
 
@@ -130,12 +129,16 @@ struct g_camera_t
 };
 
 
+#define G_TURRET_FIELDS                             \
+
 
 
 struct g_turret_t
 {
     G_ENEMY_FIELDS;
+
     uint32_t state;
+    uint32_t flags;
 };
 
 

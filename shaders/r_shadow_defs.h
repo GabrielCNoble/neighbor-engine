@@ -1,8 +1,8 @@
 #ifndef R_SHDW_H
 #define R_SHDW_H
 
-#include "r_def_vunifs.h"
-#include "r_light.h"
+#include "r_vert_uniform_defs.h"
+#include "r_light_defs.h"
 
 #define R_SHADOW_MAP_MIN_RESOLUTION 64
 

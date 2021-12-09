@@ -36,4 +36,7 @@ layout(std430) buffer r_light_indices
     r_index_t indices[];
 };
 
+uniform uint r_spot_light_count;
+uniform uint r_point_light_count;
+
 #endif

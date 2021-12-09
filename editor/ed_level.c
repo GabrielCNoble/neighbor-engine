@@ -755,7 +755,7 @@ void ed_w_UpdateUI()
                 igEndTabItem();
             }
 
-            if(igBeginTabItem("Materials", NULL, 0))
+            if(igBeginTabItem("Material", NULL, 0))
             {
                 ed_level_state.selected_tools_tab = ED_L_TOOL_TAB_MATERIAL;
                 struct r_material_t *selected_material = ed_level_state.selected_material;
@@ -808,7 +808,6 @@ void ed_w_UpdateUI()
                 }
 
                 igInputText("Name", selected_material->name, sizeof(selected_material->name), text_input_flags, 0, NULL);
-
                 if(igBeginCombo("Diffuse texture", selected_material->diffuse_texture->name, 0))
                 {
                     if(selected_material != default_material)
@@ -820,10 +819,12 @@ void ed_w_UpdateUI()
 
                             if(texture)
                             {
+                                igPushID_Ptr(texture);
                                 if(igSelectable_Bool(texture->name, selected_texture == texture, 0, (ImVec2){0, 0}))
                                 {
                                     selected_material->diffuse_texture = texture;
                                 }
+                                igPopID();
                             }
                         }
                     }

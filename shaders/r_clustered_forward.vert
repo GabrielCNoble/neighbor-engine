@@ -1,14 +1,6 @@
 #include "r_defs.h"
-#include "r_def_vert.h"
-#include "r_def_vunifs.h"
-
-//uniform mat4 r_model_view_projection_matrix;
-//uniform mat4 r_model_view_matrix;
-
-//out vec2 r_var_tex_coords;
-//out vec3 r_var_normal;
-//out vec3 r_var_tangent;
-//out vec3 r_var_position;
+#include "r_vert_defs.h"
+#include "r_vert_uniform_defs.h"
 
 
 void main()

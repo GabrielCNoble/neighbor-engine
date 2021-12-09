@@ -1,8 +1,8 @@
-#include "r_def_funifs.h"
-#include "r_def_vunifs.h"
-#include "r_def_frag.h"
-#include "r_shadow.h"
-#include "r_light.h"
+#include "r_frag_uniform_defs.h"
+#include "r_vert_uniform_defs.h"
+#include "r_frag_defs.h"
+#include "r_shadow_defs.h"
+#include "r_light_defs.h"
 
 #define R_CLUSTER_ROW_WIDTH 32
 #define R_CLUSTER_SLICES 16

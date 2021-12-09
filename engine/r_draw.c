@@ -41,6 +41,8 @@ extern struct r_shader_t *r_lit_shader;
 extern struct r_shader_t *r_immediate_shader;
 extern struct r_shader_t *r_current_shader;
 extern struct r_shader_t *r_shadow_shader;
+extern struct r_shader_t *r_volumetric_shader;
+extern struct r_shader_t *r_full_screen_blend_shader;
 
 extern struct r_model_t *test_model;
 extern struct r_texture_t *r_default_texture;
@@ -96,7 +98,10 @@ extern uint32_t r_cluster_row_width;
 extern uint32_t r_cluster_rows;
 extern vec4_t r_clear_color;
 
-extern uint32_t r_main_framebuffer;
+//extern uint32_t r_main_framebuffer;
+extern struct r_framebuffer_t *r_main_framebuffer;
+extern struct r_framebuffer_t *r_volume_framebuffer;
+extern uint32_t r_screen_tri_start;
 extern uint32_t r_z_prepass_framebuffer;
 
 //uint32_t r_use_z_prepass = 1;
@@ -114,8 +119,9 @@ extern "C"
 
 void r_BeginFrame()
 {
-    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, r_main_framebuffer);
-    glViewport(0, 0, r_width, r_height);
+//    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, r_main_framebuffer);
+//    glViewport(0, 0, r_width, r_height);
+    r_BindFramebuffer(r_main_framebuffer);
     glDisable(GL_SCISSOR_TEST);
     glDepthMask(GL_TRUE);
     glClearColor(r_clear_color.x, r_clear_color.y, r_clear_color.z, r_clear_color.w);
@@ -161,8 +167,6 @@ void r_BeginFrame()
     glBindBuffer(GL_ARRAY_BUFFER, r_vertex_buffer);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, r_index_buffer);
 
-//    r_renderer_state = (struct r_renderer_state_t){};
-
     r_renderer_state.draw_call_count = 0;
     r_renderer_state.indice_count = 0;
     r_renderer_state.material_swaps = 0;
@@ -188,20 +192,9 @@ void r_EndFrame()
     r_shadow_cmds.cursor = 0;
     r_immediate_cmds.cursor = 0;
     r_immediate_data.cursor = 0;
-//    r_prev_draw_call_count = r_draw_call_count;
-//    r_draw_call_count = 0;
     r_i_current_state = NULL;
 
-    glDisable(GL_BLEND);
-    glDisable(GL_STENCIL_TEST);
-    glDisable(GL_DEPTH_TEST);
-    glDisable(GL_SCISSOR_TEST);
-    glViewport(0, 0, r_width, r_height);
-    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-    glBindFramebuffer(GL_READ_FRAMEBUFFER, r_main_framebuffer);
-
-    glBlitFramebuffer(0, 0, r_width, r_height, 0, 0, r_width, r_height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
-    SDL_GL_SwapWindow(r_window);
+    r_PresentFramebuffer(r_main_framebuffer);
 }
 
 
@@ -388,9 +381,11 @@ void r_DrawCmds()
     }
     glDisable(GL_POLYGON_OFFSET_FILL);
     glPolygonOffset(0, 0);
-
-    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, r_z_prepass_framebuffer);
     glDisable(GL_SCISSOR_TEST);
+
+    r_BindFramebuffer(NULL);
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, r_z_prepass_framebuffer);
+
     glScissor(0, 0, r_width, r_height);
     glViewport(0, 0, r_width, r_height);
 
@@ -420,9 +415,17 @@ void r_DrawCmds()
         glDepthMask(GL_FALSE);
     }
 
-    struct r_material_t *current_material = NULL;
+    r_BindFramebuffer(r_volume_framebuffer);
+    r_BindShader(r_volumetric_shader);
+    r_BindTexture(r_main_framebuffer->depth_attachment, GL_TEXTURE0);
+    r_SetDefaultUniformMat4(R_UNIFORM_VIEW_PROJECTION_MATRIX, &r_view_projection_matrix);
+    r_SetDefaultUniformMat4(R_UNIFORM_PROJECTION_MATRIX, &r_projection_matrix);
+    r_SetDefaultUniformUI(R_UNIFORM_SPOT_LIGHT_COUNT, r_spot_light_buffer_cursor);
+    r_SetDefaultUniformUI(R_UNIFORM_TEX0, 0);
+    glDrawArrays(GL_TRIANGLES, r_screen_tri_start, 3);
 
-    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, r_main_framebuffer);
+    struct r_material_t *current_material = NULL;
+    r_BindFramebuffer(r_main_framebuffer);
     r_BindShader(r_lit_shader);
     r_SetDefaultUniformI(R_UNIFORM_TEX_CLUSTERS, R_CLUSTERS_TEX_UNIT);
     r_SetDefaultUniformI(R_UNIFORM_TEX_SHADOW_ATLAS, R_SHADOW_ATLAS_TEX_UNIT);
@@ -465,14 +468,13 @@ void r_DrawCmds()
         r_renderer_state.draw_call_count++;
     }
 
+
     mat4_t view_projection_matrix;
     mat4_t model_matrix;
 
     mat4_t_identity(&view_projection_matrix);
     mat4_t_identity(&model_matrix);
     glDepthMask(GL_TRUE);
-//    glBindBuffer(GL_ARRAY_BUFFER, r_immediate_vertex_buffer);
-//    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, r_immediate_index_buffer);
     glDepthFunc(GL_LESS);
     r_BindShader(r_immediate_shader);
 
@@ -773,8 +775,16 @@ void r_DrawCmds()
         }
     }
 
-//    glDisable(GL_BLEND);
-//    glFlush();
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_ONE, GL_ONE);
+    glDisable(GL_SCISSOR_TEST);
+    r_BindTexture(r_volume_framebuffer->color_attachments[0], GL_TEXTURE0);
+    r_BindShader(r_full_screen_blend_shader);
+    r_SetDefaultUniformUI(R_UNIFORM_TEX0, 0);
+    glDrawArrays(GL_TRIANGLES, r_screen_tri_start, 3);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glDisable(GL_BLEND);
+
 }
 
 void *r_i_AllocImmediateData(uint32_t size)

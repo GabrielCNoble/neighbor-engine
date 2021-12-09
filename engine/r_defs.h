@@ -11,33 +11,34 @@
 
 struct r_texture_t
 {
-    uint32_t handle;
-    uint32_t index;
-    char *name;
+    uint32_t                    handle;
+    uint16_t                    index;
+    uint16_t                    format;
+    char                        name[32];
 };
 
 struct r_material_t
 {
-    struct r_texture_t *diffuse_texture;
-    struct r_texture_t *normal_texture;
-    struct r_texture_t *roughness_texture;
-    struct r_texture_t *height_texture;
-    uint32_t index;
-    uint32_t s_index;
-    char name[32];
+    struct r_texture_t         *diffuse_texture;
+    struct r_texture_t         *normal_texture;
+    struct r_texture_t         *roughness_texture;
+    struct r_texture_t         *height_texture;
+    uint32_t                    index;
+    uint32_t                    s_index;
+    char                        name[32];
 };
 
 struct r_material_record_t
 {
-    char name[64];
-    char diffuse_texture[64];
-    char normal_texture[64];
+    char                        name[64];
+    char                        diffuse_texture[64];
+    char                        normal_texture[64];
 };
 
 struct r_material_section_t
 {
-    uint32_t material_count;
-    struct r_material_record_t materials[];
+    uint32_t                    material_count;
+    struct r_material_record_t  materials[];
 };
 
 
@@ -45,6 +46,7 @@ enum R_UNIFORM
 {
     R_UNIFORM_MODEL_VIEW_PROJECTION_MATRIX,
     R_UNIFORM_VIEW_PROJECTION_MATRIX,
+    R_UNIFORM_PROJECTION_MATRIX,
     R_UNIFORM_MODEL_VIEW_MATRIX,
     R_UNIFORM_VIEW_MATRIX,
     R_UNIFORM_CAMERA_MATRIX,
@@ -64,6 +66,8 @@ enum R_UNIFORM
     R_UNIFORM_TEX_SHADOW_ATLAS,
     R_UNIFORM_TEX_INDIRECT,
     R_UNIFORM_CLUSTER_DENOM,
+    R_UNIFORM_SPOT_LIGHT_COUNT,
+    R_UNIFORM_POINT_LIGHT_COUNT,
     R_UNIFORM_Z_NEAR,
     R_UNIFORM_Z_FAR,
     R_UNIFORM_WIDTH,
@@ -110,127 +114,124 @@ struct r_uniform_t
 
 struct r_named_uniform_t
 {
-    struct r_uniform_t uniform;
-    uint32_t type;
-    char *name;
+    struct r_uniform_t      uniform;
+    uint32_t                type;
+    char                   *name;
 };
 
 struct r_shader_t
 {
-    uint32_t handle;
-    uint32_t index;
-    uint32_t attribs;
-    struct r_uniform_t uniforms[R_UNIFORM_LAST];
-    struct ds_list_t named_uniforms;
+    uint32_t            handle;
+    uint32_t            index;
+    uint32_t            attribs;
+    struct r_uniform_t  uniforms[R_UNIFORM_LAST];
+    struct ds_list_t    named_uniforms;
 };
 
 struct r_vert_t
 {
-    vec3_t pos;
+    vec3_t              pos;
     union
     {
-        vec4_t normal;
-        vec4_t color;
+        vec4_t          normal;
+        vec4_t          color;
     };
-    vec3_t tangent;
-    vec2_t tex_coords;
+    vec3_t              tangent;
+    vec2_t              tex_coords;
 };
 
 struct r_vert_section_t
 {
-    vec3_t min;
-    vec3_t max;
-    uint32_t vert_count;
-    struct r_vert_t verts[];
+    vec3_t              min;
+    vec3_t              max;
+    uint32_t            vert_count;
+    struct r_vert_t     verts[];
 };
 
 struct r_batch_t
 {
-    uint32_t start;
-    uint32_t count;
-    struct r_material_t *material;
+    uint32_t                start;
+    uint32_t                count;
+    struct r_material_t    *material;
 };
 
 struct r_batch_record_t
 {
-    uint32_t start;
-    uint32_t count;
-    char material[64];
+    uint32_t            start;
+    uint32_t            count;
+    char                material[64];
 };
 
 struct r_batch_section_t
 {
-    uint32_t batch_count;
-    struct r_batch_record_t batches[];
+    uint32_t                    batch_count;
+    struct r_batch_record_t     batches[];
 };
 
 struct r_index_section_t
 {
-    uint32_t index_count;
-    uint32_t indexes[];
+    uint32_t        index_count;
+    uint32_t        indexes[];
 };
 
 struct r_model_t
 {
-    uint32_t index;
-    char *name;
-    struct ds_chunk_h vert_chunk;
-    struct ds_chunk_h index_chunk;
-    struct ds_buffer_t verts;
-    struct ds_buffer_t indices;
-    struct ds_buffer_t batches;
-    struct a_skeleton_t *skeleton;
-    struct ds_buffer_t weight_ranges;
-    struct ds_buffer_t weights;
-    struct r_model_t *base;
-    uint32_t model_start;
-    uint32_t model_count;
-    vec3_t min;
-    vec3_t max;
+    uint32_t                    index;
+    char                       *name;
+    struct ds_chunk_h           vert_chunk;
+    struct ds_chunk_h           index_chunk;
+    struct ds_buffer_t          verts;
+    struct ds_buffer_t          indices;
+    struct ds_buffer_t          batches;
+    struct a_skeleton_t        *skeleton;
+    struct ds_buffer_t          weight_ranges;
+    struct ds_buffer_t          weights;
+    struct r_model_t           *base;
+    uint32_t                    model_start;
+    uint32_t                    model_count;
+    vec3_t                      min;
+    vec3_t                      max;
 };
 
 struct r_model_geometry_t
 {
-    uint32_t vert_count;
-    struct r_vert_t *verts;
-    uint32_t batch_count;
-    struct r_batch_t *batches;
-    uint32_t index_count;
-    uint32_t *indices;
-    vec3_t min;
-    vec3_t max;
+    uint32_t                    vert_count;
+    struct r_vert_t            *verts;
+    uint32_t                    batch_count;
+    struct r_batch_t           *batches;
+    uint32_t                    index_count;
+    uint32_t                   *indices;
+    vec3_t                      min;
+    vec3_t                      max;
 };
 
 struct r_model_skeleton_t
 {
-    struct a_skeleton_t *skeleton;
-    uint32_t weight_range_count;
-    struct a_weight_range_t *weight_ranges;
-    uint32_t weight_count;
-    struct a_weight_t *weights;
+    struct a_skeleton_t        *skeleton;
+    uint32_t                    weight_range_count;
+    struct a_weight_range_t    *weight_ranges;
+    uint32_t                    weight_count;
+    struct a_weight_t          *weights;
 };
 
-struct r_model_create_info_t
+#define R_MAX_COLOR_ATTACHMENTS 3
+#define R_DEPTH_ATTACHMENT R_MAX_COLOR_ATTACHMENTS
+
+struct r_framebuffer_t
 {
-    uint32_t vert_count;
-    struct r_vert_t *verts;
-    uint32_t batch_count;
-    struct r_batch_t *batches;
-    uint32_t index_count;
-    uint32_t *indices;
-    struct a_skeleton_t *skeleton;
-    uint32_t weight_range_count;
-    struct a_weight_range_t *weight_ranges;
-    uint32_t weight_count;
-    struct a_weight_t *weights;
-    vec3_t min;
-    vec3_t max;
+    struct r_texture_t         *color_attachments[R_MAX_COLOR_ATTACHMENTS];
+    struct r_texture_t         *depth_attachment;
+    uint32_t                    handle;
+    uint16_t                    color_attachment_count;
+    uint16_t                    index;
+    uint16_t                    width;
+    uint16_t                    height;
 };
 
 struct r_draw_batch_t
 {
-    mat4_t model_view_matrix;
-    struct r_batch_t batch;
+    mat4_t              model_view_matrix;
+    struct r_batch_t    batch;
 };
 
 enum R_LIGHT_TYPES
@@ -243,17 +244,17 @@ enum R_LIGHT_TYPES
 
 struct r_point_data_t
 {
-    vec4_t pos_rad;
-    vec4_t color_shd;
+    vec4_t          pos_rad;
+    vec4_t          color_shd;
 };
 
 struct r_spot_data_t
 {
-    vec4_t pos_rad;
-    vec4_t col_shd;
-    vec4_t rot0_angle;
-    vec4_t rot1_soft;
-    vec4_t rot2;
+    vec4_t          pos_rad;
+    vec4_t          col_shd;
+    vec4_t          rot0_angle;
+    vec4_t          rot1_soft;
+    vec4_t          rot2;
 };
 
 struct r_lcluster_t
@@ -263,18 +264,18 @@ struct r_lcluster_t
     uint32_t z : 5;
 };
 
-#define R_LIGHT_FIELDS                  \
-    float energy;                       \
-    float range;                        \
-    uint16_t index;                     \
-    uint16_t type;                      \
-    uint16_t light_buffer_index;        \
-    uint16_t shadow_map_buffer_index;   \
-    vec3_t color;                       \
-    vec3_t position;                    \
-    struct r_lcluster_t min;            \
-    struct r_lcluster_t max;            \
-    uint32_t shadow_map_res             \
+#define R_LIGHT_FIELDS                                      \
+    float                   energy;                         \
+    float                   range;                          \
+    uint16_t                index;                          \
+    uint16_t                type;                           \
+    uint16_t                light_buffer_index;             \
+    uint16_t                shadow_map_buffer_index;        \
+    vec3_t                  color;                          \
+    vec3_t                  position;                       \
+    struct                  r_lcluster_t min;               \
+    struct                  r_lcluster_t max;               \
+    uint32_t                shadow_map_res                  \
 
 struct r_light_t
 {
@@ -283,18 +284,18 @@ struct r_light_t
 
 struct r_point_light_t
 {
-    R_LIGHT_FIELDS;
-    uint32_t shadow_maps[6];
+                R_LIGHT_FIELDS;
+    uint32_t    shadow_maps[6];
 };
 
 struct r_spot_light_t
 {
-    R_LIGHT_FIELDS;
-    uint32_t shadow_map;
-    float softness;
-    uint32_t angle;
-    mat3_t orientation;
-    mat4_t projection_matrix;
+                    R_LIGHT_FIELDS;
+    uint32_t        shadow_map;
+    float           softness;
+    uint32_t        angle;
+    mat3_t          orientation;
+    mat4_t          projection_matrix;
 };
 
 #define R_LIGHT_TYPE_INDEX_SHIFT 28
@@ -308,10 +309,10 @@ struct r_spot_light_t
 
 struct r_cluster_t
 {
-    uint32_t point_start;
-    uint32_t spot_start;
-    uint16_t point_count;
-    uint16_t spot_count;
+    uint32_t        point_start;
+    uint32_t        spot_start;
+    uint16_t        point_count;
+    uint16_t        spot_count;
 };
 
 #define R_SHADOW_CUBEMAP_FACE_INDEX_SHIFT 0
@@ -378,56 +379,55 @@ struct r_cluster_t
 
 struct r_shadow_map_t
 {
-    uint16_t x_coord;
-    uint16_t y_coord;
+    uint16_t        x_coord;
+    uint16_t        y_coord;
 //    uint32_t coords;
 };
 
 struct r_shadow_tile_t
 {
-    uint16_t parent_tile : 12;
-    uint16_t used        : 4;
-    uint16_t next;
-    uint16_t prev;
-    struct r_shadow_map_t shadow_maps[4];
+    uint16_t                parent_tile : 12;
+    uint16_t                used        : 4;
+    uint16_t                next;
+    uint16_t                prev;
+    struct r_shadow_map_t   shadow_maps[4];
 };
 
 struct r_shadow_bucket_t
 {
-    struct r_shadow_tile_t *tiles;
-    uint16_t cur_free;
-    uint16_t cur_src;
+    struct r_shadow_tile_t     *tiles;
+    uint16_t                    cur_free;
+    uint16_t                    cur_src;
 };
 
 struct r_vis_item_t
 {
-    mat4_t *transform;
-    uint32_t index;
-    struct r_model_t *model;
+    mat4_t                     *transform;
+    uint32_t                    index;
+    struct r_model_t           *model;
 };
 
 struct r_world_cmd_t
 {
-    struct r_material_t *material;
-    uint32_t start;
-    uint32_t count;
+    struct r_material_t        *material;
+    uint32_t                    start;
+    uint32_t                    count;
 };
 
 struct r_entity_cmd_t
 {
-    mat4_t model_view_matrix;
-    struct r_material_t *material;
-    uint32_t start;
-    uint32_t count;
+    mat4_t                      model_view_matrix;
+    struct r_material_t        *material;
+    uint32_t                    start;
+    uint32_t                    count;
 };
 
 struct r_shadow_cmd_t
 {
-    mat4_t model_view_projection_matrix;
-    uint32_t start;
-    uint32_t count;
-    uint32_t shadow_map;
-//    uint32_t shadow_res;
+    mat4_t                      model_view_projection_matrix;
+    uint32_t                    start;
+    uint32_t                    count;
+    uint32_t                    shadow_map;
 };
 
 enum R_IMMEDIATE_DATA_FLAGS
@@ -478,159 +478,159 @@ and R_IMMEDIATE_DATA_SLOT_SIZE has to be what it is. This is to guarantee that
 the address right after this struct is suitably aligned for any kind of type*/
 struct r_i_data_t
 {
-    uint32_t flags;
-    void *data;
+    uint32_t            flags;
+    void               *data;
 };
 
 struct r_i_cmd_t
 {
-    void *data;
-    uint16_t type;
-    uint16_t sub_type;
+    void                   *data;
+    uint16_t                type;
+    uint16_t                sub_type;
 };
 
 struct r_i_verts_t
 {
-    float size;
-    uint32_t count;
-    struct r_vert_t verts[];
+    float                   size;
+    uint32_t                count;
+    struct r_vert_t         verts[];
 };
 
 struct r_i_indices_t
 {
-    uint32_t count;
-    uint32_t indices[];
+    uint32_t                count;
+    uint32_t                indices[];
 };
 
 struct r_i_draw_cmd_t
 {
-    uint32_t start;
-    uint32_t count;
+    uint32_t                start;
+    uint32_t                count;
 };
 
 struct r_i_geometry_t
 {
-    struct r_i_verts_t *verts;
-    struct r_i_indices_t *indices;
+    struct r_i_verts_t         *verts;
+    struct r_i_indices_t       *indices;
 };
 
 struct r_i_draw_list_t
 {
-    uint32_t indexed;
-    float size;
-    struct r_i_draw_cmd_t *commands;
-    uint32_t command_count;
+    uint32_t                    indexed;
+    float                       size;
+    struct r_i_draw_cmd_t      *commands;
+    uint32_t                    command_count;
 };
 
 struct r_i_transform_t
 {
-    mat4_t transform;
-    uint32_t unset;
+    mat4_t                      transform;
+    uint32_t                    unset;
 };
 
 struct r_i_texture_t
 {
-    struct r_texture_t *texture;
-    uint32_t tex_unit;
+    struct r_texture_t         *texture;
+    uint32_t                    tex_unit;
 };
 
 struct r_i_shader_t
 {
-    struct r_shader_t *shader;
+    struct r_shader_t           *shader;
 };
 
 struct r_i_uniform_t
 {
-    struct r_named_uniform_t *uniform;
-    uint32_t count;
-    void *value;
+    struct r_named_uniform_t    *uniform;
+    uint32_t                     count;
+    void                        *value;
 };
 
 struct r_i_blending_t
 {
-    uint16_t enable;
-    uint16_t src_factor;
-    uint16_t dst_factor;
+    uint16_t            enable;
+    uint16_t            src_factor;
+    uint16_t            dst_factor;
 };
 
 struct r_i_depth_t
 {
-    uint16_t enable;
-    uint16_t func;
+    uint16_t            enable;
+    uint16_t            func;
 };
 
 struct r_i_stencil_t
 {
-    uint16_t enable;
+    uint16_t            enable;
 
-    uint16_t stencil_fail;
-    uint16_t depth_fail;
-    uint16_t depth_pass;
+    uint16_t            stencil_fail;
+    uint16_t            depth_fail;
+    uint16_t            depth_pass;
 
-    uint16_t func;
-    uint8_t mask;
-    uint8_t ref;
+    uint16_t            func;
+    uint8_t             mask;
+    uint8_t             ref;
 };
 
 struct r_i_raster_t
 {
-    uint16_t cull_enable;
-    uint16_t cull_face;
-    uint16_t polygon_mode;
+    uint16_t            cull_enable;
+    uint16_t            cull_face;
+    uint16_t            polygon_mode;
 };
 
 struct r_i_draw_mask_t
 {
-    uint16_t red;
-    uint16_t green;
-    uint16_t blue;
-    uint16_t alpha;
-    uint16_t depth;
-    uint16_t stencil;
+    uint16_t            red;
+    uint16_t            green;
+    uint16_t            blue;
+    uint16_t            alpha;
+    uint16_t            depth;
+    uint16_t            stencil;
 };
 
 struct r_i_cull_face_t
 {
-    uint16_t enable;
-    uint16_t cull_face;
+    uint16_t            enable;
+    uint16_t            cull_face;
 };
 
 struct r_i_scissor_t
 {
-    uint16_t enable;
-    uint16_t x;
-    uint16_t y;
-    uint16_t width;
-    uint16_t height;
+    uint16_t            enable;
+    uint16_t            x;
+    uint16_t            y;
+    uint16_t            width;
+    uint16_t            height;
 };
 
 struct r_i_state_t
 {
-    struct r_i_shader_t *shader;
-    struct r_i_blending_t *blending;
-    struct r_i_depth_t *depth;
-    struct r_i_stencil_t *stencil;
-    struct r_i_raster_t *rasterizer;
-    struct r_i_draw_mask_t *draw_mask;
-    struct r_i_scissor_t *scissor;
-    struct r_i_texture_t *textures;
-    uint32_t texture_count;
+    struct r_i_shader_t         *shader;
+    struct r_i_blending_t       *blending;
+    struct r_i_depth_t          *depth;
+    struct r_i_stencil_t        *stencil;
+    struct r_i_raster_t         *rasterizer;
+    struct r_i_draw_mask_t      *draw_mask;
+    struct r_i_scissor_t        *scissor;
+    struct r_i_texture_t        *textures;
+    uint32_t                     texture_count;
 };
 
 struct r_renderer_state_t
 {
-    uint32_t vert_count;
-    uint32_t indice_count;
-    uint32_t draw_call_count;
-    uint32_t shader_swaps;
-    uint32_t material_swaps;
-    uint32_t texture_swaps;
+    uint32_t                    vert_count;
+    uint32_t                    indice_count;
+    uint32_t                    draw_call_count;
+    uint32_t                    shader_swaps;
+    uint32_t                    material_swaps;
+    uint32_t                    texture_swaps;
 
-    uint32_t use_z_prepass;
-    uint32_t max_shadow_res;
-    uint32_t draw_lights;
-    uint32_t draw_colliders;
-    uint32_t draw_entities;
+    uint32_t                    use_z_prepass;
+    uint32_t                    max_shadow_res;
+    uint32_t                    draw_lights;
+    uint32_t                    draw_colliders;
+    uint32_t                    draw_entities;
 };
 
 //struct r_renderer_stats_t

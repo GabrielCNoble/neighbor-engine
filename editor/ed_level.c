@@ -3406,9 +3406,9 @@ void ed_l_LoadGameLevelSnapshot()
                 for(uint32_t record_index = 0; record_index < light_section->record_count; record_index++)
                 {
                     struct l_light_record_t *record = light_records + record_index;
-                    if(pickable->primary_index == record->s_index)
+                    if(pickable->primary_index == R_LIGHT_INDEX(record->type, record->s_index))
                     {
-                        pickable->primary_index = record->d_index;
+                        pickable->primary_index = R_LIGHT_INDEX(record->type, record->d_index);
 
                         if(record_index < light_section->record_count - 1)
                         {

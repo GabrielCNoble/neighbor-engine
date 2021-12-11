@@ -613,7 +613,6 @@ struct ed_pickable_t *ed_CreateLightPickable(vec3_t *pos, vec3_t *color, float r
 
     struct ed_pickable_t *pickable = ed_CreatePickable(ED_PICKABLE_TYPE_LIGHT);
     pickable->primary_index = R_LIGHT_INDEX(light->type, light->index);
-
     pickable->mode = GL_POINTS;
     pickable->range_count = 1;
     pickable->ranges = ed_AllocPickableRange();

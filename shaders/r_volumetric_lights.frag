@@ -15,7 +15,7 @@ void main()
     view_ray.z = -r_z_near;
     view_ray = normalize(view_ray);
     vec3 color = vec3(0);
-    float density = 0.02;
+    float density = 0.012;
 
     float pixel_z = -(texture(r_tex0, uv).r * 2.0 - 1.0);
     pixel_z = r_projection_matrix[3][2] / (pixel_z - r_projection_matrix[2][2]);
@@ -55,79 +55,52 @@ void main()
 
         /* there are some extra edge cases that we just won't handle because it doesn't seem to show up in
         the result. */
-        if(disc > 0.0)
+        if(disc >= 0.0)
         {
             disc = sqrt(disc);
-            float t1 = max((-c1 + disc) / c2, r_z_near);
-            float t0 = max((-c1 - disc) / c2, r_z_near);
+            float t1 = (-c1 + disc) / c2;
+            float t0 = (-c1 - disc) / c2;
 
-//            if(d_dot_u < 0.0)
+//            if(t0 > t1)
 //            {
-//                float temp = -t0;
-//                t0 = -t1;
-//                t1 = temp;
+//                float temp = t1;
+//                t1 = t0;
+//                t0 = temp;
 //            }
 
-//            t0 = max(t0, r_z_near);
-//            t1 = max(t1, r_z_near);
-
-            if(t0 > t1)
-            {
-                float temp = t1;
-                t1 = t0;
-                t0 = temp;
-            }
-
-            vec3 int0 = view_ray * t0;
-            vec3 int0_spot_vec = int0 - spot_pos;
-            float dist0 = dot(int0_spot_vec, spot_vec);
+            float dist0 = dot(view_ray * t0 - spot_pos, spot_vec);
             float dist1 = dot(view_ray * t1 - spot_pos, spot_vec);
 
-            if(dist0 < 0.0 && dist1 > 0.0)
+            /* skip this light if both hits are with the negative cone or beyond the base cap
+            of the positive cone */
+            if(!(dist0 < 0.0 && dist1 < 0.0) && !(dist0 > spot_range && dist1 > spot_range))
             {
-                dist0 = dist1;
-                dist1 = spot_range * 1000.0;
-                t0 = t1;
-            }
-
-            if(dist0 >= 0.0 && dist0 < spot_range)
-            {
-                if(dist1 < 0.0)
+                if(dist0 < 0.0)
                 {
-                    /* we're looking towards the spotlight vertex. This means the first intersection
-                    will happen with the inside of the positive cone and the second will happen with
-                    the outside of the negative cone. Since this will only happen if we're inside the
-                    cone, we set the first intersection to the near plane and the second intersection
-                    to the first  */
-                    t1 = t0;
-                    t0 = r_z_near;
+                    t0 = max(t1, r_z_near);
+                    t1 = (spot_range - d_dot_delta) / abs_d_dot_u;
+                }
+                else if(dist1 < 0.0)
+                {
+                    t1 = max(t0, r_z_near);
+                    t0 = (spot_range - d_dot_delta) / abs_d_dot_u;
                 }
 
-                if(/* d_dot_u > 0.0 && */ dist1 > spot_range)
+                dist0 = dot(view_ray * t0 - spot_pos, spot_vec);
+                dist1 = dot(view_ray * t1 - spot_pos, spot_vec);
+
+                if(dist1 > spot_range)
                 {
                     t1 = (spot_range - d_dot_delta) / abs_d_dot_u;
                 }
+                if (dist0 > spot_range)
+                {
+                    t0 = (spot_range - d_dot_delta) / abs_d_dot_u;
+                }
 
-//                float cone_z0 = view_ray.z * t0;
-//                float cone_z1 = view_ray.z * t1;
-//
-//                t0 = max(t0, pixel_z);
-//                t1 = max(t1, pixel_z);
-
-                t0 = max(view_ray.z * t0, pixel_z);
-                t1 = max(view_ray.z * t1, pixel_z);
-
+                t0 = max(pixel_z, view_ray.z * max(t0, r_z_near));
+                t1 = max(pixel_z, view_ray.z * max(t1, r_z_near));
                 color += light.col_shd.rgb * density * abs(t1 - t0);
-
-//                if(cone_z0 > pixel_z)
-//                {
-//                    /* clip intersection points to the depth buffer */
-//
-//                    t0 = max(cone_z0, pixel_z);
-//                    t1 = max(cone_z1, pixel_z);
-//
-//                    color += light.col_shd.rgb * density * abs(t1 - t0);
-//                }
             }
         }
     }

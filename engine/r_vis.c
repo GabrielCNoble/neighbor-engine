@@ -777,7 +777,7 @@ void r_VisibleEntitiesOnLights()
                 for(uint32_t entity_index = 0; entity_index < e_components[E_COMPONENT_TYPE_MODEL].cursor; entity_index++)
                 {
                     struct e_model_t *model = (struct e_model_t *)e_GetComponent(E_COMPONENT_TYPE_MODEL, entity_index);
-                    struct e_transform_t *transform = transform->entity->transform;
+                    struct e_transform_t *transform = model->entity->transform;
 
                     if(model)
                     {

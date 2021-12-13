@@ -773,7 +773,7 @@ void r_Init()
     r_AddAttachment(r_main_framebuffer, GL_COLOR_ATTACHMENT0, GL_RGBA8, GL_NEAREST, GL_NEAREST);
     r_AddAttachment(r_main_framebuffer, GL_DEPTH_STENCIL_ATTACHMENT, GL_DEPTH24_STENCIL8, GL_NEAREST, GL_NEAREST);
 
-    r_volume_framebuffer = r_CreateFramebuffer(r_width / 2, r_height / 2);
+    r_volume_framebuffer = r_CreateFramebuffer(r_width / 4, r_height / 4);
     r_AddAttachment(r_volume_framebuffer, GL_COLOR_ATTACHMENT0, GL_RGBA8, GL_NEAREST, GL_NEAREST);
 
 //    glGenTextures(1, &r_main_color_attachment);

@@ -32,13 +32,13 @@ void main()
         float limit = light.pos_rad.w - dist;
         limit = clamp(limit, 0.0, 1.0);
         light_vec = light_vec / dist;
-        dist *= dist;
+        float fallof = 1.0 / (dist * dist);
 
         uint shadow_map = floatBitsToUint(light.col_shd.w);
         float shadow = r_CubeShadow(shadow_map, -orig_light_vec);
         float spec = clamp(lighting(view_vec, light_vec, normal.xyz, roughness), 0.0, 1.0);
         float diff = (1.0 - spec);
-        float c = clamp(dot(normal, light_vec), 0.0, 1.0) * limit;
+        float c = clamp(dot(normal, light_vec), 0.0, 1.0) * limit * fallof;
         color += ((albedo * diff * light_color + light_color * spec) * c) * shadow;
     }
 
@@ -53,19 +53,16 @@ void main()
         float limit = light.pos_rad.w - dist;
         limit = clamp(limit, 0.0, 1.0);
         vec3 normalized_light_vec = light_vec / dist;
-        dist *= dist;
+        float fallof = 1.0 / (dist * dist);
 
         float edge0 = light.rot0_angle.w;
         float edge1 = light.rot0_angle.w + light.rot1_soft.w;
         limit *= smoothstep(edge0, edge1, dot(normalized_light_vec, light.rot2.xyz));
-//        vec2 uv;
         float shadow = r_SpotShadow(index, r_var_position.xyz);
-
-//        color = vec4(uv, shadow, 0.0);
 
         float spec = clamp(lighting(view_vec, normalized_light_vec, normal.xyz, roughness), 0.0, 1.0);
         float diff = (1.0 - spec);
-        float c = clamp(dot(normal, normalized_light_vec), 0.0, 1.0) * limit;
+        float c = clamp(dot(normal, normalized_light_vec), 0.0, 1.0) * limit * fallof;
         color += ((albedo * diff * light_color + light_color * spec) * c) * shadow;
     }
 

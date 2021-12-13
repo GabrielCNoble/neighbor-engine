@@ -115,8 +115,11 @@ void main()
 
                 for(int sample_index = 0; sample_index < R_SHADOW_SAMPLE_COUNT && point.z > pixel_z; sample_index++)
                 {
+
+                    float fallof = length(point - spot_pos);
+                    fallof = 1.0 / (fallof * fallof);
                     float shadow = r_SpotShadow(index, point);
-                    color += light.col_shd.rgb * density * alpha_step * shadow;
+                    color += light.col_shd.rgb * density * alpha_step * shadow * fallof;
                     point += view_ray * alpha_step;
                 }
             }

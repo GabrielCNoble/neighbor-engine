@@ -109,6 +109,8 @@ void ed_SplitPolygon(struct ed_bsp_polygon_t *polygon, vec3_t *point, vec3_t *no
 
 struct ed_bsp_node_t *ed_SolidBspFromPolygons(struct ed_bsp_polygon_t *polygons);
 
+struct ed_bsp_node_t *ed_LeafBspFromPolygons(struct ed_bsp_polygon_t *polygons);
+
 struct ed_bsp_polygon_t *ed_ClipPolygonToBsp(struct ed_bsp_polygon_t *polygons, struct ed_bsp_node_t *bsp);
 
 struct ed_bsp_polygon_t *ed_ClipPolygonLists(struct ed_bsp_polygon_t *polygons_a, struct ed_bsp_polygon_t *polygons_b);

@@ -3,6 +3,7 @@
 #include "r_frag_uniform_defs.h"
 #include "r_vert_uniform_defs.h"
 #include "r_light_defs.h"
+#include "r_shadow_defs.h"
 
 uniform sampler2D r_tex0;
 
@@ -25,6 +26,8 @@ void main()
         https://www.geometrictools.com/Documentation/IntersectionLineCone.pdf
     */
 
+    #define R_SHADOW_SAMPLE_COUNT 64
+
     for(int index = 0; index < r_spot_light_count; index++)
     {
         r_spot_data_t light = spot_lights[index];
@@ -36,6 +39,7 @@ void main()
         float d_dot_u = dot(spot_vec, view_ray);
         vec3 abs_view_ray = view_ray;
         float abs_d_dot_u = d_dot_u;
+//        float alpha = 0.0;
 
 //        if(abs_d_dot_u < 0.0)
 //        {
@@ -98,9 +102,23 @@ void main()
                     t0 = (spot_range - d_dot_delta) / abs_d_dot_u;
                 }
 
-                t0 = max(pixel_z, view_ray.z * max(t0, r_z_near));
-                t1 = max(pixel_z, view_ray.z * max(t1, r_z_near));
-                color += light.col_shd.rgb * density * abs(t1 - t0);
+                t0 = max(t0, r_z_near);
+                t1 = max(t1, r_z_near);
+                vec3 point = view_ray * min(t1, t0);
+
+                float alpha = abs(t1 - t0);
+                float alpha_step = alpha / R_SHADOW_SAMPLE_COUNT;
+
+//                t0 = max(pixel_z, view_ray.z * t0);
+//                t1 = max(pixel_z, view_ray.z * t1);
+
+
+                for(int sample_index = 0; sample_index < R_SHADOW_SAMPLE_COUNT && point.z > pixel_z; sample_index++)
+                {
+                    float shadow = r_SpotShadow(index, point);
+                    color += light.col_shd.rgb * density * alpha_step * shadow;
+                    point += view_ray * alpha_step;
+                }
             }
         }
     }

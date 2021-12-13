@@ -418,6 +418,7 @@ void r_DrawCmds()
     r_BindFramebuffer(r_volume_framebuffer);
     r_BindShader(r_volumetric_shader);
     r_BindTexture(r_main_framebuffer->depth_attachment, GL_TEXTURE0);
+    r_SetDefaultUniformI(R_UNIFORM_TEX_SHADOW_ATLAS, R_SHADOW_ATLAS_TEX_UNIT);
     r_SetDefaultUniformMat4(R_UNIFORM_VIEW_PROJECTION_MATRIX, &r_view_projection_matrix);
     r_SetDefaultUniformMat4(R_UNIFORM_PROJECTION_MATRIX, &r_projection_matrix);
     r_SetDefaultUniformUI(R_UNIFORM_SPOT_LIGHT_COUNT, r_spot_light_buffer_cursor);

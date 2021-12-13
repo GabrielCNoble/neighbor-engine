@@ -421,6 +421,8 @@ void r_VisibleLights()
             i_to_f.i = (shadow_resolution << 16) | (r_shadow_map_buffer_cursor & 0xffff);
             r_shadow_map_buffer_cursor++;
 
+            light->shadow_map_res = shadow_resolution;
+
             vec4_t pos_rad = vec4_t_c(light->position.x, light->position.y, light->position.z, 1.0);
             mat4_t_vec4_t_mul(&pos_rad, &r_view_matrix, &pos_rad);
 
@@ -453,6 +455,11 @@ void r_VisibleLights()
             data->rot2.xyz = light->orientation.rows[2];
             data->rot2.w = 0.0;
             mat4_t_vec4_t_mul(&data->rot2, &r_view_matrix, &data->rot2);
+
+            data->proj.x = light->projection_matrix.comps[0][0];
+            data->proj.y = r_spot_light_tan_lut[light->angle - R_SPOT_LIGHT_MIN_ANGLE];
+            data->proj.z = light->projection_matrix.comps[2][2];
+            data->proj.w = light->projection_matrix.comps[3][2];
         }
     }
 
@@ -698,33 +705,59 @@ void r_VisibleEntitiesOnLights()
         uint32_t *shadow_maps;
         uint32_t shadow_map_count;
 
-        mat4_t light_view_projection_matrices[6];
-
         switch(light->type)
         {
             case R_LIGHT_TYPE_SPOT:
             {
                 struct r_spot_light_t *spot_light = (struct r_spot_light_t *)light;
-                shadow_maps = &spot_light->shadow_map;
-                shadow_map_count = 1;
-//                mat4_t_identity(&light_view_projection_matrices[0]);
 
-//                for(uint32_t face_index = 0; face_index < shadow_map_count; face_index++)
-//                {
-//                    mat4_t_identity(&light_view_projection_matrices[face_index]);
-//                    light_view_projection_matrices[face_index].rows[3].x = -light->position.x;
-//                    light_view_projection_matrices[face_index].rows[3].y = -light->position.y;
-//                    light_view_projection_matrices[face_index].rows[3].z = -light->position.z;
-//                    mat4_t_mul(&light_view_projection_matrices[face_index],
-//                               &light_view_projection_matrices[face_index],
-//                               &r_point_shadow_view_projection_matrices[face_index]);
-//                }
+                mat4_t light_view_projection_matrix;
+                mat4_t_comp(&light_view_projection_matrix, &spot_light->orientation, &spot_light->position);
+                mat4_t_invvm(&light_view_projection_matrix, &light_view_projection_matrix);
+                mat4_t_mul(&light_view_projection_matrix, &light_view_projection_matrix, &spot_light->projection_matrix);
+
+                vec3_t light_vec;
+                vec3_t_mul(&light_vec, &spot_light->orientation.rows[2], -1.0);
+
+                for(uint32_t entity_index = 0; entity_index < e_components[E_COMPONENT_TYPE_MODEL].cursor; entity_index++)
+                {
+                    struct e_model_t *model = e_GetComponent(E_COMPONENT_TYPE_MODEL, entity_index);
+                    struct e_entity_t *entity = model->entity;
+                    struct e_transform_t *transform = entity->transform;
+
+                    vec3_t extents;
+                    vec3_t_mul(&extents, &model->extents, 0.5);
+
+                    vec3_t entity_light_vec;
+                    vec3_t light_ray_point;
+                    vec3_t_sub(&entity_light_vec, &transform->transform.rows[3].xyz, &spot_light->position);
+
+                    float dist = vec3_t_dot(&entity_light_vec, &light_vec);
+                    float angle = vec3_t_dot(&entity_light_vec, &light_vec) / dist;
+                    float spot_tan = r_spot_light_tan_lut[spot_light->angle - R_SPOT_LIGHT_MIN_ANGLE];
+                    vec3_t_fmadd(&light_ray_point, &spot_light->position, &light_vec, dist);
+                    vec3_t_sub(&entity_light_vec, &transform->transform.rows[3].xyz, &light_ray_point);
+                    float ray_dist = vec3_t_length(&entity_light_vec);
+                    vec3_t_div(&entity_light_vec, &entity_light_vec, ray_dist);
+                    vec3_t_fabs(&entity_light_vec, &entity_light_vec);
+                    float sphere_radius = vec3_t_dot(&extents, &entity_light_vec);
+
+                    if(ray_dist - sphere_radius < dist * spot_tan)
+                    {
+                        mat4_t model_view_projection_matrix;
+                        mat4_t_mul(&model_view_projection_matrix, &transform->transform, &light_view_projection_matrix);
+                        struct r_batch_t *batch = (struct r_batch_t *)model->model->batches.buffer;
+                        uint32_t count = model->model->indices.buffer_size;
+                        r_DrawShadow(&model_view_projection_matrix, spot_light->shadow_map, batch->start, count);
+                    }
+                }
             }
             break;
 
             case R_LIGHT_TYPE_POINT:
             {
                 struct r_point_light_t *point_light = (struct r_point_light_t *)light;
+                mat4_t light_view_projection_matrices[6];
                 shadow_maps = point_light->shadow_maps;
                 shadow_map_count = 6;
 
@@ -741,10 +774,10 @@ void r_VisibleEntitiesOnLights()
 
 
                 float light_radius = light->range;
-                for(uint32_t transform_index = 0; transform_index < e_components[E_COMPONENT_TYPE_TRANSFORM].cursor; transform_index++)
+                for(uint32_t entity_index = 0; entity_index < e_components[E_COMPONENT_TYPE_MODEL].cursor; entity_index++)
                 {
-                    struct e_transform_t *transform = (struct e_transform_t *)e_GetComponent(E_COMPONENT_TYPE_TRANSFORM, transform_index);
-                    struct e_model_t *model = transform->entity->model;
+                    struct e_model_t *model = (struct e_model_t *)e_GetComponent(E_COMPONENT_TYPE_MODEL, entity_index);
+                    struct e_transform_t *transform = transform->entity->transform;
 
                     if(model)
                     {
@@ -753,7 +786,7 @@ void r_VisibleEntitiesOnLights()
                         vec3_t model_extents;
                         uint16_t side_mask = 0;
 
-                        vec3_t_mul(&model_extents, &transform->extents, 0.5);
+                        vec3_t_mul(&model_extents, &model->extents, 0.5);
                         vec3_t_sub(&light_entity_vec, &transform->transform.rows[3].xyz, &light->position);
                         float light_entity_dist = vec3_t_length(&light_entity_vec);
                         vec3_t_normalize(&normalized_light_entity_vec, &light_entity_vec);

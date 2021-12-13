@@ -487,7 +487,7 @@ struct e_node_t *e_AllocNode(vec3_t *position, vec3_t *scale, vec3_t *local_scal
 struct e_transform_t *e_AllocTransform(struct e_entity_t *entity)
 {
     struct e_transform_t *component = (struct e_transform_t *)e_AllocComponent(E_COMPONENT_TYPE_TRANSFORM, entity);
-    component->extents = vec3_t_c(0.0, 0.0, 0.0);
+//    component->extents = vec3_t_c(0.0, 0.0, 0.0);
     return component;
 }
 
@@ -540,6 +540,7 @@ struct e_model_t *e_AllocModel(struct r_model_t *model, struct e_entity_t *entit
 {
     struct e_model_t *component = (struct e_model_t *)e_AllocComponent(E_COMPONENT_TYPE_MODEL, entity);
     component->model = model;
+    component->extents = vec3_t_c(0.0, 0.0, 0.0);
     return component;
 }
 
@@ -859,9 +860,9 @@ void e_UpdateEntities()
             if(min.z > corner->z) min.z = corner->z;
         }
 
-        transform->extents.x = max.x - min.x;
-        transform->extents.y = max.y - min.y;
-        transform->extents.z = max.z - min.z;
+        model->extents.x = max.x - min.x;
+        model->extents.y = max.y - min.y;
+        model->extents.z = max.z - min.z;
     }
 
     if(r_renderer_state.draw_entities)
@@ -878,8 +879,8 @@ void e_UpdateEntities()
             struct e_model_t *model = (struct e_model_t *)e_GetComponent(E_COMPONENT_TYPE_MODEL, model_index);
             struct e_transform_t *transform = model->entity->transform;
 
-            vec3_t_mul(&max, &transform->extents, 0.5);
-            vec3_t_mul(&min, &transform->extents, -0.5);
+            vec3_t_mul(&max, &model->extents, 0.5);
+            vec3_t_mul(&min, &model->extents, -0.5);
 
             vec3_t_add(&max, &max, &transform->transform.rows[3].xyz);
             vec3_t_add(&min, &min, &transform->transform.rows[3].xyz);

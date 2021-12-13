@@ -255,6 +255,7 @@ struct r_spot_data_t
     vec4_t          rot0_angle;
     vec4_t          rot1_soft;
     vec4_t          rot2;
+    vec4_t          proj;
 };
 
 struct r_lcluster_t

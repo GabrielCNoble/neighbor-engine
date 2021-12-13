@@ -1995,6 +1995,16 @@ struct ed_bsp_node_t *ed_SolidBspFromPolygons(struct ed_bsp_polygon_t *polygons)
     return node;
 }
 
+struct ed_bsp_node_t *ed_LeafBspFromPolygonsRecursive(struct ed_bsp_polygon_t *polygons, struct ed_bsp_polygon_t *used_polygons)
+{
+
+}
+
+struct ed_bsp_node_t *ed_LeafBspFromPolygons(struct ed_bsp_polygon_t *polygons)
+{
+    return ed_LeafBspFromPolygonsRecursive(polygons, NULL);
+}
+
 struct ed_bsp_polygon_t *ed_ClipPolygonToBsp(struct ed_bsp_polygon_t *polygons, struct ed_bsp_node_t *bsp)
 {
     struct ed_bsp_polygon_t *side_lists[2] = {NULL, NULL};

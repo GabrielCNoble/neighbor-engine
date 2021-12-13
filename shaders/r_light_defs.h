@@ -14,6 +14,7 @@ struct r_spot_data_t
     vec4 rot0_angle;
     vec4 rot1_soft;
     vec4 rot2;
+    vec4 proj;
 };
 
 struct r_index_t

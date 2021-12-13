@@ -145,13 +145,13 @@ struct e_transform_t
 {
     E_ENT_BASE_COMPONENT_FIELDS;
     mat4_t transform;
-    vec3_t extents;
 };
 
 struct e_model_t
 {
     E_ENT_BASE_COMPONENT_FIELDS;
     struct r_model_t *model;
+    vec3_t extents;
 };
 
 struct e_entity_t

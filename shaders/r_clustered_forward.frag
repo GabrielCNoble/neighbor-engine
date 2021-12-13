@@ -58,11 +58,15 @@ void main()
         float edge0 = light.rot0_angle.w;
         float edge1 = light.rot0_angle.w + light.rot1_soft.w;
         limit *= smoothstep(edge0, edge1, dot(normalized_light_vec, light.rot2.xyz));
+//        vec2 uv;
+        float shadow = r_SpotShadow(index, r_var_position.xyz);
+
+//        color = vec4(uv, shadow, 0.0);
 
         float spec = clamp(lighting(view_vec, normalized_light_vec, normal.xyz, roughness), 0.0, 1.0);
         float diff = (1.0 - spec);
         float c = clamp(dot(normal, normalized_light_vec), 0.0, 1.0) * limit;
-        color += ((albedo * diff * light_color + light_color * spec) * c);
+        color += ((albedo * diff * light_color + light_color * spec) * c) * shadow;
     }
 
     color.rgb = tonemap(color.rgb * 2.0);

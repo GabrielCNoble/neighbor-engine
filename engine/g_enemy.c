@@ -137,7 +137,7 @@ struct g_camera_t *g_CreateCamera(vec3_t *position, mat3_t *orientation, struct 
     mat3_t_mul(&yaw, &pitch, &yaw);
     mat3_t_mul(&yaw, &yaw, orientation);
 
-    camera->light = r_CreateSpotLight(position, &g_camera_state_colors[camera->state], &yaw, camera->range, 5.0, 25, 0.1);
+    camera->light = r_CreateSpotLight(position, &g_camera_state_colors[camera->state], &yaw, camera->range, 25.0, 25, 0.1);
     return camera;
 }
 

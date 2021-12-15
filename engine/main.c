@@ -5,6 +5,7 @@
 
 extern uint32_t g_editor;
 extern uint32_t g_game_state;
+extern char *g_base_path;
 
 int main(int argc, char *argv[])
 {
@@ -17,6 +18,8 @@ int main(int argc, char *argv[])
         log_LogMessage(LOG_TYPE_FATAL, "Couldn't initialize SDL!\nError message: %s", error);
         exit(-1);
     }
+
+    g_base_path = argv[0];
 
     uint32_t editor = 0;
 

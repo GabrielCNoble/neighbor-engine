@@ -48,6 +48,7 @@ extern uint32_t r_prev_draw_call_count;
 
 extern struct r_renderer_state_t r_renderer_state;
 struct ed_explorer_state_t ed_explorer_state;
+extern char *g_base_path;
 
 void ed_Init()
 {
@@ -107,22 +108,27 @@ void ed_Init()
     ed_explorer_state.drives = ds_list_create(sizeof(struct ed_explorer_drive_t), 8);
 
 
-    PWSTR folder_path;
+//    PWSTR folder_path;
+//
+//    HRESULT result = SHGetKnownFolderPath(&FOLDERID_Documents, 0, NULL, &folder_path);
+//
+//    if(SUCCEEDED(result))
+//    {
+//        char path[PATH_MAX];
+//        wcstombs(path, folder_path, PATH_MAX - 1);
+//        CoTaskMemFree(folder_path);
+//        ds_path_format_path(path, path, PATH_MAX);
+//        ed_ChangeExplorerPath(path);
+//    }
+//    else
+//    {
+//        ed_ChangeExplorerPath("C:/Users/gabri/Documents");
+//    }
 
-    HRESULT result = SHGetKnownFolderPath(&FOLDERID_Documents, 0, NULL, &folder_path);
-
-    if(SUCCEEDED(result))
-    {
-        char path[PATH_MAX];
-        wcstombs(path, folder_path, PATH_MAX - 1);
-        CoTaskMemFree(folder_path);
-        ds_path_format_path(path, path, PATH_MAX);
-        ed_ChangeExplorerPath(path);
-    }
-    else
-    {
-        ed_ChangeExplorerPath("C:/Users/gabri/Documents");
-    }
+    char explorer_path[PATH_MAX];
+    ds_path_format_path(g_base_path, explorer_path, PATH_MAX);
+    ds_path_drop_end(explorer_path, explorer_path, PATH_MAX);
+    ed_ChangeExplorerPath(explorer_path);
 
     ed_EnumerateExplorerDrives();
     in_SetMouseRelative(0);
@@ -167,11 +173,6 @@ void ed_UpdateEditor()
         ed_active_editor->current_state(just_changed);
     }
     ed_active_editor->update();
-
-//    if(ed_active_editor == &ed_editors[ED_EDITOR_START])
-//    {
-//        return;
-//    }
 
     if(igBeginMainMenuBar())
     {

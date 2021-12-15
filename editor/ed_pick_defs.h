@@ -91,6 +91,12 @@ struct ed_pickable_t
     uint32_t update_index;
 };
 
+struct ed_pickable_record_t
+{
+    uint64_t index;
+    uint64_t type;
+};
+
 struct ed_manipulator_t
 {
     uint32_t mode;

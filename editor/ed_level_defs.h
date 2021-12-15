@@ -181,48 +181,6 @@ struct ed_l_section_t
     uint64_t brush_section_size;
 };
 
-//#define ED_LEVEL_SECTION_MAGIC0 0x4749454e
-//#define ED_LEVEL_SECTION_MAGIC1 0x524f4248
-
-
-//struct ed_level_section_t
-//{
-//    uint32_t magic0;
-//    uint32_t magic1;
-//
-//    char name[32];
-//
-//    vec3_t camera_pos;
-//    float camera_pitch;
-//    float camera_yaw;
-//
-//    size_t brush_section_start;
-//    size_t brush_section_size;
-//
-//    size_t light_section_start;
-//    size_t light_section_size;
-//
-//    size_t entity_section_start;
-//    size_t entity_section_size;
-//
-//    size_t ent_def_section_start;
-//    size_t ent_def_section_size;
-//
-//    size_t material_section_start;
-//    size_t material_section_size;
-//
-//    size_t world_section_start;
-//    size_t world_section_size;
-//
-//    size_t waypoint_section_start;
-//    size_t waypoint_section_size;
-//
-//    size_t game_section_start;
-//    size_t game_section_size;
-//
-//    size_t reserved[32];
-//};
-
 #endif
 
 

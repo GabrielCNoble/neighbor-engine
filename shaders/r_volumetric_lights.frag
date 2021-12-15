@@ -88,13 +88,6 @@ void main()
             float t1 = (-c1 + disc) / c2;
             float t0 = (-c1 - disc) / c2;
 
-//            if(t0 > t1)
-//            {
-//                float temp = t1;
-//                t1 = t0;
-//                t0 = temp;
-//            }
-
             float dist0 = dot(view_ray * t0 - spot_pos, spot_vec);
             float dist1 = dot(view_ray * t1 - spot_pos, spot_vec);
 
@@ -130,25 +123,20 @@ void main()
 
                 float start = min(t0, t1);
                 float end = max(t0, t1);
+                float end_z = max(view_ray.z * end, pixel_z);
 
                 vec3 point = view_ray * start;
-//                t1 = min(abs(pixel_z), view_ray.z * end);
 
                 float alpha = abs(t1 - t0);
                 float alpha_step = alpha / R_SHADOW_SAMPLE_COUNT;
 
-//                t0 = max(pixel_z, view_ray.z * t0);
-//                t1 = max(pixel_z, view_ray.z * t1);
-
-
-
-                for(int sample_index = 0; sample_index < R_SHADOW_SAMPLE_COUNT && point.z > pixel_z; sample_index++)
+                for(int sample_index = 0; sample_index < R_SHADOW_SAMPLE_COUNT && point.z > end_z; sample_index++)
                 {
                     float fallof = length(point - spot_pos);
-                    fallof = 1.0 / (fallof);
+//                    fallof = 1.0 / (fallof * fallof);
                     float shadow = r_SpotShadow(index, point);
-                    color += light.col_shd.rgb * density * alpha_step * shadow * fallof;
-                    point += view_ray * (alpha_step + dither);
+                    color += light.col_shd.rgb * density * alpha_step * shadow * (1.0 / fallof);
+                    point += view_ray * (alpha_step + dither * fallof * 0.5);
                 }
             }
         }

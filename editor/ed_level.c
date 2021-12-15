@@ -664,7 +664,12 @@ void ed_w_UpdateUI()
 
                             igSliderFloat3("Color", light->color.comps, 0.0, 1.0, "%0.2f", 0);
                             igSliderFloat("Radius", &light->range, 0.0, 100.0, "%0.2f", 0);
-                            igSliderFloat("Energy", &light->energy, 0.0, 100.0, "%0.2f", 0);
+                            igInputFloat("Energy", &light->energy, 0.0, 0.0, "%0.2f", 0);
+                            if(light->energy < 0.0)
+                            {
+                                light->energy = 0.0;
+                            }
+//                            igSliderFloat("Energy", &light->energy, 0.0, 100.0, "%0.2f", 0);
 
                             if(light->type == R_LIGHT_TYPE_SPOT)
                             {
@@ -2522,7 +2527,7 @@ void ed_l_TransformSelections(uint32_t just_changed)
     }
 }
 
-void ed_SerializeLevel(void **level_buffer, size_t *buffer_size, uint32_t serialize_brushes)
+void ed_SerializeLevel(void **level_buffer, size_t *buffer_size, uint32_t serialize_editor)
 {
     size_t out_buffer_size = sizeof(struct l_level_header_t);
 
@@ -2532,7 +2537,7 @@ void ed_SerializeLevel(void **level_buffer, size_t *buffer_size, uint32_t serial
 
     size_t level_editor_section_size = sizeof(struct ed_l_section_t);
 
-    if(serialize_brushes)
+    if(serialize_editor)
     {
         level_editor_section_size += sizeof(struct ed_brush_section_t);
         level_editor_section_size += sizeof(struct ed_brush_record_t) * ed_level_state.brush.brushes.used;
@@ -2610,7 +2615,7 @@ void ed_SerializeLevel(void **level_buffer, size_t *buffer_size, uint32_t serial
     level_editor_section->camera_pitch = ed_level_state.camera_pitch;
     level_editor_section->camera_yaw = ed_level_state.camera_yaw;
 
-    if(serialize_brushes)
+    if(serialize_editor)
     {
         /* brush stuff */
         level_editor_section->brush_section_start = cur_out_buffer - start_out_buffer;
@@ -2974,45 +2979,59 @@ void ed_DeserializeLevel(void *level_buffer, size_t buffer_size)
         return;
     }
 
-    for(uint32_t light_type = R_LIGHT_TYPE_POINT; light_type < R_LIGHT_TYPE_LAST; light_type++)
-    {
-        for(uint32_t light_index = 0; light_index < r_lights[light_type].cursor; light_index++)
-        {
-            struct r_light_t *light = r_GetLight(R_LIGHT_INDEX(light_type, light_index));
-
-            if(light)
-            {
-                ed_CreateLightPickable(NULL, NULL, 0.0, 0.0, 0, light);
-            }
-        }
-    }
-
-    for(uint32_t enemy_type = G_ENEMY_TYPE_CAMERA; enemy_type < G_ENEMY_TYPE_LAST; enemy_type++)
-    {
-        for(uint32_t enemy_index = 0; enemy_index < g_enemies[enemy_type].cursor; enemy_index++)
-        {
-            struct g_enemy_t *enemy = g_GetEnemy(enemy_type, enemy_index);
-
-            if(enemy)
-            {
-                ed_CreateEnemyPickable(0, NULL, NULL, enemy);
-            }
-        }
-    }
-
-    for(uint32_t entity_index = 0; entity_index < e_root_transforms.cursor; entity_index++)
-    {
-        struct e_node_t *node = *(struct e_node_t **)ds_list_get_element(&e_root_transforms, entity_index);
-
-        if(node->entity->def)
-        {
-            ed_CreateEntityPickable(NULL, NULL, NULL, NULL, node->entity);
-        }
-    }
-
     char *start_in_buffer = level_buffer;
     char *cur_in_buffer = start_in_buffer;
     struct l_level_header_t *level_header = (struct l_level_header_t *)cur_in_buffer;
+
+
+    if(level_header->light_section_size)
+    {
+        struct l_light_section_t *light_section = (struct l_light_section_t *)(cur_in_buffer + level_header->light_section_start);
+        struct l_light_record_t *light_records = (struct l_light_record_t *)(cur_in_buffer + light_section->record_start);
+
+        for(uint32_t record_index = 0; record_index < light_section->record_count; record_index++)
+        {
+            struct l_light_record_t *record = light_records + record_index;
+            struct r_light_t *light = r_GetLight(R_LIGHT_INDEX(record->type, record->d_index));
+            ed_CreateLightPickable(NULL, NULL, 0, 0, 0, light);
+        }
+    }
+
+    if(level_header->entity_section_size)
+    {
+        struct l_entity_section_t *entity_section = (struct l_entity_section_t *)(cur_in_buffer + level_header->entity_section_start);
+        struct l_entity_record_t *entity_records = (struct l_entity_record_t *)(cur_in_buffer + entity_section->record_start);
+        for(uint32_t record_index = 0; record_index < entity_section->record_count; record_index++)
+        {
+            struct l_entity_record_t *record = entity_records + record_index;
+            struct e_entity_t *entity = e_GetEntity(record->d_index);
+            ed_CreateEntityPickable(NULL, NULL, NULL, NULL, entity);
+        }
+    }
+
+    if(level_header->game_section_size)
+    {
+        struct l_game_section_t *game_section = (struct l_game_section_t *)(cur_in_buffer + level_header->game_section_start);
+        struct l_enemy_record_t *enemy_records = (struct l_enemy_record_t *)(cur_in_buffer + game_section->enemy_start);
+        for(uint32_t record_index = 0; record_index < game_section->enemy_count; record_index++)
+        {
+            struct l_enemy_record_t *record = enemy_records + record_index;
+            struct g_enemy_t *enemy = g_GetEnemy(record->type, record->d_index);
+            ed_CreateEnemyPickable(0, NULL, NULL, enemy);
+        }
+    }
+
+//    for(uint32_t entity_index = 0; entity_index < e_root_transforms.cursor; entity_index++)
+//    {
+//        struct e_node_t *node = *(struct e_node_t **)ds_list_get_element(&e_root_transforms, entity_index);
+//
+//        if(node->entity->def)
+//        {
+//            ed_CreateEntityPickable(NULL, NULL, NULL, NULL, node->entity);
+//        }
+//    }
+
+
 
     struct ed_l_section_t *level_editor_section = (struct ed_l_section_t *)(cur_in_buffer + level_header->level_editor_start);
 
@@ -3259,7 +3278,7 @@ uint32_t ed_l_SaveLevel(char *path, char *file)
             folder_index++;
         }
 
-        g_SetBasePath(ed_level_state.project.base_folder);
+//        g_SetBasePath(ed_level_state.project.base_folder);
 
         folder_index = 0;
         while(ed_l_project_folders[folder_index])
@@ -3308,7 +3327,7 @@ uint32_t ed_l_LoadLevel(char *path, char *file)
 
         strcpy(ed_level_state.project.level_name, file);
         ds_path_drop_end(path, ed_level_state.project.base_folder, PATH_MAX);
-        g_SetBasePath(ed_level_state.project.base_folder);
+//        g_SetBasePath(ed_level_state.project.base_folder);
 
         read_file(fp, &buffer, &buffer_size);
         fclose(fp);
@@ -3324,7 +3343,7 @@ uint32_t ed_l_LoadLevel(char *path, char *file)
 uint32_t ed_l_SelectFolder(char *path, char *file)
 {
     ds_path_append_end(path, file, ed_level_state.project.base_folder, PATH_MAX);
-    g_SetBasePath(ed_level_state.project.base_folder);
+//    g_SetBasePath(ed_level_state.project.base_folder);
     return 1;
 }
 
@@ -3498,6 +3517,29 @@ void ed_l_PlayGame()
     g_BeginGame();
 }
 
+void ed_l_GamePaused()
+{
+    igSetNextWindowBgAlpha(0.05);
+    igSetNextWindowPos((ImVec2){0, r_height / 2}, 0, (ImVec2){0, 0});
+    ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize;
+    window_flags |= ImGuiWindowFlags_NoDecoration;
+    if(igBegin("Pause", NULL, window_flags))
+    {
+        igSetWindowFontScale(2.0);
+        if(igSelectable_Bool("Resume game", NULL, 0, (ImVec2){0, 0}))
+        {
+            g_ResumeGame();
+        }
+
+        if(igSelectable_Bool("Stop game", NULL, 0, (ImVec2){0, 0}))
+        {
+            g_StopGame();
+        }
+        igSetWindowFontScale(1.0);
+    }
+    igEnd();
+}
+
 void ed_l_StopGame()
 {
     ed_l_LoadGameLevelSnapshot();
@@ -3512,7 +3554,7 @@ void ed_l_ResetEditor()
     ed_level_state.project.base_folder[0] = '\0';
     ed_level_state.project.level_name[0] = '\0';
 
-    g_SetBasePath("");
+//    g_SetBasePath("");
 
     l_DestroyWorld();
 

@@ -131,6 +131,8 @@ void ed_l_LoadGameLevelSnapshot();
 
 void ed_l_PlayGame();
 
+void ed_l_GamePaused();
+
 void ed_l_StopGame();
 
 void ed_l_ResetEditor();

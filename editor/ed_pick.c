@@ -515,6 +515,12 @@ struct ed_pickable_t *ed_CopyPickable(struct ed_pickable_t *src_pickable)
             copy = ed_CreateEntityPickable(NULL, NULL, NULL, NULL, e_CopyEntity(src_entity));
         }
         break;
+
+        case ED_PICKABLE_TYPE_ENEMY:
+        {
+//            struct g_enemy_t *
+        }
+        break;
     }
 
     return copy;

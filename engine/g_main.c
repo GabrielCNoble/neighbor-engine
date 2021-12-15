@@ -40,7 +40,8 @@ vec3_t g_camera_pos = {.z = G_CAMERA_Z};
 float g_camera_pitch = G_CAMERA_PITCH;
 float g_camera_yaw = 0.0;
 
-char g_base_path[PATH_MAX] = "";
+//char g_base_path[PATH_MAX] = "";
+char *g_base_path = NULL;
 
 
 //struct r_model_t *g_player_model;
@@ -207,11 +208,11 @@ void g_PauseGame()
     in_SetMouseRelative(0);
     in_SetMouseWarp(0);
 
-    if(g_editor)
-    {
-        g_StopGame();
-    }
-    else
+//    if(g_editor)
+//    {
+//        g_StopGame();
+//    }
+//    else
     {
         g_SetGameState(G_GAME_STATE_PAUSED);
     }
@@ -247,9 +248,16 @@ void g_GameMain(float delta_time)
 
 void g_GamePaused()
 {
-    if(in_GetKeyState(SDL_SCANCODE_ESCAPE) & IN_KEY_STATE_PRESSED)
+    if(g_editor)
     {
-        g_ResumeGame();
+        ed_l_GamePaused();
+    }
+    else
+    {
+        if(in_GetKeyState(SDL_SCANCODE_ESCAPE) & IN_KEY_STATE_PRESSED)
+        {
+            g_ResumeGame();
+        }
     }
 }
 
@@ -265,21 +273,21 @@ void g_MainMenu()
     }
 }
 
-void g_SetBasePath(char *path)
-{
-    strcpy(g_base_path, path);
-    log_ScopedLogMessage(LOG_TYPE_NOTICE, "Set path to %s", path);
-}
+//void g_SetBasePath(char *path)
+//{
+//    strcpy(g_base_path, path);
+//    log_ScopedLogMessage(LOG_TYPE_NOTICE, "Set path to %s", path);
+//}
 
-void g_ResourcePath(char *path, char *out_path, uint32_t out_size)
-{
-    ds_path_format_path(path, out_path, out_size);
-
-    if(!ds_path_is_absolute(out_path))
-    {
-        ds_path_append_end(g_base_path, out_path, out_path, out_size);
-    }
-}
+//void g_ResourcePath(char *path, char *out_path, uint32_t out_size)
+//{
+//    ds_path_format_path(path, out_path, out_size);
+//
+//    if(!ds_path_is_absolute(out_path))
+//    {
+//        ds_path_append_end(g_base_path, out_path, out_path, out_size);
+//    }
+//}
 
 void g_UpdateDeltaTime()
 {

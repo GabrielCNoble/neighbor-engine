@@ -25,6 +25,15 @@
 #define R_SHADOW_MAP_X_COORD(coords) ((coords) & R_SHADOW_MAP_COORD_MASK)
 #define R_SHADOW_MAP_Y_COORD(coords) (((coords) >> R_SHADOW_MAP_Y_COORD_SHIFT) & R_SHADOW_MAP_COORD_MASK)
 #define R_SHADOW_MAP_ATLAS_SIZE 8192
+#define R_LINEAR_DEPTH_BIAS 0.001
+
+float r_dither_pattern[4][4] =
+{
+    { 0.0f, 0.5f, 0.125f, 0.625f},
+    { 0.75f, 0.22f, 0.875f, 0.375f},
+    { 0.1875f, 0.6875f, 0.0625f, 0.5625},
+    { 0.9375f, 0.4375f, 0.8125f, 0.3125}
+};
 
 struct r_shadow_map_t
 {
@@ -89,7 +98,7 @@ float r_CubeShadow(uint shadow_map, vec3 direction)
 
     float linear_depth = linear_depths[0];
 
-    if(abs(z_coord) - 0.001 > abs(linear_depth))
+    if(abs(z_coord) - R_LINEAR_DEPTH_BIAS > abs(linear_depth))
     {
         shadow_term = 0.0;
     }
@@ -123,7 +132,7 @@ float r_SpotShadow(uint light_index, vec3 frag_pos)
 
     float shadow_term = 1.0;
 
-    if(abs(frag_dir.z) - 0.001 > abs(linear_depth))
+    if(abs(frag_dir.z) - R_LINEAR_DEPTH_BIAS > abs(linear_depth))
     {
         shadow_term = 0.0;
     }

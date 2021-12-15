@@ -57,7 +57,7 @@ struct r_shader_t *r_immediate_shader;
 struct r_shader_t *r_current_shader;
 struct r_shader_t *r_shadow_shader;
 struct r_shader_t *r_volumetric_shader;
-struct r_shader_t *r_full_screen_blend_shader;
+struct r_shader_t *r_bilateral_blend_shader;
 
 struct r_model_t *test_model;
 struct r_texture_t *r_default_texture;
@@ -174,15 +174,15 @@ uint32_t r_light_shadow_map_count[] =
 
 uint32_t r_uniform_type_sizes[] =
 {
-    [R_UNIFORM_TYPE_UINT] = sizeof(uint32_t),
-    [R_UNIFORM_TYPE_INT] = sizeof(int32_t),
-    [R_UNIFORM_TYPE_FLOAT] = sizeof(float),
-    [R_UNIFORM_TYPE_VEC2] = sizeof(vec2_t),
-    [R_UNIFORM_TYPE_VEC3] = sizeof(vec3_t),
-    [R_UNIFORM_TYPE_VEC4] = sizeof(vec4_t),
-    [R_UNIFORM_TYPE_MAT2] = sizeof(mat2_t),
-    [R_UNIFORM_TYPE_MAT3] = sizeof(mat3_t),
-    [R_UNIFORM_TYPE_MAT4] = sizeof(mat4_t),
+    [R_UNIFORM_TYPE_UINT] =     sizeof(uint32_t),
+    [R_UNIFORM_TYPE_INT] =      sizeof(int32_t),
+    [R_UNIFORM_TYPE_FLOAT] =    sizeof(float),
+    [R_UNIFORM_TYPE_VEC2] =     sizeof(vec2_t),
+    [R_UNIFORM_TYPE_VEC3] =     sizeof(vec3_t),
+    [R_UNIFORM_TYPE_VEC4] =     sizeof(vec4_t),
+    [R_UNIFORM_TYPE_MAT2] =     sizeof(mat2_t),
+    [R_UNIFORM_TYPE_MAT3] =     sizeof(mat3_t),
+    [R_UNIFORM_TYPE_MAT4] =     sizeof(mat4_t),
 };
 
 void r_Init()
@@ -263,7 +263,7 @@ void r_Init()
     r_shadow_shader = r_LoadShader("shaders/r_shadow.vert", "shaders/r_shadow.frag");
     r_immediate_shader = r_LoadShader("shaders/r_immediate_mode.vert", "shaders/r_immediate_mode.frag");
     r_volumetric_shader = r_LoadShader("shaders/r_volumetric_lights.vert", "shaders/r_volumetric_lights.frag");
-    r_full_screen_blend_shader = r_LoadShader("shaders/r_full_screen_blend.vert", "shaders/r_full_screen_blend.frag");
+    r_bilateral_blend_shader = r_LoadShader("shaders/r_bilateral_upsample.vert", "shaders/r_bilateral_upsample.frag");
     mat4_t_persp(&r_projection_matrix, r_fov, (float)r_width / (float)r_height, r_z_near, r_z_far);
     mat4_t_identity(&r_view_matrix);
 
@@ -773,7 +773,7 @@ void r_Init()
     r_AddAttachment(r_main_framebuffer, GL_COLOR_ATTACHMENT0, GL_RGBA8, GL_NEAREST, GL_NEAREST);
     r_AddAttachment(r_main_framebuffer, GL_DEPTH_STENCIL_ATTACHMENT, GL_DEPTH24_STENCIL8, GL_NEAREST, GL_NEAREST);
 
-    r_volume_framebuffer = r_CreateFramebuffer(r_width / 4, r_height / 4);
+    r_volume_framebuffer = r_CreateFramebuffer(r_width / 2, r_height / 2);
     r_AddAttachment(r_volume_framebuffer, GL_COLOR_ATTACHMENT0, GL_RGBA8, GL_NEAREST, GL_NEAREST);
 
 //    glGenTextures(1, &r_main_color_attachment);

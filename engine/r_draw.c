@@ -42,7 +42,7 @@ extern struct r_shader_t *r_immediate_shader;
 extern struct r_shader_t *r_current_shader;
 extern struct r_shader_t *r_shadow_shader;
 extern struct r_shader_t *r_volumetric_shader;
-extern struct r_shader_t *r_full_screen_blend_shader;
+extern struct r_shader_t *r_bilateral_blend_shader;
 
 extern struct r_model_t *test_model;
 extern struct r_texture_t *r_default_texture;
@@ -470,6 +470,20 @@ void r_DrawCmds()
     }
 
 
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_ONE, GL_ONE);
+    glDisable(GL_DEPTH_TEST);
+    glDisable(GL_SCISSOR_TEST);
+    r_BindTexture(r_volume_framebuffer->color_attachments[0], GL_TEXTURE0);
+    r_BindTexture(r_main_framebuffer->depth_attachment, GL_TEXTURE1);
+    r_BindShader(r_bilateral_blend_shader);
+    r_SetDefaultUniformUI(R_UNIFORM_TEX0, 0);
+    r_SetDefaultUniformUI(R_UNIFORM_TEX1, 1);
+    glDrawArrays(GL_TRIANGLES, r_screen_tri_start, 3);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glEnable(GL_DEPTH_TEST);
+    glDisable(GL_BLEND);
+
     mat4_t view_projection_matrix;
     mat4_t model_matrix;
 
@@ -776,15 +790,7 @@ void r_DrawCmds()
         }
     }
 
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_ONE, GL_ONE);
-    glDisable(GL_SCISSOR_TEST);
-    r_BindTexture(r_volume_framebuffer->color_attachments[0], GL_TEXTURE0);
-    r_BindShader(r_full_screen_blend_shader);
-    r_SetDefaultUniformUI(R_UNIFORM_TEX0, 0);
-    glDrawArrays(GL_TRIANGLES, r_screen_tri_start, 3);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glDisable(GL_BLEND);
+
 
 }
 

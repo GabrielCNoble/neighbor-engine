@@ -7,6 +7,27 @@
 
 uniform sampler2D r_tex0;
 
+#define R_SHADOW_SAMPLE_COUNT 8
+//#define OFFSET_SIZE 0.005
+//
+//vec2 offsets[9] =
+//{
+//    vec2(0.0, 0.0),
+//    vec2(-OFFSET_SIZE, OFFSET_SIZE),
+//    vec2(-OFFSET_SIZE, 0.0),
+//    vec2( OFFSET_SIZE,-OFFSET_SIZE),
+//    vec2( 0.0, OFFSET_SIZE),
+//    vec2(-OFFSET_SIZE,-OFFSET_SIZE),
+//    vec2(-OFFSET_SIZE, 0.0),
+//    vec2( OFFSET_SIZE, OFFSET_SIZE),
+//    vec2( 0.0,-OFFSET_SIZE),
+//};
+
+//float ditherPattern[4][4] = {{ 0.0f, 0.5f, 0.125f, 0.625f},
+//{ 0.75f, 0.22f, 0.875f, 0.375f},
+//{ 0.1875f, 0.6875f, 0.0625f, 0.5625},
+//{ 0.9375f, 0.4375f, 0.8125f, 0.3125}};
+
 void main()
 {
     vec3 view_ray;
@@ -26,7 +47,9 @@ void main()
         https://www.geometrictools.com/Documentation/IntersectionLineCone.pdf
     */
 
-    #define R_SHADOW_SAMPLE_COUNT 64
+    int dither_x = int(gl_FragCoord.x) % 4;
+    int dither_y = int(gl_FragCoord.y) % 4;
+    float dither = r_dither_pattern[dither_x][dither_y];
 
     for(int index = 0; index < r_spot_light_count; index++)
     {
@@ -104,7 +127,12 @@ void main()
 
                 t0 = max(t0, r_z_near);
                 t1 = max(t1, r_z_near);
-                vec3 point = view_ray * min(t1, t0);
+
+                float start = min(t0, t1);
+                float end = max(t0, t1);
+
+                vec3 point = view_ray * start;
+//                t1 = min(abs(pixel_z), view_ray.z * end);
 
                 float alpha = abs(t1 - t0);
                 float alpha_step = alpha / R_SHADOW_SAMPLE_COUNT;
@@ -113,14 +141,14 @@ void main()
 //                t1 = max(pixel_z, view_ray.z * t1);
 
 
+
                 for(int sample_index = 0; sample_index < R_SHADOW_SAMPLE_COUNT && point.z > pixel_z; sample_index++)
                 {
-
                     float fallof = length(point - spot_pos);
-                    fallof = 1.0 / (fallof * fallof);
+                    fallof = 1.0 / (fallof);
                     float shadow = r_SpotShadow(index, point);
                     color += light.col_shd.rgb * density * alpha_step * shadow * fallof;
-                    point += view_ray * alpha_step;
+                    point += view_ray * (alpha_step + dither);
                 }
             }
         }

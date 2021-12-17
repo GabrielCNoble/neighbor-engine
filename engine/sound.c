@@ -63,7 +63,7 @@ struct s_sound_t *s_LoadSound(char *file_name)
     struct s_sound_t *sound = NULL;
     uint32_t index;
 
-    if(file_exists(file_name))
+    if(ds_file_exists(file_name))
     {
         OggVorbis_File file;
         vorbis_info *info;

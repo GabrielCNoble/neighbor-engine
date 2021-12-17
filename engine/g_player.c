@@ -97,21 +97,33 @@ void g_StepPlayer(float delta_time)
         if(g_player.grabbed_entity)
         {
             struct e_entity_t *entity = g_player.grabbed_entity;
-            struct p_collider_t *collider = entity->collider->collider;
+            struct p_dynamic_collider_t *collider = entity->collider->collider;
             vec3_t grab_point;
             mat3_t inverse_rotation;
+
+            g_player.grabbed_entity_mass = collider->mass;
+
+            p_SetColliderMass(collider, 0.01);
 
             vec3_t_lerp(&grab_point, &from, &to, time);
             vec3_t_sub(&g_player.relative_grab_offset, &grab_point, &collider->position);
             mat3_t_transpose(&inverse_rotation, &collider->orientation);
             mat3_t_vec3_t_mul(&g_player.relative_grab_offset, &g_player.relative_grab_offset, &inverse_rotation);
             g_player.grab_time = time;
+
+//            p_DisableColliderGravity(collider);
         }
     }
     else
     {
         if(!(left_mouse_state & IN_KEY_STATE_PRESSED))
         {
+            if(g_player.grabbed_entity)
+            {
+                struct p_dynamic_collider_t *collider = (struct p_dynamic_collider_t *)g_player.grabbed_entity->collider->collider;
+                p_SetColliderMass(collider, g_player.grabbed_entity_mass);
+            }
+
             g_player.grabbed_entity = NULL;
         }
         else if(g_player.grabbed_entity)
@@ -139,10 +151,16 @@ void g_StepPlayer(float delta_time)
             r_i_DrawPoint(&point_on_collider, &vec4_t_c(1.0, 1.0, 1.0, 1.0), 8.0);
             r_i_DrawLine(&point_on_collider, &grab_point, &vec4_t_c(1.0, 0.0, 0.0, 1.0), 1.0);
             r_i_SetDepth(GL_TRUE, GL_LESS);
-            vec3_t_mul(&cur_offset, &cur_offset, 20.0);
+
+            vec3_t_mul(&cur_offset, &cur_offset, 10.0);
+            float dist = vec3_t_length(&cur_offset);
+
+            if(dist > 10.0)
+            {
+                vec3_t_mul(&cur_offset, &cur_offset, 10.0 / dist);
+            }
+
             p_SetColliderVelocity(collider, &cur_offset, NULL);
-//            vec3_t_mul(&cur_offset, &cur_offset, 200.0 - vec3_t_length(&collider->linear_velocity) * 100);
-//            p_ApplyForce(collider, &cur_offset, &g_player.relative_grab_offset);
         }
     }
 }

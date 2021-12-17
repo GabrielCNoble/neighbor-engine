@@ -181,8 +181,19 @@ struct g_player_t
     float grab_time;
     vec3_t relative_grab_offset;
     struct e_entity_t *grabbed_entity;
+    float grabbed_entity_mass;
     struct p_character_collider_t *collider;
 };
+
+
+
+/*
+========================================================
+
+    main menu stuff
+
+========================================================
+*/
 
 
 #endif // G_EN_DEFS_H

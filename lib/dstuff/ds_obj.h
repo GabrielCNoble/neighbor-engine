@@ -71,7 +71,7 @@ void load_wavefront(char *file_name,  struct geometry_data_t *geometry_data)
     file = fopen(file_name, "rb");
     if(file)
     {
-        read_file(file, (void **)&file_buffer, &file_size);
+        ds_file_read(file, (void **)&file_buffer, &file_size);
         fclose(file);
         ds_path_drop_end(file_name, file_path, PATH_MAX);
 //        strcpy(file_path, ds_path_GetPath(file_name));
@@ -317,7 +317,7 @@ void load_wavefront_mtl(char *file_name, struct geometry_data_t *geometry_data)
 
     if(file)
     {
-        read_file(file, (void **)&file_buffer, &file_size);
+        ds_file_read(file, (void **)&file_buffer, &file_size);
         fclose(file);
 
         while(i < file_size)

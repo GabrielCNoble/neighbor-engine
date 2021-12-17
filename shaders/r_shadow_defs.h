@@ -71,15 +71,9 @@ float r_CubeShadow(uint shadow_map, vec3 direction)
         uint u_coord_index = (face_data >> R_SHADOW_CUBEMAP_FACE_U_COORD_SHIFT) & R_SHADOW_CUBEMAP_FACE_UV_COORD_MASK;
         uint v_coord_index = (face_data >> R_SHADOW_CUBEMAP_FACE_V_COORD_SHIFT) & R_SHADOW_CUBEMAP_FACE_UV_COORD_MASK;
 
-//        coord_offset.x = int((face_index >> R_SHADOW_MAP_OFFSET_X_COORD_UNPACK_SHIFT) & R_SHADOW_MAP_OFFSET_UNPACK_MASK);
-//        coord_offset.y = int((face_index >> R_SHADOW_MAP_OFFSET_Y_COORD_UNPACK_SHIFT) & R_SHADOW_MAP_OFFSET_UNPACK_MASK);
-
-//        uint z_coord_index = face_index >> 1;
         r_shadow_map_t shadow_map = shadow_maps[first_tile + face_index];
         tile_coord.x = int(R_SHADOW_MAP_X_COORD(shadow_map.coords));
         tile_coord.y = int(R_SHADOW_MAP_Y_COORD(shadow_map.coords));
-//        tile_coord.x = int(((shadow_map >> R_SHADOW_MAP_X_COORD_SHIFT) & 0xff) * R_SHADOW_MAP_MIN_RESOLUTION);
-//        tile_coord.y = int(((shadow_map >> R_SHADOW_MAP_Y_COORD_SHIFT) & 0xff) * R_SHADOW_MAP_MIN_RESOLUTION);
 
         vec3 cube_vec = vec3(frag_vec[u_coord_index], frag_vec[v_coord_index], -frag_vec[z_coord_index]);
         z_coord = cube_vec.z;

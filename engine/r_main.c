@@ -889,7 +889,7 @@ struct r_texture_t *r_LoadTexture(char *file_name)
         ds_path_set_ext(full_path, "png", full_path, PATH_MAX);
     }
 
-    if(!file_exists(full_path))
+    if(!ds_file_exists(full_path))
     {
         log_ScopedLogMessage(LOG_TYPE_ERROR, "Couldn't load texture [%s]", full_path);
         return NULL;
@@ -1449,11 +1449,11 @@ struct r_model_t *r_LoadModel(char *file_name)
         ds_path_set_ext(full_path, "mof", full_path, PATH_MAX);
     }
 
-    if(file_exists(full_path))
+    if(ds_file_exists(full_path))
     {
         void *file_buffer;
         FILE *file = fopen(full_path, "rb");
-        read_file(file, &file_buffer, NULL);
+        ds_file_read(file, &file_buffer, NULL);
         fclose(file);
 
         struct a_skeleton_section_t(0, 0) *skeleton_header;
@@ -2256,7 +2256,7 @@ struct r_shader_t *r_LoadShader(char *vertex_file_name, char *fragment_file_name
         ds_path_set_ext(vertex_full_path, "vert", vertex_full_path, PATH_MAX);
     }
 
-    if(!file_exists(vertex_full_path))
+    if(!ds_file_exists(vertex_full_path))
     {
         log_ScopedLogMessage(LOG_TYPE_ERROR, "Couldn't load vertex shader %s", vertex_full_path);
         return NULL;
@@ -2273,7 +2273,7 @@ struct r_shader_t *r_LoadShader(char *vertex_file_name, char *fragment_file_name
         ds_path_set_ext(fragment_full_path, "frag", fragment_full_path, PATH_MAX);
     }
 
-    if(!file_exists(fragment_full_path))
+    if(!ds_file_exists(fragment_full_path))
     {
         log_ScopedLogMessage(LOG_TYPE_ERROR, "Couldn't load fragment shader %s", fragment_full_path);
         return NULL;
@@ -2281,7 +2281,7 @@ struct r_shader_t *r_LoadShader(char *vertex_file_name, char *fragment_file_name
 
 
     shader_file = fopen(vertex_full_path, "rb");
-    read_file(shader_file, (void **)&shader_source, NULL);
+    ds_file_read(shader_file, (void **)&shader_source, NULL);
     fclose(shader_file);
 
     char *preprocessed_shader_source = stb_include_string(shader_source, NULL, "shaders", NULL, include_error);
@@ -2313,7 +2313,7 @@ struct r_shader_t *r_LoadShader(char *vertex_file_name, char *fragment_file_name
     }
 
     shader_file = fopen(fragment_full_path, "rb");
-    read_file(shader_file, (void **)&shader_source, NULL);
+    ds_file_read(shader_file, (void **)&shader_source, NULL);
     fclose(shader_file);
     preprocessed_shader_source = stb_include_string(shader_source, NULL, "shaders", NULL, include_error);
 

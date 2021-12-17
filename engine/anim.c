@@ -36,11 +36,11 @@ struct a_animation_t *a_LoadAnimation(char *file_name)
     FILE *file;
     struct a_animation_t *animation = NULL;
 
-    if(file_exists(file_name))
+    if(ds_file_exists(file_name))
     {
         void *buffer;
         file = fopen(file_name, "rb");
-        read_file(file, &buffer, NULL);
+        ds_file_read(file, &buffer, NULL);
         fclose(file);
 
         struct a_anim_sec_header_t *header;

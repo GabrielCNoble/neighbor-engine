@@ -3329,7 +3329,7 @@ uint32_t ed_l_LoadLevel(char *path, char *file)
         ds_path_drop_end(path, ed_level_state.project.base_folder, PATH_MAX);
 //        g_SetBasePath(ed_level_state.project.base_folder);
 
-        read_file(fp, &buffer, &buffer_size);
+        ds_file_read(fp, &buffer, &buffer_size);
         fclose(fp);
         ed_DeserializeLevel(buffer, buffer_size);
         mem_Free(buffer);

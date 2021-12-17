@@ -48,7 +48,7 @@ void g_DestroyEnemy(struct g_enemy_t *enemy)
             case G_ENEMY_TYPE_CAMERA:
             {
                 struct g_camera_t *camera = (struct g_camera_t *)enemy;
-                r_DestroyLight(camera->light);
+                r_DestroyLight((struct r_light_t *)camera->light);
             }
             break;
         }

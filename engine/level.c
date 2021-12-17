@@ -256,6 +256,14 @@ uint32_t l_DeserializeLevel(void *level_buffer, size_t buffer_size)
     return 1;
 }
 
+void l_ChangeLevel(char *level)
+{
+    void *level_buffer;
+    size_t level_buffer_size;
+
+//    if(file_exists())
+}
+
 
 
 

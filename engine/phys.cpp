@@ -528,6 +528,27 @@ void p_SetColliderVelocity(struct p_collider_t *collider, vec3_t *linear_velocit
     }
 }
 
+void p_SetColliderMass(struct p_collider_t *collider, float mass)
+{
+    if(collider && collider->index != 0xffffffff && collider->type == P_COLLIDER_TYPE_DYNAMIC)
+    {
+        btRigidBody *rigid_body = (btRigidBody *)collider->rigid_body;
+        btCollisionShape *collision_shape = rigid_body->getCollisionShape();
+        btVector3 inertia_tensor;
+        collision_shape->calculateLocalInertia(mass, inertia_tensor);
+        rigid_body->setMassProps(mass, inertia_tensor);
+    }
+}
+
+void p_DisableColliderGravity(struct p_collider_t *collider)
+{
+    if(collider && collider->index != 0xffffffff && collider->type == P_COLLIDER_TYPE_DYNAMIC)
+    {
+        btRigidBody *rigid_body = (btRigidBody *)collider->rigid_body;
+        rigid_body->setGravity(btVector3(0.0, 0.0, 0.0));
+    }
+}
+
 void p_ApplyForce(struct p_collider_t *collider, vec3_t *force, vec3_t *relative_pos)
 {
     if(collider)

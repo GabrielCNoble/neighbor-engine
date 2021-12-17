@@ -215,7 +215,7 @@ struct e_ent_def_t *e_LoadEntDef(char *file_name)
         return NULL;
     }
 
-    read_file(file, &buffer, &buffer_size);
+    ds_file_read(file, &buffer, &buffer_size);
     ent_def = e_DeserializeEntDef(buffer, buffer_size);
     free(buffer);
 

@@ -7,7 +7,7 @@
 
 uniform sampler2D r_tex0;
 
-#define R_SHADOW_SAMPLE_COUNT 8
+#define R_SHADOW_SAMPLE_COUNT 16
 //#define OFFSET_SIZE 0.005
 //
 //vec2 offsets[9] =
@@ -82,7 +82,7 @@ void main()
 
         /* there are some extra edge cases that we just won't handle because it doesn't seem to show up in
         the result. */
-        if(disc >= 0.0)
+        if(disc > 0.0)
         {
             disc = sqrt(disc);
             float t1 = (-c1 + disc) / c2;
@@ -130,10 +130,9 @@ void main()
                 float alpha = abs(t1 - t0);
                 float alpha_step = alpha / R_SHADOW_SAMPLE_COUNT;
 
-                for(int sample_index = 0; sample_index < R_SHADOW_SAMPLE_COUNT && point.z > end_z; sample_index++)
+                for(int sample_index = 0; sample_index < R_SHADOW_SAMPLE_COUNT && point.z >= end_z; sample_index++)
                 {
                     float fallof = length(point - spot_pos);
-//                    fallof = 1.0 / (fallof * fallof);
                     float shadow = r_SpotShadow(index, point);
                     color += light.col_shd.rgb * density * alpha_step * shadow * (1.0 / fallof);
                     point += view_ray * (alpha_step + dither * fallof * 0.5);

@@ -36,7 +36,7 @@ struct e_ent_def_record_t
 struct e_constraint_record_t
 {
     size_t child_index;
-    struct p_constraint_fields_t fields;
+    struct p_constraint_def_t def;
 };
 
 enum E_ENT_DEF_TYPES
@@ -95,7 +95,7 @@ struct e_constraint_t
     struct e_constraint_t *next;
     struct e_constraint_t *prev;
     struct e_ent_def_t *child_def;
-    struct p_constraint_def_t constraint;
+    struct p_constraint_def_t def;
 };
 
 enum E_COMPONENT_TYPES

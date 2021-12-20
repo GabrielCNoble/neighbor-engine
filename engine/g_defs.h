@@ -180,6 +180,7 @@ struct g_player_t
     struct e_entity_t *entity;
     float grab_time;
     vec3_t relative_grab_offset;
+    vec3_t prev_pos;
     struct e_entity_t *grabbed_entity;
     float grabbed_entity_mass;
     struct p_character_collider_t *collider;

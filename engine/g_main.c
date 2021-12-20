@@ -171,14 +171,13 @@ void g_Init(uint32_t editor_active)
     log_ScopedLogMessage(LOG_TYPE_NOTICE, "Initializing game stuff...");
     g_editor = editor_active;
     g_GameInit();
-    g_game_state = G_GAME_STATE_MAIN_MENU;
 
     if(g_editor)
     {
 //        log_ScopedLogMessage(LOG_TYPE_NOTICE, "Editor is active")
         ed_Init();
     }
-
+    g_game_state = G_GAME_STATE_MAIN_MENU;
     log_ScopedLogMessage(LOG_TYPE_NOTICE, "Game stuff initialized!");
 }
 
@@ -289,12 +288,13 @@ void g_MainMenu()
 //    }
 //}
 
-void g_UpdateDeltaTime()
+float g_UpdateDeltaTime()
 {
     g_counter_frequency = SDL_GetPerformanceFrequency();
     g_prev_counter = g_cur_counter;
     g_cur_counter = SDL_GetPerformanceCounter();
     g_frame_delta = (float)(g_cur_counter - g_prev_counter) / (float)g_counter_frequency;
+    return g_frame_delta;
 }
 
 float g_GetDeltaTime()

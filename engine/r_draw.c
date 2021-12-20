@@ -193,8 +193,9 @@ void r_EndFrame()
     r_immediate_cmds.cursor = 0;
     r_immediate_data.cursor = 0;
     r_i_current_state = NULL;
-
+//    glEnable(GL_FRAMEBUFFER_SRGB);
     r_PresentFramebuffer(r_main_framebuffer);
+//    glDisable(GL_FRAMEBUFFER_SRGB);
 }
 
 
@@ -1141,25 +1142,25 @@ void r_i_DrawLine(vec3_t *start, vec3_t *end, vec4_t *color, float width)
     r_i_DrawVerts(R_I_DRAW_CMD_LINE_LIST, verts, width);
 }
 
-void r_i_DrawBox(vec3_t *half_extents)
+void r_i_DrawBox(vec3_t *half_extents, vec4_t *color)
 {
     vec3_t min = vec3_t_c(-half_extents->x, -half_extents->y, -half_extents->z);
     vec3_t max = vec3_t_c(half_extents->x, half_extents->y, half_extents->z);
 
-    r_i_DrawLine(&vec3_t_c(min.x, max.y, max.z), &vec3_t_c(min.x, min.y, max.z), &vec4_t_c(0.0, 1.0, 0.0, 1.0), 1.0);
-    r_i_DrawLine(&vec3_t_c(max.x, max.y, max.z), &vec3_t_c(max.x, min.y, max.z), &vec4_t_c(0.0, 1.0, 0.0, 1.0), 1.0);
-    r_i_DrawLine(&vec3_t_c(min.x, max.y, min.z), &vec3_t_c(min.x, min.y, min.z), &vec4_t_c(0.0, 1.0, 0.0, 1.0), 1.0);
-    r_i_DrawLine(&vec3_t_c(max.x, max.y, min.z), &vec3_t_c(max.x, min.y, min.z), &vec4_t_c(0.0, 1.0, 0.0, 1.0), 1.0);
+    r_i_DrawLine(&vec3_t_c(min.x, max.y, max.z), &vec3_t_c(min.x, min.y, max.z), color, 1.0);
+    r_i_DrawLine(&vec3_t_c(max.x, max.y, max.z), &vec3_t_c(max.x, min.y, max.z), color, 1.0);
+    r_i_DrawLine(&vec3_t_c(min.x, max.y, min.z), &vec3_t_c(min.x, min.y, min.z), color, 1.0);
+    r_i_DrawLine(&vec3_t_c(max.x, max.y, min.z), &vec3_t_c(max.x, min.y, min.z), color, 1.0);
 
-    r_i_DrawLine(&vec3_t_c(min.x, max.y, max.z), &vec3_t_c(max.x, max.y, max.z), &vec4_t_c(0.0, 1.0, 0.0, 1.0), 1.0);
-    r_i_DrawLine(&vec3_t_c(min.x, min.y, max.z), &vec3_t_c(max.x, min.y, max.z), &vec4_t_c(0.0, 1.0, 0.0, 1.0), 1.0);
-    r_i_DrawLine(&vec3_t_c(min.x, max.y, min.z), &vec3_t_c(max.x, max.y, min.z), &vec4_t_c(0.0, 1.0, 0.0, 1.0), 1.0);
-    r_i_DrawLine(&vec3_t_c(min.x, min.y, min.z), &vec3_t_c(max.x, min.y, min.z), &vec4_t_c(0.0, 1.0, 0.0, 1.0), 1.0);
+    r_i_DrawLine(&vec3_t_c(min.x, max.y, max.z), &vec3_t_c(max.x, max.y, max.z), color, 1.0);
+    r_i_DrawLine(&vec3_t_c(min.x, min.y, max.z), &vec3_t_c(max.x, min.y, max.z), color, 1.0);
+    r_i_DrawLine(&vec3_t_c(min.x, max.y, min.z), &vec3_t_c(max.x, max.y, min.z), color, 1.0);
+    r_i_DrawLine(&vec3_t_c(min.x, min.y, min.z), &vec3_t_c(max.x, min.y, min.z), color, 1.0);
 
-    r_i_DrawLine(&vec3_t_c(min.x, max.y, max.z), &vec3_t_c(min.x, max.y, min.z), &vec4_t_c(0.0, 1.0, 0.0, 1.0), 1.0);
-    r_i_DrawLine(&vec3_t_c(min.x, min.y, max.z), &vec3_t_c(min.x, min.y, min.z), &vec4_t_c(0.0, 1.0, 0.0, 1.0), 1.0);
-    r_i_DrawLine(&vec3_t_c(max.x, max.y, max.z), &vec3_t_c(max.x, max.y, min.z), &vec4_t_c(0.0, 1.0, 0.0, 1.0), 1.0);
-    r_i_DrawLine(&vec3_t_c(max.x, min.y, max.z), &vec3_t_c(max.x, min.y, min.z), &vec4_t_c(0.0, 1.0, 0.0, 1.0), 1.0);
+    r_i_DrawLine(&vec3_t_c(min.x, max.y, max.z), &vec3_t_c(min.x, max.y, min.z), color, 1.0);
+    r_i_DrawLine(&vec3_t_c(min.x, min.y, max.z), &vec3_t_c(min.x, min.y, min.z), color, 1.0);
+    r_i_DrawLine(&vec3_t_c(max.x, max.y, max.z), &vec3_t_c(max.x, max.y, min.z), color, 1.0);
+    r_i_DrawLine(&vec3_t_c(max.x, min.y, max.z), &vec3_t_c(max.x, min.y, min.z), color, 1.0);
 }
 
 void r_i_DrawCylinder(float radius, float height)

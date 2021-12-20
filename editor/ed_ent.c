@@ -63,6 +63,7 @@ void ed_e_Resume()
     }
 
     ed_entity_state.light = r_CreatePointLight(&vec3_t_c(0.0, 0.0, 0.0), &vec3_t_c(1.0, 1.0, 1.0), 20.0, 5.0);
+//    ed_entity_state.prev_debug_flags = r_renderer_state.
 }
 
 uint32_t ed_e_SaveEntDef(char *path, char *file)
@@ -197,12 +198,12 @@ void ed_e_AddConstraint(struct e_ent_def_t *child_def, struct e_ent_def_t *paren
         }
         parent_def->constraints = constraint;
 
-        constraint->constraint.type = P_CONSTRAINT_TYPE_HINGE;
-        constraint->constraint.hinge.axis = vec3_t_c(0.0, 0.0, 1.0);
-        constraint->constraint.hinge.limit_low = -0.5;
-        constraint->constraint.hinge.limit_high = 0.5;
-        constraint->constraint.hinge.pivot_a = vec3_t_c(0.0, 0.0, 0.0);
-        constraint->constraint.hinge.pivot_b = vec3_t_c(0.0, 0.0, 0.0);
+        constraint->def.type = P_CONSTRAINT_TYPE_HINGE;
+        constraint->def.hinge.axis = mat3_t_c_id();
+        constraint->def.hinge.min_angle = -0.5;
+        constraint->def.hinge.max_angle = 0.5;
+        constraint->def.hinge.pivot_a = parent_def->position;
+        constraint->def.hinge.pivot_b = child_def->position;
 
 //        parent_def->constraint_count++;
     }
@@ -413,11 +414,11 @@ uint32_t ed_e_EntDefHierarchyUI(struct e_ent_def_t *ent_def, struct e_ent_def_t 
                         ed_e_RemoveConstraint(constraint, parent_def);
                     }
 
-                    if(igBeginCombo("Constraint type", p_constraint_names[constraint->constraint.type], 0))
+                    if(igBeginCombo("Constraint type", p_constraint_names[constraint->def.type], 0))
                     {
                         for(uint32_t type = P_CONSTRAINT_TYPE_HINGE; type < P_CONSTRAINT_TYPE_LAST; type++)
                         {
-                            if(igSelectable_Bool(p_constraint_names[constraint->constraint.type], 0, 0, (ImVec2){0, 0}))
+                            if(igSelectable_Bool(p_constraint_names[constraint->def.type], 0, 0, (ImVec2){0, 0}))
                             {
 
                             }
@@ -425,29 +426,33 @@ uint32_t ed_e_EntDefHierarchyUI(struct e_ent_def_t *ent_def, struct e_ent_def_t 
                         igEndCombo();
                     }
 
-                    switch(constraint->constraint.type)
+                    switch(constraint->def.type)
                     {
                         case P_CONSTRAINT_TYPE_HINGE:
                         {
-                            refresh_entity |= igInputFloat3("Pivot A", constraint->constraint.hinge.pivot_a.comps, "%0.6f", 0);
-                            refresh_entity |= igInputFloat3("Pivot B", constraint->constraint.hinge.pivot_b.comps, "%0.6f", 0);
-                            refresh_entity |= igSliderAngle("Low limit", &constraint->constraint.hinge.limit_low, -180.0, 180.0, "%0.2f", 0);
-                            refresh_entity |= igSliderAngle("High limit", &constraint->constraint.hinge.limit_high, -180.0, 180.0, "%0.2f", 0);
+                            refresh_entity |= igInputFloat3("Pivot A", constraint->def.hinge.pivot_a.comps, "%0.6f", 0);
+                            refresh_entity |= igInputFloat3("Pivot B", constraint->def.hinge.pivot_b.comps, "%0.6f", 0);
+                            refresh_entity |= igSliderAngle("Low limit", &constraint->def.hinge.min_angle, -180.0, 180.0, "%0.2f", 0);
+                            refresh_entity |= igSliderAngle("High limit", &constraint->def.hinge.max_angle, -180.0, 180.0, "%0.2f", 0);
                             char preview[32];
-                            sprintf(preview, "[%f %f %f]", constraint->constraint.hinge.axis.x, constraint->constraint.hinge.axis.y, constraint->constraint.hinge.axis.z);
+                            vec3_t hinge_axis = constraint->def.hinge.axis.rows[0];
+                            sprintf(preview, "[%f %f %f]", hinge_axis.x, hinge_axis.y, hinge_axis.z);
+
                             if(igBeginCombo("Axis", preview, 0))
                             {
                                 if(igMenuItem_Bool("[1.0, 0.0, 0.0]", 0, 0, 1))
                                 {
-                                    constraint->constraint.hinge.axis = vec3_t_c(1.0, 0.0, 0.0);
+                                    constraint->def.hinge.axis = mat3_t_c_id();
                                 }
                                 if(igMenuItem_Bool("[0.0, 1.0, 0.0]", 0, 0, 1))
                                 {
-                                    constraint->constraint.hinge.axis = vec3_t_c(0.0, 1.0, 0.0);
+                                    constraint->def.hinge.axis = mat3_t_c_id();
+                                    mat3_t_rotate_z(&constraint->def.hinge.axis, 0.5);
                                 }
                                 if(igMenuItem_Bool("[0.0, 0.0, 1.0]", 0, 0, 1))
                                 {
-                                    constraint->constraint.hinge.axis = vec3_t_c(0.0, 0.0, 1.0);
+                                    constraint->def.hinge.axis = mat3_t_c_id();
+                                    mat3_t_rotate_y(&constraint->def.hinge.axis, 0.5);
                                 }
                                 igEndCombo();
                             }
@@ -788,7 +793,6 @@ void ed_e_SerializeEntDefRecursive(char *start_out_buffer, char **out_buffer, st
 
         while(constraint)
         {
-//            record->constraint_count++;
             cur_out_buffer += sizeof(struct e_constraint_record_t);
             constraint = constraint->next;
         }
@@ -853,7 +857,7 @@ void ed_e_SerializeEntDefRecursive(char *start_out_buffer, char **out_buffer, st
                         struct e_constraint_record_t *constraint_record = constraint_records + record->constraint_count;
                         record->constraint_count++;
 
-                        constraint_record->fields = constraint->constraint.fields;
+                        constraint_record->def = constraint->def;
                         constraint_record->child_index = record->child_count;
 
                         break;

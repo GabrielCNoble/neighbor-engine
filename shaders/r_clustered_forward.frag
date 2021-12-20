@@ -68,8 +68,9 @@ void main()
 
     color.rgb = tonemap(color.rgb * 2.0);
     color.rgb *= 1.0 / tonemap(vec3(W));
+    color = pow(color + albedo * 0.01, vec4(1.0 / 2.2));
     color.a = 1.0;
-    gl_FragColor = color + albedo * 0.22;
+    gl_FragColor = color;
 
 //    gl_FragColor = vec4(r_var_tex_coords.xy, 0.0, 1.0);
 }

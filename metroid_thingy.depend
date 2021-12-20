@@ -1,0 +1,2103 @@
+# depslib dependency file v1.0
+1625526529 source:c:\users\gabri\documents\compiler\metroid_thingy\main.c
+	"SDL2/SDL.h"
+	<stdio.h>
+	"game.h"
+
+1564040184 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl.h
+	"SDL_main.h"
+	"SDL_stdinc.h"
+	"SDL_assert.h"
+	"SDL_atomic.h"
+	"SDL_audio.h"
+	"SDL_clipboard.h"
+	"SDL_cpuinfo.h"
+	"SDL_endian.h"
+	"SDL_error.h"
+	"SDL_events.h"
+	"SDL_filesystem.h"
+	"SDL_gamecontroller.h"
+	"SDL_haptic.h"
+	"SDL_hints.h"
+	"SDL_joystick.h"
+	"SDL_loadso.h"
+	"SDL_log.h"
+	"SDL_messagebox.h"
+	"SDL_mutex.h"
+	"SDL_power.h"
+	"SDL_render.h"
+	"SDL_rwops.h"
+	"SDL_sensor.h"
+	"SDL_shape.h"
+	"SDL_system.h"
+	"SDL_thread.h"
+	"SDL_timer.h"
+	"SDL_version.h"
+	"SDL_video.h"
+	"begin_code.h"
+	"close_code.h"
+
+1564040184 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_main.h
+	"SDL_stdinc.h"
+	"begin_code.h"
+	"close_code.h"
+
+1564040184 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_stdinc.h
+	"SDL_config.h"
+	<sys/types.h>
+	<stdio.h>
+	<stdlib.h>
+	<stddef.h>
+	<stdarg.h>
+	<stdlib.h>
+	<malloc.h>
+	<stddef.h>
+	<stdarg.h>
+	<memory.h>
+	<string.h>
+	<strings.h>
+	<wchar.h>
+	<inttypes.h>
+	<stdint.h>
+	<ctype.h>
+	<math.h>
+	<float.h>
+	<alloca.h>
+	<malloc.h>
+	<malloc.h>
+	<malloc.h>
+	<stdlib.h>
+	<sal.h>
+	"begin_code.h"
+	"close_code.h"
+
+1564040184 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_config.h
+	"SDL_platform.h"
+
+1564040184 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_platform.h
+	"AvailabilityMacros.h"
+	"TargetConditionals.h"
+	<winapifamily.h>
+	"begin_code.h"
+	"close_code.h"
+
+1564040184 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\begin_code.h
+
+1564040184 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\close_code.h
+
+1564040184 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_assert.h
+	"SDL_config.h"
+	"begin_code.h"
+	<signal.h>
+	"close_code.h"
+
+1564040184 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_atomic.h
+	"SDL_stdinc.h"
+	"SDL_platform.h"
+	"begin_code.h"
+	<sys/cpuinline.h>
+	<mbarrier.h>
+	"close_code.h"
+
+1564040184 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_audio.h
+	"SDL_stdinc.h"
+	"SDL_error.h"
+	"SDL_endian.h"
+	"SDL_mutex.h"
+	"SDL_thread.h"
+	"SDL_rwops.h"
+	"begin_code.h"
+	"close_code.h"
+
+1564040184 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_error.h
+	"SDL_stdinc.h"
+	"begin_code.h"
+	"close_code.h"
+
+1564040184 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_endian.h
+	"SDL_stdinc.h"
+	<endian.h>
+	"begin_code.h"
+	"close_code.h"
+
+1564040184 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_mutex.h
+	"SDL_stdinc.h"
+	"SDL_error.h"
+	"begin_code.h"
+	"close_code.h"
+
+1564040184 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_thread.h
+	"SDL_stdinc.h"
+	"SDL_error.h"
+	"SDL_atomic.h"
+	"SDL_mutex.h"
+	"begin_code.h"
+	<process.h>
+	<process.h>
+	<stdlib.h>
+	"close_code.h"
+
+1564040184 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_rwops.h
+	"SDL_stdinc.h"
+	"SDL_error.h"
+	"begin_code.h"
+	"close_code.h"
+
+1564040184 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_clipboard.h
+	"SDL_stdinc.h"
+	"begin_code.h"
+	"close_code.h"
+
+1564040184 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_cpuinfo.h
+	"SDL_stdinc.h"
+	<intrin.h>
+	<intrin.h>
+	<altivec.h>
+	<arm_neon.h>
+	<armintr.h>
+	<arm_neon.h>
+	<armintr.h>
+	<arm_neon.h>
+	<mm3dnow.h>
+	<immintrin.h>
+	<mmintrin.h>
+	<xmmintrin.h>
+	<emmintrin.h>
+	<pmmintrin.h>
+	"begin_code.h"
+	"close_code.h"
+
+1564040184 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_events.h
+	"SDL_stdinc.h"
+	"SDL_error.h"
+	"SDL_video.h"
+	"SDL_keyboard.h"
+	"SDL_mouse.h"
+	"SDL_joystick.h"
+	"SDL_gamecontroller.h"
+	"SDL_quit.h"
+	"SDL_gesture.h"
+	"SDL_touch.h"
+	"begin_code.h"
+	"close_code.h"
+
+1564040184 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_video.h
+	"SDL_stdinc.h"
+	"SDL_pixels.h"
+	"SDL_rect.h"
+	"SDL_surface.h"
+	"begin_code.h"
+	"close_code.h"
+
+1564040184 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_pixels.h
+	"SDL_stdinc.h"
+	"SDL_endian.h"
+	"begin_code.h"
+	"close_code.h"
+
+1564040184 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_rect.h
+	"SDL_stdinc.h"
+	"SDL_error.h"
+	"SDL_pixels.h"
+	"SDL_rwops.h"
+	"begin_code.h"
+	"close_code.h"
+
+1564040184 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_surface.h
+	"SDL_stdinc.h"
+	"SDL_pixels.h"
+	"SDL_rect.h"
+	"SDL_blendmode.h"
+	"SDL_rwops.h"
+	"begin_code.h"
+	"close_code.h"
+
+1564040184 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_blendmode.h
+	"begin_code.h"
+	"close_code.h"
+
+1564040184 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_keyboard.h
+	"SDL_stdinc.h"
+	"SDL_error.h"
+	"SDL_keycode.h"
+	"SDL_video.h"
+	"begin_code.h"
+	"close_code.h"
+
+1564040184 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_keycode.h
+	"SDL_stdinc.h"
+	"SDL_scancode.h"
+
+1564040184 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_scancode.h
+	"SDL_stdinc.h"
+
+1564040184 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_mouse.h
+	"SDL_stdinc.h"
+	"SDL_error.h"
+	"SDL_video.h"
+	"begin_code.h"
+	"close_code.h"
+
+1564040184 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_joystick.h
+	"SDL_stdinc.h"
+	"SDL_error.h"
+	"begin_code.h"
+	"close_code.h"
+
+1564040184 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_gamecontroller.h
+	"SDL_stdinc.h"
+	"SDL_error.h"
+	"SDL_rwops.h"
+	"SDL_joystick.h"
+	"begin_code.h"
+	"close_code.h"
+
+1564040184 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_quit.h
+	"SDL_stdinc.h"
+	"SDL_error.h"
+
+1564040184 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_gesture.h
+	"SDL_stdinc.h"
+	"SDL_error.h"
+	"SDL_video.h"
+	"SDL_touch.h"
+	"begin_code.h"
+	"close_code.h"
+
+1564040184 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_touch.h
+	"SDL_stdinc.h"
+	"SDL_error.h"
+	"SDL_video.h"
+	"begin_code.h"
+	"close_code.h"
+
+1564040184 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_filesystem.h
+	"SDL_stdinc.h"
+	"begin_code.h"
+	"close_code.h"
+
+1564040184 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_haptic.h
+	"SDL_stdinc.h"
+	"SDL_error.h"
+	"SDL_joystick.h"
+	"begin_code.h"
+	"close_code.h"
+
+1564040184 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_hints.h
+	"SDL_stdinc.h"
+	"begin_code.h"
+	"close_code.h"
+
+1564040184 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_loadso.h
+	"SDL_stdinc.h"
+	"SDL_error.h"
+	"begin_code.h"
+	"close_code.h"
+
+1564040184 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_log.h
+	"SDL_stdinc.h"
+	"begin_code.h"
+	"close_code.h"
+
+1564040184 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_messagebox.h
+	"SDL_stdinc.h"
+	"SDL_video.h"
+	"begin_code.h"
+	"close_code.h"
+
+1564040184 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_power.h
+	"SDL_stdinc.h"
+	"begin_code.h"
+	"close_code.h"
+
+1564040184 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_render.h
+	"SDL_stdinc.h"
+	"SDL_rect.h"
+	"SDL_video.h"
+	"begin_code.h"
+	"close_code.h"
+
+1564040184 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_sensor.h
+	"SDL_stdinc.h"
+	"SDL_error.h"
+	"begin_code.h"
+	"close_code.h"
+
+1564040184 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_shape.h
+	"SDL_stdinc.h"
+	"SDL_pixels.h"
+	"SDL_rect.h"
+	"SDL_surface.h"
+	"SDL_video.h"
+	"begin_code.h"
+	"close_code.h"
+
+1564040184 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_system.h
+	"SDL_stdinc.h"
+	"SDL_keyboard.h"
+	"SDL_render.h"
+	"SDL_video.h"
+	"begin_code.h"
+	"close_code.h"
+
+1564040184 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_timer.h
+	"SDL_stdinc.h"
+	"SDL_error.h"
+	"begin_code.h"
+	"close_code.h"
+
+1564040184 c:\users\gabri\documents\compiler\metroid_thingy\lib\sdl\include\sdl2\sdl_version.h
+	"SDL_stdinc.h"
+	"begin_code.h"
+	"close_code.h"
+
+1608088245 c:\users\gabri\documents\compiler\metroid_thingy\draw.h
+	"d_com.h"
+	"d_load.h"
+
+1639785011 c:\users\gabri\documents\compiler\metroid_thingy\lib\dstuff\ds_vector.h
+	<math.h>
+	<intrin.h>
+
+1608088309 source:c:\users\gabri\documents\compiler\metroid_thingy\draw.c
+	"draw.h"
+	"SDL2/SDL.h"
+	"GL/glew.h"
+	"dstuff/ds_stack_list.h"
+	"dstuff/ds_file.h"
+	"dstuff/ds_mem.h"
+	"dstuff/ds_obj.h"
+	<stdlib.h>
+	<stdio.h>
+
+1599751200 c:\users\gabri\documents\compiler\metroid_thingy\lib\dstuff\ds_stack_list.h
+	<stdint.h>
+	<string.h>
+	<stdlib.h>
+	<stdio.h>
+	"ds_mem.h"
+
+1637358837 c:\users\gabri\documents\compiler\metroid_thingy\lib\dstuff\ds_mem.h
+	<stdint.h>
+	<string.h>
+	<stdlib.h>
+	<stdlib.h>
+	<stdio.h>
+	<string.h>
+
+1635324708 source:c:\users\gabri\documents\compiler\metroid_thingy\impl.c
+	"dstuff/ds_vector.h"
+	"dstuff/ds_mem.h"
+	"dstuff/ds_slist.h"
+	"dstuff/ds_list.h"
+	"dstuff/ds_rbuffer.h"
+	"dstuff/ds_buffer.h"
+	"dstuff/ds_dbvt.h"
+	"dstuff/ds_file.h"
+	"dstuff/ds_matrix.h"
+	"dstuff/ds_alloc.h"
+	"dstuff/ds_path.h"
+	"dstuff/ds_dir.h"
+	"dstuff/ds_obj.h"
+	"stb/stb_image.h"
+	"stb/stb_include.h"
+
+1501512380 c:\users\gabri\documents\compiler\metroid_thingy\lib\glew\include\gl\glew.h
+	<stddef.h>
+	<inttypes.h>
+	<stdint.h>
+	<inttypes.h>
+	<Availability.h>
+	<OpenGL/glu.h>
+	<GL/glu.h>
+
+1639785011 c:\users\gabri\documents\compiler\metroid_thingy\lib\dstuff\ds_file.h
+	<stdio.h>
+	<stdint.h>
+	<stdlib.h>
+	"ds_mem.h"
+	<stdarg.h>
+
+1635293460 c:\users\gabri\documents\compiler\metroid_thingy\input.h
+	"SDL2/SDL.h"
+
+1635293460 source:c:\users\gabri\documents\compiler\metroid_thingy\input.c
+	"input.h"
+	"SDL2\SDL_events.h"
+	<stdio.h>
+	<string.h>
+
+1639785011 c:\users\gabri\documents\compiler\metroid_thingy\lib\dstuff\ds_matrix.h
+	"ds_vector.h"
+	<intrin.h>
+
+1637358837 c:\users\gabri\documents\compiler\metroid_thingy\lib\dstuff\ds_alloc.h
+	"ds_slist.h"
+	"ds_list.h"
+	<stdint.h>
+
+1637358837 c:\users\gabri\documents\compiler\metroid_thingy\lib\dstuff\ds_list.h
+	"ds_list.h"
+	<stdint.h>
+	<string.h>
+	<limits.h>
+	<stddef.h>
+	<stdlib.h>
+
+1607863930 c:\users\gabri\documents\compiler\metroid_thingy\lib\tinyobjloader\tinyobj_loader_c.h
+	<stddef.h>
+	<stdio.h>
+	<assert.h>
+	<string.h>
+	<errno.h>
+	<stdlib.h>
+
+1639785011 c:\users\gabri\documents\compiler\metroid_thingy\lib\dstuff\ds_obj.h
+	"ds_xchg.h"
+	"ds_file.h"
+	"ds_path.h"
+	<stdio.h>
+	<string.h>
+	<stdlib.h>
+	<limits.h>
+
+1637358837 c:\users\gabri\documents\compiler\metroid_thingy\lib\dstuff\ds_xchg.h
+	"ds_list.h"
+	"ds_vector.h"
+
+1639785011 c:\users\gabri\documents\compiler\metroid_thingy\lib\dstuff\ds_path.h
+	"ds_path.h"
+	<string.h>
+	<limits.h>
+	<stddef.h>
+
+1635293460 source:c:\users\gabri\documents\compiler\metroid_thingy\game.c
+	"dstuff/ds_slist.h"
+	"dstuff/ds_mem.h"
+	"dstuff/ds_file.h"
+	"dstuff/ds_vector.h"
+	"stb/stb_image.h"
+	"game.h"
+	"input.h"
+	"anim.h"
+	"physics.h"
+	"ed_main.h"
+	"world.h"
+	"sound.h"
+	"gui.h"
+	<string.h>
+	<stdio.h>
+	<float.h>
+
+1630196030 c:\users\gabri\documents\compiler\metroid_thingy\game.h
+	"dstuff/ds_vector.h"
+	"dstuff/ds_matrix.h"
+	"dstuff/ds_list.h"
+	"physics.h"
+	"anim.h"
+	"r_draw.h"
+	"r_vis.h"
+	<stdint.h>
+
+1637358837 c:\users\gabri\documents\compiler\metroid_thingy\lib\stb\stb_image.h
+	"stb_image.h"
+	<stdio.h>
+	<stdlib.h>
+	<stdarg.h>
+	<stddef.h>
+	<stdlib.h>
+	<string.h>
+	<limits.h>
+	<math.h>
+	<stdio.h>
+	<assert.h>
+	<stdint.h>
+	<emmintrin.h>
+	<intrin.h>
+	<arm_neon.h>
+
+1629322545 source:c:\users\gabri\documents\compiler\metroid_thingy\physics.c
+	<float.h>
+	"physics.h"
+	"dstuff/ds_slist.h"
+	"dstuff/ds_list.h"
+	"dstuff/ds_mem.h"
+	"dstuff/ds_dbvt.h"
+	"r_draw.h"
+
+1629322545 c:\users\gabri\documents\compiler\metroid_thingy\physics.h
+	"dstuff/ds_vector.h"
+	"dstuff/ds_matrix.h"
+	"dstuff/ds_list.h"
+	"dstuff/ds_dbvt.h"
+	<stdint.h>
+
+1628911154 c:\users\gabri\documents\compiler\metroid_thingy\lib\dstuff\ds_dbvh.h
+	<stdint.h>
+	"ds_vector.h"
+	"ds_list.h"
+	"ds_slist.h"
+	<stdio.h>
+	<float.h>
+
+1608220393 c:\users\gabri\documents\compiler\metroid_thingy\d_com.h
+	"dstuff/ds_vector.h"
+	"dstuff/ds_matrix.h"
+	"dstuff/ds_alloc.h"
+	<stdint.h>
+
+1608346951 c:\users\gabri\documents\compiler\metroid_thingy\d_load.h
+	"d_com.h"
+
+1608347199 source:c:\users\gabri\documents\compiler\metroid_thingy\d_load.c
+	"d_load.h"
+	"GL/glew.h"
+	"stb/stb_image.h"
+	"dstuff/ds_stack_list.h"
+	"dstuff/ds_file.h"
+	"dstuff/ds_mem.h"
+	"dstuff/ds_obj.h"
+	"dstuff/ds_alloc.h"
+	"draw.h"
+
+1629322545 source:c:\users\gabri\documents\compiler\metroid_thingy\anim.c
+	<stdio.h>
+	"anim.h"
+	"r_draw.h"
+	"dstuff/ds_file.h"
+	"dstuff/ds_slist.h"
+	"dstuff/ds_mem.h"
+
+1629322545 c:\users\gabri\documents\compiler\metroid_thingy\anim.h
+	"dstuff/ds_vector.h"
+	"dstuff/ds_matrix.h"
+	"dstuff/ds_list.h"
+	"dstuff/ds_slist.h"
+	<stdint.h>
+
+1629575013 c:\users\gabri\documents\compiler\metroid_thingy\r_draw.h
+	"r_com.h"
+	"r_main.h"
+
+1635324708 c:\users\gabri\documents\compiler\metroid_thingy\r_main.h
+	"r_com.h"
+	"r_draw.h"
+	"GL/glew.h"
+
+1635293460 source:c:\users\gabri\documents\compiler\metroid_thingy\r_draw.c
+	"r_draw.h"
+	"SDL2/SDL.h"
+	"GL/glew.h"
+	"dstuff/ds_slist.h"
+	"dstuff/ds_file.h"
+	"dstuff/ds_mem.h"
+	"dstuff/ds_obj.h"
+	<stdlib.h>
+	<stdio.h>
+	<stddef.h>
+	<stdalign.h>
+
+1635326385 source:c:\users\gabri\documents\compiler\metroid_thingy\r_main.c
+	"r_main.h"
+	"SDL2/SDL.h"
+	"GL/glew.h"
+	"stb/stb_image.h"
+	"dstuff/ds_slist.h"
+	"dstuff/ds_file.h"
+	"dstuff/ds_mem.h"
+	"dstuff/ds_obj.h"
+	"dstuff/ds_alloc.h"
+	"r_draw.h"
+	"stb/stb_include.h"
+	"anim.h"
+
+1635324708 c:\users\gabri\documents\compiler\metroid_thingy\r_com.h
+	"dstuff/ds_vector.h"
+	"dstuff/ds_matrix.h"
+	"dstuff/ds_alloc.h"
+	"dstuff/ds_buffer.h"
+	<stdint.h>
+	<stddef.h>
+	<stdalign.h>
+
+1629322545 source:c:\users\gabri\documents\compiler\metroid_thingy\editor.c
+	"editor.h"
+	"ed_bsp.h"
+	"dstuff/ds_slist.h"
+	"dstuff/ds_list.h"
+	"dstuff/ds_mem.h"
+	"dstuff/ds_vector.h"
+	"dstuff/ds_matrix.h"
+	"dstuff/ds_path.h"
+	"dstuff/ds_dir.h"
+	"dstuff/ds_buffer.h"
+	"game.h"
+	"input.h"
+	"gui.h"
+	"r_draw.h"
+	<limits.h>
+	<string.h>
+	<float.h>
+
+1629322545 c:\users\gabri\documents\compiler\metroid_thingy\editor.h
+	"dstuff/ds_vector.h"
+	"dstuff/ds_matrix.h"
+	"dstuff/ds_alloc.h"
+	"dstuff/ds_buffer.h"
+	"ed_com.h"
+	"ed_brush.h"
+
+1635324822 c:\users\gabri\documents\compiler\metroid_thingy\world.h
+	<stdint.h>
+	"r_main.h"
+
+1629322545 source:c:\users\gabri\documents\compiler\metroid_thingy\world.c
+	"world.h"
+	"dstuff/ds_dbvt.h"
+	"dstuff/ds_alloc.h"
+	"r_draw.h"
+
+1629322545 source:c:\users\gabri\documents\compiler\metroid_thingy\sound.c
+	<stdio.h>
+	"sound.h"
+	"al.h"
+	"alc.h"
+	"SDL2/SDL_thread.h"
+	"dstuff/ds_slist.h"
+	"dstuff/ds_list.h"
+	"dstuff/ds_file.h"
+	"dstuff/ds_mem.h"
+	"codec.h"
+	"vorbisfile.h"
+	"tinycthread.h"
+
+1625526529 c:\users\gabri\documents\compiler\metroid_thingy\sound.h
+	"dstuff/ds_vector.h"
+	<stdint.h>
+
+1165617058 c:\users\gabri\documents\compiler\metroid_thingy\lib\openal\include\al.h
+
+1176501768 c:\users\gabri\documents\compiler\metroid_thingy\lib\openal\include\alc.h
+
+1602493394 c:\users\gabri\documents\compiler\metroid_thingy\lib\dstuff\ds_ringbuffer.h
+	<stdint.h>
+	<string.h>
+	<stdlib.h>
+	<stdio.h>
+	"ds_mem.h"
+
+1637358837 source:c:\users\gabri\documents\compiler\metroid_thingy\lib\tinycthread\tinycthread.c
+	"tinycthread.h"
+	<stdlib.h>
+	<signal.h>
+	<sched.h>
+	<unistd.h>
+	<sys/time.h>
+	<errno.h>
+	<process.h>
+	<sys/timeb.h>
+	<winnt.h>
+
+1637358837 c:\users\gabri\documents\compiler\metroid_thingy\lib\tinycthread\tinycthread.h
+	<time.h>
+	<pthread.h>
+	<windows.h>
+
+1609653672 c:\users\gabri\documents\compiler\metroid_thingy\lib\vorbis\include\vorbisfile.h
+	<stdio.h>
+	"codec.h"
+
+1609653672 c:\users\gabri\documents\compiler\metroid_thingy\lib\vorbis\include\codec.h
+	<ogg/ogg.h>
+
+1534199648 c:\users\gabri\documents\compiler\metroid_thingy\lib\vorbis\include\ogg\ogg.h
+	<stddef.h>
+	"os_types.h"
+
+1497284072 c:\users\gabri\documents\compiler\metroid_thingy\lib\vorbis\include\ogg\os_types.h
+	<stdint.h>
+	<sys/types.h>
+	<stdint.h>
+	<inttypes.h>
+	<sys/types.h>
+	<inttypes.h>
+	<ogg/config_types.h>
+
+1637358837 c:\users\gabri\documents\compiler\metroid_thingy\lib\dstuff\ds_buffer.h
+	"ds_mem.h"
+
+1629322545 c:\users\gabri\documents\compiler\metroid_thingy\r_vis.h
+	"r_com.h"
+	"r_draw.h"
+
+1633470298 source:c:\users\gabri\documents\compiler\metroid_thingy\r_vis.c
+	"r_vis.h"
+	"game.h"
+
+1635293460 source:c:\users\gabri\documents\compiler\metroid_thingy\ed_bsp.c
+	<stdlib.h>
+	"ed_bsp.h"
+	"ed_brush.h"
+
+1635293460 c:\users\gabri\documents\compiler\metroid_thingy\ed_bsp.h
+
+1635327922 c:\users\gabri\documents\compiler\metroid_thingy\ed_com.h
+	<stdint.h>
+	"dstuff/ds_buffer.h"
+	"dstuff/ds_vector.h"
+	"dstuff/ds_matrix.h"
+	"r_com.h"
+
+1637358837 source:c:\users\gabri\documents\compiler\metroid_thingy\lib\cimgui\cimgui.cpp
+	"./imgui/imgui.h"
+	"./imgui/misc/freetype/imgui_freetype.h"
+	"./imgui/imgui_internal.h"
+	"cimgui.h"
+
+1637358837 c:\users\gabri\documents\compiler\metroid_thingy\lib\cimgui\imgui\imgui.h
+	"imconfig.h"
+	<float.h>
+	<stdarg.h>
+	<stddef.h>
+	<string.h>
+	<assert.h>
+	<stdint.h>
+	"imgui_user.h"
+
+1637358837 c:\users\gabri\documents\compiler\metroid_thingy\lib\cimgui\imgui\imconfig.h
+
+1637358837 c:\users\gabri\documents\compiler\metroid_thingy\lib\cimgui\imgui\imgui_internal.h
+	<stdio.h>
+	<stdlib.h>
+	<math.h>
+	<limits.h>
+	<immintrin.h>
+	"imstb_textedit.h"
+
+1637358837 c:\users\gabri\documents\compiler\metroid_thingy\lib\cimgui\imgui\imstb_textedit.h
+	<string.h>
+
+1637358837 c:\users\gabri\documents\compiler\metroid_thingy\lib\cimgui\cimgui.h
+	<stdio.h>
+	<stdint.h>
+	<stdarg.h>
+	<stdbool.h>
+
+1637358837 source:c:\users\gabri\documents\compiler\metroid_thingy\lib\cimgui\imgui\imgui.cpp
+	"imgui.h"
+	"imgui_internal.h"
+	<ctype.h>
+	<stdio.h>
+	<stddef.h>
+	<stdint.h>
+	<Windows.h>
+	<windows.h>
+	<TargetConditionals.h>
+	"stb_sprintf.h"
+	<Carbon/Carbon.h>
+	"imgui_user.inl"
+
+1637358837 source:c:\users\gabri\documents\compiler\metroid_thingy\lib\cimgui\imgui\imgui_demo.cpp
+	"imgui.h"
+	<ctype.h>
+	<limits.h>
+	<math.h>
+	<stdio.h>
+	<stdlib.h>
+	<stddef.h>
+	<stdint.h>
+
+1637358837 source:c:\users\gabri\documents\compiler\metroid_thingy\lib\cimgui\imgui\imgui_draw.cpp
+	"imgui.h"
+	"imgui_internal.h"
+	"misc/freetype/imgui_freetype.h"
+	<stdio.h>
+	<alloca.h>
+	<malloc.h>
+	<stdlib.h>
+	"imstb_rectpack.h"
+	"imstb_truetype.h"
+
+1637358837 c:\users\gabri\documents\compiler\metroid_thingy\lib\cimgui\imgui\imstb_rectpack.h
+	<stdlib.h>
+	<assert.h>
+
+1637358837 c:\users\gabri\documents\compiler\metroid_thingy\lib\cimgui\imgui\imstb_truetype.h
+	"stb_truetype.h"
+	<stdio.h>
+	"stb_truetype.h"
+	<math.h>
+	<math.h>
+	<math.h>
+	<math.h>
+	<math.h>
+	<stdlib.h>
+	<assert.h>
+	<string.h>
+	<string.h>
+
+1637358837 source:c:\users\gabri\documents\compiler\metroid_thingy\lib\cimgui\imgui\imgui_tables.cpp
+	"imgui.h"
+	"imgui_internal.h"
+	<stddef.h>
+	<stdint.h>
+
+1637358837 source:c:\users\gabri\documents\compiler\metroid_thingy\lib\cimgui\imgui\imgui_widgets.cpp
+	"imgui.h"
+	"imgui_internal.h"
+	<ctype.h>
+	<stddef.h>
+	<stdint.h>
+	"imstb_textedit.h"
+
+1625526529 c:\users\gabri\documents\compiler\metroid_thingy\gui.h
+	"cimgui/cimgui.h"
+
+1635293460 source:c:\users\gabri\documents\compiler\metroid_thingy\gui.c
+	"gui.h"
+	"r_main.h"
+	"r_draw.h"
+	"input.h"
+	<stdint.h>
+
+1637358837 c:\users\gabri\documents\compiler\metroid_thingy\lib\dstuff\ds_slist.h
+	"ds_slist.h"
+	<stdint.h>
+	<string.h>
+	<limits.h>
+	<stddef.h>
+	<stdlib.h>
+
+1637358837 c:\users\gabri\documents\compiler\metroid_thingy\lib\dstuff\ds_rbuffer.h
+	"ds_rbuffer.h"
+	<stdint.h>
+	<string.h>
+	<limits.h>
+	<stddef.h>
+	<stdlib.h>
+
+1639785011 c:\users\gabri\documents\compiler\metroid_thingy\lib\dstuff\ds_dir.h
+	<dirent.h>
+	<limits.h>
+	<stdint.h>
+	"ds_path.h"
+
+1638000923 c:\users\gabri\documents\compiler\metroid_thingy\lib\dstuff\ds_dbvt.h
+	"ds_dbvt.h"
+	<stddef.h>
+	<stdint.h>
+	"ds_vector.h"
+	"ds_list.h"
+	"ds_slist.h"
+	<stdio.h>
+	<float.h>
+
+1635395108 c:\users\gabri\documents\compiler\metroid_thingy\ed_brush.h
+	"ed_lev_editor.h"
+
+1635399266 source:c:\users\gabri\documents\compiler\metroid_thingy\ed_brush.c
+	<float.h>
+	"ed_brush.h"
+	"dstuff/ds_buffer.h"
+	"r_main.h"
+	"game.h"
+	"ed_bsp.h"
+
+1635326552 c:\users\gabri\documents\compiler\metroid_thingy\ed_main.h
+	"dstuff/ds_vector.h"
+	"dstuff/ds_matrix.h"
+	"dstuff/ds_alloc.h"
+	"dstuff/ds_buffer.h"
+	"ed_com.h"
+	"ed_brush.h"
+	"ed_pick.h"
+
+1635397422 source:c:\users\gabri\documents\compiler\metroid_thingy\ed_pick.c
+	<stdio.h>
+	"ed_pick.h"
+	"ed_lev_editor.h"
+	"ed_brush.h"
+	"game.h"
+	"r_main.h"
+
+1635397415 c:\users\gabri\documents\compiler\metroid_thingy\ed_pick.h
+	"ed_com.h"
+	"ed_brush.h"
+	"r_com.h"
+
+1635333070 source:c:\users\gabri\documents\compiler\metroid_thingy\ed_main.c
+	"ed_main.h"
+	"ed_bsp.h"
+	"ed_lev_editor.h"
+	"dstuff/ds_slist.h"
+	"dstuff/ds_list.h"
+	"dstuff/ds_mem.h"
+	"dstuff/ds_vector.h"
+	"dstuff/ds_matrix.h"
+	"dstuff/ds_path.h"
+	"dstuff/ds_dir.h"
+	"dstuff/ds_buffer.h"
+	"game.h"
+	"input.h"
+	"gui.h"
+	"r_draw.h"
+	<limits.h>
+	<string.h>
+	<float.h>
+
+1632266146 c:\users\gabri\documents\compiler\metroid_thingy\ed_w_ctx.h
+	"ed_com.h"
+	"ed_pick.h"
+
+1632265977 source:c:\users\gabri\documents\compiler\metroid_thingy\ed_w_ctx.c
+	"ed_w_ctx.h"
+	"ed_pick.h"
+	"ed_brush.h"
+	"ed_main.h"
+	"r_main.h"
+	"gui.h"
+	"game.h"
+	"input.h"
+
+1635146693 c:\users\gabri\documents\compiler\metroid_thingy\ed_world.h
+	"ed_com.h"
+	"ed_pick.h"
+
+1635147390 source:c:\users\gabri\documents\compiler\metroid_thingy\ed_world.c
+	<float.h>
+	"ed_world.h"
+	"ed_pick.h"
+	"ed_brush.h"
+	"ed_main.h"
+	"r_main.h"
+	"gui.h"
+	"game.h"
+	"input.h"
+
+1635396583 c:\users\gabri\documents\compiler\metroid_thingy\ed_lev_editor.h
+	"ed_com.h"
+	"ed_pick.h"
+	"ed_brush.h"
+
+1635399860 source:c:\users\gabri\documents\compiler\metroid_thingy\ed_lev_editor.c
+	<float.h>
+	"ed_lev_editor.h"
+	"ed_pick.h"
+	"ed_brush.h"
+	"ed_main.h"
+	"r_main.h"
+	"dstuff/ds_buffer.h"
+	"gui.h"
+	"game.h"
+	"input.h"
+
+1637358837 c:\users\gabri\documents\compiler\metroid_thingy\lib\stb\stb_include.h
+	<stdio.h>
+	<stdlib.h>
+	<string.h>
+
+1639785011 source:c:\users\gabri\documents\compiler\metroid_thingy\engine\anim.c
+	<stdio.h>
+	<float.h>
+	"anim.h"
+	"r_draw.h"
+	"dstuff/ds_file.h"
+	"dstuff/ds_slist.h"
+	"dstuff/ds_mem.h"
+	"log.h"
+
+1639785011 c:\users\gabri\documents\compiler\metroid_thingy\engine\anim.h
+	"../lib/dstuff/ds_vector.h"
+	"../lib/dstuff/ds_matrix.h"
+	"../lib/dstuff/ds_list.h"
+	"../lib/dstuff/ds_slist.h"
+	<stdint.h>
+
+1639850522 c:\users\gabri\documents\compiler\metroid_thingy\engine\r_draw.h
+	"r_defs.h"
+	"r_main.h"
+
+1635679690 c:\users\gabri\documents\compiler\metroid_thingy\engine\r_com.h
+	"../lib/dstuff/ds_vector.h"
+	"../lib/dstuff/ds_matrix.h"
+	"../lib/dstuff/ds_alloc.h"
+	"../lib/dstuff/ds_buffer.h"
+	<stdint.h>
+	<stddef.h>
+	<stdalign.h>
+
+1639785011 c:\users\gabri\documents\compiler\metroid_thingy\engine\r_main.h
+	"r_defs.h"
+	"r_draw.h"
+	"../lib/GLEW/include/GL/glew.h"
+
+1639785011 source:c:\users\gabri\documents\compiler\metroid_thingy\engine\gui.c
+	"gui.h"
+	"r_main.h"
+	"r_draw.h"
+	"input.h"
+	<stdint.h>
+	"log.h"
+
+1637358837 c:\users\gabri\documents\compiler\metroid_thingy\engine\gui.h
+	"../lib/cimgui/cimgui.h"
+
+1639785011 c:\users\gabri\documents\compiler\metroid_thingy\engine\input.h
+	"../lib/SDL/include/SDL2/SDL.h"
+
+1637358837 source:c:\users\gabri\documents\compiler\metroid_thingy\engine\impl.c
+	"dstuff/ds_vector.h"
+	"dstuff/ds_mem.h"
+	"dstuff/ds_slist.h"
+	"dstuff/ds_list.h"
+	"dstuff/ds_rbuffer.h"
+	"dstuff/ds_buffer.h"
+	"dstuff/ds_dbvt.h"
+	"dstuff/ds_file.h"
+	"dstuff/ds_matrix.h"
+	"dstuff/ds_alloc.h"
+	"dstuff/ds_path.h"
+	"dstuff/ds_dir.h"
+	"dstuff/ds_obj.h"
+	"stb/stb_image.h"
+	"stb/stb_include.h"
+
+1639785011 source:c:\users\gabri\documents\compiler\metroid_thingy\engine\input.c
+	"input.h"
+	"SDL2\SDL_events.h"
+	<stdio.h>
+	<string.h>
+
+1637358837 source:c:\users\gabri\documents\compiler\metroid_thingy\editor\ed_bsp.c
+	<stdlib.h>
+	"ed_bsp.h"
+	"ed_brush.h"
+
+1637358837 c:\users\gabri\documents\compiler\metroid_thingy\editor\ed_bsp.h
+
+1639785011 c:\users\gabri\documents\compiler\metroid_thingy\editor\ed_brush.h
+	"ed_brush_defs.h"
+
+1635402318 c:\users\gabri\documents\compiler\metroid_thingy\editor\ed_lev_editor.h
+	"ed_pick.h"
+	"ed_defs.h"
+
+1635402050 c:\users\gabri\documents\compiler\metroid_thingy\editor\ed_com.h
+	<stdint.h>
+	"dstuff/ds_buffer.h"
+	"dstuff/ds_vector.h"
+	"dstuff/ds_matrix.h"
+	"../engine/r_com.h"
+
+1639785011 c:\users\gabri\documents\compiler\metroid_thingy\editor\ed_pick.h
+	"ed_pick_defs.h"
+	"ed_brush_defs.h"
+	"../engine/r_defs.h"
+	"../engine/g_defs.h"
+
+1638251211 source:c:\users\gabri\documents\compiler\metroid_thingy\engine\game.c
+	"dstuff/ds_slist.h"
+	"dstuff/ds_mem.h"
+	"dstuff/ds_file.h"
+	"dstuff/ds_vector.h"
+	"dstuff/ds_path.h"
+	"stb/stb_image.h"
+	"game.h"
+	"input.h"
+	"anim.h"
+	"phys.h"
+	"../editor/ed_main.h"
+	"ent.h"
+	"g_player.h"
+	"level.h"
+	"sound.h"
+	"gui.h"
+	<string.h>
+	<stdio.h>
+	<float.h>
+
+1638000923 c:\users\gabri\documents\compiler\metroid_thingy\engine\game.h
+	"../lib/dstuff/ds_vector.h"
+	"../lib/dstuff/ds_matrix.h"
+	"../lib/dstuff/ds_list.h"
+	"phys.h"
+	"anim.h"
+	"r_draw.h"
+	"r_vis.h"
+	<stdint.h>
+
+1635679685 c:\users\gabri\documents\compiler\metroid_thingy\engine\physics.h
+	"../lib/dstuff/ds_vector.h"
+	"../lib/dstuff/ds_matrix.h"
+	"../lib/dstuff/ds_list.h"
+	"../lib/dstuff/ds_dbvt.h"
+	<stdint.h>
+
+1639784951 c:\users\gabri\documents\compiler\metroid_thingy\engine\r_vis.h
+	"r_defs.h"
+	"r_draw.h"
+
+1639785011 c:\users\gabri\documents\compiler\metroid_thingy\editor\ed_main.h
+	"../lib/dstuff/ds_vector.h"
+	"../lib/dstuff/ds_matrix.h"
+	"../lib/dstuff/ds_alloc.h"
+	"../lib/dstuff/ds_buffer.h"
+	"ed_defs.h"
+	"ed_brush.h"
+	"ed_pick.h"
+	"ed_level.h"
+
+1635324822 c:\users\gabri\documents\compiler\metroid_thingy\engine\world.h
+	<stdint.h>
+	"r_main.h"
+
+1637358837 c:\users\gabri\documents\compiler\metroid_thingy\engine\sound.h
+	"../lib/dstuff/ds_vector.h"
+	<stdint.h>
+
+1639920470 source:c:\users\gabri\documents\compiler\metroid_thingy\engine\main.c
+	"SDL2/SDL.h"
+	"main.h"
+	"../lib/backtrace/include/backtrace.h"
+
+1635646893 source:c:\users\gabri\documents\compiler\metroid_thingy\engine\physics.c
+	<float.h>
+	"physics.h"
+	"dstuff/ds_slist.h"
+	"dstuff/ds_list.h"
+	"dstuff/ds_mem.h"
+	"dstuff/ds_dbvt.h"
+	"r_draw.h"
+
+1639785011 source:c:\users\gabri\documents\compiler\metroid_thingy\editor\ed_brush.c
+	<float.h>
+	"ed_brush.h"
+	"ed_pick_defs.h"
+	"ed_level_defs.h"
+	"dstuff/ds_buffer.h"
+	"../engine/r_main.h"
+	"../engine/g_main.h"
+	"../engine/phys.h"
+	"../engine/ent.h"
+	"ed_bsp.h"
+
+1639930684 source:c:\users\gabri\documents\compiler\metroid_thingy\engine\r_draw.c
+	"r_draw.h"
+	"SDL2/SDL.h"
+	"GL/glew.h"
+	"dstuff/ds_slist.h"
+	"dstuff/ds_file.h"
+	"dstuff/ds_mem.h"
+	"dstuff/ds_obj.h"
+	<stdlib.h>
+	<stdio.h>
+	<stddef.h>
+	<stdalign.h>
+
+1635402097 source:c:\users\gabri\documents\compiler\metroid_thingy\editor\ed_lev_editor.c
+	<float.h>
+	"ed_lev_editor.h"
+	"ed_pick.h"
+	"ed_brush.h"
+	"ed_main.h"
+	"../engine/r_main.h"
+	"dstuff/ds_buffer.h"
+	"../engine/gui.h"
+	"../engine/game.h"
+	"../engine/input.h"
+
+1639785011 source:c:\users\gabri\documents\compiler\metroid_thingy\editor\ed_pick.c
+	<stdio.h>
+	"ed_pick.h"
+	"ed_brush.h"
+	"ed_level.h"
+	"../engine/g_main.h"
+	"../engine/r_main.h"
+	"../engine/ent.h"
+	"../engine/g_game.h"
+	"../engine/g_enemy.h"
+
+1639785011 source:c:\users\gabri\documents\compiler\metroid_thingy\editor\ed_main.c
+	"ed_main.h"
+	"ed_bsp.h"
+	"ed_level.h"
+	"ed_ent.h"
+	"ed_proj.h"
+	"dstuff/ds_slist.h"
+	"dstuff/ds_list.h"
+	"dstuff/ds_mem.h"
+	"dstuff/ds_vector.h"
+	"dstuff/ds_matrix.h"
+	"dstuff/ds_path.h"
+	"dstuff/ds_dir.h"
+	"dstuff/ds_buffer.h"
+	"../engine/g_main.h"
+	"../engine/input.h"
+	"../engine/gui.h"
+	"../engine/r_draw.h"
+	"../engine/log.h"
+	<Shlobj.h>
+	<knownfolders.h>
+	<combaseapi.h>
+	<limits.h>
+	<string.h>
+	<float.h>
+	<stdlib.h>
+
+1639936798 source:c:\users\gabri\documents\compiler\metroid_thingy\engine\r_main.c
+	"r_main.h"
+	"SDL2/SDL.h"
+	"GL/glew.h"
+	"stb/stb_image.h"
+	"dstuff/ds_slist.h"
+	"dstuff/ds_path.h"
+	"dstuff/ds_file.h"
+	"dstuff/ds_mem.h"
+	"dstuff/ds_obj.h"
+	"dstuff/ds_alloc.h"
+	"r_draw.h"
+	"stb/stb_include.h"
+	"anim.h"
+	"log.h"
+
+1639785011 source:c:\users\gabri\documents\compiler\metroid_thingy\engine\r_vis.c
+	"r_vis.h"
+	"ent.h"
+	"g_main.h"
+
+1639785011 c:\users\gabri\documents\compiler\metroid_thingy\editor\ed_defs.h
+	<stdint.h>
+	"../lib/dstuff/ds_buffer.h"
+	"../lib/dstuff/ds_vector.h"
+	"../lib/dstuff/ds_matrix.h"
+	"../engine/r_defs.h"
+
+1639785011 source:c:\users\gabri\documents\compiler\metroid_thingy\engine\sound.c
+	<stdio.h>
+	"sound.h"
+	"al.h"
+	"alc.h"
+	"SDL2/SDL_thread.h"
+	"dstuff/ds_slist.h"
+	"dstuff/ds_list.h"
+	"dstuff/ds_file.h"
+	"dstuff/ds_mem.h"
+	"codec.h"
+	"vorbisfile.h"
+	"tinycthread.h"
+	"log.h"
+
+1629322545 source:c:\users\gabri\documents\compiler\metroid_thingy\engine\world.c
+	"world.h"
+	"dstuff/ds_dbvt.h"
+	"dstuff/ds_alloc.h"
+	"r_draw.h"
+
+1639785011 c:\users\gabri\documents\compiler\metroid_thingy\editor\ed_brush_defs.h
+	"ed_defs.h"
+	"../engine/e_defs.h"
+
+1639785011 c:\users\gabri\documents\compiler\metroid_thingy\editor\ed_pick_defs.h
+	"ed_defs.h"
+
+1639785011 c:\users\gabri\documents\compiler\metroid_thingy\editor\ed_level_defs.h
+	"ed_defs.h"
+	"ed_pick_defs.h"
+
+1639785011 source:c:\users\gabri\documents\compiler\metroid_thingy\editor\ed_level.c
+	<float.h>
+	"ed_level.h"
+	"ed_pick.h"
+	"ed_brush.h"
+	"ed_main.h"
+	"../engine/r_main.h"
+	"dstuff/ds_buffer.h"
+	"../lib/dstuff/ds_path.h"
+	"../lib/dstuff/ds_dir.h"
+	"../engine/gui.h"
+	"../engine/g_main.h"
+	"../engine/g_enemy.h"
+	"../engine/input.h"
+	"../engine/l_defs.h"
+	"../engine/ent.h"
+	"../engine/level.h"
+
+1639785011 c:\users\gabri\documents\compiler\metroid_thingy\editor\ed_level.h
+	"ed_pick.h"
+	"ed_level_defs.h"
+
+1639937170 source:c:\users\gabri\documents\compiler\metroid_thingy\engine\level.c
+	"level.h"
+	"dstuff/ds_dbvt.h"
+	"dstuff/ds_alloc.h"
+	"../editor/ed_level_defs.h"
+	"r_draw.h"
+	"ent.h"
+	"phys.h"
+	"log.h"
+	"g_enemy.h"
+
+1639785011 c:\users\gabri\documents\compiler\metroid_thingy\engine\level.h
+	"l_defs.h"
+	"r_main.h"
+
+1639785011 c:\users\gabri\documents\compiler\metroid_thingy\engine\main.h
+	"g_main.h"
+	"r_main.h"
+	"sound.h"
+	"level.h"
+	"phys.h"
+	"anim.h"
+	"input.h"
+	"gui.h"
+	"ent.h"
+	"log.h"
+	"../editor/ed_main.h"
+	<stdio.h>
+
+1635671508 c:\users\gabri\documents\compiler\metroid_thingy\engine\level_defs.h
+	<stdint.h>
+	"dstuff/ds_vector.h"
+	"dstuff/ds_matrix.h"
+
+1639785011 c:\users\gabri\documents\compiler\metroid_thingy\engine\l_defs.h
+	<stdint.h>
+	"../lib/dstuff/ds_vector.h"
+	"../lib/dstuff/ds_matrix.h"
+	"p_defs.h"
+	"e_defs.h"
+	"g_defs.h"
+
+1637358837 source:c:\users\gabri\documents\compiler\metroid_thingy\lib\lzo\minilzo.c
+	<config.h>
+	<limits.h>
+	<stddef.h>
+	"minilzo.h"
+	<config.h>
+	<limits.h>
+	<stddef.h>
+	<lzo/lzodefs.h>
+	<lzo/lzoconf.h>
+	<string.h>
+	<string.h>
+	<assert.h>
+	<unchecked.h>
+	<intrin.h>
+	<lzo/lzo1x.h>
+
+1637358837 c:\users\gabri\documents\compiler\metroid_thingy\lib\lzo\minilzo.h
+	<config.h>
+	<limits.h>
+	<stddef.h>
+	"lzodefs.h"
+	"lzoconf.h"
+
+1637358837 c:\users\gabri\documents\compiler\metroid_thingy\lib\lzo\lzodefs.h
+
+1637358837 c:\users\gabri\documents\compiler\metroid_thingy\lib\lzo\lzoconf.h
+	<config.h>
+	<limits.h>
+	<stddef.h>
+	<lzo/lzodefs.h>
+
+1639785011 c:\users\gabri\documents\compiler\metroid_thingy\engine\r_defs.h
+	"../lib/dstuff/ds_vector.h"
+	"../lib/dstuff/ds_matrix.h"
+	"../lib/dstuff/ds_alloc.h"
+	"../lib/dstuff/ds_buffer.h"
+	<stdint.h>
+	<stddef.h>
+	<stdalign.h>
+
+1639941489 c:\users\gabri\documents\compiler\metroid_thingy\engine\e_defs.h
+	<stdint.h>
+	"../lib/dstuff/ds_list.h"
+	"r_defs.h"
+	"p_defs.h"
+
+1639968315 c:\users\gabri\documents\compiler\metroid_thingy\engine\p_defs.h
+	"../lib/dstuff/ds_vector.h"
+	"../lib/dstuff/ds_matrix.h"
+	"../lib/dstuff/ds_list.h"
+	"../lib/dstuff/ds_mem.h"
+	<stdint.h>
+	<float.h>
+
+1639920441 c:\users\gabri\documents\compiler\metroid_thingy\engine\phys.h
+	"p_defs.h"
+
+1639785011 c:\users\gabri\documents\compiler\metroid_thingy\engine\ent.h
+	"e_defs.h"
+
+1639968363 source:c:\users\gabri\documents\compiler\metroid_thingy\editor\ed_ent.c
+	"ed_ent.h"
+	"../engine/ent.h"
+	"../engine/p_defs.h"
+	"../lib/dstuff/ds_vector.h"
+	"../lib/dstuff/ds_matrix.h"
+	"../lib/dstuff/ds_mem.h"
+	"../lib/dstuff/ds_path.h"
+	"../engine/r_draw.h"
+	"../engine/input.h"
+	"../engine/gui.h"
+	"../engine/phys.h"
+	"ed_level.h"
+	"ed_main.h"
+	<stddef.h>
+	<math.h>
+
+1639785011 c:\users\gabri\documents\compiler\metroid_thingy\editor\ed_ent.h
+	"ed_ent_defs.h"
+
+1639956181 c:\users\gabri\documents\compiler\metroid_thingy\editor\ed_ent_defs.h
+	"ed_defs.h"
+	"../engine/e_defs.h"
+	"../engine/r_defs.h"
+
+1639785011 c:\users\gabri\documents\compiler\metroid_thingy\editor\ed_proj.h
+	"ed_defs.h"
+
+1639785011 source:c:\users\gabri\documents\compiler\metroid_thingy\editor\ed_proj.c
+	"ed_proj.h"
+	"../engine/r_draw.h"
+	"../engine/gui.h"
+	"ed_main.h"
+
+1639941549 source:c:\users\gabri\documents\compiler\metroid_thingy\engine\ent.c
+	<stdio.h>
+	"ent.h"
+	"phys.h"
+	"r_defs.h"
+	"r_draw.h"
+	"g_main.h"
+	"../lib/dstuff/ds_slist.h"
+	"../lib/dstuff/ds_path.h"
+	"log.h"
+
+1639929905 source:c:\users\gabri\documents\compiler\metroid_thingy\engine\g_player.c
+	"g_player.h"
+	"phys.h"
+	"r_main.h"
+	"input.h"
+	"ent.h"
+
+1639785011 c:\users\gabri\documents\compiler\metroid_thingy\engine\g_player.h
+	<stdint.h>
+	"g_defs.h"
+
+1639785011 source:c:\users\gabri\documents\compiler\metroid_thingy\engine\p_col.c
+	"p_col.h"
+
+1639785011 c:\users\gabri\documents\compiler\metroid_thingy\engine\p_col.h
+	"p_defs.h"
+
+1639959484 source:c:\users\gabri\documents\compiler\metroid_thingy\engine\phys.cpp
+	<float.h>
+	"phys.h"
+	"dstuff/ds_slist.h"
+	"dstuff/ds_list.h"
+	"dstuff/ds_mem.h"
+	"dstuff/ds_matrix.h"
+	"r_draw.h"
+	"BulletDynamics/Dynamics/btDiscreteDynamicsWorld.h"
+	"BulletDynamics/ConstraintSolver/btSequentialImpulseConstraintSolver.h"
+	"BulletCollision/BroadphaseCollision/btBroadphaseInterface.h"
+	"BulletCollision/BroadphaseCollision/btDbvtBroadphase.h"
+	"BulletCollision/CollisionDispatch/btDefaultCollisionConfiguration.h"
+	"BulletCollision/CollisionShapes/btCollisionShape.h"
+	"BulletCollision/CollisionShapes/btBoxShape.h"
+	"BulletCollision/CollisionShapes/btCylinderShape.h"
+	"BulletCollision/CollisionShapes/btSphereShape.h"
+	"BulletCollision/CollisionShapes/btCapsuleShape.h"
+	"BulletCollision/CollisionShapes/btBvhTriangleMeshShape.h"
+	"BulletCollision/CollisionShapes/btCompoundShape.h"
+	"BulletCollision/CollisionShapes/btTriangleIndexVertexArray.h"
+	"BulletDynamics/ConstraintSolver/btHingeConstraint.h"
+	"BulletDynamics/ConstraintSolver/btPoint2PointConstraint.h"
+	"BulletDynamics/ConstraintSolver/btSliderConstraint.h"
+	"BulletDynamics/Dynamics/btRigidBody.h"
+	"LinearMath/btDefaultMotionState.h"
+	"LinearMath/btTransform.h"
+	"LinearMath/btVector3.h"
+	"LinearMath/btIDebugDraw.h"
+	"log.h"
+	"newton/include/dgNewton/Newton.h"
+	"newton/include/dCustomJoints/dCustomHinge.h"
+
+1637155469 c:\users\gabri\documents\compiler\metroid_thingy\lib\bullet\include\bulletdynamics\dynamics\btdiscretedynamicsworld.h
+	"btDynamicsWorld.h"
+	"LinearMath/btAlignedObjectArray.h"
+	"LinearMath/btThreads.h"
+
+1637359050 c:\users\gabri\documents\compiler\metroid_thingy\lib\bullet\include\bulletdynamics\dynamics\btdynamicsworld.h
+	"BulletCollision/CollisionDispatch/btCollisionWorld.h"
+	"BulletDynamics/ConstraintSolver/btContactSolverInfo.h"
+
+1637155469 c:\users\gabri\documents\compiler\metroid_thingy\lib\bullet\include\bulletcollision\collisiondispatch\btcollisionworld.h
+	"LinearMath/btVector3.h"
+	"LinearMath/btTransform.h"
+	"btCollisionObject.h"
+	"btCollisionDispatcher.h"
+	"BulletCollision/BroadphaseCollision/btOverlappingPairCache.h"
+	"LinearMath/btAlignedObjectArray.h"
+
+1637155470 c:\users\gabri\documents\compiler\metroid_thingy\lib\bullet\include\linearmath\btvector3.h
+	"btScalar.h"
+	"btMinMax.h"
+	"btAlignedAllocator.h"
+
+1637155470 c:\users\gabri\documents\compiler\metroid_thingy\lib\bullet\include\linearmath\btscalar.h
+	<math.h>
+	<stdlib.h>
+	<float.h>
+	<ppcintrinsics.h>
+	<emmintrin.h>
+	<stdio.h>
+	<assert.h>
+	<assert.h>
+	<spu_printf.h>
+	<assert.h>
+	<smmintrin.h>
+	<tmmintrin.h>
+	<pmmintrin.h>
+	<emmintrin.h>
+	<arm_neon.h>
+	<assert.h>
+	<stdio.h>
+	<assert.h>
+	<arm_neon.h>
+	<arm_neon.h>
+
+1637155470 c:\users\gabri\documents\compiler\metroid_thingy\lib\bullet\include\linearmath\btminmax.h
+	"btScalar.h"
+
+1637155470 c:\users\gabri\documents\compiler\metroid_thingy\lib\bullet\include\linearmath\btalignedallocator.h
+	"btScalar.h"
+
+1637155470 c:\users\gabri\documents\compiler\metroid_thingy\lib\bullet\include\linearmath\bttransform.h
+	"btMatrix3x3.h"
+
+1637155470 c:\users\gabri\documents\compiler\metroid_thingy\lib\bullet\include\linearmath\btmatrix3x3.h
+	"btVector3.h"
+	"btQuaternion.h"
+	<stdio.h>
+
+1637155470 c:\users\gabri\documents\compiler\metroid_thingy\lib\bullet\include\linearmath\btquaternion.h
+	"btVector3.h"
+	"btQuadWord.h"
+
+1637155470 c:\users\gabri\documents\compiler\metroid_thingy\lib\bullet\include\linearmath\btquadword.h
+	"btScalar.h"
+	"btMinMax.h"
+	<altivec.h>
+
+1637155469 c:\users\gabri\documents\compiler\metroid_thingy\lib\bullet\include\bulletcollision\collisiondispatch\btcollisionobject.h
+	"LinearMath/btTransform.h"
+	"LinearMath/btMotionState.h"
+	"LinearMath/btAlignedAllocator.h"
+	"LinearMath/btAlignedObjectArray.h"
+
+1637155470 c:\users\gabri\documents\compiler\metroid_thingy\lib\bullet\include\linearmath\btmotionstate.h
+	"btTransform.h"
+
+1637155470 c:\users\gabri\documents\compiler\metroid_thingy\lib\bullet\include\linearmath\btalignedobjectarray.h
+	"btScalar.h"
+	"btAlignedAllocator.h"
+	<memory.h>
+	<string.h>
+	<new>
+
+1637155469 c:\users\gabri\documents\compiler\metroid_thingy\lib\bullet\include\bulletcollision\collisiondispatch\btcollisiondispatcher.h
+	"BulletCollision/BroadphaseCollision/btDispatcher.h"
+	"BulletCollision/NarrowPhaseCollision/btPersistentManifold.h"
+	"BulletCollision/CollisionDispatch/btManifoldResult.h"
+	"BulletCollision/BroadphaseCollision/btBroadphaseProxy.h"
+	"LinearMath/btAlignedObjectArray.h"
+	"btCollisionCreateFunc.h"
+
+1637155469 c:\users\gabri\documents\compiler\metroid_thingy\lib\bullet\include\bulletcollision\broadphasecollision\btdispatcher.h
+	"LinearMath/btScalar.h"
+
+1637155469 c:\users\gabri\documents\compiler\metroid_thingy\lib\bullet\include\bulletcollision\narrowphasecollision\btpersistentmanifold.h
+	"LinearMath/btVector3.h"
+	"LinearMath/btTransform.h"
+	"btManifoldPoint.h"
+	"LinearMath/btAlignedAllocator.h"
+
+1637155469 c:\users\gabri\documents\compiler\metroid_thingy\lib\bullet\include\bulletcollision\narrowphasecollision\btmanifoldpoint.h
+	"LinearMath/btVector3.h"
+	"LinearMath/btTransformUtil.h"
+	"physics_effects/base_level/solver/pfx_constraint_row.h"
+
+1637155470 c:\users\gabri\documents\compiler\metroid_thingy\lib\bullet\include\linearmath\bttransformutil.h
+	"btTransform.h"
+
+1637155469 c:\users\gabri\documents\compiler\metroid_thingy\lib\bullet\include\bulletcollision\collisiondispatch\btmanifoldresult.h
+	"BulletCollision/NarrowPhaseCollision/btPersistentManifold.h"
+	"BulletCollision/NarrowPhaseCollision/btDiscreteCollisionDetectorInterface.h"
+	"LinearMath/btTransform.h"
+	"BulletCollision/CollisionDispatch/btCollisionObjectWrapper.h"
+	"BulletCollision/CollisionDispatch/btCollisionObject.h"
+
+1637155469 c:\users\gabri\documents\compiler\metroid_thingy\lib\bullet\include\bulletcollision\narrowphasecollision\btdiscretecollisiondetectorinterface.h
+	"LinearMath/btTransform.h"
+	"LinearMath/btVector3.h"
+
+1637155469 c:\users\gabri\documents\compiler\metroid_thingy\lib\bullet\include\bulletcollision\collisiondispatch\btcollisionobjectwrapper.h
+	"LinearMath/btScalar.h"
+
+1637155469 c:\users\gabri\documents\compiler\metroid_thingy\lib\bullet\include\bulletcollision\broadphasecollision\btbroadphaseproxy.h
+	"LinearMath/btScalar.h"
+	"LinearMath/btVector3.h"
+	"LinearMath/btAlignedAllocator.h"
+
+1637155469 c:\users\gabri\documents\compiler\metroid_thingy\lib\bullet\include\bulletcollision\collisiondispatch\btcollisioncreatefunc.h
+	"LinearMath/btAlignedObjectArray.h"
+
+1637155469 c:\users\gabri\documents\compiler\metroid_thingy\lib\bullet\include\bulletcollision\broadphasecollision\btoverlappingpaircache.h
+	"btBroadphaseInterface.h"
+	"btBroadphaseProxy.h"
+	"btOverlappingPairCallback.h"
+	"LinearMath/btAlignedObjectArray.h"
+
+1637155469 c:\users\gabri\documents\compiler\metroid_thingy\lib\bullet\include\bulletcollision\broadphasecollision\btbroadphaseinterface.h
+	"btBroadphaseProxy.h"
+	"LinearMath/btVector3.h"
+
+1637155469 c:\users\gabri\documents\compiler\metroid_thingy\lib\bullet\include\bulletcollision\broadphasecollision\btoverlappingpaircallback.h
+
+1637155469 c:\users\gabri\documents\compiler\metroid_thingy\lib\bullet\include\bulletdynamics\constraintsolver\btcontactsolverinfo.h
+	"LinearMath/btScalar.h"
+
+1637155470 c:\users\gabri\documents\compiler\metroid_thingy\lib\bullet\include\linearmath\btthreads.h
+	"btScalar.h"
+
+1637155469 c:\users\gabri\documents\compiler\metroid_thingy\lib\bullet\include\bulletdynamics\constraintsolver\btsequentialimpulseconstraintsolver.h
+	"BulletDynamics/ConstraintSolver/btTypedConstraint.h"
+	"BulletDynamics/ConstraintSolver/btContactSolverInfo.h"
+	"BulletDynamics/ConstraintSolver/btSolverBody.h"
+	"BulletDynamics/ConstraintSolver/btSolverConstraint.h"
+	"BulletCollision/NarrowPhaseCollision/btManifoldPoint.h"
+	"BulletDynamics/ConstraintSolver/btConstraintSolver.h"
+
+1637155469 c:\users\gabri\documents\compiler\metroid_thingy\lib\bullet\include\bulletdynamics\constraintsolver\bttypedconstraint.h
+	"LinearMath/btScalar.h"
+	"btSolverConstraint.h"
+	"BulletDynamics/Dynamics/btRigidBody.h"
+
+1637155469 c:\users\gabri\documents\compiler\metroid_thingy\lib\bullet\include\bulletdynamics\constraintsolver\btsolverconstraint.h
+	"LinearMath/btVector3.h"
+	"LinearMath/btMatrix3x3.h"
+	"btJacobianEntry.h"
+	"LinearMath/btAlignedObjectArray.h"
+	"btSolverBody.h"
+
+1637155469 c:\users\gabri\documents\compiler\metroid_thingy\lib\bullet\include\bulletdynamics\constraintsolver\btjacobianentry.h
+	"LinearMath/btMatrix3x3.h"
+
+1637155469 c:\users\gabri\documents\compiler\metroid_thingy\lib\bullet\include\bulletdynamics\constraintsolver\btsolverbody.h
+	"LinearMath/btVector3.h"
+	"LinearMath/btMatrix3x3.h"
+	"LinearMath/btAlignedAllocator.h"
+	"LinearMath/btTransformUtil.h"
+
+1637155469 c:\users\gabri\documents\compiler\metroid_thingy\lib\bullet\include\bulletdynamics\dynamics\btrigidbody.h
+	"LinearMath/btAlignedObjectArray.h"
+	"LinearMath/btTransform.h"
+	"BulletCollision/BroadphaseCollision/btBroadphaseProxy.h"
+	"BulletCollision/CollisionDispatch/btCollisionObject.h"
+
+1637155469 c:\users\gabri\documents\compiler\metroid_thingy\lib\bullet\include\bulletdynamics\constraintsolver\btconstraintsolver.h
+	"LinearMath/btScalar.h"
+
+1637155469 c:\users\gabri\documents\compiler\metroid_thingy\lib\bullet\include\bulletcollision\broadphasecollision\btdbvtbroadphase.h
+	"BulletCollision/BroadphaseCollision/btDbvt.h"
+	"BulletCollision/BroadphaseCollision/btOverlappingPairCache.h"
+	"LinearMath/btQuickprof.h"
+
+1637155469 c:\users\gabri\documents\compiler\metroid_thingy\lib\bullet\include\bulletcollision\broadphasecollision\btdbvt.h
+	"LinearMath/btAlignedObjectArray.h"
+	"LinearMath/btVector3.h"
+	"LinearMath/btTransform.h"
+	"LinearMath/btAabbUtil2.h"
+	<emmintrin.h>
+	<memory.h>
+	<string.h>
+
+1637155470 c:\users\gabri\documents\compiler\metroid_thingy\lib\bullet\include\linearmath\btaabbutil2.h
+	"btTransform.h"
+	"btVector3.h"
+	"btMinMax.h"
+
+1637155470 c:\users\gabri\documents\compiler\metroid_thingy\lib\bullet\include\linearmath\btquickprof.h
+	"btScalar.h"
+	<stdio.h>
+	"btAlignedAllocator.h"
+	<new>
+
+1637155469 c:\users\gabri\documents\compiler\metroid_thingy\lib\bullet\include\bulletcollision\collisiondispatch\btdefaultcollisionconfiguration.h
+	"btCollisionConfiguration.h"
+
+1637155469 c:\users\gabri\documents\compiler\metroid_thingy\lib\bullet\include\bulletcollision\collisiondispatch\btcollisionconfiguration.h
+
+1637155469 c:\users\gabri\documents\compiler\metroid_thingy\lib\bullet\include\bulletcollision\collisionshapes\btcollisionshape.h
+	"LinearMath/btTransform.h"
+	"LinearMath/btVector3.h"
+	"LinearMath/btMatrix3x3.h"
+	"BulletCollision/BroadphaseCollision/btBroadphaseProxy.h"
+
+1637155469 c:\users\gabri\documents\compiler\metroid_thingy\lib\bullet\include\bulletcollision\collisionshapes\btboxshape.h
+	"btPolyhedralConvexShape.h"
+	"btCollisionMargin.h"
+	"BulletCollision/BroadphaseCollision/btBroadphaseProxy.h"
+	"LinearMath/btVector3.h"
+	"LinearMath/btMinMax.h"
+
+1637155469 c:\users\gabri\documents\compiler\metroid_thingy\lib\bullet\include\bulletcollision\collisionshapes\btpolyhedralconvexshape.h
+	"LinearMath/btMatrix3x3.h"
+	"btConvexInternalShape.h"
+
+1637155469 c:\users\gabri\documents\compiler\metroid_thingy\lib\bullet\include\bulletcollision\collisionshapes\btconvexinternalshape.h
+	"btConvexShape.h"
+	"LinearMath/btAabbUtil2.h"
+
+1637155469 c:\users\gabri\documents\compiler\metroid_thingy\lib\bullet\include\bulletcollision\collisionshapes\btconvexshape.h
+	"btCollisionShape.h"
+	"LinearMath/btVector3.h"
+	"LinearMath/btTransform.h"
+	"LinearMath/btMatrix3x3.h"
+	"btCollisionMargin.h"
+	"LinearMath/btAlignedAllocator.h"
+
+1637155469 c:\users\gabri\documents\compiler\metroid_thingy\lib\bullet\include\bulletcollision\collisionshapes\btcollisionmargin.h
+
+1637155469 c:\users\gabri\documents\compiler\metroid_thingy\lib\bullet\include\bulletcollision\collisionshapes\btcapsuleshape.h
+	"btConvexInternalShape.h"
+	"BulletCollision/BroadphaseCollision/btBroadphaseProxy.h"
+
+1637155469 c:\users\gabri\documents\compiler\metroid_thingy\lib\bullet\include\bulletcollision\collisionshapes\btbvhtrianglemeshshape.h
+	"btTriangleMeshShape.h"
+	"btOptimizedBvh.h"
+	"LinearMath/btAlignedAllocator.h"
+	"btTriangleInfoMap.h"
+
+1637155469 c:\users\gabri\documents\compiler\metroid_thingy\lib\bullet\include\bulletcollision\collisionshapes\bttrianglemeshshape.h
+	"btConcaveShape.h"
+	"btStridingMeshInterface.h"
+
+1637155469 c:\users\gabri\documents\compiler\metroid_thingy\lib\bullet\include\bulletcollision\collisionshapes\btconcaveshape.h
+	"btCollisionShape.h"
+	"BulletCollision/BroadphaseCollision/btBroadphaseProxy.h"
+	"btTriangleCallback.h"
+
+1637155469 c:\users\gabri\documents\compiler\metroid_thingy\lib\bullet\include\bulletcollision\collisionshapes\bttrianglecallback.h
+	"LinearMath/btVector3.h"
+
+1637155469 c:\users\gabri\documents\compiler\metroid_thingy\lib\bullet\include\bulletcollision\collisionshapes\btstridingmeshinterface.h
+	"LinearMath/btVector3.h"
+	"btTriangleCallback.h"
+	"btConcaveShape.h"
+
+1637155469 c:\users\gabri\documents\compiler\metroid_thingy\lib\bullet\include\bulletcollision\collisionshapes\btoptimizedbvh.h
+	"BulletCollision/BroadphaseCollision/btQuantizedBvh.h"
+
+1637155469 c:\users\gabri\documents\compiler\metroid_thingy\lib\bullet\include\bulletcollision\broadphasecollision\btquantizedbvh.h
+	<stdio.h>
+	<stdlib.h>
+	"LinearMath/btVector3.h"
+	"LinearMath/btAlignedAllocator.h"
+	"LinearMath/btAlignedAllocator.h"
+	"LinearMath/btAlignedObjectArray.h"
+
+1637155469 c:\users\gabri\documents\compiler\metroid_thingy\lib\bullet\include\bulletcollision\collisionshapes\bttriangleinfomap.h
+	"LinearMath/btHashMap.h"
+	"LinearMath/btSerializer.h"
+
+1637155470 c:\users\gabri\documents\compiler\metroid_thingy\lib\bullet\include\linearmath\bthashmap.h
+	<string>
+	"btAlignedObjectArray.h"
+
+1637155470 c:\users\gabri\documents\compiler\metroid_thingy\lib\bullet\include\linearmath\btserializer.h
+	"btScalar.h"
+	"btHashMap.h"
+	<memory.h>
+	<string.h>
+
+1637155469 c:\users\gabri\documents\compiler\metroid_thingy\lib\bullet\include\bulletcollision\collisionshapes\btcompoundshape.h
+	"btCollisionShape.h"
+	"LinearMath/btVector3.h"
+	"LinearMath/btTransform.h"
+	"LinearMath/btMatrix3x3.h"
+	"btCollisionMargin.h"
+	"LinearMath/btAlignedObjectArray.h"
+
+1637155469 c:\users\gabri\documents\compiler\metroid_thingy\lib\bullet\include\bulletcollision\collisionshapes\bttriangleindexvertexarray.h
+	"btStridingMeshInterface.h"
+	"LinearMath/btAlignedObjectArray.h"
+	"LinearMath/btScalar.h"
+
+1637155470 c:\users\gabri\documents\compiler\metroid_thingy\lib\bullet\include\linearmath\btdefaultmotionstate.h
+	"btMotionState.h"
+
+1637985776 c:\users\gabri\documents\compiler\metroid_thingy\lib\bullet\include\linearmath\btidebugdraw.h
+	"btVector3.h"
+	"btTransform.h"
+
+1637155469 c:\users\gabri\documents\compiler\metroid_thingy\lib\bullet\include\bulletcollision\collisionshapes\btcylindershape.h
+	"btBoxShape.h"
+	"BulletCollision/BroadphaseCollision/btBroadphaseProxy.h"
+	"LinearMath/btVector3.h"
+
+1637155469 c:\users\gabri\documents\compiler\metroid_thingy\lib\bullet\include\bulletcollision\collisionshapes\btsphereshape.h
+	"btConvexInternalShape.h"
+	"BulletCollision/BroadphaseCollision/btBroadphaseProxy.h"
+
+1637155469 c:\users\gabri\documents\compiler\metroid_thingy\lib\bullet\include\bulletdynamics\constraintsolver\bthingeconstraint.h
+	"LinearMath/btVector3.h"
+	"btJacobianEntry.h"
+	"btTypedConstraint.h"
+
+1637155469 c:\users\gabri\documents\compiler\metroid_thingy\lib\bullet\include\bulletdynamics\constraintsolver\btpoint2pointconstraint.h
+	"LinearMath/btVector3.h"
+	"btJacobianEntry.h"
+	"btTypedConstraint.h"
+
+1637155469 c:\users\gabri\documents\compiler\metroid_thingy\lib\bullet\include\bulletdynamics\constraintsolver\btsliderconstraint.h
+	"LinearMath/btScalar.h"
+	"LinearMath/btVector3.h"
+	"btJacobianEntry.h"
+	"btTypedConstraint.h"
+
+1639872738 source:c:\users\gabri\documents\compiler\metroid_thingy\engine\g_enemy.c
+	"g_enemy.h"
+	"ent.h"
+	"g_game.h"
+	"r_main.h"
+	"phys.h"
+	"../lib/dstuff/ds_slist.h"
+
+1639785011 c:\users\gabri\documents\compiler\metroid_thingy\engine\g_enemy.h
+	"g_defs.h"
+
+1639915455 c:\users\gabri\documents\compiler\metroid_thingy\engine\g_defs.h
+	<stdint.h>
+	"e_defs.h"
+	"r_defs.h"
+	"p_defs.h"
+	"../lib/dstuff/ds_vector.h"
+	"../lib/dstuff/ds_slist.h"
+
+1639864902 c:\users\gabri\documents\compiler\metroid_thingy\engine\g_main.h
+	"../lib/dstuff/ds_vector.h"
+	"../lib/dstuff/ds_matrix.h"
+	"../lib/dstuff/ds_list.h"
+	"phys.h"
+	"anim.h"
+	"r_draw.h"
+	"r_vis.h"
+	<stdint.h>
+
+1639864901 source:c:\users\gabri\documents\compiler\metroid_thingy\engine\g_main.c
+	"dstuff/ds_slist.h"
+	"dstuff/ds_mem.h"
+	"dstuff/ds_file.h"
+	"dstuff/ds_vector.h"
+	"dstuff/ds_path.h"
+	"stb/stb_image.h"
+	"g_main.h"
+	"input.h"
+	"anim.h"
+	"phys.h"
+	"../editor/ed_main.h"
+	"ent.h"
+	"g_player.h"
+	"g_game.h"
+	"level.h"
+	"sound.h"
+	"gui.h"
+	"log.h"
+	<string.h>
+	<stdio.h>
+	<float.h>
+
+1639872337 source:c:\users\gabri\documents\compiler\metroid_thingy\engine\g_game.c
+	"g_game.h"
+	"g_enemy.h"
+	"g_player.h"
+	"ent.h"
+
+1639785011 c:\users\gabri\documents\compiler\metroid_thingy\engine\g_game.h
+	"g_defs.h"
+	"../lib/dstuff/ds_slist.h"
+
+1639785011 c:\users\gabri\documents\compiler\metroid_thingy\engine\log.h
+	<stdint.h>
+
+1639785011 source:c:\users\gabri\documents\compiler\metroid_thingy\engine\log.c
+	"log.h"
+	<stdio.h>
+	<stdarg.h>
+	<signal.h>
+	"backtrace.h"
+
+1638592635 c:\users\gabri\documents\compiler\metroid_thingy\lib\backtrace\include\backtrace.h
+	<stddef.h>
+	<stdint.h>
+	<stdio.h>
+
+1615098036 c:\users\gabri\documents\compiler\metroid_thingy\lib\newton\include\newton.h
+
+1615098036 c:\users\gabri\documents\compiler\metroid_thingy\lib\newton\include\dgnewton\newton.h
+
+1615098034 c:\users\gabri\documents\compiler\metroid_thingy\lib\newton\include\dcustomjoints\dcustomhinge.h
+	"dCustomJoint.h"
+
+1615098034 c:\users\gabri\documents\compiler\metroid_thingy\lib\newton\include\dcustomjoints\dcustomjoint.h
+	"dCustomJointLibraryStdAfx.h"
+	"dMathDefines.h"
+	"dVector.h"
+	"dMatrix.h"
+	"dQuaternion.h"
+	"dCustomAlloc.h"
+
+1615098034 c:\users\gabri\documents\compiler\metroid_thingy\lib\newton\include\dcustomjoints\dcustomjointlibrarystdafx.h
+	<windows.h>
+	<crtdbg.h>
+	<new>
+	<stdio.h>
+	<stdlib.h>
+	<locale.h>
+	<Newton.h>
+	<dCRC.h>
+	<dTree.h>
+	<dList.h>
+	<dArray.h>
+	<dString.h>
+	<dVector.h>
+	<dMatrix.h>
+	<dQuaternion.h>
+	<dMathDefines.h>
+	<dLinearAlgebra.h>
+
+1615098034 c:\users\gabri\documents\compiler\metroid_thingy\lib\newton\include\dcontainers\dcrc.h
+	"dContainersAlloc.h"
+
+1615098034 c:\users\gabri\documents\compiler\metroid_thingy\lib\newton\include\dcontainers\dcontainersalloc.h
+	"dContainersStdAfx.h"
+
+1615098034 c:\users\gabri\documents\compiler\metroid_thingy\lib\newton\include\dcontainers\dcontainersstdafx.h
+	<new>
+	<stdio.h>
+	<stdlib.h>
+	<string.h>
+	<assert.h>
+	<dMathDefines.h>
+	<dVector.h>
+	<dMatrix.h>
+	<dgTypes.h>
+	<windows.h>
+	<crtdbg.h>
+	<unistd.h>
+	<libkern/OSAtomic.h>
+	<sys/sysctl.h>
+	<dMathDefines.h>
+
+1639101597 c:\users\gabri\documents\compiler\metroid_thingy\lib\newton\include\dmath\dmathdefines.h
+	<math.h>
+	<float.h>
+	<stdio.h>
+	<stdlib.h>
+	<string.h>
+	<assert.h>
+	<malloc.h>
+	<windows.h>
+	<stdarg.h>
+	<crtdbg.h>
+	<dProfiler.h>
+
+1615098034 c:\users\gabri\documents\compiler\metroid_thingy\lib\newton\include\dmath\dvector.h
+	"dMathDefines.h"
+
+1615098034 c:\users\gabri\documents\compiler\metroid_thingy\lib\newton\include\dmath\dmatrix.h
+	"dVector.h"
+
+1615098036 c:\users\gabri\documents\compiler\metroid_thingy\lib\newton\include\dgcore\dgtypes.h
+	<io.h>
+	<direct.h>
+	<malloc.h>
+	<float.h>
+	<stdarg.h>
+	<process.h>
+	<windows.h>
+	<crtdbg.h>
+	<new>
+	<stdio.h>
+	<stdlib.h>
+	<string.h>
+	<stdarg.h>
+	<time.h>
+	<math.h>
+	<float.h>
+	<ctype.h>
+	<io.h>
+	<direct.h>
+	<malloc.h>
+	<float.h>
+	<windows.h>
+	<process.h>
+	<intrin.h>
+	<emmintrin.h>
+	<pmmintrin.h>
+	<unistd.h>
+	<assert.h>
+	<pmmintrin.h>
+	<emmintrin.h>
+	<mmintrin.h>
+	<unistd.h>
+	<sys/sysctl.h>
+	<assert.h>
+	<fenv.h>
+	<pmmintrin.h>
+	<emmintrin.h>
+	<mmintrin.h>
+	<mutex>
+	<thread>
+	<condition_variable>
+	<stdint.h>
+	<sys/time.h>
+
+1615098034 c:\users\gabri\documents\compiler\metroid_thingy\lib\newton\include\dcontainers\dtree.h
+	"dContainersStdAfx.h"
+	"dContainersAlloc.h"
+
+1615098034 c:\users\gabri\documents\compiler\metroid_thingy\lib\newton\include\dcontainers\dlist.h
+	"dContainersStdAfx.h"
+	"dContainersAlloc.h"
+
+1615098034 c:\users\gabri\documents\compiler\metroid_thingy\lib\newton\include\dcontainers\darray.h
+	"dContainersAlloc.h"
+
+1615098034 c:\users\gabri\documents\compiler\metroid_thingy\lib\newton\include\dcontainers\dstring.h
+	"dContainersStdAfx.h"
+	"dContainersAlloc.h"
+
+1615098034 c:\users\gabri\documents\compiler\metroid_thingy\lib\newton\include\dmath\dquaternion.h
+	"dVector.h"
+
+1615098034 c:\users\gabri\documents\compiler\metroid_thingy\lib\newton\include\dmath\dlinearalgebra.h
+	"dStdAfxMath.h"
+	"dMathDefines.h"
+	"dVector.h"
+	"dMatrix.h"
+	"dQuaternion.h"
+
+1615098034 c:\users\gabri\documents\compiler\metroid_thingy\lib\newton\include\dmath\dstdafxmath.h
+	<windows.h>
+	<crtdbg.h>
+	<crtdbg.h>
+	<stdio.h>
+	<assert.h>
+
+1615098034 c:\users\gabri\documents\compiler\metroid_thingy\lib\newton\include\dcustomjoints\dcustomalloc.h
+	<dgTypes.h>
+

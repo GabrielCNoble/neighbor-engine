@@ -49,9 +49,8 @@ int main(int argc, char *argv[])
 
     while(g_game_state != G_GAME_STATE_QUIT)
     {
-        float delta_time = 0.016;
-
-        g_UpdateDeltaTime();
+        float delta_time = g_UpdateDeltaTime();
+//        delta_time = 0.0166;
         in_Input(delta_time);
         gui_BeginFrame(delta_time);
 

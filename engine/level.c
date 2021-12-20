@@ -135,7 +135,7 @@ uint32_t l_DeserializeLevel(void *level_buffer, size_t buffer_size)
             roughness_texture = r_FindTexture(record->roughness_texture);
             if(!roughness_texture)
             {
-                roughness_texture = r_default_roughness_texture;
+                roughness_texture = r_LoadTexture(record->roughness_texture);
             }
 
             material = r_CreateMaterial(record->name, diffuse_texture, normal_texture, roughness_texture);

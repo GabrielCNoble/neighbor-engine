@@ -202,7 +202,9 @@ vec3 tonemap(vec3 color)
 
 vec4 r_pixel_albedo()
 {
-    return texture(r_tex_albedo, r_var_tex_coords.xy);
+    vec4 albedo = pow(texture(r_tex_albedo, r_var_tex_coords.xy), vec4(2.2));
+    albedo.a = 1.0;
+    return albedo;
 }
 
 vec3 r_pixel_normal()

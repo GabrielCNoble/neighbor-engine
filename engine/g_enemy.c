@@ -207,7 +207,7 @@ void g_StepCameras(float delta_time)
 
                     if(player_vec_proj > spot_cosine)
                     {
-                        player_collider = p_Raycast(&camera_light->position, &g_player.collider->position, &time);
+                        player_collider = p_Raycast(&camera_light->position, &g_player.collider->position, &time, NULL);
 
                         if(player_collider == g_player.collider)
                         {
@@ -221,7 +221,7 @@ void g_StepCameras(float delta_time)
                 {
                     if(player_vec_proj > spot_cosine)
                     {
-                        player_collider = p_Raycast(&camera_light->position, &g_player.collider->position, &time);
+                        player_collider = p_Raycast(&camera_light->position, &g_player.collider->position, &time, NULL);
                     }
 
                     uint32_t player_found = player_vec_proj > spot_cosine && player_collider == g_player.collider;
@@ -292,7 +292,7 @@ void g_StepCameras(float delta_time)
 
                 case G_CAMERA_STATE_ALERT:
                 {
-                    player_collider = p_Raycast(&camera_light->position, &g_player.collider->position, &time);
+                    player_collider = p_Raycast(&camera_light->position, &g_player.collider->position, &time, NULL);
                     uint32_t player_lost = player_vec_proj < spot_cosine || player_collider != g_player.collider;
 
                     if(player_collider == g_player.collider && !(camera->flags & G_CAMERA_FLAG_PLAYER_HID))

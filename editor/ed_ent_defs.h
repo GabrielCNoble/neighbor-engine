@@ -18,6 +18,7 @@ struct ed_entity_state_t
     struct r_point_light_t *light;
 
     uint32_t ent_def_window_open;
+    uint32_t prev_debug_flags;
 };
 
 

@@ -85,7 +85,7 @@ void r_i_DrawPoint(vec3_t *position, vec4_t *color, float size);
 
 void r_i_DrawLine(vec3_t *start, vec3_t *end, vec4_t *color, float width);
 
-void r_i_DrawBox(vec3_t *half_extents);
+void r_i_DrawBox(vec3_t *half_extents, vec4_t *color);
 
 void r_i_DrawCylinder(float radius, float height);
 

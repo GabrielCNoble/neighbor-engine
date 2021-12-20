@@ -118,6 +118,9 @@ struct p_dynamic_collider_t
     P_BASE_COLLIDER_FIELDS;
     vec3_t linear_velocity;
     vec3_t angular_velocity;
+    vec3_t accumulated_force;
+    vec3_t center_offset;
+    uint32_t grabbed;
     float mass;
 };
 
@@ -150,24 +153,106 @@ struct p_child_collider_t
 enum P_CONSTRAINT_TYPES
 {
     P_CONSTRAINT_TYPE_HINGE = 0,
-    P_CONSTRAINT_TYPE_POINT_TO_POINT,
+    P_CONSTRAINT_TYPE_DOUBLE_HINGE,
+    P_CONSTRAINT_TYPE_CORKSCREW,
     P_CONSTRAINT_TYPE_SLIDER,
+    P_CONSTRAINT_TYPE_BALL_SOCKET,
+//    P_CONSTRAINT_TYPE_6DOF,
     P_CONSTRAINT_TYPE_LAST,
 };
 
-#define P_CONSTRAINT_FIELDS                                                                                                 \
-    uint32_t type;                                                                                                          \
-    union                                                                                                                   \
-    {                                                                                                                       \
-        struct {float limit_low; float limit_high; vec3_t pivot_a; vec3_t pivot_b; vec3_t axis; } hinge;                    \
-    }
-
-struct p_constraint_fields_t
+struct p_hinge_constraint_fields_t
 {
-    P_CONSTRAINT_FIELDS;
+    float min_angle;
+    float max_angle;
+    float friction;
+    uint32_t use_limits;
+    vec3_t pivot_a;
+    vec3_t pivot_b;
+    mat3_t axis;
 };
 
-struct p_collider_constraint_t
+struct p_double_hinge_constraint_fields_t
+{
+    float min_angle0;
+    float max_angle0;
+    float min_angle1;
+    float max_angle1;
+    uint16_t use_limits0;
+    uint16_t use_limits1;
+    vec3_t pivot_a;
+    vec3_t pivot_b;
+    mat3_t axis;
+};
+
+struct p_slider_constraint_fields_t
+{
+    float min_dist;
+    float max_dist;
+    float friction;
+    uint32_t use_limits;
+    vec3_t pivot_a;
+    vec3_t pivot_b;
+    mat3_t axis;
+};
+
+struct p_corkscrew_constraint_fields_t
+{
+    float min_angle;
+    float max_angle;
+    float min_dist;
+    float max_dist;
+    uint16_t use_ang_limits;
+    uint16_t use_lin_limits;
+    vec3_t pivot_a;
+    vec3_t pivot_b;
+    mat3_t axis;
+};
+
+struct p_ball_socket_constraint_fields_t
+{
+    float cone_limit;
+    float cone_friction;
+    float min_twist;
+    float max_twist;
+    float twist_friction;
+    uint16_t use_cone;
+    uint16_t use_twist;
+    vec3_t pivot_a;
+    vec3_t pivot_b;
+    mat3_t axis;
+};
+
+struct p_6dof_constraint_fields_t
+{
+    float min_yaw;
+    float max_yaw;
+    float min_pitch;
+    float max_pitch;
+    float min_roll;
+    float max_roll;
+
+    vec3_t min_disp;
+    vec3_t max_disp;
+};
+
+#define P_CONSTRAINT_DEF_FIELDS                                             \
+    uint32_t type;                                                          \
+    union                                                                   \
+    {                                                                       \
+        struct p_hinge_constraint_fields_t hinge;                           \
+        struct p_slider_constraint_fields_t slider;                         \
+        struct p_corkscrew_constraint_fields_t corkscrew;                   \
+        struct p_ball_socket_constraint_fields_t ball_socket;               \
+        struct p_double_hinge_constraint_fields_t double_hinge;             \
+    }                                                                       \
+
+struct p_constraint_def_t
+{
+    P_CONSTRAINT_DEF_FIELDS;
+};
+
+struct p_col_constraint_t
 {
     struct p_constraint_t *next;
     struct p_constraint_t *prev;
@@ -179,24 +264,13 @@ struct p_constraint_t
 {
     uint32_t index;
     void *constraint;
-    struct p_collider_constraint_t colliders[2];
-
     union
     {
-        struct { P_CONSTRAINT_FIELDS; };
-        struct p_constraint_fields_t fields;
+        P_CONSTRAINT_DEF_FIELDS;
+        struct p_constraint_def_t def;
     };
+    struct p_col_constraint_t colliders[2];
 };
-
-struct p_constraint_def_t
-{
-    union
-    {
-        struct {P_CONSTRAINT_FIELDS; };
-        struct p_constraint_fields_t fields;
-    };
-};
-
 
 
 #endif

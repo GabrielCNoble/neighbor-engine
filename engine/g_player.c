@@ -14,12 +14,14 @@ void g_PlayerInit()
 
     col_def.type = P_COLLIDER_TYPE_CHARACTER;
     col_def.character.step_height = 0.3;
-    col_def.character.height = 1.7;
+    col_def.character.height = 2.0;
     col_def.character.radius = 0.3;
     col_def.character.crouch_height = 0.9;
     g_player.pitch = 0.0;
     g_player.yaw = 0.0;
-    g_player.collider = (struct p_character_collider_t *)p_CreateCollider(&col_def, &vec3_t_c(0.0, 4.0, 0.0), &mat3_t_c_id());
+//    mat3_t orientation = mat3_t_c_id();
+//    mat3_t_rotate_z()
+    g_player.collider = (struct p_character_collider_t *)p_CreateCollider(&col_def, &vec3_t_c(0.0, 7.0, 0.0), &mat3_t_c_id());
 }
 
 void g_StepPlayer(float delta_time)
@@ -101,15 +103,18 @@ void g_StepPlayer(float delta_time)
             vec3_t grab_point;
             mat3_t inverse_rotation;
 
-            g_player.grabbed_entity_mass = collider->mass;
-
-            p_SetColliderMass(collider, 0.01);
+//            g_player.grabbed_entity_mass = collider->mass;
+//
+//            p_SetColliderMass(collider, 0.01);
 
             vec3_t_lerp(&grab_point, &from, &to, time);
             vec3_t_sub(&g_player.relative_grab_offset, &grab_point, &collider->position);
-            mat3_t_transpose(&inverse_rotation, &collider->orientation);
-            mat3_t_vec3_t_mul(&g_player.relative_grab_offset, &g_player.relative_grab_offset, &inverse_rotation);
+//            mat3_t_transpose(&inverse_rotation, &collider->orientation);
+//            mat3_t_vec3_t_mul(&g_player.relative_grab_offset, &g_player.relative_grab_offset, &inverse_rotation);
             g_player.grab_time = time;
+            g_player.prev_pos = collider->position;
+
+//            collider->grabbed = 1;
 
 //            p_DisableColliderGravity(collider);
         }
@@ -121,9 +126,12 @@ void g_StepPlayer(float delta_time)
             if(g_player.grabbed_entity)
             {
                 struct p_dynamic_collider_t *collider = (struct p_dynamic_collider_t *)g_player.grabbed_entity->collider->collider;
-                p_SetColliderMass(collider, g_player.grabbed_entity_mass);
+//                collider->grabbed = 0;
+//                p_SetColliderMass(collider, g_player.grabbed_entity_mass);
             }
 
+
+//            g_player.prev_force = vec3_t_c(0.0, 0.0, 0.0);
             g_player.grabbed_entity = NULL;
         }
         else if(g_player.grabbed_entity)
@@ -131,36 +139,43 @@ void g_StepPlayer(float delta_time)
             struct e_entity_t *entity = g_player.grabbed_entity;
             struct p_dynamic_collider_t *collider = (struct p_dynamic_collider_t *)entity->collider->collider;
 
-            vec3_t cur_offset;
+            vec3_t move_impulse;
             vec3_t grab_point;
-            vec3_t grab_offset;
-            vec3_t point_on_collider;
+//            vec3_t grab_offset;
+//            vec3_t point_on_collider;
 
-            mat3_t_vec3_t_mul(&grab_offset, &g_player.relative_grab_offset, &collider->orientation);
-            point_on_collider = grab_offset;
-            vec3_t_add(&point_on_collider, &point_on_collider, &collider->position);
+//            mat3_t_vec3_t_mul(&grab_offset, &g_player.relative_grab_offset, &collider->orientation);
+//            point_on_collider = grab_offset;
+//            vec3_t_add(&point_on_collider, &point_on_collider, &collider->position);
             vec3_t_lerp(&grab_point, &from, &to, g_player.grab_time);
+//
+//            vec3_t_sub(&cur_offset, &grab_point, &collider->position);
+//            r_i_SetViewProjectionMatrix(NULL);
+//            r_i_SetModelMatrix(NULL);
+//            r_i_SetShader(NULL);
+//            r_i_SetDepth(GL_FALSE, 0);
+//
+//            vec3_t_sub(&cur_offset, &cur_offset, &grab_offset);
+//            r_i_DrawPoint(&point_on_collider, &vec4_t_c(1.0, 1.0, 1.0, 1.0), 8.0);
+//            r_i_DrawLine(&point_on_collider, &grab_point, &vec4_t_c(1.0, 0.0, 0.0, 1.0), 1.0);
+//            r_i_SetDepth(GL_TRUE, GL_LESS);
 
-            vec3_t_sub(&cur_offset, &grab_point, &collider->position);
-            r_i_SetViewProjectionMatrix(NULL);
-            r_i_SetModelMatrix(NULL);
-            r_i_SetShader(NULL);
-            r_i_SetDepth(GL_FALSE, 0);
+//            vec3_t collider_pos;
+//            vec3_t_add(&collider_pos, &collider->position, &collider->center_offset);
+            vec3_t_sub(&grab_point, &grab_point, &g_player.relative_grab_offset);
+            vec3_t_sub(&move_impulse, &grab_point, &collider->position);
 
-            vec3_t_sub(&cur_offset, &cur_offset, &grab_offset);
-            r_i_DrawPoint(&point_on_collider, &vec4_t_c(1.0, 1.0, 1.0, 1.0), 8.0);
-            r_i_DrawLine(&point_on_collider, &grab_point, &vec4_t_c(1.0, 0.0, 0.0, 1.0), 1.0);
-            r_i_SetDepth(GL_TRUE, GL_LESS);
+            vec3_t_mul(&move_impulse, &move_impulse, 5.0);
+            vec3_t stop_impulse;
+            vec3_t_sub(&stop_impulse, &g_player.prev_pos, &collider->position);
+            vec3_t_mul(&stop_impulse, &stop_impulse, 20);
+            p_ApplyImpulse(collider, &stop_impulse, &vec3_t_c(0.0, 0.0, 0.0), delta_time);
+            p_ApplyImpulse(collider, &move_impulse, &vec3_t_c(0.0, 0.0, 0.0), delta_time);
+            g_player.prev_pos = collider->position;
 
-            vec3_t_mul(&cur_offset, &cur_offset, 10.0);
-            float dist = vec3_t_length(&cur_offset);
-
-            if(dist > 10.0)
-            {
-                vec3_t_mul(&cur_offset, &cur_offset, 10.0 / dist);
-            }
-
-            p_SetColliderVelocity(collider, &cur_offset, NULL);
+//            vec3_t_mul(&cur_offset, &cur_offset, delta_time);
+//            p_ApplyImpulse(collider, &cur_offset, &vec3_t_c(0.0, 0.0, 0.0));
+//            p_SetColliderVelocity(collider, &cur_offset, NULL);
         }
     }
 }

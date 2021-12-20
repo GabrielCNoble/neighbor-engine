@@ -95,7 +95,7 @@ void g_MainMenu();
 
 //void g_ResourcePath(char *path, char *out_path, uint32_t out_size);
 
-void g_UpdateDeltaTime();
+float g_UpdateDeltaTime();
 
 float g_GetDeltaTime();
 

@@ -9,10 +9,7 @@
 *.jpg
 *.dll
 *.txt
-*.cbp
-*.depend
 *.layout
-*.cscope_file_list
 *.json
 *.log
 lib/assimp
@@ -22,6 +19,7 @@ lib/OPENAL
 lib/vorbis
 lib/bullet
 lib/backtrace
+lib/newton
 levels
 models
 textures

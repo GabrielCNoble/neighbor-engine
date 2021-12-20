@@ -38,7 +38,7 @@ void p_DisableColliderGravity(struct p_collider_t *collider);
 
 void p_ApplyForce(struct p_collider_t *collider, vec3_t *force, vec3_t *relative_pos);
 
-void p_ApplyImpulse(struct p_collider_t *collider, vec3_t *impulse, vec3_t *relative_pos);
+void p_ApplyImpulse(struct p_collider_t *collider, vec3_t *impulse, vec3_t *relative_pos, float delta_time);
 
 void p_TransformCollider(struct p_collider_t *collider, vec3_t *translation, mat3_t *rotation);
 
@@ -63,7 +63,7 @@ void p_MoveCharacterCollider(struct p_character_collider_t *collider, vec3_t *di
 
 void p_JumpCharacterCollider(struct p_character_collider_t *collider);
 
-struct p_collider_t *p_Raycast(vec3_t *from, vec3_t *to, float *time);
+struct p_collider_t *p_Raycast(vec3_t *from, vec3_t *to, float *time, struct p_collider_t *ignore);
 
 void p_StepPhysics(float delta_time);
 

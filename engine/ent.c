@@ -144,7 +144,7 @@ void e_DeserializeEntDefRecursive(char *start_in_buffer, struct e_ent_def_t *ent
                     {
                         struct e_constraint_t *constraint = e_AllocConstraint();
                         constraint->child_def = child_def;
-                        constraint->constraint.fields = constraint_record->fields;
+                        constraint->def = constraint_record->def;
 
                         constraint->next = ent_def->constraints;
                         if(ent_def->constraints)
@@ -300,7 +300,7 @@ struct e_constraint_t *e_AllocConstraint()
     constraint->next = NULL;
     constraint->prev = NULL;
     constraint->child_def = NULL;
-    constraint->constraint.type = P_CONSTRAINT_TYPE_LAST;
+    constraint->def.type = P_CONSTRAINT_TYPE_LAST;
 
     return constraint;
 }
@@ -609,7 +609,7 @@ struct e_entity_t *e_SpawnEntityRecursive(struct e_ent_def_t *ent_def, vec3_t *p
         while(constraint)
         {
             struct e_entity_t *child = constraint->child_def->entity;
-            p_CreateConstraint(&constraint->constraint, entity->collider->collider, child->collider->collider);
+            p_CreateConstraint(&constraint->def, entity->collider->collider, child->collider->collider);
             constraint->child_def->entity = NULL;
             constraint = constraint->next;
         }
@@ -735,7 +735,7 @@ void e_RotateEntity(struct e_entity_t *entity, mat3_t *rotation)
 
 struct e_entity_t *e_Raycast(vec3_t *from, vec3_t *to, float *time)
 {
-    struct p_collider_t *collider = p_Raycast(from, to, time);
+    struct p_collider_t *collider = p_Raycast(from, to, time, NULL);
 
     if(collider && collider->user_pointer)
     {

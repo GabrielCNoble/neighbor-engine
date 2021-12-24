@@ -58,9 +58,6 @@
 			<Add library="ogg" />
 			<Add library="vorbis" />
 			<Add library="vorbisfile" />
-			<Add library="BulletDynamics" />
-			<Add library="BulletCollision" />
-			<Add library="LinearMath" />
 			<Add library="Ole32" />
 			<Add library="backtrace" />
 			<Add library="newton.dll" />

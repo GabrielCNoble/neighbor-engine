@@ -660,25 +660,25 @@ struct ds_list_t *p_GetActiveColliders()
 //    return(struct p_dynamic_collider_t *)p_GetCollider(P_COLLIDER_TYPE_DYNAMIC, index);
 //}
 
-void p_FreezeCollider(struct p_collider_t *collider)
-{
-//    if(collider && collider->index != 0xffffffff)
-//    {
-//        btRigidBody *rigid_body = (btRigidBody *)collider->rigid_body;
-//        rigid_body->setLinearFactor(btVector3(0, 0, 0));
-//        rigid_body->setAngularFactor(btVector3(0, 0, 0));
-//    }
-}
-
-void p_UnfreezeCollider(struct p_collider_t *collider)
-{
-//    if(collider && collider->index != 0xffffffff)
-//    {
-//        btRigidBody *rigid_body = (btRigidBody *)collider->rigid_body;
-//        rigid_body->setLinearFactor(btVector3(1, 1, 1));
-//        rigid_body->setAngularFactor(btVector3(1, 1, 1));
-//    }
-}
+//void p_FreezeCollider(struct p_collider_t *collider)
+//{
+////    if(collider && collider->index != 0xffffffff)
+////    {
+////        btRigidBody *rigid_body = (btRigidBody *)collider->rigid_body;
+////        rigid_body->setLinearFactor(btVector3(0, 0, 0));
+////        rigid_body->setAngularFactor(btVector3(0, 0, 0));
+////    }
+//}
+//
+//void p_UnfreezeCollider(struct p_collider_t *collider)
+//{
+////    if(collider && collider->index != 0xffffffff)
+////    {
+////        btRigidBody *rigid_body = (btRigidBody *)collider->rigid_body;
+////        rigid_body->setLinearFactor(btVector3(1, 1, 1));
+////        rigid_body->setAngularFactor(btVector3(1, 1, 1));
+////    }
+//}
 
 
 struct p_constraint_t *p_CreateConstraint(struct p_constraint_def_t *def, struct p_collider_t *collider_a, struct p_collider_t *collider_b)

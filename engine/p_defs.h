@@ -96,6 +96,7 @@ enum P_COLLIDER_FLAGS
     struct p_constraint_t *constraints;     \
     mat3_t orientation;                     \
     vec3_t position;                        \
+    vec3_t scale;                           \
     void *rigid_body;                       \
     uint32_t index;                         \
     uint32_t type;                          \
@@ -120,7 +121,7 @@ struct p_dynamic_collider_t
     vec3_t angular_velocity;
     vec3_t accumulated_force;
     vec3_t center_offset;
-    uint32_t grabbed;
+    uint32_t active_index;
     float mass;
 };
 
@@ -167,9 +168,6 @@ struct p_hinge_constraint_fields_t
     float max_angle;
     float friction;
     uint32_t use_limits;
-    vec3_t pivot_a;
-    vec3_t pivot_b;
-    mat3_t axis;
 };
 
 struct p_double_hinge_constraint_fields_t
@@ -180,9 +178,6 @@ struct p_double_hinge_constraint_fields_t
     float max_angle1;
     uint16_t use_limits0;
     uint16_t use_limits1;
-    vec3_t pivot_a;
-    vec3_t pivot_b;
-    mat3_t axis;
 };
 
 struct p_slider_constraint_fields_t
@@ -191,9 +186,6 @@ struct p_slider_constraint_fields_t
     float max_dist;
     float friction;
     uint32_t use_limits;
-    vec3_t pivot_a;
-    vec3_t pivot_b;
-    mat3_t axis;
 };
 
 struct p_corkscrew_constraint_fields_t
@@ -202,11 +194,10 @@ struct p_corkscrew_constraint_fields_t
     float max_angle;
     float min_dist;
     float max_dist;
+    float ang_friction;
+    float lin_friction;
     uint16_t use_ang_limits;
     uint16_t use_lin_limits;
-    vec3_t pivot_a;
-    vec3_t pivot_b;
-    mat3_t axis;
 };
 
 struct p_ball_socket_constraint_fields_t
@@ -218,9 +209,6 @@ struct p_ball_socket_constraint_fields_t
     float twist_friction;
     uint16_t use_cone;
     uint16_t use_twist;
-    vec3_t pivot_a;
-    vec3_t pivot_b;
-    mat3_t axis;
 };
 
 struct p_6dof_constraint_fields_t
@@ -238,6 +226,9 @@ struct p_6dof_constraint_fields_t
 
 #define P_CONSTRAINT_DEF_FIELDS                                             \
     uint32_t type;                                                          \
+    vec3_t pivot_a;                                                         \
+    vec3_t pivot_b;                                                         \
+    mat3_t axis;                                                            \
     union                                                                   \
     {                                                                       \
         struct p_hinge_constraint_fields_t hinge;                           \
@@ -266,7 +257,7 @@ struct p_constraint_t
     void *constraint;
     union
     {
-        P_CONSTRAINT_DEF_FIELDS;
+        struct { P_CONSTRAINT_DEF_FIELDS; };
         struct p_constraint_def_t def;
     };
     struct p_col_constraint_t colliders[2];

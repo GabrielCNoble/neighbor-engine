@@ -746,7 +746,7 @@ void ed_w_UpdateUI()
                 igEndTabItem();
             }
 
-            if(igBeginTabItem("Enemies", NULL, 0))
+            if(igBeginTabItem("Enemy", NULL, 0))
             {
                 ed_level_state.selected_tools_tab = ED_L_TOOL_TAB_ENEMY;
                 uint32_t selected_enemy = ed_level_state.pickables.enemy_type;
@@ -757,6 +757,34 @@ void ed_w_UpdateUI()
                         ed_level_state.pickables.enemy_type = enemy_type;
                     }
                 }
+                igEndTabItem();
+            }
+
+            if(igBeginTabItem("Barrier", NULL, 0))
+            {
+//                ed_level_state.selected_tools_tab = ED_L_TOOL_TAB_ENEMY;
+//                uint32_t selected_enemy = ed_level_state.pickables.enemy_type;
+//                for(uint32_t enemy_type = G_ENEMY_TYPE_CAMERA; enemy_type < G_ENEMY_TYPE_LAST; enemy_type++)
+//                {
+//                    if(igSelectable_Bool(g_enemy_names[enemy_type], enemy_type == selected_enemy, 0, (ImVec2){48, 0}))
+//                    {
+//                        ed_level_state.pickables.enemy_type = enemy_type;
+//                    }
+//                }
+                igEndTabItem();
+            }
+
+            if(igBeginTabItem("Item", NULL, 0))
+            {
+//                ed_level_state.selected_tools_tab = ED_L_TOOL_TAB_ENEMY;
+//                uint32_t selected_enemy = ed_level_state.pickables.enemy_type;
+//                for(uint32_t enemy_type = G_ENEMY_TYPE_CAMERA; enemy_type < G_ENEMY_TYPE_LAST; enemy_type++)
+//                {
+//                    if(igSelectable_Bool(g_enemy_names[enemy_type], enemy_type == selected_enemy, 0, (ImVec2){48, 0}))
+//                    {
+//                        ed_level_state.pickables.enemy_type = enemy_type;
+//                    }
+//                }
                 igEndTabItem();
             }
 
@@ -1486,9 +1514,9 @@ void ed_w_UpdatePickableObjects()
                         g_RotateEnemy(enemy, &pickable->rotation);
                     }
 
-                    ed_UpdateEntityPickableRanges(pickable, enemy->entity);
-                    e_UpdateEntityNode(enemy->entity->node, &mat4_t_c_id());
-                    pickable->transform = enemy->entity->transform->transform;
+                    ed_UpdateEntityPickableRanges(pickable, enemy->thing.entity);
+                    e_UpdateEntityNode(enemy->thing.entity->node, &mat4_t_c_id());
+                    pickable->transform = enemy->thing.entity->transform->transform;
                 }
                 break;
             }
@@ -2573,14 +2601,16 @@ void ed_SerializeLevel(void **level_buffer, size_t *buffer_size, uint32_t serial
     size_t material_section_size = sizeof(struct l_material_section_t);
     material_section_size += sizeof(struct l_material_record_t) * r_materials.used;
 
-    size_t game_section_size = 0;
+    size_t enemy_section_size = 0;
     if(enemy_list->cursor)
     {
-        game_section_size += sizeof(struct l_enemy_record_t) * enemy_list->cursor;
+        enemy_section_size = sizeof(union g_enemy_record_t) * enemy_list->cursor;
     }
+
+    size_t game_section_size = enemy_section_size;
     if(game_section_size)
     {
-        game_section_size += sizeof(struct l_game_section_t);
+        game_section_size += sizeof(struct g_game_section_t);
     }
 
     size_t world_section_size = 0;
@@ -2809,35 +2839,38 @@ void ed_SerializeLevel(void **level_buffer, size_t *buffer_size, uint32_t serial
     {
         level_header->game_section_start = cur_out_buffer - start_out_buffer;
         level_header->game_section_size = game_section_size;
-        struct l_game_section_t *game_section = (struct l_game_section_t *)cur_out_buffer;
-        cur_out_buffer += sizeof(struct l_game_section_t);
+        struct g_game_section_t *game_section = (struct g_game_section_t *)cur_out_buffer;
+        cur_out_buffer += sizeof(struct g_game_section_t);
 
         if(enemy_list->cursor)
         {
             game_section->enemy_start = cur_out_buffer - start_out_buffer;
             game_section->enemy_count = enemy_list->cursor;
 
-            struct l_enemy_record_t *enemy_records = (struct l_enemy_record_t *)cur_out_buffer;
-            cur_out_buffer += sizeof(struct l_enemy_record_t ) * game_section->enemy_count;
+            union g_enemy_record_t *enemy_records = (union g_enemy_record_t *)cur_out_buffer;
+            cur_out_buffer += sizeof(union g_enemy_record_t) * enemy_list->cursor;
 
             for(uint32_t enemy_index = 0; enemy_index < game_section->enemy_count; enemy_index++)
             {
+                union g_enemy_record_t *record = enemy_records + enemy_index;
+
                 struct ed_pickable_t *pickable = *(struct ed_pickable_t **)ds_list_get_element(enemy_list, enemy_index);
                 struct g_enemy_t *enemy = g_GetEnemy(pickable->secondary_index, pickable->primary_index);
-                struct l_enemy_record_t *record = enemy_records + enemy_index;
-                struct e_node_t *node = enemy->entity->node;
+                struct e_node_t *node = enemy->thing.entity->node;
 
-                record->position = node->position;
-                record->orientation = node->orientation;
-                record->type = enemy->type;
-                record->s_index = enemy->index;
+                record->thing.position = node->position;
+                record->thing.orientation = node->orientation;
+                record->thing.scale = vec3_t_c(1.0, 1.0, 1.0);
+                record->thing.type = G_THING_TYPE_ENEMY;
+                record->def.type = enemy->type;
+                record->thing.s_index = enemy->thing.index;
 
                 switch(enemy->type)
                 {
                     case G_ENEMY_TYPE_CAMERA:
                     {
                         struct g_camera_t *camera = (struct g_camera_t *)enemy;
-                        record->camera_fields = camera->fields;
+                        record->def.camera = camera->def;
                     }
                     break;
                 }
@@ -2927,7 +2960,9 @@ void ed_SerializeLevel(void **level_buffer, size_t *buffer_size, uint32_t serial
                 entity_record->ent_def = transform->entity->def->s_index;
                 entity_record->position = transform->position;
                 entity_record->orientation = transform->orientation;
-                entity_record->scale = transform->scale;
+                entity_record->scale.x = transform->scale.x / ent_def->scale.x;
+                entity_record->scale.y = transform->scale.y / ent_def->scale.y;
+                entity_record->scale.z = transform->scale.z / ent_def->scale.z;
                 entity_record->s_index = transform->entity->index;
             }
         }
@@ -3011,12 +3046,12 @@ void ed_DeserializeLevel(void *level_buffer, size_t buffer_size)
 
     if(level_header->game_section_size)
     {
-        struct l_game_section_t *game_section = (struct l_game_section_t *)(cur_in_buffer + level_header->game_section_start);
-        struct l_enemy_record_t *enemy_records = (struct l_enemy_record_t *)(cur_in_buffer + game_section->enemy_start);
+        struct g_game_section_t *game_section = (struct g_game_section_t *)(cur_in_buffer + level_header->game_section_start);
+        union g_enemy_record_t *enemy_records = (union g_enemy_record_t *)(cur_in_buffer + game_section->enemy_start);
         for(uint32_t record_index = 0; record_index < game_section->enemy_count; record_index++)
         {
-            struct l_enemy_record_t *record = enemy_records + record_index;
-            struct g_enemy_t *enemy = g_GetEnemy(record->type, record->d_index);
+            union g_enemy_record_t *record = enemy_records + record_index;
+            struct g_enemy_t *enemy = g_GetEnemy(record->def.type, record->thing.d_index);
             ed_CreateEnemyPickable(0, NULL, NULL, enemy);
         }
     }
@@ -3442,12 +3477,12 @@ void ed_l_LoadGameLevelSnapshot()
 
         if(level_header->game_section_size)
         {
-            struct l_game_section_t *game_section = (struct l_game_section_t *)(level_buffer + level_header->game_section_start);
+            struct g_game_section_t *game_section = (struct g_game_section_t *)(level_buffer + level_header->game_section_start);
 
             if(game_section->enemy_count)
             {
                 struct ds_list_t *enemy_list = &ed_level_state.pickables.game_pickables[ED_PICKABLE_TYPE_ENEMY];
-                struct l_enemy_record_t *enemy_records = (struct l_enemy_record_t *)(level_buffer + game_section->enemy_start);
+                union g_enemy_record_t *enemy_records = (union g_enemy_record_t *)(level_buffer + game_section->enemy_start);
 
                 for(uint32_t enemy_index = 0; enemy_index < enemy_list->cursor; enemy_index++)
                 {
@@ -3455,11 +3490,11 @@ void ed_l_LoadGameLevelSnapshot()
 
                     for(uint32_t record_index = 0; record_index < game_section->enemy_count; record_index++)
                     {
-                        struct l_enemy_record_t *record = enemy_records + record_index;
+                        union g_enemy_record_t *record = enemy_records + record_index;
 
-                        if(record->s_index == pickable->primary_index && record->type == pickable->secondary_index)
+                        if(record->thing.s_index == pickable->primary_index && record->thing.type == pickable->secondary_index)
                         {
-                            pickable->primary_index = record->d_index;
+                            pickable->primary_index = record->thing.d_index;
 
                             if(record_index < game_section->enemy_count - 1)
                             {
@@ -3707,7 +3742,7 @@ void ed_l_BuildWorldData()
             l_world_shape->itri_mesh.vert_count = vert_count;
             l_world_shape->itri_mesh.indices = col_index_buffer.buffer;
             l_world_shape->itri_mesh.index_count = index_count;
-            l_world_collider = p_CreateCollider(&l_world_col_def, &vec3_t_c(0.0, 0.0, 0.0), &mat3_t_c_id());
+            l_world_collider = p_CreateCollider(&l_world_col_def, &vec3_t_c(1.0, 1.0, 1.0), &vec3_t_c(0.0, 0.0, 0.0), &mat3_t_c_id());
 
             struct r_model_geometry_t model_geometry = {};
 

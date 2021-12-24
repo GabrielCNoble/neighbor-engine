@@ -6,7 +6,7 @@
 #include "ent.h"
 #include "phys.h"
 #include "log.h"
-#include "g_enemy.h"
+#include "../engine/g_enemy.h"
 
 struct r_model_t *l_world_model;
 struct ds_dbvn_t l_world_dbvt;
@@ -25,6 +25,8 @@ void l_Init()
     log_ScopedLogMessage(LOG_TYPE_NOTICE, "Initializing level...");
     l_world_shape = p_AllocShapeDef();
     l_world_shape->type = P_COL_SHAPE_TYPE_ITRI_MESH;
+    l_world_shape->orientation = mat3_t_c_id();
+    l_world_shape->position = vec3_t_c(0.0, 0.0, 0.0);
 
     l_world_col_def.passive.shape_count = 1;
     l_world_col_def.passive.shape = l_world_shape;
@@ -64,7 +66,7 @@ void l_DestroyWorld()
 
 void l_ClearLevel()
 {
-    g_DestroyAllEnemies();
+    g_RemoveAllEnemies();
     r_DestroyAllLighs();
     e_DestroyAllEntities();
     l_DestroyWorld();
@@ -180,27 +182,28 @@ uint32_t l_DeserializeLevel(void *level_buffer, size_t buffer_size)
 
     if(level_header->game_section_size)
     {
-        struct l_game_section_t *game_section = (struct l_game_section_t *)(in_buffer + level_header->game_section_start);
+        struct g_game_section_t *game_section = (struct g_game_section_t *)(in_buffer + level_header->game_section_start);
 
         if(game_section->enemy_count)
         {
-            struct l_enemy_record_t *enemy_records = (struct l_enemy_record_t *)(in_buffer + game_section->enemy_start);
+            union g_enemy_record_t *enemy_records = (union g_enemy_record_t *)(in_buffer + game_section->enemy_start);
 
             for(uint32_t enemy_index = 0; enemy_index < game_section->enemy_count; enemy_index++)
             {
-                struct l_enemy_record_t *record = enemy_records + enemy_index;
-                struct g_enemy_t *enemy;
+                union g_enemy_record_t *record = enemy_records + enemy_index;
+                struct g_enemy_t *enemy = g_SpawnEnemy(&record->def, &record->thing.position, &record->thing.orientation);
 
-                switch(record->type)
-                {
-                    case G_ENEMY_TYPE_CAMERA:
-                    {
-                        enemy = (struct g_enemy_t *)g_CreateCamera(&record->position, &record->orientation, &record->camera_fields);
-                    }
-                    break;
-                }
+//                switch(record->type)
+//                {
+//                    case G_ENEMY_TYPE_CAMERA:
+//                    {
+//                        enemy =
+////                        enemy = (struct g_enemy_t *)g_CreateCamera(&record->position, &record->orientation, &record->camera_fields);
+//                    }
+//                    break;
+//                }
 
-                record->d_index = enemy->index;
+                record->thing.d_index = enemy->thing.index;
             }
         }
     }
@@ -239,7 +242,7 @@ uint32_t l_DeserializeLevel(void *level_buffer, size_t buffer_size)
         l_world_shape->itri_mesh.index_count = world_section->index_count;
         l_world_shape->itri_mesh.verts = col_verts.buffer;
         l_world_shape->itri_mesh.vert_count = world_section->vert_count;
-        l_world_collider = p_CreateCollider(&l_world_col_def, &vec3_t_c(0.0, 0.0, 0.0), &mat3_t_c_id());
+        l_world_collider = p_CreateCollider(&l_world_col_def, &vec3_t_c(1.0, 1.0, 1.0), &vec3_t_c(0.0, 0.0, 0.0), &mat3_t_c_id());
 
         struct r_model_geometry_t geometry = {};
         geometry.batches = batch_buffer.buffer;

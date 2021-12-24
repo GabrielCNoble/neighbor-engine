@@ -1,8 +1,8 @@
 #include "g_player.h"
-#include "phys.h"
-#include "r_main.h"
-#include "input.h"
-#include "ent.h"
+#include "../engine/phys.h"
+#include "../engine/r_main.h"
+#include "../engine/input.h"
+#include "../engine/ent.h"
 
 struct g_player_t g_player;
 extern struct ds_list_t g_spawn_points;
@@ -21,7 +21,7 @@ void g_PlayerInit()
     g_player.yaw = 0.0;
 //    mat3_t orientation = mat3_t_c_id();
 //    mat3_t_rotate_z()
-    g_player.collider = (struct p_character_collider_t *)p_CreateCollider(&col_def, &vec3_t_c(0.0, 7.0, 0.0), &mat3_t_c_id());
+    g_player.collider = (struct p_character_collider_t *)p_CreateCollider(&col_def, &vec3_t_c(1.0, 1.0, 1.0), &vec3_t_c(0.0, 7.0, 0.0), &mat3_t_c_id());
 }
 
 void g_StepPlayer(float delta_time)

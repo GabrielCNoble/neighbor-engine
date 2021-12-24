@@ -466,7 +466,7 @@ void e_DeallocComponent(struct e_component_t *component)
     }
 }
 
-struct e_node_t *e_AllocNode(vec3_t *position, vec3_t *scale, vec3_t *local_scale, mat3_t *orientation, struct e_entity_t *entity)
+struct e_node_t *e_AllocNode(vec3_t *position, vec3_t *scale, /* vec3_t *local_scale, */ mat3_t *orientation, struct e_entity_t *entity)
 {
     struct e_node_t *component;
     component = (struct e_node_t *)e_AllocComponent(E_COMPONENT_TYPE_NODE, entity);
@@ -478,7 +478,7 @@ struct e_node_t *e_AllocNode(vec3_t *position, vec3_t *scale, vec3_t *local_scal
     component->position = *position;
     component->orientation = *orientation;
     component->scale = *scale;
-    component->local_scale = *local_scale;
+//    component->local_scale = *local_scale;
     component->root_index = 0xffffffff;
 
     return component;
@@ -495,12 +495,12 @@ struct e_collider_t *e_AllocCollider(struct p_col_def_t *col_def, struct e_entit
 {
     struct e_collider_t *component = (struct e_collider_t *)e_AllocComponent(E_COMPONENT_TYPE_COLLIDER, entity);
 
-    if(col_def->type != P_COLLIDER_TYPE_CHARACTER && col_def->passive.shape_count == 1)
-    {
-        component->offset_position = col_def->passive.shape->position;
-        component->offset_rotation = col_def->passive.shape->orientation;
-    }
-    else
+//    if(col_def->type != P_COLLIDER_TYPE_CHARACTER && col_def->passive.shape_count == 1)
+//    {
+//        component->offset_position = col_def->passive.shape->position;
+//        component->offset_rotation = col_def->passive.shape->orientation;
+//    }
+//    else
     {
         component->offset_position = vec3_t_c(0.0, 0.0, 0.0);
         component->offset_rotation = mat3_t_c_id();
@@ -509,29 +509,35 @@ struct e_collider_t *e_AllocCollider(struct p_col_def_t *col_def, struct e_entit
     vec3_t offset_position = component->offset_position;
     mat3_t offset_orientation = component->offset_rotation;
     vec3_t entity_position;
+    vec3_t entity_scale;
     mat3_t entity_orientation;
 
     if(entity)
     {
         struct e_transform_t *transform = entity->transform;
         entity_position = transform->transform.rows[3].xyz;
-        entity_orientation.rows[0] = transform->transform.rows[0].xyz;
-        entity_orientation.rows[1] = transform->transform.rows[1].xyz;
-        entity_orientation.rows[2] = transform->transform.rows[2].xyz;
+        entity_scale.x = vec3_t_length(&transform->transform.rows[0].xyz);
+        entity_scale.y = vec3_t_length(&transform->transform.rows[1].xyz);
+        entity_scale.z = vec3_t_length(&transform->transform.rows[2].xyz);
+
+        vec3_t_mul(&entity_orientation.rows[0], &transform->transform.rows[0].xyz, 1.0 / entity_scale.x);
+        vec3_t_mul(&entity_orientation.rows[1], &transform->transform.rows[1].xyz, 1.0 / entity_scale.y);
+        vec3_t_mul(&entity_orientation.rows[2], &transform->transform.rows[2].xyz, 1.0 / entity_scale.z);
     }
     else
     {
         entity_position = vec3_t_c(0.0, 0.0, 0.0);
+        entity_scale = vec3_t_c(1.0, 1.0, 1.0);
         entity_orientation = mat3_t_c_id();
     }
 
-    mat3_t_vec3_t_mul(&offset_position, &offset_position, &entity_orientation);
-    vec3_t_add(&entity_position, &entity_position, &offset_position);
-    mat3_t_mul(&entity_orientation, &offset_orientation, &entity_orientation);
+//    mat3_t_vec3_t_mul(&offset_position, &offset_position, &entity_orientation);
+//    vec3_t_add(&entity_position, &entity_position, &offset_position);
+//    mat3_t_mul(&entity_orientation, &offset_orientation, &entity_orientation);
 
-    component->collider = p_CreateCollider(col_def, &entity_position, &entity_orientation);
+    component->collider = p_CreateCollider(col_def, &entity_scale, &entity_position, &entity_orientation);
     component->collider->user_pointer = component;
-    mat3_t_transpose(&component->offset_rotation, &component->offset_rotation);
+//    mat3_t_transpose(&component->offset_rotation, &component->offset_rotation);
 
     return component;
 }
@@ -544,7 +550,7 @@ struct e_model_t *e_AllocModel(struct r_model_t *model, struct e_entity_t *entit
     return component;
 }
 
-struct e_entity_t *e_SpawnEntityRecursive(struct e_ent_def_t *ent_def, vec3_t *position, vec3_t *scale, vec3_t *local_scale, mat3_t *orientation, struct e_entity_t *parent)
+struct e_entity_t *e_SpawnEntityRecursive(struct e_ent_def_t *ent_def, vec3_t *position, vec3_t *scale, /* vec3_t *local_scale, */ mat3_t *orientation, struct e_entity_t *parent)
 {
     uint32_t index;
     struct e_entity_t *entity;
@@ -552,23 +558,38 @@ struct e_entity_t *e_SpawnEntityRecursive(struct e_ent_def_t *ent_def, vec3_t *p
     index = ds_slist_add_element(&e_entities, NULL);
     entity = ds_slist_get_element(&e_entities, index);
 
-    entity->node = e_AllocNode(position, scale, local_scale, orientation, entity);
+    vec3_t entity_scale;
+    entity_scale.x = scale->x * ent_def->scale.x;
+    entity_scale.y = scale->y * ent_def->scale.y;
+    entity_scale.z = scale->z * ent_def->scale.z;
+
+    entity->node = e_AllocNode(position, &entity_scale, orientation, entity);
     entity->transform = e_AllocTransform(entity);
     entity->index = index;
     entity->def = NULL;
 
-    mat4_t scale_transform = mat4_t_c_id();
-    scale_transform.rows[0].x = entity->node->scale.x;
-    scale_transform.rows[1].y = entity->node->scale.y;
-    scale_transform.rows[2].z = entity->node->scale.z;
-
-    mat4_t_comp(&entity->transform->transform, &entity->node->orientation, &entity->node->position);
-    mat4_t_mul(&entity->transform->transform, &scale_transform, &entity->transform->transform);
-
     if(parent)
     {
-        mat4_t_mul(&entity->transform->transform, &entity->transform->transform, &parent->transform->transform);
+        e_UpdateEntityNode(entity->node, &parent->transform->transform);
     }
+    else
+    {
+        e_UpdateEntityNode(entity->node, &mat4_t_c_id());
+    }
+
+
+//    mat4_t scale_transform = mat4_t_c_id();
+//    scale_transform.rows[0].x = entity->node->scale.x * entity->node->local_scale.x;
+//    scale_transform.rows[1].y = entity->node->scale.y * entity->node->local_scale.y;
+//    scale_transform.rows[2].z = entity->node->scale.z * entity->node->local_scale.z;
+//
+//    mat4_t_comp(&entity->transform->transform, &entity->node->orientation, &entity->node->position);
+//    mat4_t_mul(&entity->transform->transform, &scale_transform, &entity->transform->transform);
+//
+//    if(parent)
+//    {
+//        mat4_t_mul(&entity->transform->transform, &entity->transform->transform, &parent->transform->transform);
+//    }
 
     if(ent_def->model)
     {
@@ -587,7 +608,7 @@ struct e_entity_t *e_SpawnEntityRecursive(struct e_ent_def_t *ent_def, vec3_t *p
 
         while(child_def)
         {
-            struct e_entity_t *child_entity = e_SpawnEntityRecursive(child_def, &child_def->position, &vec3_t_c(1.0, 1.0, 1.0), &child_def->scale, &child_def->orientation, entity);
+            struct e_entity_t *child_entity = e_SpawnEntityRecursive(child_def, &child_def->position, /* &vec3_t_c(1.0, 1.0, 1.0), */ &child_def->scale, &child_def->orientation, entity);
             struct e_node_t *child_transform = child_entity->node;
             child_transform->parent = entity->node;
 
@@ -620,7 +641,7 @@ struct e_entity_t *e_SpawnEntityRecursive(struct e_ent_def_t *ent_def, vec3_t *p
 
 struct e_entity_t *e_SpawnEntity(struct e_ent_def_t *ent_def, vec3_t *position, vec3_t *scale, mat3_t *orientation)
 {
-    struct e_entity_t *entity = e_SpawnEntityRecursive(ent_def, position, scale, &ent_def->scale, orientation, NULL);
+    struct e_entity_t *entity = e_SpawnEntityRecursive(ent_def, position, scale, /* &ent_def->scale, */ orientation, NULL);
     entity->node->root_index = ds_list_add_element(&e_root_transforms, &entity->node);
 
     if(ent_def->type == E_ENT_DEF_TYPE_ROOT)
@@ -770,12 +791,12 @@ void e_UpdateEntityNode(struct e_node_t *local_transform, mat4_t *parent_transfo
         child = child->next;
     }
 
-    mat4_t local_scale = mat4_t_c_id();
-    local_scale.rows[0].x = local_transform->local_scale.x;
-    local_scale.rows[1].y = local_transform->local_scale.y;
-    local_scale.rows[2].z = local_transform->local_scale.z;
-
-    mat4_t_mul(&transform->transform, &local_scale, &transform->transform);
+//    mat4_t local_scale = mat4_t_c_id();
+//    local_scale.rows[0].x = local_transform->local_scale.x;
+//    local_scale.rows[1].y = local_transform->local_scale.y;
+//    local_scale.rows[2].z = local_transform->local_scale.z;
+//
+//    mat4_t_mul(&transform->transform, &local_scale, &transform->transform);
 }
 
 void e_UpdateEntities()
@@ -784,10 +805,13 @@ void e_UpdateEntities()
     {
         struct e_collider_t *collider = (struct e_collider_t *)e_GetComponent(E_COMPONENT_TYPE_COLLIDER, collider_index);
         struct e_node_t *transform = collider->entity->node;
-        mat3_t_mul(&transform->orientation, &collider->offset_rotation, &collider->collider->orientation);
-        vec3_t offset_position = collider->offset_position;
-        mat3_t_vec3_t_mul(&offset_position, &offset_position, &transform->orientation);
-        vec3_t_sub(&transform->position, &collider->collider->position, &offset_position);
+        transform->orientation = collider->collider->orientation;
+        transform->position = collider->collider->position;
+        transform->scale = collider->collider->scale;
+//        mat3_t_mul(&transform->orientation, &collider->offset_rotation, &collider->collider->orientation);
+//        vec3_t offset_position = collider->offset_position;
+//        mat3_t_vec3_t_mul(&offset_position, &offset_position, &transform->orientation);
+//        vec3_t_sub(&transform->position, &collider->collider->position, &offset_position);
     }
 
     for(uint32_t root_index = 0; root_index < e_root_transforms.cursor; root_index++)

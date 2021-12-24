@@ -32,6 +32,7 @@
 			<Add option="-std=c11" />
 			<Add option="-Wno-missing-braces" />
 			<Add option="-fno-omit-frame-pointer" />
+			<Add option="-Wno-write-strings" />
 			<Add directory="lib/SDL/include" />
 			<Add directory="lib" />
 			<Add directory="lib/GLEW/include" />
@@ -41,6 +42,13 @@
 			<Add directory="lib/vorbis/include" />
 			<Add directory="lib/bullet/include" />
 			<Add directory="lib/backtrace/include" />
+			<Add directory="lib/newton/include" />
+			<Add directory="lib/newton/include/dgNewton" />
+			<Add directory="lib/newton/include/dContainers" />
+			<Add directory="lib/newton/include/dMath" />
+			<Add directory="lib/newton/include/dgCore" />
+			<Add directory="lib/newton/include/dgPhysics" />
+			<Add directory="lib/newton/include/dgMeshUtil" />
 		</Compiler>
 		<Linker>
 			<Add library="SDL2" />
@@ -55,12 +63,18 @@
 			<Add library="LinearMath" />
 			<Add library="Ole32" />
 			<Add library="backtrace" />
+			<Add library="newton.dll" />
+			<Add library="dgCore.dll" />
+			<Add library="dgPhysics.dll" />
+			<Add library="dCustomJoints.dll" />
+			<Add library="dMath.dll" />
 			<Add directory="lib/SDL/lib" />
 			<Add directory="lib/GLEW/lib" />
 			<Add directory="lib/OPENAL/lib" />
 			<Add directory="lib/vorbis/lib" />
 			<Add directory="lib/bullet/lib" />
 			<Add directory="lib/backtrace/lib" />
+			<Add directory="lib/newton/lib" />
 		</Linker>
 		<Unit filename="editor/ed_brush.c">
 			<Option compilerVar="CC" />
@@ -104,6 +118,10 @@
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="engine/ent.h" />
+		<Unit filename="engine/g_barrier.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="engine/g_barrier.h" />
 		<Unit filename="engine/g_defs.h" />
 		<Unit filename="engine/g_enemy.c">
 			<Option compilerVar="CC" />

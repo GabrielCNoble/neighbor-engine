@@ -7,7 +7,7 @@
 
 #include "p_defs.h"
 #include "e_defs.h"
-#include "g_defs.h"
+#include "../engine/g_defs.h"
 
 #define L_LEVEL_HEADER_MAGIC0 0x4749454e    /* NEIG */
 #define L_LEVEL_HEADER_MAGIC1 0x524f4248    /* HBOR */
@@ -188,32 +188,32 @@ struct l_batch_record_t
     size_t material;
 };
 
-struct l_game_section_t
-{
-    uint64_t enemy_start;
-    uint64_t enemy_count;
+//struct l_game_section_t
+//{
+//    uint64_t enemy_start;
+//    uint64_t enemy_count;
+//
+//    uint64_t player_start;
+//    uint64_t player_size;
+//
+//    uint64_t entity_start;
+//    uint64_t entity_size;
+//};
 
-    uint64_t player_start;
-    uint64_t player_size;
-
-    uint64_t entity_start;
-    uint64_t entity_size;
-};
-
-struct l_enemy_record_t
-{
-    uint64_t type;
-    vec3_t position;
-    mat3_t orientation;
-    uint32_t d_index;
-    uint32_t s_index;
-
-    union
-    {
-        struct g_camera_fields_t camera_fields;
-        struct { uint64_t extra[32]; };
-    };
-};
+//struct l_enemy_record_t
+//{
+//    uint64_t type;
+//    vec3_t position;
+//    mat3_t orientation;
+//    uint32_t d_index;
+//    uint32_t s_index;
+//
+//    union
+//    {
+//        struct g_camera_fields_t camera_fields;
+//        struct { uint64_t extra[32]; };
+//    };
+//};
 
 
 //struct l_player_section_t

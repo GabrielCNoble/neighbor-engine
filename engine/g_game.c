@@ -1,7 +1,7 @@
 #include "g_game.h"
 #include "g_enemy.h"
 #include "g_player.h"
-#include "ent.h"
+#include "../engine/ent.h"
 
 struct ds_list_t g_spawn_points;
 
@@ -11,27 +11,38 @@ void g_GameInit()
     g_EnemyInit();
 }
 
-struct g_entity_t *g_CreateEntity(struct ds_slist_t *list, struct e_ent_def_t *ent_def, vec3_t *position, vec3_t *scale, mat3_t *orientation)
+struct g_thing_t *g_SpawnThing(uint32_t type, struct ds_slist_t *list, struct e_ent_def_t *ent_def, vec3_t *position, vec3_t *scale, mat3_t *orientation)
 {
     uint32_t index = ds_slist_add_element(list, NULL);
-    struct g_entity_t *entity = ds_slist_get_element(list, index);
+    struct g_thing_t *thing = ds_slist_get_element(list, index);
 
-    entity->index = index;
-    entity->entity = e_SpawnEntity(ent_def, position, scale, orientation);
-    entity->list = list;
+    thing->index = index;
+    thing->type = type;
+    thing->entity = e_SpawnEntity(ent_def, position, scale, orientation);
+    thing->list = list;
 
-    e_UpdateEntityNode(entity->entity->node, &mat4_t_c_id());
+    e_UpdateEntityNode(thing->entity->node, &mat4_t_c_id());
 
-    return entity;
+    return thing;
 }
 
-void g_DestroyEntity(struct g_entity_t *entity)
+struct g_thing_t *g_GetThing(struct ds_slist_t *list, uint32_t index)
 {
-    if(entity && entity->index != 0xffffffff)
+    struct g_thing_t *thing = ds_slist_get_element(list, index);
+    if(thing && thing->index == 0xffffffff)
     {
-        e_DestroyEntity(entity->entity);
-        ds_slist_remove_element(entity->list, entity->index);
-        entity->index = 0xffffffff;
+        thing = NULL;
+    }
+    return thing;
+}
+
+void g_RemoveThing(struct g_thing_t *thing)
+{
+    if(thing && thing->index != 0xffffffff)
+    {
+        e_DestroyEntity(thing->entity);
+        ds_slist_remove_element(thing->list, thing->index);
+        thing->index = 0xffffffff;
     }
 }
 

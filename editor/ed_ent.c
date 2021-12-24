@@ -43,7 +43,6 @@ void ed_e_Shutdown()
 
 void ed_e_Suspend()
 {
-    p_UnfreezePhysics();
     if(ed_entity_state.cur_entity)
     {
         e_DestroyEntity(ed_entity_state.cur_entity);
@@ -55,7 +54,6 @@ void ed_e_Suspend()
 void ed_e_Resume()
 {
     r_SetClearColor(0.4, 0.4, 0.8, 1.0);
-    p_FreezePhysics();
     if(ed_entity_state.cur_ent_def && ed_entity_state.cur_ent_def->index != 0xffffffff)
     {
         struct e_ent_def_t *ent_def = ed_entity_state.cur_ent_def;
@@ -199,11 +197,11 @@ void ed_e_AddConstraint(struct e_ent_def_t *child_def, struct e_ent_def_t *paren
         parent_def->constraints = constraint;
 
         constraint->def.type = P_CONSTRAINT_TYPE_HINGE;
-        constraint->def.hinge.axis = mat3_t_c_id();
+        constraint->def.axis = mat3_t_c_id();
         constraint->def.hinge.min_angle = -0.5;
         constraint->def.hinge.max_angle = 0.5;
-        constraint->def.hinge.pivot_a = parent_def->position;
-        constraint->def.hinge.pivot_b = child_def->position;
+        constraint->def.pivot_a = vec3_t_c(0.0, 0.0, 0.0);
+        constraint->def.pivot_b = vec3_t_c(0.0, 0.0, 0.0);
 
 //        parent_def->constraint_count++;
     }
@@ -418,44 +416,67 @@ uint32_t ed_e_EntDefHierarchyUI(struct e_ent_def_t *ent_def, struct e_ent_def_t 
                     {
                         for(uint32_t type = P_CONSTRAINT_TYPE_HINGE; type < P_CONSTRAINT_TYPE_LAST; type++)
                         {
-                            if(igSelectable_Bool(p_constraint_names[constraint->def.type], 0, 0, (ImVec2){0, 0}))
+                            if(igSelectable_Bool(p_constraint_names[type], 0, 0, (ImVec2){0, 0}))
                             {
-
+                                constraint->def.type = type;
+                                refresh_entity = 1;
                             }
                         }
                         igEndCombo();
                     }
 
+                    refresh_entity |= igInputFloat3("Pivot A", constraint->def.pivot_a.comps, "%0.6f", 0);
+                    refresh_entity |= igInputFloat3("Pivot B", constraint->def.pivot_b.comps, "%0.6f", 0);
+
                     switch(constraint->def.type)
                     {
                         case P_CONSTRAINT_TYPE_HINGE:
                         {
-                            refresh_entity |= igInputFloat3("Pivot A", constraint->def.hinge.pivot_a.comps, "%0.6f", 0);
-                            refresh_entity |= igInputFloat3("Pivot B", constraint->def.hinge.pivot_b.comps, "%0.6f", 0);
-                            refresh_entity |= igSliderAngle("Low limit", &constraint->def.hinge.min_angle, -180.0, 180.0, "%0.2f", 0);
-                            refresh_entity |= igSliderAngle("High limit", &constraint->def.hinge.max_angle, -180.0, 180.0, "%0.2f", 0);
+                            refresh_entity |= igSliderAngle("Min angle", &constraint->def.hinge.min_angle, -180.0, 180.0, "%0.2f", 0);
+                            refresh_entity |= igSliderAngle("Max limit", &constraint->def.hinge.max_angle, -180.0, 180.0, "%0.2f", 0);
+                            refresh_entity |= igCheckbox("Use limits", &constraint->def.hinge.use_limits);
                             char preview[32];
-                            vec3_t hinge_axis = constraint->def.hinge.axis.rows[0];
+                            vec3_t hinge_axis = constraint->def.axis.rows[0];
                             sprintf(preview, "[%f %f %f]", hinge_axis.x, hinge_axis.y, hinge_axis.z);
 
                             if(igBeginCombo("Axis", preview, 0))
                             {
                                 if(igMenuItem_Bool("[1.0, 0.0, 0.0]", 0, 0, 1))
                                 {
-                                    constraint->def.hinge.axis = mat3_t_c_id();
+//                                    constraint->def.axis = mat3_t_c_id();
+                                    constraint->def.axis.rows[0] = vec3_t_c(1.0, 0.0, 0.0);
+                                    constraint->def.axis.rows[1] = vec3_t_c(0.0, 1.0, 0.0);
+                                    constraint->def.axis.rows[2] = vec3_t_c(0.0, 0.0, 1.0);
+                                    refresh_entity = 1;
                                 }
                                 if(igMenuItem_Bool("[0.0, 1.0, 0.0]", 0, 0, 1))
                                 {
-                                    constraint->def.hinge.axis = mat3_t_c_id();
-                                    mat3_t_rotate_z(&constraint->def.hinge.axis, 0.5);
+//                                    constraint->def.axis = mat3_t_c_id();
+//                                    mat3_t_rotate_z(&constraint->def.axis, 0.5);
+                                    constraint->def.axis.rows[1] = vec3_t_c(1.0, 0.0, 0.0);
+                                    constraint->def.axis.rows[0] = vec3_t_c(0.0, 1.0, 0.0);
+                                    constraint->def.axis.rows[2] = vec3_t_c(0.0, 0.0, 1.0);
+                                    refresh_entity = 1;
                                 }
                                 if(igMenuItem_Bool("[0.0, 0.0, 1.0]", 0, 0, 1))
                                 {
-                                    constraint->def.hinge.axis = mat3_t_c_id();
-                                    mat3_t_rotate_y(&constraint->def.hinge.axis, 0.5);
+//                                    constraint->def.axis = mat3_t_c_id();
+//                                    mat3_t_rotate_y(&constraint->def.axis, -1.5);
+                                    constraint->def.axis.rows[2] = vec3_t_c(1.0, 0.0, 0.0);
+                                    constraint->def.axis.rows[1] = vec3_t_c(0.0, 1.0, 0.0);
+                                    constraint->def.axis.rows[0] = vec3_t_c(0.0, 0.0, 1.0);
+                                    refresh_entity = 1;
                                 }
                                 igEndCombo();
                             }
+                        }
+                        break;
+
+                        case P_CONSTRAINT_TYPE_SLIDER:
+                        {
+                            refresh_entity |= igInputFloat("Min dist", &constraint->def.slider.min_dist, 0.0, 0.0, "%0.6f", 0);
+                            refresh_entity |= igInputFloat("Max dist", &constraint->def.slider.max_dist, 0.0, 0.0, "%0.6f", 0);
+                            refresh_entity |= igCheckbox("Use limits", &constraint->def.slider.use_limits);
                         }
                         break;
                     }
@@ -679,7 +700,7 @@ void ed_e_Update()
     ed_entity_state.light->position = forward_vec;
     ed_LevelEditorDrawGrid();
 
-    p_StepPhysics(0.0);
+    p_DebugDrawPhysics();
 }
 
 void ed_e_ResetEditor()

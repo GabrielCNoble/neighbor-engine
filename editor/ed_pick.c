@@ -444,7 +444,7 @@ void ed_DestroyPickable(struct ed_pickable_t *pickable)
             break;
 
             case ED_PICKABLE_TYPE_ENEMY:
-                g_DestroyEnemy(g_GetEnemy(pickable->secondary_index, pickable->primary_index));
+                g_RemoveEnemy(g_GetEnemy(pickable->secondary_index, pickable->primary_index));
             break;
         }
 
@@ -762,25 +762,26 @@ struct ed_pickable_t *ed_CreateEnemyPickable(uint32_t type, vec3_t *position, ma
         {
             case G_ENEMY_TYPE_CAMERA:
             {
-                struct g_camera_fields_t fields = {};
-                fields.min_pitch = -0.5;
-                fields.max_pitch = 0.5;
-                fields.min_yaw = -0.5;
-                fields.max_yaw = 0.5;
-                fields.idle_pitch = 0.2;
-                fields.range = 10.0;
-                fields.cur_pitch = 0.2;
-                fields.cur_yaw = 0.0;
-                enemy = (struct g_enemy_t *)g_CreateCamera(position, orientation, &fields);
+                struct g_enemy_def_t def = {};
+                def.type = G_ENEMY_TYPE_CAMERA;
+                def.camera.min_pitch = -0.5;
+                def.camera.max_pitch = 0.5;
+                def.camera.min_yaw = -0.5;
+                def.camera.max_yaw = 0.5;
+                def.camera.idle_pitch = 0.2;
+                def.camera.range = 10.0;
+                def.camera.cur_pitch = 0.2;
+                def.camera.cur_yaw = 0.0;
+                enemy = g_SpawnEnemy(&def, position, orientation);
             }
             break;
         }
     }
 
     struct ed_pickable_t *pickable = ed_CreatePickable(ED_PICKABLE_TYPE_ENEMY);
-    pickable->primary_index = enemy->index;
+    pickable->primary_index = enemy->thing.index;
     pickable->secondary_index = enemy->type;
-    pickable->transform = enemy->entity->transform->transform;
+    pickable->transform = enemy->thing.entity->transform->transform;
 
     ed_w_MarkPickableModified(pickable);
 

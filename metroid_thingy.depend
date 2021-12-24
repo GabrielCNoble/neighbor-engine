@@ -1089,7 +1089,7 @@
 	"dstuff/ds_matrix.h"
 	"../engine/r_com.h"
 
-1639785011 c:\users\gabri\documents\compiler\metroid_thingy\editor\ed_pick.h
+1640095864 c:\users\gabri\documents\compiler\metroid_thingy\editor\ed_pick.h
 	"ed_pick_defs.h"
 	"ed_brush_defs.h"
 	"../engine/r_defs.h"
@@ -1206,7 +1206,7 @@
 	"../engine/game.h"
 	"../engine/input.h"
 
-1639785011 source:c:\users\gabri\documents\compiler\metroid_thingy\editor\ed_pick.c
+1640220906 source:c:\users\gabri\documents\compiler\metroid_thingy\editor\ed_pick.c
 	<stdio.h>
 	"ed_pick.h"
 	"ed_brush.h"
@@ -1304,7 +1304,7 @@
 	"ed_defs.h"
 	"ed_pick_defs.h"
 
-1639785011 source:c:\users\gabri\documents\compiler\metroid_thingy\editor\ed_level.c
+1640274020 source:c:\users\gabri\documents\compiler\metroid_thingy\editor\ed_level.c
 	<float.h>
 	"ed_level.h"
 	"ed_pick.h"
@@ -1326,7 +1326,7 @@
 	"ed_pick.h"
 	"ed_level_defs.h"
 
-1639937170 source:c:\users\gabri\documents\compiler\metroid_thingy\engine\level.c
+1640234466 source:c:\users\gabri\documents\compiler\metroid_thingy\engine\level.c
 	"level.h"
 	"dstuff/ds_dbvt.h"
 	"dstuff/ds_alloc.h"
@@ -1335,7 +1335,7 @@
 	"ent.h"
 	"phys.h"
 	"log.h"
-	"g_enemy.h"
+	"../engine/g_enemy.h"
 
 1639785011 c:\users\gabri\documents\compiler\metroid_thingy\engine\level.h
 	"l_defs.h"
@@ -1360,13 +1360,13 @@
 	"dstuff/ds_vector.h"
 	"dstuff/ds_matrix.h"
 
-1639785011 c:\users\gabri\documents\compiler\metroid_thingy\engine\l_defs.h
+1640113186 c:\users\gabri\documents\compiler\metroid_thingy\engine\l_defs.h
 	<stdint.h>
 	"../lib/dstuff/ds_vector.h"
 	"../lib/dstuff/ds_matrix.h"
 	"p_defs.h"
 	"e_defs.h"
-	"g_defs.h"
+	"../engine/g_defs.h"
 
 1637358837 source:c:\users\gabri\documents\compiler\metroid_thingy\lib\lzo\minilzo.c
 	<config.h>
@@ -1409,13 +1409,13 @@
 	<stddef.h>
 	<stdalign.h>
 
-1639941489 c:\users\gabri\documents\compiler\metroid_thingy\engine\e_defs.h
+1640273893 c:\users\gabri\documents\compiler\metroid_thingy\engine\e_defs.h
 	<stdint.h>
 	"../lib/dstuff/ds_list.h"
 	"r_defs.h"
 	"p_defs.h"
 
-1639968315 c:\users\gabri\documents\compiler\metroid_thingy\engine\p_defs.h
+1640275295 c:\users\gabri\documents\compiler\metroid_thingy\engine\p_defs.h
 	"../lib/dstuff/ds_vector.h"
 	"../lib/dstuff/ds_matrix.h"
 	"../lib/dstuff/ds_list.h"
@@ -1423,13 +1423,13 @@
 	<stdint.h>
 	<float.h>
 
-1639920441 c:\users\gabri\documents\compiler\metroid_thingy\engine\phys.h
+1640231897 c:\users\gabri\documents\compiler\metroid_thingy\engine\phys.h
 	"p_defs.h"
 
-1639785011 c:\users\gabri\documents\compiler\metroid_thingy\engine\ent.h
+1640273938 c:\users\gabri\documents\compiler\metroid_thingy\engine\ent.h
 	"e_defs.h"
 
-1639968363 source:c:\users\gabri\documents\compiler\metroid_thingy\editor\ed_ent.c
+1640235234 source:c:\users\gabri\documents\compiler\metroid_thingy\editor\ed_ent.c
 	"ed_ent.h"
 	"../engine/ent.h"
 	"../engine/p_defs.h"
@@ -1463,7 +1463,7 @@
 	"../engine/gui.h"
 	"ed_main.h"
 
-1639941549 source:c:\users\gabri\documents\compiler\metroid_thingy\engine\ent.c
+1640275332 source:c:\users\gabri\documents\compiler\metroid_thingy\engine\ent.c
 	<stdio.h>
 	"ent.h"
 	"phys.h"
@@ -1474,12 +1474,12 @@
 	"../lib/dstuff/ds_path.h"
 	"log.h"
 
-1639929905 source:c:\users\gabri\documents\compiler\metroid_thingy\engine\g_player.c
+1640228096 source:c:\users\gabri\documents\compiler\metroid_thingy\engine\g_player.c
 	"g_player.h"
-	"phys.h"
-	"r_main.h"
-	"input.h"
-	"ent.h"
+	"../engine/phys.h"
+	"../engine/r_main.h"
+	"../engine/input.h"
+	"../engine/ent.h"
 
 1639785011 c:\users\gabri\documents\compiler\metroid_thingy\engine\g_player.h
 	<stdint.h>
@@ -1491,7 +1491,7 @@
 1639785011 c:\users\gabri\documents\compiler\metroid_thingy\engine\p_col.h
 	"p_defs.h"
 
-1639959484 source:c:\users\gabri\documents\compiler\metroid_thingy\engine\phys.cpp
+1640275308 source:c:\users\gabri\documents\compiler\metroid_thingy\engine\phys.cpp
 	<float.h>
 	"phys.h"
 	"dstuff/ds_slist.h"
@@ -1499,30 +1499,13 @@
 	"dstuff/ds_mem.h"
 	"dstuff/ds_matrix.h"
 	"r_draw.h"
-	"BulletDynamics/Dynamics/btDiscreteDynamicsWorld.h"
-	"BulletDynamics/ConstraintSolver/btSequentialImpulseConstraintSolver.h"
-	"BulletCollision/BroadphaseCollision/btBroadphaseInterface.h"
-	"BulletCollision/BroadphaseCollision/btDbvtBroadphase.h"
-	"BulletCollision/CollisionDispatch/btDefaultCollisionConfiguration.h"
-	"BulletCollision/CollisionShapes/btCollisionShape.h"
-	"BulletCollision/CollisionShapes/btBoxShape.h"
-	"BulletCollision/CollisionShapes/btCylinderShape.h"
-	"BulletCollision/CollisionShapes/btSphereShape.h"
-	"BulletCollision/CollisionShapes/btCapsuleShape.h"
-	"BulletCollision/CollisionShapes/btBvhTriangleMeshShape.h"
-	"BulletCollision/CollisionShapes/btCompoundShape.h"
-	"BulletCollision/CollisionShapes/btTriangleIndexVertexArray.h"
-	"BulletDynamics/ConstraintSolver/btHingeConstraint.h"
-	"BulletDynamics/ConstraintSolver/btPoint2PointConstraint.h"
-	"BulletDynamics/ConstraintSolver/btSliderConstraint.h"
-	"BulletDynamics/Dynamics/btRigidBody.h"
-	"LinearMath/btDefaultMotionState.h"
-	"LinearMath/btTransform.h"
-	"LinearMath/btVector3.h"
-	"LinearMath/btIDebugDraw.h"
 	"log.h"
 	"newton/include/dgNewton/Newton.h"
+	"newton/include/dgNewton/NewtonStdAfx.h"
 	"newton/include/dCustomJoints/dCustomHinge.h"
+	"newton/include/dCustomJoints/dCustomSlider.h"
+	"newton/include/dCustomJoints/dCustomCorkscrew.h"
+	"newton/include/dCustomJoints/dCustomBallAndSocket.h"
 
 1637155469 c:\users\gabri\documents\compiler\metroid_thingy\lib\bullet\include\bulletdynamics\dynamics\btdiscretedynamicsworld.h
 	"btDynamicsWorld.h"
@@ -1868,22 +1851,22 @@
 	"btJacobianEntry.h"
 	"btTypedConstraint.h"
 
-1639872738 source:c:\users\gabri\documents\compiler\metroid_thingy\engine\g_enemy.c
+1640220617 source:c:\users\gabri\documents\compiler\metroid_thingy\engine\g_enemy.c
 	"g_enemy.h"
-	"ent.h"
 	"g_game.h"
-	"r_main.h"
-	"phys.h"
+	"../engine/ent.h"
+	"../engine/r_main.h"
+	"../engine/phys.h"
 	"../lib/dstuff/ds_slist.h"
 
-1639785011 c:\users\gabri\documents\compiler\metroid_thingy\engine\g_enemy.h
+1640220607 c:\users\gabri\documents\compiler\metroid_thingy\engine\g_enemy.h
 	"g_defs.h"
 
-1639915455 c:\users\gabri\documents\compiler\metroid_thingy\engine\g_defs.h
+1640220455 c:\users\gabri\documents\compiler\metroid_thingy\engine\g_defs.h
 	<stdint.h>
-	"e_defs.h"
-	"r_defs.h"
-	"p_defs.h"
+	"../engine/e_defs.h"
+	"../engine/r_defs.h"
+	"../engine/p_defs.h"
 	"../lib/dstuff/ds_vector.h"
 	"../lib/dstuff/ds_slist.h"
 
@@ -1897,7 +1880,7 @@
 	"r_vis.h"
 	<stdint.h>
 
-1639864901 source:c:\users\gabri\documents\compiler\metroid_thingy\engine\g_main.c
+1640096032 source:c:\users\gabri\documents\compiler\metroid_thingy\engine\g_main.c
 	"dstuff/ds_slist.h"
 	"dstuff/ds_mem.h"
 	"dstuff/ds_file.h"
@@ -1909,9 +1892,10 @@
 	"anim.h"
 	"phys.h"
 	"../editor/ed_main.h"
+	"../engine/g_game.h"
 	"ent.h"
-	"g_player.h"
-	"g_game.h"
+	"../engine/g_player.h"
+	"../engine/g_game.h"
 	"level.h"
 	"sound.h"
 	"gui.h"
@@ -1920,13 +1904,13 @@
 	<stdio.h>
 	<float.h>
 
-1639872337 source:c:\users\gabri\documents\compiler\metroid_thingy\engine\g_game.c
+1640111532 source:c:\users\gabri\documents\compiler\metroid_thingy\engine\g_game.c
 	"g_game.h"
 	"g_enemy.h"
 	"g_player.h"
-	"ent.h"
+	"../engine/ent.h"
 
-1639785011 c:\users\gabri\documents\compiler\metroid_thingy\engine\g_game.h
+1640111518 c:\users\gabri\documents\compiler\metroid_thingy\engine\g_game.h
 	"g_defs.h"
 	"../lib/dstuff/ds_slist.h"
 
@@ -2100,4 +2084,482 @@
 
 1615098034 c:\users\gabri\documents\compiler\metroid_thingy\lib\newton\include\dcustomjoints\dcustomalloc.h
 	<dgTypes.h>
+
+1615098034 c:\users\gabri\documents\compiler\metroid_thingy\lib\newton\include\dcustomjoints\dcustomslider.h
+	"dCustomJoint.h"
+
+1615098034 c:\users\gabri\documents\compiler\metroid_thingy\lib\newton\include\dcustomjoints\dcustomcorkscrew.h
+	"dCustomSlider.h"
+
+1615098034 c:\users\gabri\documents\compiler\metroid_thingy\lib\newton\include\dcustomjoints\dcustomballandsocket.h
+	"dCustomJoint.h"
+
+1640094111 source:c:\users\gabri\documents\compiler\metroid_thingy\game\g_game.c
+	"g_game.h"
+	"g_enemy.h"
+	"g_player.h"
+	"../engine/ent.h"
+
+1639785011 c:\users\gabri\documents\compiler\metroid_thingy\game\g_game.h
+	"g_defs.h"
+	"../lib/dstuff/ds_slist.h"
+
+1640094193 c:\users\gabri\documents\compiler\metroid_thingy\game\g_defs.h
+	<stdint.h>
+	"../engine/e_defs.h"
+	"../engine/r_defs.h"
+	"../engine/p_defs.h"
+	"../lib/dstuff/ds_vector.h"
+	"../lib/dstuff/ds_slist.h"
+
+1640063553 c:\users\gabri\documents\compiler\metroid_thingy\game\g_enemy.h
+	"g_defs.h"
+
+1639785011 c:\users\gabri\documents\compiler\metroid_thingy\game\g_player.h
+	<stdint.h>
+	"g_defs.h"
+
+1640094212 source:c:\users\gabri\documents\compiler\metroid_thingy\game\g_enemy.c
+	"g_enemy.h"
+	"g_game.h"
+	"../engine/ent.h"
+	"../engine/r_main.h"
+	"../engine/phys.h"
+	"../lib/dstuff/ds_slist.h"
+
+1640094229 source:c:\users\gabri\documents\compiler\metroid_thingy\game\g_player.c
+	"g_player.h"
+	"../engine/phys.h"
+	"../engine/r_main.h"
+	"../engine/input.h"
+	"../engine/ent.h"
+
+1640220937 source:c:\users\gabri\documents\compiler\metroid_thingy\engine\g_barrier.c
+	"g_barrier.h"
+	"ent.h"
+	"g_game.h"
+
+1640109533 c:\users\gabri\documents\compiler\metroid_thingy\engine\g_barrier.h
+	"g_defs.h"
+
+1615098036 c:\users\gabri\documents\compiler\metroid_thingy\lib\newton\include\dgnewton\newtonstdafx.h
+	"dg.h"
+	"dgPhysics.h"
+
+1615098036 c:\users\gabri\documents\compiler\metroid_thingy\lib\newton\include\dgcore\dg.h
+	"dgTypes.h"
+	"dgRef.h"
+	"dgCRC.h"
+	"dgObb.h"
+	"dgRtti.h"
+	"dgList.h"
+	"dgTree.h"
+	"dgNode.h"
+	"dgHeap.h"
+	"dgSort.h"
+	"dgArray.h"
+	"dgStack.h"
+	"dgDebug.h"
+	"dgGraph.h"
+	"dgPlane.h"
+	"dgGoogol.h"
+	"dgVector.h"
+	"dgMatrix.h"
+	"dgMemory.h"
+	"dgRandom.h"
+	"dgThread.h"
+	"dgProfiler.h"
+	"dgFastQueue.h"
+	"dgPolyhedra.h"
+	"dgThreadHive.h"
+	"dgPathFinder.h"
+	"dgRefCounter.h"
+	"dgQuaternion.h"
+	"dgMutexThread.h"
+	"dgConvexHull3d.h"
+	"dgConvexHull4d.h"
+	"dgIntersections.h"
+	"dgGeneralVector.h"
+	"dgGeneralMatrix.h"
+	"dgAABBPolygonSoup.h"
+	"dgSmallDeterminant.h"
+	"dgPolygonSoupBuilder.h"
+	"dgPolygonSoupDatabase.h"
+	"dgPolyhedraMassProperties.h"
+	"dgDelaunayTetrahedralization.h"
+
+1615098036 c:\users\gabri\documents\compiler\metroid_thingy\lib\newton\include\dgcore\dgref.h
+	"dgStdafx.h"
+	"dgRtti.h"
+	"dgDebug.h"
+	"dgMemory.h"
+
+1615098036 c:\users\gabri\documents\compiler\metroid_thingy\lib\newton\include\dgcore\dgstdafx.h
+	"dgTypes.h"
+
+1615098036 c:\users\gabri\documents\compiler\metroid_thingy\lib\newton\include\dgcore\dgrtti.h
+	"dgStdafx.h"
+	"dgCRC.h"
+
+1615098036 c:\users\gabri\documents\compiler\metroid_thingy\lib\newton\include\dgcore\dgcrc.h
+	"dgStdafx.h"
+
+1615098036 c:\users\gabri\documents\compiler\metroid_thingy\lib\newton\include\dgcore\dgdebug.h
+	"dgStdafx.h"
+
+1615098036 c:\users\gabri\documents\compiler\metroid_thingy\lib\newton\include\dgcore\dgmemory.h
+	"dgStdafx.h"
+
+1615098036 c:\users\gabri\documents\compiler\metroid_thingy\lib\newton\include\dgcore\dgobb.h
+	"dgStdafx.h"
+	"dgTypes.h"
+	"dgVector.h"
+	"dgMatrix.h"
+	"dgQuaternion.h"
+
+1615098036 c:\users\gabri\documents\compiler\metroid_thingy\lib\newton\include\dgcore\dgvector.h
+	"dgStdafx.h"
+	"dgTypes.h"
+	"dgDebug.h"
+	"dgMemory.h"
+	"dgVectorScalar.h"
+	"dgVectorArmNeon.h"
+	"dgVectorSimd.h"
+
+1615098036 c:\users\gabri\documents\compiler\metroid_thingy\lib\newton\include\dgcore\dgvectorscalar.h
+
+1615098036 c:\users\gabri\documents\compiler\metroid_thingy\lib\newton\include\dgcore\dgvectorarmneon.h
+
+1615098036 c:\users\gabri\documents\compiler\metroid_thingy\lib\newton\include\dgcore\dgvectorsimd.h
+
+1615098036 c:\users\gabri\documents\compiler\metroid_thingy\lib\newton\include\dgcore\dgmatrix.h
+	"dgStdafx.h"
+	"dgDebug.h"
+	"dgVector.h"
+	"dgPlane.h"
+	<math.h>
+
+1615098036 c:\users\gabri\documents\compiler\metroid_thingy\lib\newton\include\dgcore\dgplane.h
+	"dgStdafx.h"
+	"dgVector.h"
+
+1615098036 c:\users\gabri\documents\compiler\metroid_thingy\lib\newton\include\dgcore\dgquaternion.h
+	"dgStdafx.h"
+
+1615098036 c:\users\gabri\documents\compiler\metroid_thingy\lib\newton\include\dgcore\dglist.h
+	"dgStdafx.h"
+	"dgRef.h"
+	"dgDebug.h"
+	"dgMemory.h"
+
+1615098036 c:\users\gabri\documents\compiler\metroid_thingy\lib\newton\include\dgcore\dgtree.h
+	"dgStdafx.h"
+	"dgRef.h"
+	"dgDebug.h"
+	"dgMemory.h"
+
+1615098036 c:\users\gabri\documents\compiler\metroid_thingy\lib\newton\include\dgcore\dgnode.h
+	"dgStdafx.h"
+	"dgCRC.h"
+	"dgRef.h"
+	"dgRtti.h"
+
+1615098036 c:\users\gabri\documents\compiler\metroid_thingy\lib\newton\include\dgcore\dgheap.h
+	"dgStdafx.h"
+	"dgMemory.h"
+
+1615098036 c:\users\gabri\documents\compiler\metroid_thingy\lib\newton\include\dgcore\dgsort.h
+	"dgStdafx.h"
+	"dgHeap.h"
+	"dgProfiler.h"
+	"dgThreadHive.h"
+
+1615098036 c:\users\gabri\documents\compiler\metroid_thingy\lib\newton\include\dgcore\dgprofiler.h
+	<dProfiler.h>
+
+1615098036 c:\users\gabri\documents\compiler\metroid_thingy\lib\newton\include\dgcore\dgthreadhive.h
+	"dgThread.h"
+	"dgMemory.h"
+	"dgFastQueue.h"
+
+1615098036 c:\users\gabri\documents\compiler\metroid_thingy\lib\newton\include\dgcore\dgthread.h
+
+1615098036 c:\users\gabri\documents\compiler\metroid_thingy\lib\newton\include\dgcore\dgfastqueue.h
+	"dgStdafx.h"
+
+1615098036 c:\users\gabri\documents\compiler\metroid_thingy\lib\newton\include\dgcore\dgarray.h
+	"dgStdafx.h"
+
+1615098036 c:\users\gabri\documents\compiler\metroid_thingy\lib\newton\include\dgcore\dgstack.h
+	"dgStdafx.h"
+	"dgDebug.h"
+	"dgMemory.h"
+
+1615098036 c:\users\gabri\documents\compiler\metroid_thingy\lib\newton\include\dgcore\dggraph.h
+	"dgStdafx.h"
+	"dgRef.h"
+	"dgList.h"
+
+1615098036 c:\users\gabri\documents\compiler\metroid_thingy\lib\newton\include\dgcore\dggoogol.h
+	"dgStdafx.h"
+	"dgMemory.h"
+	"dgArray.h"
+	"dgVector.h"
+
+1615098036 c:\users\gabri\documents\compiler\metroid_thingy\lib\newton\include\dgcore\dgrandom.h
+	"dgStdafx.h"
+
+1615098036 c:\users\gabri\documents\compiler\metroid_thingy\lib\newton\include\dgcore\dgpolyhedra.h
+	"dgStdafx.h"
+	"dgList.h"
+	"dgTree.h"
+	"dgHeap.h"
+	"dgDebug.h"
+
+1615098036 c:\users\gabri\documents\compiler\metroid_thingy\lib\newton\include\dgcore\dgpathfinder.h
+	"dgStdafx.h"
+	"dgTree.h"
+	"dgHeap.h"
+
+1615098036 c:\users\gabri\documents\compiler\metroid_thingy\lib\newton\include\dgcore\dgrefcounter.h
+
+1615098036 c:\users\gabri\documents\compiler\metroid_thingy\lib\newton\include\dgcore\dgmutexthread.h
+	"dgTypes.h"
+	"dgThread.h"
+
+1615098036 c:\users\gabri\documents\compiler\metroid_thingy\lib\newton\include\dgcore\dgconvexhull3d.h
+	"dgStdafx.h"
+	"dgList.h"
+	"dgArray.h"
+	"dgPlane.h"
+	"dgVector.h"
+	"dgMatrix.h"
+	"dgQuaternion.h"
+
+1615098036 c:\users\gabri\documents\compiler\metroid_thingy\lib\newton\include\dgcore\dgconvexhull4d.h
+	"dgStdafx.h"
+	"dgList.h"
+	"dgArray.h"
+	"dgPlane.h"
+	"dgVector.h"
+	"dgMatrix.h"
+	"dgQuaternion.h"
+
+1615098036 c:\users\gabri\documents\compiler\metroid_thingy\lib\newton\include\dgcore\dgintersections.h
+	"dgStdafx.h"
+	"dgObb.h"
+	"dgDebug.h"
+	"dgVector.h"
+	"dgMatrix.h"
+
+1615098036 c:\users\gabri\documents\compiler\metroid_thingy\lib\newton\include\dgcore\dggeneralvector.h
+	"dgStdafx.h"
+	"dgDebug.h"
+	"dgMemory.h"
+
+1615098036 c:\users\gabri\documents\compiler\metroid_thingy\lib\newton\include\dgcore\dggeneralmatrix.h
+	"dgStdafx.h"
+	"dgDebug.h"
+	"dgVector.h"
+	"dgGeneralVector.h"
+
+1615098036 c:\users\gabri\documents\compiler\metroid_thingy\lib\newton\include\dgcore\dgaabbpolygonsoup.h
+	"dgStdafx.h"
+	"dgIntersections.h"
+	"dgPolygonSoupDatabase.h"
+
+1615098036 c:\users\gabri\documents\compiler\metroid_thingy\lib\newton\include\dgcore\dgpolygonsoupdatabase.h
+	"dgStdafx.h"
+	"dgRef.h"
+	"dgArray.h"
+	"dgIntersections.h"
+
+1615098036 c:\users\gabri\documents\compiler\metroid_thingy\lib\newton\include\dgcore\dgsmalldeterminant.h
+	"dgStdafx.h"
+
+1615098036 c:\users\gabri\documents\compiler\metroid_thingy\lib\newton\include\dgcore\dgpolygonsoupbuilder.h
+	"dgStdafx.h"
+	"dgRef.h"
+	"dgArray.h"
+	"dgIntersections.h"
+
+1615098036 c:\users\gabri\documents\compiler\metroid_thingy\lib\newton\include\dgcore\dgpolyhedramassproperties.h
+
+1615098036 c:\users\gabri\documents\compiler\metroid_thingy\lib\newton\include\dgcore\dgdelaunaytetrahedralization.h
+	"dgStdafx.h"
+	"dgConvexHull4d.h"
+
+1615098038 c:\users\gabri\documents\compiler\metroid_thingy\lib\newton\include\dgphysics\dgphysics.h
+	<dg.h>
+	"dgBody.h"
+	"dgWorld.h"
+	"dgContact.h"
+	"dgCollision.h"
+	"dgMeshEffect.h"
+	"dgConstraint.h"
+	"dgDynamicBody.h"
+	"dgWorldPlugins.h"
+	"dgCollisionBVH.h"
+	"dgContactSolver.h"
+	"dgKinematicBody.h"
+	"dgCollisionMesh.h"
+	"dgCollisionScene.h"
+	"dgBodyMasterList.h"
+	"dgUserConstraint.h"
+	"dgBallConstraint.h"
+	"dgHingeConstraint.h"
+	"dgSkeletonContainer.h"
+	"dgCollisionInstance.h"
+	"dgCollisionUserMesh.h"
+	"dgSlidingConstraint.h"
+	"dgUpVectorConstraint.h"
+	"dgCollisionConvexHull.h"
+	"dgUniversalConstraint.h"
+	"dgCorkscrewConstraint.h"
+	"dgBroadPhaseAggregate.h"
+	"dgCollisionHeightField.h"
+	"dgCollisionConvexPolygon.h"
+	"dgCollisionDeformableMesh.h"
+	"dgCollisionCompoundFractured.h"
+	"dgCollisionLumpedMassParticles.h"
+
+1615098036 c:\users\gabri\documents\compiler\metroid_thingy\lib\newton\include\dgphysics\dgbody.h
+	"dgPhysicsStdafx.h"
+	"dgCollision.h"
+	"dgBodyMasterList.h"
+
+1615098038 c:\users\gabri\documents\compiler\metroid_thingy\lib\newton\include\dgphysics\dgphysicsstdafx.h
+	<dg.h>
+
+1615098038 c:\users\gabri\documents\compiler\metroid_thingy\lib\newton\include\dgphysics\dgcollision.h
+
+1615098036 c:\users\gabri\documents\compiler\metroid_thingy\lib\newton\include\dgphysics\dgbodymasterlist.h
+
+1615098038 c:\users\gabri\documents\compiler\metroid_thingy\lib\newton\include\dgphysics\dgworld.h
+	"dgBody.h"
+	"dgContact.h"
+	"dgCollision.h"
+	"dgBroadPhase.h"
+	"dgWorldPlugins.h"
+	"dgCollisionScene.h"
+	"dgBodyMasterList.h"
+	"dgWorldDynamicUpdate.h"
+	"dgBilateralConstraint.h"
+	"dgCollisionCompoundFractured.h"
+
+1615098038 c:\users\gabri\documents\compiler\metroid_thingy\lib\newton\include\dgphysics\dgcontact.h
+	"dgConstraint.h"
+	"dgContactSolver.h"
+
+1615098038 c:\users\gabri\documents\compiler\metroid_thingy\lib\newton\include\dgphysics\dgconstraint.h
+	"dgBodyMasterList.h"
+
+1615098038 c:\users\gabri\documents\compiler\metroid_thingy\lib\newton\include\dgphysics\dgcontactsolver.h
+	"dgCollision.h"
+	"dgCollisionInstance.h"
+
+1615098038 c:\users\gabri\documents\compiler\metroid_thingy\lib\newton\include\dgphysics\dgcollisioninstance.h
+	"dgCollision.h"
+
+1615098036 c:\users\gabri\documents\compiler\metroid_thingy\lib\newton\include\dgphysics\dgbroadphase.h
+	"dgPhysicsStdafx.h"
+	"dgBody.h"
+	"dgBodyMasterList.h"
+
+1615098038 c:\users\gabri\documents\compiler\metroid_thingy\lib\newton\include\dgphysics\dgworldplugins.h
+
+1615098038 c:\users\gabri\documents\compiler\metroid_thingy\lib\newton\include\dgphysics\dgcollisionscene.h
+	"dgCollision.h"
+	"dgCollisionCompound.h"
+
+1615098038 c:\users\gabri\documents\compiler\metroid_thingy\lib\newton\include\dgphysics\dgcollisioncompound.h
+	"dgCollision.h"
+
+1615098038 c:\users\gabri\documents\compiler\metroid_thingy\lib\newton\include\dgphysics\dgworlddynamicupdate.h
+	"dgPhysicsStdafx.h"
+	"dgWorldDynamicsParallelSolver.h"
+
+1615098038 c:\users\gabri\documents\compiler\metroid_thingy\lib\newton\include\dgphysics\dgworlddynamicsparallelsolver.h
+	"dgPhysicsStdafx.h"
+
+1615098036 c:\users\gabri\documents\compiler\metroid_thingy\lib\newton\include\dgphysics\dgbilateralconstraint.h
+	"dgConstraint.h"
+
+1615098038 c:\users\gabri\documents\compiler\metroid_thingy\lib\newton\include\dgphysics\dgcollisioncompoundfractured.h
+	"dgCollisionCompound.h"
+
+1615098036 c:\users\gabri\documents\compiler\metroid_thingy\lib\newton\include\dgmeshutil\dgmesheffect.h
+	<dgRefCounter.h>
+
+1615098038 c:\users\gabri\documents\compiler\metroid_thingy\lib\newton\include\dgphysics\dgdynamicbody.h
+	"dgPhysicsStdafx.h"
+	"dgBody.h"
+
+1615098038 c:\users\gabri\documents\compiler\metroid_thingy\lib\newton\include\dgphysics\dgcollisionbvh.h
+	"dgCollision.h"
+	"dgCollisionMesh.h"
+
+1615098038 c:\users\gabri\documents\compiler\metroid_thingy\lib\newton\include\dgphysics\dgcollisionmesh.h
+	"dgCollision.h"
+	"dgCollisionConvex.h"
+	"dgCollisionInstance.h"
+
+1615098038 c:\users\gabri\documents\compiler\metroid_thingy\lib\newton\include\dgphysics\dgcollisionconvex.h
+	"dgCollision.h"
+
+1615098038 c:\users\gabri\documents\compiler\metroid_thingy\lib\newton\include\dgphysics\dgkinematicbody.h
+	"dgPhysicsStdafx.h"
+	"dgBody.h"
+
+1615098038 c:\users\gabri\documents\compiler\metroid_thingy\lib\newton\include\dgphysics\dguserconstraint.h
+	"dgBilateralConstraint.h"
+
+1615098036 c:\users\gabri\documents\compiler\metroid_thingy\lib\newton\include\dgphysics\dgballconstraint.h
+	"dgBilateralConstraint.h"
+
+1615098038 c:\users\gabri\documents\compiler\metroid_thingy\lib\newton\include\dgphysics\dghingeconstraint.h
+	"dgBilateralConstraint.h"
+
+1615098038 c:\users\gabri\documents\compiler\metroid_thingy\lib\newton\include\dgphysics\dgskeletoncontainer.h
+	"dgConstraint.h"
+	"dgContact.h"
+	"dgBilateralConstraint.h"
+
+1615098038 c:\users\gabri\documents\compiler\metroid_thingy\lib\newton\include\dgphysics\dgcollisionusermesh.h
+	"dgCollision.h"
+	"dgCollisionMesh.h"
+
+1615098038 c:\users\gabri\documents\compiler\metroid_thingy\lib\newton\include\dgphysics\dgslidingconstraint.h
+	"dgBilateralConstraint.h"
+
+1615098038 c:\users\gabri\documents\compiler\metroid_thingy\lib\newton\include\dgphysics\dgupvectorconstraint.h
+	"dgBilateralConstraint.h"
+
+1615098038 c:\users\gabri\documents\compiler\metroid_thingy\lib\newton\include\dgphysics\dgcollisionconvexhull.h
+	"dgCollisionConvex.h"
+
+1615098038 c:\users\gabri\documents\compiler\metroid_thingy\lib\newton\include\dgphysics\dguniversalconstraint.h
+	"dgBilateralConstraint.h"
+
+1615098038 c:\users\gabri\documents\compiler\metroid_thingy\lib\newton\include\dgphysics\dgcorkscrewconstraint.h
+	"dgBilateralConstraint.h"
+
+1615098036 c:\users\gabri\documents\compiler\metroid_thingy\lib\newton\include\dgphysics\dgbroadphaseaggregate.h
+	"dgPhysicsStdafx.h"
+	"dgBroadPhase.h"
+
+1615098038 c:\users\gabri\documents\compiler\metroid_thingy\lib\newton\include\dgphysics\dgcollisionheightfield.h
+	"dgCollision.h"
+	"dgCollisionMesh.h"
+
+1615098038 c:\users\gabri\documents\compiler\metroid_thingy\lib\newton\include\dgphysics\dgcollisionconvexpolygon.h
+	"dgCollisionConvexHull.h"
+
+1615098038 c:\users\gabri\documents\compiler\metroid_thingy\lib\newton\include\dgphysics\dgcollisiondeformablemesh.h
+	"dgCollision.h"
+	"dgCollisionLumpedMassParticles.h"
+
+1615098038 c:\users\gabri\documents\compiler\metroid_thingy\lib\newton\include\dgphysics\dgcollisionlumpedmassparticles.h
+	"dgCollision.h"
+	"dgCollisionConvex.h"
 

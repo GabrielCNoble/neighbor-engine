@@ -6,9 +6,10 @@ void main()
     vec4 albedo = r_pixel_albedo();
     vec3 normal = r_pixel_normal();
     float roughness = r_pixel_roughness();
+    float metalness = r_pixel_metalness();
     uvec4 cluster = r_pixel_cluster();
 
-    vec4 color = vec4(0.0);
+    vec3 color = vec3(0.0);
 
     vec3 view_vec = normalize(-r_var_position);
     albedo /= 3.14159265;
@@ -25,21 +26,20 @@ void main()
         uint index = indices[point_light_start + light_index].index;
         r_point_data_t light = point_lights[index];
 
-        vec4 light_color = vec4(light.col_shd.rgb, 0.0);
+        vec3 light_color = light.col_shd.rgb;
         vec3 light_vec = light.pos_rad.xyz - r_var_position.xyz;
-        vec3 orig_light_vec = light_vec;
+        vec3 light_dir = light_vec;
         float dist = length(light_vec);
         float limit = light.pos_rad.w - dist;
         limit = clamp(limit, 0.0, 1.0);
-        light_vec = light_vec / dist;
+        light_dir = light_vec / dist;
         float fallof = 1.0 / (dist * dist);
 
         uint shadow_map = floatBitsToUint(light.col_shd.w);
-        float shadow = r_CubeShadow(shadow_map, -orig_light_vec);
-        float spec = clamp(lighting(view_vec, light_vec, normal.xyz, roughness), 0.0, 1.0);
-        float diff = (1.0 - spec);
-        float c = clamp(dot(normal, light_vec), 0.0, 1.0) * limit * fallof;
-        color += ((albedo * diff * light_color + light_color * spec) * c) * shadow;
+        float shadow = r_CubeShadow(shadow_map, -light_vec);
+        light_color *= limit * fallof * shadow;
+        vec3 pixel_color = r_pixel_color(albedo.rgb, normal, metalness, 1, roughness, view_vec, light_dir, light_color);
+        color += pixel_color;
     }
 
     for(uint light_index = 0; light_index < spot_light_count; light_index++)
@@ -47,32 +47,25 @@ void main()
         uint index = indices[spot_light_start + light_index].index;
         r_spot_data_t light = spot_lights[index];
 
-        vec4 light_color = vec4(light.col_shd.xyz, 0.0);
+        vec3 light_color = light.col_shd.xyz;
         vec3 light_vec = light.pos_rad.xyz - r_var_position.xyz;
         float dist = length(light_vec);
         float limit = light.pos_rad.w - dist;
         limit = clamp(limit, 0.0, 1.0);
-        vec3 normalized_light_vec = light_vec / dist;
+        vec3 light_dir = light_vec / dist;
         float fallof = 1.0 / (dist * dist);
 
         float edge0 = light.rot0_angle.w;
         float edge1 = light.rot0_angle.w + light.rot1_soft.w;
-        limit *= smoothstep(edge0, edge1, dot(normalized_light_vec, light.rot2.xyz));
+        limit *= smoothstep(edge0, edge1, dot(light_dir, light.rot2.xyz));
         float shadow = r_SpotShadow(index, r_var_position.xyz);
-
-        float spec = clamp(lighting(view_vec, normalized_light_vec, normal.xyz, roughness), 0.0, 1.0);
-        float diff = (1.0 - spec);
-        float c = clamp(dot(normal, normalized_light_vec), 0.0, 1.0) * limit * fallof;
-        color += ((albedo * diff * light_color + light_color * spec) * c) * shadow;
+        light_color *= limit * fallof * shadow;
+        vec3 pixel_color = r_pixel_color(albedo.rgb, normal, metalness, 1.0, roughness, view_vec, light_dir, light_color);
+        color += pixel_color;
     }
 
-    color.rgb = tonemap(color.rgb * 2.0);
-    color.rgb *= 1.0 / tonemap(vec3(W));
-    color = pow(color + albedo * 0.01, vec4(1.0 / 2.2));
-    color.a = 1.0;
-    gl_FragColor = color;
-
-//    gl_FragColor = vec4(r_var_tex_coords.xy, 0.0, 1.0);
+    color = r_gamma_correct(r_uncharted_tonemap(color + albedo.rgb * 0.01));
+    gl_FragColor = vec4(color, 1.0);
 }
 
 

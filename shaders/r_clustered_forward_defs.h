@@ -56,45 +56,34 @@ float ggx_x(float d)
     return d > 0.0 ? 1.0 : 0.0;
 }
 
-float ggx_d(vec3 dir, vec3 h, vec3 normal, float a)
+float r_ggx_d(float n_dot_h, float roughness)
 {
-//    float asqrd = a * a;
-//    float ddn = dot(dir, normal);
-//    float ddnsqrd = ddn * ddn;
-//    float l  = ddnsqrd * (asqrd + (1.0 - ddnsqrd) / ddnsqrd);
-//    return asqrd / (3.14159265 * l * l);
-
-    float noh = dot(normal, h);
-    float alpha2 = a * a * a;
+    float noh = n_dot_h;
+    float alpha2 = roughness * roughness * roughness;
     float noh2 = noh * noh;
     float den = noh2 * alpha2 + (1.0 - noh2);
     return ( alpha2) / (3.14159265 * den * den);
 }
 
-float ggx_pg(vec3 dir, vec3 normal, vec3 half_vec, float a)
+float r_ggx_pg(float v_dot_h, float v_dot_n, float roughness)
 {
-    float voh2 = clamp(dot(dir, half_vec), 0.0, 1.0);
-    float chi = ggx_x(voh2 / clamp(dot(dir, normal), 0.0, 1.0));
+    float voh2 = v_dot_h;
+    float chi = ggx_x(voh2 / v_dot_n);
     voh2 *= voh2;
     float tan2 = (1.0 - voh2) / voh2;
-    return (2.0 ) / (1.0 + sqrt(1 + a * a * tan2));
-
-//    float ddn = dot(dir, normal);
-//    float ddnsqrd = ddn * ddn;
-//    float asqrd = a * a;
-//    return (2.0 * ggx_x(ddn)) / (1.0 + sqrt(1.0 + asqrd * ((1.0 - ddnsqrd) / ddnsqrd )));
-//    return (2 * ddn) / (ddn + sqrt(asqrd + (1.0 - asqrd) * ddn * ddn));
+    float x = ggx_x(v_dot_h / v_dot_n);
+    return (2.0) / (1.0 + sqrt(1 + roughness * roughness * tan2));
 }
 
-float ggx_g(vec3 view, vec3 light, vec3 normal, vec3 half_vec, float a)
+float r_ggx_g(float v_dot_h, float v_dot_n, float l_dot_h, float roughness)
 {
-    return ggx_pg(view, normal, half_vec, a) * ggx_pg(light, normal, half_vec, a);
+    return r_ggx_pg(v_dot_h, v_dot_n, roughness) * r_ggx_pg(l_dot_h, v_dot_n, roughness);
 }
-//
-//vec3 schlick_fresnel(float c, vec3 f0)
-//{
-//    return f0 + (vec3(1.0) - f0) * pow(1.0 - c, 5);
-//}
+
+vec3 r_schlick_fresnel(float c, vec3 f0)
+{
+    return f0 + (vec3(1.0) - f0) * pow(1.0 - c, 5);
+}
 
 //float schlick_pg(vec3 dir, vec3 normal, float a)
 //{
@@ -126,66 +115,20 @@ float ggx_g(vec3 view, vec3 light, vec3 normal, vec3 half_vec, float a)
 //    return dot(normal, light) * dot(normal, view);
 //}
 
-float lighting(vec3 view, vec3 light, vec3 normal, float a)
+vec3 r_specular_term(vec3 albedo, vec3 normal, float metalness, float roughness, vec3 view_vec, vec3 light_vec)
 {
-    vec3 h = normalize(view + light);
-    return (ggx_d(view, h, normal, a) * ggx_g(view, light, normal, h, a)) / (4.0 * dot(normal, light) * dot(normal, view));
+    vec3 half_vec = normalize(view_vec + light_vec);
+    float v_dot_h = clamp(dot(view_vec, half_vec), 0, 1);
+    float v_dot_n = clamp(dot(view_vec, normal), 0, 1);
+    float l_dot_h = clamp(dot(light_vec, half_vec), 0, 1);
+    float n_dot_h = clamp(dot(normal, half_vec), 0, 1);
+    float d = clamp(r_ggx_d(n_dot_h, roughness), 0, 1);
+    float g = clamp(r_ggx_g(v_dot_h, v_dot_n, l_dot_h, roughness), 0, 1);
+    vec3 fresnel_tint = mix(albedo, vec3(1.0), metalness);
+    vec3 f = r_schlick_fresnel(v_dot_h, fresnel_tint);
+    float denom = clamp(4.0 * clamp(dot(normal, light_vec), 0, 1) * v_dot_n + 0.05, 0, 1);
+    return (d * g * f) / denom;
 }
-
-//float shadowing(uint light_index, vec3 frag_pos, vec3 frag_normal)
-//{
-//    vec3 light_vec = frag_pos - lights[light_index].pos_rad.xyz;
-//    uint first_tile = light_index * 6;
-//    vec3 frag_vec = (r_camera_matrix * vec4(light_vec.xyz, 0.0)).xyz;
-//
-//    float shadow_term = 1.0;
-//    ivec2 coord_offset;
-//    ivec2 tile_coord;
-//    vec2 uv;
-//    float z_coord;
-//    float linear_depths[4];
-//    uvec4 face_indexes = texture(r_indirect_texture, frag_vec);
-//    uint tile_size = uint(lights[light_index].col_res.w) * R_SHADOW_MAP_MIN_RESOLUTION;
-//    for(int sample_index = 0; sample_index >= 0; sample_index--)
-//    {
-//        uint face_data = face_indexes[sample_index];
-//        uint face_index = face_data & R_SHADOW_MAP_FACE_INDEX_MASK;
-//        uint z_coord_index = face_index >> 1;
-//        uint u_coord_index = (face_data >> R_SHADOW_MAP_FACE_U_COORD_SHIFT) & R_SHADOW_MAP_FACE_UV_COORD_MASK;
-//        uint v_coord_index = (face_data >> R_SHADOW_MAP_FACE_V_COORD_SHIFT) & R_SHADOW_MAP_FACE_UV_COORD_MASK;
-//
-////        coord_offset.x = int((face_index >> R_SHADOW_MAP_OFFSET_X_COORD_UNPACK_SHIFT) & R_SHADOW_MAP_OFFSET_UNPACK_MASK);
-////        coord_offset.y = int((face_index >> R_SHADOW_MAP_OFFSET_Y_COORD_UNPACK_SHIFT) & R_SHADOW_MAP_OFFSET_UNPACK_MASK);
-//
-////        uint z_coord_index = face_index >> 1;
-//        uint shadow_map = shadow_indices[first_tile + face_index].index;
-//        tile_coord.x = int(((shadow_map >> R_SHADOW_MAP_X_COORD_SHIFT) & 0xff) * R_SHADOW_MAP_MIN_RESOLUTION);
-//        tile_coord.y = int(((shadow_map >> R_SHADOW_MAP_Y_COORD_SHIFT) & 0xff) * R_SHADOW_MAP_MIN_RESOLUTION);
-//
-//        vec3 cube_vec = vec3(frag_vec[u_coord_index], frag_vec[v_coord_index], -frag_vec[z_coord_index]);
-//        z_coord = cube_vec.z;
-//        uv = (cube_vec.xy / z_coord) * 0.5 + vec2(0.5);
-//        uv = uv * tile_size;
-//
-//        float light_depth = texelFetch(r_tex_shadow_atlas, ivec2(uv.xy) + tile_coord + coord_offset, 0).x * 2.0 - 1.0;
-//        linear_depths[sample_index] = -r_point_proj_params.y / (light_depth + r_point_proj_params.x);
-//    }
-//
-//    vec2 uv_frac = fract(uv);
-//
-////    float lerp0 = mix(linear_depths[0], linear_depths[1], uv_frac.x);
-////    float lerp1 = mix(linear_depths[2], linear_depths[3], uv_frac.x);
-////    float linear_depth = mix(lerp0, lerp1, uv_frac.y);
-//
-//    float linear_depth = linear_depths[0];
-//
-//    if(abs(z_coord) - 0.001 > abs(linear_depth))
-//    {
-//        shadow_term = 0.0;
-//    }
-//
-//    return shadow_term;
-//}
 
 float A = 0.15;
 float B = 0.50;
@@ -195,9 +138,28 @@ float E = 0.02;
 float F = 0.30;
 float W = 11.2;
 
-vec3 tonemap(vec3 color)
+#define R_TONEMAP_OPS(color) (((color * (A * color + C * B) + D * E) / (color * (A * color + B) + D * F)) - vec3(E/F))
+
+vec3 r_uncharted_tonemap(vec3 color)
 {
-    return ((color * (A * color + C * B) + D * E) / (color * (A * color + B) + D * F)) - vec3(E/F);
+    color = R_TONEMAP_OPS(color);
+    vec3 denom = vec3(W);
+    denom = R_TONEMAP_OPS(denom);
+    color *= 1.0 / denom;
+    return color;
+}
+
+vec3 r_gamma_correct(vec3 color)
+{
+    return pow(color, vec3(1.0 / 2.2));
+}
+
+vec3 r_pixel_color(vec3 albedo, vec3 normal, float metalness, float height, float roughness, vec3 view_vec, vec3 light_vec, vec3 light_color)
+{
+    vec3 specular = r_specular_term(albedo, normal, metalness, roughness, view_vec, light_vec);
+    vec3 diffuse = vec3(1.0) - specular;
+    float n_dot_l = clamp(dot(normal, light_vec), 0.0, 1.0);
+    return (albedo * diffuse * light_color + light_color * specular) * n_dot_l;
 }
 
 vec4 r_pixel_albedo()
@@ -222,6 +184,11 @@ vec3 r_pixel_normal()
 float r_pixel_roughness()
 {
     return texture(r_tex_roughness, r_var_tex_coords.xy).r;
+}
+
+float r_pixel_metalness()
+{
+    return 0.0;
 }
 
 uvec4 r_pixel_cluster()

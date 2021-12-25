@@ -14,7 +14,7 @@ void g_PlayerInit()
 
     col_def.type = P_COLLIDER_TYPE_CHARACTER;
     col_def.character.step_height = 0.3;
-    col_def.character.height = 2.0;
+    col_def.character.height = 1.7;
     col_def.character.radius = 0.3;
     col_def.character.crouch_height = 0.9;
     g_player.pitch = 0.0;

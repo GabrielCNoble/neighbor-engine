@@ -443,7 +443,6 @@ uint32_t ed_e_EntDefHierarchyUI(struct e_ent_def_t *ent_def, struct e_ent_def_t 
                             {
                                 if(igMenuItem_Bool("[1.0, 0.0, 0.0]", 0, 0, 1))
                                 {
-//                                    constraint->def.axis = mat3_t_c_id();
                                     constraint->def.axis.rows[0] = vec3_t_c(1.0, 0.0, 0.0);
                                     constraint->def.axis.rows[1] = vec3_t_c(0.0, 1.0, 0.0);
                                     constraint->def.axis.rows[2] = vec3_t_c(0.0, 0.0, 1.0);
@@ -451,8 +450,6 @@ uint32_t ed_e_EntDefHierarchyUI(struct e_ent_def_t *ent_def, struct e_ent_def_t 
                                 }
                                 if(igMenuItem_Bool("[0.0, 1.0, 0.0]", 0, 0, 1))
                                 {
-//                                    constraint->def.axis = mat3_t_c_id();
-//                                    mat3_t_rotate_z(&constraint->def.axis, 0.5);
                                     constraint->def.axis.rows[1] = vec3_t_c(1.0, 0.0, 0.0);
                                     constraint->def.axis.rows[0] = vec3_t_c(0.0, 1.0, 0.0);
                                     constraint->def.axis.rows[2] = vec3_t_c(0.0, 0.0, 1.0);
@@ -460,8 +457,6 @@ uint32_t ed_e_EntDefHierarchyUI(struct e_ent_def_t *ent_def, struct e_ent_def_t 
                                 }
                                 if(igMenuItem_Bool("[0.0, 0.0, 1.0]", 0, 0, 1))
                                 {
-//                                    constraint->def.axis = mat3_t_c_id();
-//                                    mat3_t_rotate_y(&constraint->def.axis, -1.5);
                                     constraint->def.axis.rows[2] = vec3_t_c(1.0, 0.0, 0.0);
                                     constraint->def.axis.rows[1] = vec3_t_c(0.0, 1.0, 0.0);
                                     constraint->def.axis.rows[0] = vec3_t_c(0.0, 0.0, 1.0);

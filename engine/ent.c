@@ -655,7 +655,12 @@ struct e_entity_t *e_SpawnEntity(struct e_ent_def_t *ent_def, vec3_t *position, 
 struct e_entity_t *e_CopyEntity(struct e_entity_t *entity)
 {
     struct e_node_t *node = entity->node;
-    struct e_entity_t *copy = e_SpawnEntity(entity->def, &node->position, &node->scale, &node->orientation);
+    vec3_t scale = node->scale;
+    scale.x /= entity->def->scale.x;
+    scale.y /= entity->def->scale.y;
+    scale.z /= entity->def->scale.z;
+
+    struct e_entity_t *copy = e_SpawnEntity(entity->def, &node->position, &scale, &node->orientation);
     return copy;
 }
 

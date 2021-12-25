@@ -1325,7 +1325,7 @@ void ed_UpdateBrush(struct ed_brush_t *brush)
 
                 if(polygon_batch_index)
                 {
-                    struct r_batch_t *prev_batch = batch_buffer->buffer + polygon_batch_index - 1;
+                    struct r_batch_t *prev_batch = batches + polygon_batch_index - 1;
                     polygon_batch->start = prev_batch->start + prev_batch->count;
                 }
             }

@@ -6,6 +6,11 @@
 
 #include "../lib/GLEW/include/GL/glew.h"
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
 void r_Init();
 
 void r_Shutdown();
@@ -19,6 +24,47 @@ void r_Shutdown();
 struct r_vis_item_t *r_AllocateVisItem(mat4_t *transform, struct r_model_t *model);
 
 void r_FreeVisItem(struct r_vis_item_t *item);
+
+/*
+============================================================================
+    view
+============================================================================
+*/
+
+struct r_view_t *r_CreateView(struct r_view_desc_t *view_desc);
+
+void r_DestroyView(struct r_view_t *view);
+
+/*
+============================================================================
+    cmd buffer
+============================================================================
+*/
+
+struct r_cmd_buffer_t r_AllocCmdBuffer(uint32_t cmd_size);
+
+void r_ResetCmdBuffer(struct r_cmd_buffer_t *cmd_buffer);
+
+void r_FreeCmdBuffer(struct r_cmd_buffer_t *cmd_buffer);
+
+void *r_AllocCmd(struct r_cmd_buffer_t *cmd_buffer);
+
+struct r_i_cmd_buffer_t r_AllocImmediateCmdBuffer(uint32_t cmd_size);
+
+void r_ResetImmediateCmdBuffer(struct r_i_cmd_buffer_t *cmd_buffer);
+
+void r_FreeImmediateCmdBuffer(struct r_i_cmd_buffer_t *cmd_buffer);
+
+struct r_i_cmd_t *r_AllocImmediateCmd(struct r_i_cmd_buffer_t *cmd_buffer);
+
+void r_IssueImmediateCmd(struct r_i_cmd_buffer_t *cmd_buffer, uint32_t type, void *data);
+
+void *r_AllocImmediateCmdData(struct r_i_cmd_buffer_t *cmd_buffer, uint32_t size);
+
+
+//void r_BeginCmdBuffer(struct r_cmd_buffer_t *cmd_buffer);
+//
+//void r_EndCmdBuffer(struct r_cmd_buffer_t *cmd_buffer);
 
 /*
 ============================================================================
@@ -48,11 +94,15 @@ void                    r_DestroyTexture(struct r_texture_t *texture);
 
 struct r_framebuffer_t     *r_CreateFramebuffer(uint16_t width, uint16_t height);
 
+struct r_framebuffer_t     *r_GetActiveFramebuffer();
+
 struct r_framebuffer_t     *r_GetFramebuffer(uint32_t index);
 
 void                        r_DestroyFramebuffer(struct r_framebuffer_t *framebuffer);
 
 void                        r_AddAttachment(struct r_framebuffer_t *framebuffer, uint16_t attachment, uint16_t format, uint16_t min_filter, uint16_t mag_filter);
+
+void                        r_SetAttachment(struct r_framebuffer_t *framebuffer, struct r_texture_t *texture, uint16_t attachment);
 
 void                        r_ResizeFramebuffer(struct r_framebuffer_t *framebuffer, uint16_t width, uint16_t height);
 
@@ -150,33 +200,51 @@ void                        r_DestroyAllLighs();
 ============================================================================
 */
 
-struct r_shader_t          *r_LoadShader(char *vertex_file_name, char *fragment_file_name);
+struct r_shader_t          *r_CreateShader(struct r_shader_desc_t *desc);
+
+struct r_shader_t          *r_LoadShader(struct r_shader_desc_t *desc);
+
+struct r_shader_t          *r_GetDefaultShader(uint32_t shader);
 
 void                        r_FreeShader(struct r_shader_t *shader);
 
 void                        r_BindShader(struct r_shader_t *shader);
 
-struct r_named_uniform_t   *r_GetNamedUniform(struct r_shader_t *shader, char *name);
+void                        r_BindVertexLayout(struct r_vertex_layout_t *layout);
 
-uint32_t                    r_GetUniformIndex(struct r_shader_t *shader, char *name);
+//struct r_named_uniform_t   *r_GetNamedUniform(struct r_shader_t *shader, char *name);
+
+//uint32_t                    r_GetUniformIndex(struct r_shader_t *shader, char *name);
+
+void                        r_SetUniform(uint32_t uniform, void *value);
+
+void                        r_SetUniformI(uint32_t uniform, int32_t value);
 
 void                        r_SetDefaultUniformI(uint32_t uniform, int32_t value);
 
+void                        r_SetUniformUI(uint32_t uniform, uint32_t value);
+
 void                        r_SetDefaultUniformUI(uint32_t uniform, uint32_t value);
+
+void                        r_SetUniformF(uint32_t uniform, float value);
 
 void                        r_SetDefaultUniformF(uint32_t uniform, float value);
 
+void                        r_SetUniformVec2(uint32_t uniform, vec2_t *value);
+
 void                        r_SetDefaultUniformVec2(uint32_t uniform, vec2_t *value);
+
+void                        r_SetUniformMat4(uint32_t uniform, mat4_t *matrix);
 
 void                        r_SetDefaultUniformMat4(uint32_t uniform, mat4_t *matrix);
 
-void                        r_SetNamedUniformByName(char *uniform, void *value);
-
-void                        r_SetNamedUniform(struct r_named_uniform_t *uniform, void *value);
-
-void                        r_SetNamedUniformI(struct r_named_uniform_t *uniform, int32_t value);
-
-void                        r_SetNamedUniformVec4(struct r_named_uniform_t *uniform, vec4_t *value);
+//void                        r_SetNamedUniformByName(char *uniform, void *value);
+//
+//void                        r_SetNamedUniform(struct r_named_uniform_t *uniform, void *value);
+//
+//void                        r_SetNamedUniformI(struct r_named_uniform_t *uniform, int32_t value);
+//
+//void                        r_SetNamedUniformVec4(struct r_named_uniform_t *uniform, vec4_t *value);
 
 
 
@@ -186,6 +254,10 @@ void                        r_SetNamedUniformVec4(struct r_named_uniform_t *unif
 ============================================================================
 ============================================================================
 */
+
+#ifdef __cplusplus
+}
+#endif
 
 
 #endif // R_MAIN_H

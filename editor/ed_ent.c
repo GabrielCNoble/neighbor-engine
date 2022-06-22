@@ -603,9 +603,9 @@ void ed_e_UpdateUI()
 
     if(ed_entity_state.cur_ent_def)
     {
-        r_i_SetViewProjectionMatrix(NULL);
-        r_i_SetModelMatrix(NULL);
-        r_i_SetShader(NULL);
+//        r_i_SetViewProjectionMatrix(NULL);
+//        r_i_SetModelMatrix(NULL);
+//        r_i_SetShader(NULL);
         struct e_ent_def_t *ent_def = ed_entity_state.cur_ent_def;
         igSetNextWindowPos((ImVec2){r_width, 40}, ImGuiCond_Once, (ImVec2){1, 0});
         igSetNextWindowSize((ImVec2){450, r_height - 100}, ImGuiCond_Once);

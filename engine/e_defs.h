@@ -152,6 +152,7 @@ struct e_model_t
     E_ENT_BASE_COMPONENT_FIELDS;
     struct r_model_t *model;
     vec3_t extents;
+    vec3_t center;
 };
 
 struct e_entity_t

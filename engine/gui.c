@@ -1,6 +1,7 @@
 #include "gui.h"
 #include "r_main.h"
 #include "r_draw.h"
+#include "r_draw_i.h"
 #include "input.h"
 #include <stdint.h>
 #include "log.h"
@@ -12,6 +13,17 @@ struct r_shader_t *gui_shader;
 
 extern uint32_t r_width;
 extern uint32_t r_height;
+extern struct r_framebuffer_t *r_ui_framebuffer;
+
+struct r_vertex_layout_t gui_vertex_layout = {
+    .stride = sizeof(ImDrawVert),
+    .attrib_count = 3,
+    .attribs = (struct r_vertex_attrib_t[]){
+        {.format = R_FORMAT_RG32F,   .offset = offsetof(ImDrawVert, pos), .name = "r_position"},
+        {.format = R_FORMAT_RGBA8UI, .offset = offsetof(ImDrawVert, col), .name = "r_color", .normalized = 1},
+        {.format = R_FORMAT_RG32F,   .offset = offsetof(ImDrawVert, uv),  .name = "r_tex_coords"},
+    }
+};
 
 void gui_Init()
 {
@@ -54,7 +66,23 @@ void gui_Init()
     gui_font_atlas = r_CreateTexture("font_atlas", width, height, GL_RGBA8, GL_LINEAR, GL_LINEAR, pixels);
     ImFontAtlas_SetTexID(io->Fonts, (ImTextureID)gui_font_atlas);
 
-    gui_shader = r_LoadShader("shaders/r_ui.vert", "shaders/r_ui.frag");
+    struct r_shader_desc_t shader_desc = {
+        .vertex_code = "shaders/r_ui.vert",
+        .fragment_code = "shaders/r_ui.frag",
+        .vertex_layout = &(struct r_vertex_layout_t) {
+            .stride = sizeof(ImDrawVert),
+            .attrib_count = 3,
+            .attribs = (struct r_vertex_attrib_t[]){
+                {.format = R_FORMAT_RG32F,   .offset = offsetof(ImDrawVert, pos), .name = "r_position"},
+                {.format = R_FORMAT_RGBA8UI, .offset = offsetof(ImDrawVert, col), .name = "r_color", .normalized = 1},
+                {.format = R_FORMAT_RG32F,   .offset = offsetof(ImDrawVert, uv),  .name = "r_tex_coords"},
+            }
+        },
+        .uniforms = R_DEFAULT_UNIFORMS,
+        .uniform_count = sizeof(R_DEFAULT_UNIFORMS) / sizeof(R_DEFAULT_UNIFORMS[0])
+    };
+    gui_shader = r_LoadShader(&shader_desc);
+//    gui_shader->vertex_layout = &gui_vertex_layout;
     log_ScopedLogMessage(LOG_TYPE_NOTICE, "UI initialized!");
 }
 
@@ -120,70 +148,133 @@ void gui_EndFrame()
     igRender();
     ImDrawData *draw_data = igGetDrawData();
 
-    r_i_SetViewProjectionMatrix(&gui_projection_matrix);
-    r_i_SetDepth(GL_FALSE, GL_LESS);
-    r_i_SetBlending(GL_TRUE, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    r_i_SetModelMatrix(NULL);
-    r_i_SetRasterizer(GL_FALSE, GL_BACK, GL_FILL);
-    r_i_SetShader(gui_shader);
+//    r_BindFramebuffer(r_ui_framebuffer);
+//    r_BindShader(gui_shader);
+//    r_BindTexture(gui_font_atlas, GL_TEXTURE0);
+//    r_SetDefaultUniformMat4(R_UNIFORM_MODEL_VIEW_PROJECTION_MATRIX, &gui_projection_matrix);
+//    r_SetDefaultUniformI(R_UNIFORM_TEX0, 0);
+//
+//    glEnable(GL_BLEND);
+//    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+//    glEnable(GL_SCISSOR_TEST);
+//    glEnable(GL_DEPTH_TEST);
+//    glDepthFunc(GL_ALWAYS);
+//    glDisable(GL_CULL_FACE);
+//    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+//    glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 
-    r_i_SetTexture(gui_font_atlas, GL_TEXTURE0);
+//    r_i_SetViewProjectionMatrix(&gui_projection_matrix);
+//    r_i_SetDepth(GL_FALSE, GL_LESS);
+//    r_i_SetBlending(GL_TRUE, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+//    r_i_SetModelMatrix(NULL);
+//    r_i_SetRasterizer(GL_FALSE, GL_BACK, GL_FILL);
+//    r_i_SetShader(gui_shader);
+
+//    r_i_SetTexture(gui_font_atlas, GL_TEXTURE0);
+
+//    glClearColor(0, 0, 0, 0);
+//    glClear(GL_COLOR_BUFFER_BIT);
+
+    struct r_i_blending_t blend_state = {
+        .enable = GL_TRUE,
+        .src_factor = GL_SRC_ALPHA,
+        .dst_factor = GL_ONE_MINUS_SRC_ALPHA
+    };
+    r_i_SetBlending(NULL, NULL, &blend_state);
+
+    struct r_i_depth_t depth_state = {
+        .enable = GL_TRUE,
+        .func = GL_ALWAYS,
+    };
+    r_i_SetDepth(NULL, NULL, &depth_state);
+
+    struct r_i_raster_t raster_state = {
+        .cull_enable = GL_FALSE,
+        .cull_face = GL_DONT_CARE,
+        .polygon_mode = GL_FILL
+    };
+    r_i_SetRasterizer(NULL, NULL, &raster_state);
+
+    struct r_i_scissor_t scissor_state = {
+        .enable = GL_TRUE,
+    };
+    r_i_SetScissor(NULL, NULL, &scissor_state);
+
+    r_i_SetShader(NULL, gui_shader);
+
+    struct r_i_uniform_t uniforms[] = {
+        (struct r_i_uniform_t){
+            .uniform = R_UNIFORM_MODEL_VIEW_PROJECTION_MATRIX,
+            .value = &gui_projection_matrix,
+            .count = 1
+        },
+        (struct r_i_uniform_t){
+            .uniform = R_UNIFORM_TEX0,
+            .value = &(struct r_i_texture_t){
+                .texture = gui_font_atlas,
+                .tex_unit = 0
+            },
+            .count = 1
+        }
+    };
+    r_i_SetUniforms(NULL, NULL, uniforms, 2);
+
+
+
+//    r_i_SetUniform(NULL, R_UNIFORM_MODEL_VIEW_PROJECTION_MATRIX, &gui_projection_matrix);
+
+//    uint32_t vert_start = R_IMMEDIATE_VERTEX_BUFFER_OFFSET / sizeof(ImDrawVert);
+//    uint32_t index_start = R_IMMEDIATE_INDEX_BUFFER_OFFSET / sizeof(uint16_t);
 
     for(uint32_t list_index = 0; list_index < draw_data->CmdListsCount; list_index++)
     {
         ImDrawList *src_list = draw_data->CmdLists[list_index];
+        struct r_i_draw_list_t *dst_list = r_i_AllocDrawList(NULL, src_list->CmdBuffer.Size);
 
-        struct r_i_verts_t *verts = r_i_AllocImmediateData(sizeof(struct r_i_verts_t) + sizeof(struct r_vert_t) * src_list->VtxBuffer.Size);
-        verts->count = src_list->VtxBuffer.Size;
-        struct r_i_indices_t *indices = r_i_AllocImmediateData(sizeof(struct r_i_indices_t) + sizeof(uint32_t) * src_list->IdxBuffer.Size);
-        indices->count = src_list->IdxBuffer.Size;
-
-        for(uint32_t vert_index = 0; vert_index < src_list->VtxBuffer.Size; vert_index++)
-        {
-            ImDrawVert *draw_vert = src_list->VtxBuffer.Data + vert_index;
-            struct r_vert_t *vert = verts->verts + vert_index;
-
-            vert->pos.x = draw_vert->pos.x;
-            vert->pos.y = draw_vert->pos.y;
-            vert->pos.z = 0.0;
-
-            vert->color.x = (float)(draw_vert->col & 0xff) / 255.0;
-            vert->color.y = (float)((draw_vert->col >> 8) & 0xff) / 255.0;
-            vert->color.z = (float)((draw_vert->col >> 16) & 0xff) / 255.0;
-            vert->color.w = (float)((draw_vert->col >> 24) & 0xff) / 255.0;
-
-            vert->tex_coords.x = draw_vert->uv.x;
-            vert->tex_coords.y = draw_vert->uv.y;
-        }
+        struct r_i_mesh_t *mesh = r_i_AllocMesh(NULL, sizeof(ImDrawVert), src_list->VtxBuffer.Size, src_list->IdxBuffer.Size);
 
         for(uint32_t index = 0; index < src_list->IdxBuffer.Size; index++)
         {
-            indices->indices[index] = src_list->IdxBuffer.Data[index];
+            mesh->indices.indices[index] = src_list->IdxBuffer.Data[index];
         }
 
-        r_i_SetBuffers(verts, indices);
+        memcpy(mesh->verts.verts, src_list->VtxBuffer.Data, sizeof(ImDrawVert) * src_list->VtxBuffer.Size);
+
+        dst_list->mesh = mesh;
+        dst_list->mode = GL_TRIANGLES;
+        dst_list->indexed = 1;
 
         for(uint32_t cmd_index = 0; cmd_index < src_list->CmdBuffer.Size; cmd_index++)
         {
-            struct r_i_draw_list_t *dst_list = r_i_AllocImmediateData(sizeof(struct r_i_draw_list_t));
-            dst_list->command_count = src_list->CmdBuffer.Size;
-            dst_list->commands = r_i_AllocImmediateData(sizeof(struct r_i_cmd_t) * dst_list->command_count);
-            dst_list->indexed = 1;
-
             ImDrawCmd *src_cmd = src_list->CmdBuffer.Data + cmd_index;
-            struct r_i_draw_cmd_t *dst_cmd = dst_list->commands + cmd_index;
+            struct r_i_draw_range_t *range = dst_list->ranges + cmd_index;
 
             uint32_t clip_x = src_cmd->ClipRect.x;
             uint32_t clip_y = (float)r_height - src_cmd->ClipRect.w;
             uint32_t clip_w = src_cmd->ClipRect.z - src_cmd->ClipRect.x;
             uint32_t clip_h = src_cmd->ClipRect.w - src_cmd->ClipRect.y;
-            r_i_SetScissor(GL_TRUE, clip_x, clip_y, clip_w, clip_h);
 
-            dst_cmd->start = src_cmd->IdxOffset;
-            dst_cmd->count = src_cmd->ElemCount;
-            r_i_DrawImmediate(R_I_DRAW_CMD_TRIANGLE_LIST, dst_list);
+            struct r_i_scissor_t scissor_state = {
+                .x = clip_x,
+                .y = clip_y,
+                .width = clip_w,
+                .height = clip_h,
+                .enable = GL_DONT_CARE
+            };
+
+            r_i_SetScissor(NULL, range, &scissor_state);
+
+            range->start = src_cmd->IdxOffset;
+            range->count = src_cmd->ElemCount;
         }
+
+        r_i_DrawList(NULL, dst_list);
     }
+
+//    glDisable(GL_SCISSOR_TEST);
+//    glDisable(GL_BLEND);
+//    glEnable(GL_DEPTH_TEST);
+//    glDepthFunc(GL_LESS);
 }
 
 

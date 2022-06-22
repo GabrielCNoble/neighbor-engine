@@ -66,6 +66,7 @@ void main()
 
     color = r_gamma_correct(r_uncharted_tonemap(color + albedo.rgb * 0.01));
     gl_FragColor = vec4(color, 1.0);
+//    gl_FragColor = vec4(normal.xyz, 1.0);
 }
 
 

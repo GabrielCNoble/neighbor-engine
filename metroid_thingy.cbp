@@ -172,6 +172,7 @@
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="engine/r_draw.h" />
+		<Unit filename="engine/r_draw_i.h" />
 		<Unit filename="engine/r_main.c">
 			<Option compilerVar="CC" />
 		</Unit>

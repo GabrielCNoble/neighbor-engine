@@ -25,10 +25,13 @@
 
 
 struct ds_list_t r_world_cmds;
-struct ds_list_t r_entity_cmds;
-struct ds_list_t r_shadow_cmds;
-struct ds_list_t r_immediate_cmds;
-struct ds_list_t r_immediate_data;
+//struct ds_list_t r_entity_cmds;
+struct r_cmd_buffer_t r_entity_cmd_buffer;
+struct r_cmd_buffer_t r_shadow_cmd_buffer;
+struct r_i_cmd_buffer_t r_immediate_cmd_buffer;
+//struct ds_list_t r_shadow_cmds;
+//struct ds_list_t r_immediate_cmds;
+//struct ds_list_t r_immediate_data;
 
 
 //struct list_t r_sorted_batches;
@@ -40,6 +43,7 @@ struct ds_slist_t r_models;
 struct ds_slist_t r_lights[R_LIGHT_TYPE_LAST];
 struct ds_slist_t r_vis_items;
 struct ds_slist_t r_framebuffers;
+struct ds_slist_t r_views;
 struct ds_list_t r_visible_lights;
 
 uint32_t r_vertex_buffer;
@@ -49,6 +53,7 @@ struct ds_heap_t r_index_heap;
 uint32_t r_immediate_cursor;
 uint32_t r_immediate_vertex_buffer;
 uint32_t r_immediate_index_buffer;
+struct r_vert_t *r_vert_copy_buffer;
 
 uint32_t r_vao;
 struct r_shader_t *r_z_prepass_shader;
@@ -58,6 +63,10 @@ struct r_shader_t *r_current_shader;
 struct r_shader_t *r_shadow_shader;
 struct r_shader_t *r_volumetric_shader;
 struct r_shader_t *r_bilateral_blend_shader;
+struct r_shader_t *r_full_screen_blend_shader;
+struct r_shader_t *r_blend_ui_debug_shader;
+
+//struct r_shader_t *r_default_shaders[];
 
 struct r_model_t *test_model;
 struct r_texture_t *r_default_texture;
@@ -111,10 +120,13 @@ vec4_t r_clear_color;
 //uint32_t r_main_framebuffer;
 //uint32_t r_main_color_attachment;
 //uint32_t r_main_depth_attachment;
-uint32_t r_z_prepass_framebuffer;
+//uint32_t r_z_prepass_framebuffer;
 
 struct r_framebuffer_t *r_active_framebuffer;
+//struct r_framebuffer_t *r_debug_framebuffer;
 struct r_framebuffer_t *r_main_framebuffer;
+struct r_framebuffer_t *r_debug_framebuffer;
+struct r_framebuffer_t *r_ui_framebuffer;
 struct r_framebuffer_t *r_volume_framebuffer;
 //struct r_framebuffer_t *r_z_prepass_framebuffer;
 
@@ -132,37 +144,37 @@ float r_z_far = 1000.0;
 float r_denom = 0.0;
 float r_fov = 0.68;
 
-struct r_named_uniform_t r_default_uniforms[] =
-{
-    [R_UNIFORM_MODEL_VIEW_PROJECTION_MATRIX] =  (struct r_named_uniform_t){.type = R_UNIFORM_TYPE_MAT4,  .name = "r_model_view_projection_matrix" },
-    [R_UNIFORM_VIEW_PROJECTION_MATRIX] =        (struct r_named_uniform_t){.type = R_UNIFORM_TYPE_MAT4,  .name = "r_view_projection_matrix" },
-    [R_UNIFORM_PROJECTION_MATRIX] =             (struct r_named_uniform_t){.type = R_UNIFORM_TYPE_MAT4,  .name = "r_projection_matrix" },
-    [R_UNIFORM_MODEL_VIEW_MATRIX] =             (struct r_named_uniform_t){.type = R_UNIFORM_TYPE_MAT4,  .name = "r_model_view_matrix" },
-    [R_UNIFORM_VIEW_MATRIX] =                   (struct r_named_uniform_t){.type = R_UNIFORM_TYPE_MAT4,  .name = "r_view_matrix" },
-    [R_UNIFORM_CAMERA_MATRIX] =                 (struct r_named_uniform_t){.type = R_UNIFORM_TYPE_MAT4,  .name = "r_camera_matrix" },
-    [R_UNIFORM_MODEL_MATRIX] =                  (struct r_named_uniform_t){.type = R_UNIFORM_TYPE_MAT4,  .name = "r_model_matrix" },
-    [R_UNIFORM_POINT_PROJ_PARAMS] =             (struct r_named_uniform_t){.type = R_UNIFORM_TYPE_VEC2,  .name = "r_point_proj_params" },
-    [R_UNIFORM_TEX0] =                          (struct r_named_uniform_t){.type = R_UNIFORM_TYPE_INT,   .name = "r_tex0" },
-    [R_UNIFORM_TEX1] =                          (struct r_named_uniform_t){.type = R_UNIFORM_TYPE_INT,   .name = "r_tex1" },
-    [R_UNIFORM_TEX3] =                          (struct r_named_uniform_t){.type = R_UNIFORM_TYPE_INT,   .name = "r_tex3" },
-    [R_UNIFORM_TEX2] =                          (struct r_named_uniform_t){.type = R_UNIFORM_TYPE_INT,   .name = "r_tex2" },
-    [R_UNIFORM_TEX4] =                          (struct r_named_uniform_t){.type = R_UNIFORM_TYPE_INT,   .name = "r_tex4" },
-    [R_UNIFORM_TEX_ALBEDO] =                    (struct r_named_uniform_t){.type = R_UNIFORM_TYPE_INT,   .name = "r_tex_albedo" },
-    [R_UNIFORM_TEX_NORMAL] =                    (struct r_named_uniform_t){.type = R_UNIFORM_TYPE_INT,   .name = "r_tex_normal" },
-    [R_UNIFORM_TEX_METALNESS] =                 (struct r_named_uniform_t){.type = R_UNIFORM_TYPE_INT,   .name = "r_tex_metalness" },
-    [R_UNIFORM_TEX_ROUGHNESS] =                 (struct r_named_uniform_t){.type = R_UNIFORM_TYPE_INT,   .name = "r_tex_roughness" },
-    [R_UNIFORM_TEX_HEIGHT] =                    (struct r_named_uniform_t){.type = R_UNIFORM_TYPE_INT,   .name = "r_tex_height" },
-    [R_UNIFORM_TEX_CLUSTERS] =                  (struct r_named_uniform_t){.type = R_UNIFORM_TYPE_INT,   .name = "r_tex_clusters" },
-    [R_UNIFORM_TEX_SHADOW_ATLAS] =              (struct r_named_uniform_t){.type = R_UNIFORM_TYPE_INT,   .name = "r_tex_shadow_atlas" },
-    [R_UNIFORM_TEX_INDIRECT] =                  (struct r_named_uniform_t){.type = R_UNIFORM_TYPE_INT,   .name = "r_tex_indirect" },
-    [R_UNIFORM_CLUSTER_DENOM] =                 (struct r_named_uniform_t){.type = R_UNIFORM_TYPE_FLOAT, .name = "r_cluster_denom" },
-    [R_UNIFORM_SPOT_LIGHT_COUNT] =              (struct r_named_uniform_t){.type = R_UNIFORM_TYPE_UINT,  .name = "r_spot_light_count" },
-    [R_UNIFORM_POINT_LIGHT_COUNT] =             (struct r_named_uniform_t){.type = R_UNIFORM_TYPE_UINT,  .name = "r_point_light_count" },
-    [R_UNIFORM_Z_NEAR] =                        (struct r_named_uniform_t){.type = R_UNIFORM_TYPE_FLOAT, .name = "r_z_near" },
-    [R_UNIFORM_Z_FAR] =                         (struct r_named_uniform_t){.type = R_UNIFORM_TYPE_FLOAT, .name = "r_z_far" },
-    [R_UNIFORM_WIDTH] =                         (struct r_named_uniform_t){.type = R_UNIFORM_TYPE_INT,   .name = "r_width" },
-    [R_UNIFORM_HEIGHT] =                        (struct r_named_uniform_t){.type = R_UNIFORM_TYPE_INT,   .name = "r_height" },
-};
+//struct r_named_uniform_t r_default_uniforms[] =
+//{
+//    [R_UNIFORM_MODEL_VIEW_PROJECTION_MATRIX] =  (struct r_named_uniform_t){.type = R_UNIFORM_TYPE_MAT4,  .name = "r_model_view_projection_matrix" },
+//    [R_UNIFORM_VIEW_PROJECTION_MATRIX] =        (struct r_named_uniform_t){.type = R_UNIFORM_TYPE_MAT4,  .name = "r_view_projection_matrix" },
+//    [R_UNIFORM_PROJECTION_MATRIX] =             (struct r_named_uniform_t){.type = R_UNIFORM_TYPE_MAT4,  .name = "r_projection_matrix" },
+//    [R_UNIFORM_MODEL_VIEW_MATRIX] =             (struct r_named_uniform_t){.type = R_UNIFORM_TYPE_MAT4,  .name = "r_model_view_matrix" },
+//    [R_UNIFORM_VIEW_MATRIX] =                   (struct r_named_uniform_t){.type = R_UNIFORM_TYPE_MAT4,  .name = "r_view_matrix" },
+//    [R_UNIFORM_CAMERA_MATRIX] =                 (struct r_named_uniform_t){.type = R_UNIFORM_TYPE_MAT4,  .name = "r_camera_matrix" },
+//    [R_UNIFORM_MODEL_MATRIX] =                  (struct r_named_uniform_t){.type = R_UNIFORM_TYPE_MAT4,  .name = "r_model_matrix" },
+//    [R_UNIFORM_POINT_PROJ_PARAMS] =             (struct r_named_uniform_t){.type = R_UNIFORM_TYPE_VEC2,  .name = "r_point_proj_params" },
+//    [R_UNIFORM_TEX0] =                          (struct r_named_uniform_t){.type = R_UNIFORM_TYPE_INT,   .name = "r_tex0" },
+//    [R_UNIFORM_TEX1] =                          (struct r_named_uniform_t){.type = R_UNIFORM_TYPE_INT,   .name = "r_tex1" },
+//    [R_UNIFORM_TEX3] =                          (struct r_named_uniform_t){.type = R_UNIFORM_TYPE_INT,   .name = "r_tex3" },
+//    [R_UNIFORM_TEX2] =                          (struct r_named_uniform_t){.type = R_UNIFORM_TYPE_INT,   .name = "r_tex2" },
+//    [R_UNIFORM_TEX4] =                          (struct r_named_uniform_t){.type = R_UNIFORM_TYPE_INT,   .name = "r_tex4" },
+//    [R_UNIFORM_TEX_ALBEDO] =                    (struct r_named_uniform_t){.type = R_UNIFORM_TYPE_INT,   .name = "r_tex_albedo" },
+//    [R_UNIFORM_TEX_NORMAL] =                    (struct r_named_uniform_t){.type = R_UNIFORM_TYPE_INT,   .name = "r_tex_normal" },
+//    [R_UNIFORM_TEX_METALNESS] =                 (struct r_named_uniform_t){.type = R_UNIFORM_TYPE_INT,   .name = "r_tex_metalness" },
+//    [R_UNIFORM_TEX_ROUGHNESS] =                 (struct r_named_uniform_t){.type = R_UNIFORM_TYPE_INT,   .name = "r_tex_roughness" },
+//    [R_UNIFORM_TEX_HEIGHT] =                    (struct r_named_uniform_t){.type = R_UNIFORM_TYPE_INT,   .name = "r_tex_height" },
+//    [R_UNIFORM_TEX_CLUSTERS] =                  (struct r_named_uniform_t){.type = R_UNIFORM_TYPE_INT,   .name = "r_tex_clusters" },
+//    [R_UNIFORM_TEX_SHADOW_ATLAS] =              (struct r_named_uniform_t){.type = R_UNIFORM_TYPE_INT,   .name = "r_tex_shadow_atlas" },
+//    [R_UNIFORM_TEX_INDIRECT] =                  (struct r_named_uniform_t){.type = R_UNIFORM_TYPE_INT,   .name = "r_tex_indirect" },
+//    [R_UNIFORM_CLUSTER_DENOM] =                 (struct r_named_uniform_t){.type = R_UNIFORM_TYPE_FLOAT, .name = "r_cluster_denom" },
+//    [R_UNIFORM_SPOT_LIGHT_COUNT] =              (struct r_named_uniform_t){.type = R_UNIFORM_TYPE_UINT,  .name = "r_spot_light_count" },
+//    [R_UNIFORM_POINT_LIGHT_COUNT] =             (struct r_named_uniform_t){.type = R_UNIFORM_TYPE_UINT,  .name = "r_point_light_count" },
+//    [R_UNIFORM_Z_NEAR] =                        (struct r_named_uniform_t){.type = R_UNIFORM_TYPE_FLOAT, .name = "r_z_near" },
+//    [R_UNIFORM_Z_FAR] =                         (struct r_named_uniform_t){.type = R_UNIFORM_TYPE_FLOAT, .name = "r_z_far" },
+//    [R_UNIFORM_WIDTH] =                         (struct r_named_uniform_t){.type = R_UNIFORM_TYPE_INT,   .name = "r_width" },
+//    [R_UNIFORM_HEIGHT] =                        (struct r_named_uniform_t){.type = R_UNIFORM_TYPE_INT,   .name = "r_height" },
+//};
 
 float r_spot_light_tan_lut[1 + (R_SPOT_LIGHT_MAX_ANGLE - R_SPOT_LIGHT_MIN_ANGLE)];
 float r_spot_light_cos_lut[1 + (R_SPOT_LIGHT_MAX_ANGLE - R_SPOT_LIGHT_MIN_ANGLE)];
@@ -183,17 +195,84 @@ uint32_t r_uniform_type_sizes[] =
     [R_UNIFORM_TYPE_MAT2] =     sizeof(mat2_t),
     [R_UNIFORM_TYPE_MAT3] =     sizeof(mat3_t),
     [R_UNIFORM_TYPE_MAT4] =     sizeof(mat4_t),
+    [R_UNIFORM_TYPE_TEXTURE] =  sizeof(uint32_t)
 };
+
+struct r_gl_type_size_t r_gl_type_sizes[] =
+{
+    [R_FORMAT_RG8] =        {.type = GL_BYTE,           .size = 2},
+    [R_FORMAT_RG8I] =       {.type = GL_BYTE,           .size = 2},
+    [R_FORMAT_RG8UI] =      {.type = GL_UNSIGNED_BYTE,  .size = 2},
+
+    [R_FORMAT_RG16] =       {.type = GL_SHORT,          .size = 2},
+    [R_FORMAT_RG16I] =      {.type = GL_SHORT,          .size = 2},
+    [R_FORMAT_RG16UI] =     {.type = GL_UNSIGNED_SHORT, .size = 2},
+    [R_FORMAT_RG16F] =      {.type = GL_HALF_FLOAT,     .size = 2},
+
+    [R_FORMAT_RG32] =       {.type = GL_INT,            .size = 2},
+    [R_FORMAT_RG32I] =      {.type = GL_INT,            .size = 2},
+    [R_FORMAT_RG32UI] =     {.type = GL_UNSIGNED_INT,   .size = 2},
+    [R_FORMAT_RG32F] =      {.type = GL_FLOAT,          .size = 2},
+
+    [R_FORMAT_RGB8] =       {.type = GL_BYTE,           .size = 3},
+    [R_FORMAT_RGB8I] =      {.type = GL_BYTE,           .size = 3},
+    [R_FORMAT_RGB8UI] =     {.type = GL_UNSIGNED_BYTE,  .size = 3},
+
+    [R_FORMAT_RGB16] =      {.type = GL_SHORT,          .size = 3},
+    [R_FORMAT_RGB16I] =     {.type = GL_SHORT,          .size = 3},
+    [R_FORMAT_RGB16UI] =    {.type = GL_UNSIGNED_SHORT, .size = 3},
+    [R_FORMAT_RGB16F] =     {.type = GL_HALF_FLOAT,     .size = 3},
+
+    [R_FORMAT_RGB32] =      {.type = GL_INT,            .size = 3},
+    [R_FORMAT_RGB32I] =     {.type = GL_INT,            .size = 3},
+    [R_FORMAT_RGB32UI] =    {.type = GL_UNSIGNED_INT,   .size = 3},
+    [R_FORMAT_RGB32F] =     {.type = GL_FLOAT,          .size = 3},
+
+    [R_FORMAT_RGBA8] =      {.type = GL_BYTE,           .size = 4},
+    [R_FORMAT_RGBA8I] =     {.type = GL_BYTE,           .size = 4},
+    [R_FORMAT_RGBA8UI] =    {.type = GL_UNSIGNED_BYTE,  .size = 4},
+
+    [R_FORMAT_RGBA16] =     {.type = GL_SHORT,          .size = 4},
+    [R_FORMAT_RGBA16I] =    {.type = GL_SHORT,          .size = 4},
+    [R_FORMAT_RGBA16UI] =   {.type = GL_UNSIGNED_SHORT, .size = 4},
+    [R_FORMAT_RGBA16F] =    {.type = GL_HALF_FLOAT,     .size = 4},
+
+    [R_FORMAT_RGBA32] =     {.type = GL_INT,            .size = 4},
+    [R_FORMAT_RGBA32I] =    {.type = GL_INT,            .size = 4},
+    [R_FORMAT_RGBA32UI] =   {.type = GL_UNSIGNED_INT,   .size = 4},
+    [R_FORMAT_RGBA32F] =    {.type = GL_FLOAT,          .size = 4},
+};
+
+//struct r_vertex_layout_t r_default_vertex_layout =
+//{
+//    .stride = sizeof(struct r_vert_t),
+//    .attrib_count = 4,
+//    .attribs = (union r_vertex_attrib_t[])
+//    {
+//        {.format = R_FORMAT_RGB32F,   .offset = offsetof(struct r_vert_t, pos),         .location = R_POSITION_LOCATION},
+//        {.format = R_FORMAT_RGBA32F,  .offset = offsetof(struct r_vert_t, normal),      .location = R_NORMAL_LOCATION},
+//        {.format = R_FORMAT_RGB32F,   .offset = offsetof(struct r_vert_t, tangent),     .location = R_TANGENT_LOCATION},
+//        {.format = R_FORMAT_RG32F,    .offset = offsetof(struct r_vert_t, tex_coords),  .location = R_TEX_COORDS_LOCATION},
+//    }
+//};
+
+#ifdef __cplusplus
+extern "C"
+{
+#endif
 
 void r_Init()
 {
     log_ScopedLogMessage(LOG_TYPE_NOTICE, "Initializing renderer...");
 
     r_world_cmds = ds_list_create(sizeof(struct r_world_cmd_t), 8192);
-    r_entity_cmds = ds_list_create(sizeof(struct r_entity_cmd_t), 8192);
-    r_shadow_cmds = ds_list_create(sizeof(struct r_shadow_cmd_t), 8192);
-    r_immediate_cmds = ds_list_create(sizeof(struct r_i_cmd_t), 4096);
-    r_immediate_data = ds_list_create(R_IMMEDIATE_DATA_SLOT_SIZE, 32768);
+//    r_entity_cmds = ds_list_create(sizeof(struct r_entity_cmd_t), 8192);
+    r_entity_cmd_buffer = r_AllocCmdBuffer(sizeof(struct r_entity_cmd_t));
+    r_shadow_cmd_buffer = r_AllocCmdBuffer(sizeof(struct r_shadow_cmd_t));
+    r_immediate_cmd_buffer = r_AllocImmediateCmdBuffer(sizeof(struct r_i_cmd_t));
+//    r_shadow_cmds = ds_list_create(sizeof(struct r_shadow_cmd_t), 8192);
+//    r_immediate_cmds = ds_list_create(sizeof(struct r_immediate_cmd_t), 4096);
+//    r_immediate_data = ds_list_create(R_IMMEDIATE_DATA_SLOT_SIZE, 32768);
 
     r_shaders = ds_slist_create(sizeof(struct r_shader_t), 16);
     r_materials = ds_slist_create(sizeof(struct r_material_t), 32);
@@ -205,6 +284,7 @@ void r_Init()
     r_visible_lights = ds_list_create(sizeof(struct r_light_t *), 512);
     r_vertex_heap = ds_create_heap(R_VERTEX_BUFFER_SIZE);
     r_index_heap = ds_create_heap(R_INDEX_BUFFER_SIZE);
+//    r_vert_copy_buffer = mem_Calloc(R_VERT_COPY_BUFFER_SIZE, sizeof(struct r_vert_t));
 
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
@@ -258,12 +338,88 @@ void r_Init()
     glBindVertexArray(r_vao);
     glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 
-    r_z_prepass_shader = r_LoadShader("shaders/r_z_prepass.vert", "shaders/r_z_prepass.frag");
-    r_lit_shader = r_LoadShader("shaders/r_clustered_forward.vert", "shaders/r_clustered_forward.frag");
-    r_shadow_shader = r_LoadShader("shaders/r_shadow.vert", "shaders/r_shadow.frag");
-    r_immediate_shader = r_LoadShader("shaders/r_immediate_mode.vert", "shaders/r_immediate_mode.frag");
-    r_volumetric_shader = r_LoadShader("shaders/r_volumetric_lights.vert", "shaders/r_volumetric_lights.frag");
-    r_bilateral_blend_shader = r_LoadShader("shaders/r_bilateral_upsample.vert", "shaders/r_bilateral_upsample.frag");
+    struct r_shader_desc_t shader_desc;
+
+    shader_desc = (struct r_shader_desc_t){
+        .vertex_code = "shaders/r_z_prepass.vert",
+        .fragment_code = "shaders/r_z_prepass.frag",
+        .vertex_layout = &R_DEFAULT_VERTEX_LAYOUT,
+        .uniforms = R_DEFAULT_UNIFORMS,
+        .uniform_count = sizeof(R_DEFAULT_UNIFORMS) / sizeof(R_DEFAULT_UNIFORMS[0])
+    };
+    r_z_prepass_shader = r_LoadShader(&shader_desc);
+
+    shader_desc = (struct r_shader_desc_t){
+        .vertex_code = "shaders/r_clustered_forward.vert",
+        .fragment_code = "shaders/r_clustered_forward.frag",
+        .vertex_layout = &R_DEFAULT_VERTEX_LAYOUT,
+        .uniforms = R_DEFAULT_UNIFORMS,
+        .uniform_count = sizeof(R_DEFAULT_UNIFORMS) / sizeof(R_DEFAULT_UNIFORMS[0])
+    };
+    r_lit_shader = r_LoadShader(&shader_desc);
+
+    shader_desc = (struct r_shader_desc_t){
+        .vertex_code = "shaders/r_shadow.vert",
+        .fragment_code = "shaders/r_shadow.frag",
+        .vertex_layout = &R_DEFAULT_VERTEX_LAYOUT,
+        .uniforms = R_DEFAULT_UNIFORMS,
+        .uniform_count = sizeof(R_DEFAULT_UNIFORMS) / sizeof(R_DEFAULT_UNIFORMS[0])
+    };
+    r_shadow_shader = r_LoadShader(&shader_desc);
+
+    shader_desc = (struct r_shader_desc_t){
+        .vertex_code = "shaders/r_immediate_mode.vert",
+        .fragment_code = "shaders/r_immediate_mode.frag",
+        .vertex_layout = &R_DEFAULT_VERTEX_LAYOUT,
+        .uniforms = R_DEFAULT_UNIFORMS,
+        .uniform_count = sizeof(R_DEFAULT_UNIFORMS) / sizeof(R_DEFAULT_UNIFORMS[0])
+    };
+    r_immediate_shader = r_LoadShader(&shader_desc);
+
+    shader_desc = (struct r_shader_desc_t){
+        .vertex_code = "shaders/r_volumetric_lights.vert",
+        .fragment_code = "shaders/r_volumetric_lights.frag",
+        .vertex_layout = &R_DEFAULT_VERTEX_LAYOUT,
+        .uniforms = R_DEFAULT_UNIFORMS,
+        .uniform_count = sizeof(R_DEFAULT_UNIFORMS) / sizeof(R_DEFAULT_UNIFORMS[0])
+    };
+    r_volumetric_shader = r_LoadShader(&shader_desc);
+
+    shader_desc = (struct r_shader_desc_t){
+        .vertex_code = "shaders/r_bilateral_upsample.vert",
+        .fragment_code = "shaders/r_bilateral_upsample.frag",
+        .vertex_layout = &R_DEFAULT_VERTEX_LAYOUT,
+        .uniforms = R_DEFAULT_UNIFORMS,
+        .uniform_count = sizeof(R_DEFAULT_UNIFORMS) / sizeof(R_DEFAULT_UNIFORMS[0])
+    };
+    r_bilateral_blend_shader = r_LoadShader(&shader_desc);
+
+    shader_desc = (struct r_shader_desc_t){
+        .vertex_code = "shaders/r_full_screen_blend.vert",
+        .fragment_code = "shaders/r_full_screen_blend.frag",
+        .vertex_layout = &R_DEFAULT_VERTEX_LAYOUT,
+        .uniforms = R_DEFAULT_UNIFORMS,
+        .uniform_count = sizeof(R_DEFAULT_UNIFORMS) / sizeof(R_DEFAULT_UNIFORMS[0])
+    };
+    r_full_screen_blend_shader = r_LoadShader(&shader_desc);
+
+    shader_desc = (struct r_shader_desc_t){
+        .vertex_code = "shaders/r_blend_ui_debug.vert",
+        .fragment_code = "shaders/r_blend_ui_debug.frag",
+        .vertex_layout = &R_DEFAULT_VERTEX_LAYOUT,
+        .uniforms = R_DEFAULT_UNIFORMS,
+        .uniform_count = sizeof(R_DEFAULT_UNIFORMS) / sizeof(R_DEFAULT_UNIFORMS[0])
+    };
+    r_blend_ui_debug_shader = r_LoadShader(&shader_desc);
+
+//    r_z_prepass_shader = r_LoadShader("shaders/r_z_prepass.vert", "shaders/r_z_prepass.frag");
+//    r_lit_shader = r_LoadShader("shaders/r_clustered_forward.vert", "shaders/r_clustered_forward.frag");
+//    r_shadow_shader = r_LoadShader("shaders/r_shadow.vert", "shaders/r_shadow.frag");
+//    r_immediate_shader = r_LoadShader("shaders/r_immediate_mode.vert", "shaders/r_immediate_mode.frag");
+//    r_volumetric_shader = r_LoadShader("shaders/r_volumetric_lights.vert", "shaders/r_volumetric_lights.frag");
+//    r_bilateral_blend_shader = r_LoadShader("shaders/r_bilateral_upsample.vert", "shaders/r_bilateral_upsample.frag");
+//    r_full_screen_blend_shader = r_LoadShader("shaders/r_full_screen_blend.vert", "shaders/r_full_screen_blend.frag");
+//    r_blend_ui_debug_shader = r_LoadShader("shaders/r_blend_ui_debug.vert", "shaders/r_blend_ui_debug.frag");
     mat4_t_persp(&r_projection_matrix, r_fov, (float)r_width / (float)r_height, r_z_near, r_z_far);
     mat4_t_identity(&r_view_matrix);
 
@@ -513,7 +669,7 @@ void r_Init()
 /****************************************************************************/
 
 
-    glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
+//    glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
     glGenTextures(1, &r_cluster_texture);
     glBindTexture(GL_TEXTURE_3D, r_cluster_texture);
     glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
@@ -773,29 +929,16 @@ void r_Init()
     r_AddAttachment(r_main_framebuffer, GL_COLOR_ATTACHMENT0, GL_RGBA8, GL_NEAREST, GL_NEAREST);
     r_AddAttachment(r_main_framebuffer, GL_DEPTH_STENCIL_ATTACHMENT, GL_DEPTH24_STENCIL8, GL_NEAREST, GL_NEAREST);
 
+//    r_debug_framebuffer = r_CreateFramebuffer(r_width, r_height);
+//    r_AddAttachment(r_debug_framebuffer, GL_COLOR_ATTACHMENT0, GL_RGBA8, GL_NEAREST, GL_NEAREST);
+//    r_AddAttachment(r_debug_framebuffer, GL_DEPTH_STENCIL_ATTACHMENT, GL_DEPTH24_STENCIL8, GL_NEAREST, GL_NEAREST);
+
+//    r_ui_framebuffer = r_CreateFramebuffer(r_width, r_height);
+//    r_AddAttachment(r_ui_framebuffer, GL_COLOR_ATTACHMENT0, GL_RGBA8, GL_NEAREST, GL_NEAREST);
+
     r_volume_framebuffer = r_CreateFramebuffer(r_width / 2, r_height / 2);
     r_AddAttachment(r_volume_framebuffer, GL_COLOR_ATTACHMENT0, GL_RGBA8, GL_NEAREST, GL_NEAREST);
 
-//    glGenTextures(1, &r_main_color_attachment);
-//    glBindTexture(GL_TEXTURE_2D, r_main_color_attachment);
-//    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-//    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-//    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0);
-//    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
-//    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-//    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-//    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, r_width, r_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
-//
-//    glGenTextures(1, &r_main_depth_attachment);
-//    glBindTexture(GL_TEXTURE_2D, r_main_depth_attachment);
-//    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-//    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-//    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0);
-//    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
-//    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-//    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-//    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH24_STENCIL8, r_width, r_height, 0, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8, NULL);
-//    glBindTexture(GL_TEXTURE_2D, 0);
 //
 //    glGenFramebuffers(1, &r_main_framebuffer);
 //    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, r_main_framebuffer);
@@ -803,9 +946,9 @@ void r_Init()
 //    glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, r_main_depth_attachment, 0);
 //    glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_STENCIL_ATTACHMENT, GL_TEXTURE_2D, r_main_depth_attachment, 0);
 
-    glGenFramebuffers(1, &r_z_prepass_framebuffer);
-    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, r_z_prepass_framebuffer);
-    glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, r_main_framebuffer->depth_attachment->handle, 0);
+//    glGenFramebuffers(1, &r_z_prepass_framebuffer);
+//    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, r_z_prepass_framebuffer);
+//    glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, r_main_framebuffer->depth_attachment->handle, 0);
 
     for(uint32_t angle = R_SPOT_LIGHT_MIN_ANGLE; angle <= R_SPOT_LIGHT_MAX_ANGLE; angle++)
     {
@@ -865,6 +1008,187 @@ void r_FreeVisItem(struct r_vis_item_t *item)
 {
 
 }
+
+/*
+============================================================================
+    view
+============================================================================
+*/
+
+struct r_view_t *r_CreateView(struct r_view_desc_t *view_desc)
+{
+    uint32_t index = ds_slist_add_element(&r_views, NULL);
+    struct r_view_t *view = ds_slist_get_element(&r_views, index);
+
+    view->index = index;
+    view->projection_matrix = view_desc->projection_matrix;
+    view->transform = view_desc->transform;
+    view->framebuffer = view_desc->framebuffer;
+
+    view->entity_cmd_buffer = r_AllocCmdBuffer(sizeof(struct r_entity_cmd_t));
+    view->world_cmd_buffer = r_AllocCmdBuffer(sizeof(struct r_world_cmd_t));
+    view->immediate_cmd_buffer = r_AllocImmediateCmdBuffer(sizeof(struct r_i_cmd_t));
+    view->lights = ds_list_create(sizeof(struct r_light_t *), 512);
+}
+
+void r_DestroyView(struct r_view_t *view)
+{
+    if(view && view->index != 0xffffffff)
+    {
+        r_FreeCmdBuffer(&view->entity_cmd_buffer);
+        r_FreeCmdBuffer(&view->world_cmd_buffer);
+        r_FreeImmediateCmdBuffer(&view->immediate_cmd_buffer);
+        ds_list_destroy(&view->lights);
+        ds_slist_remove_element(&r_views, view->index);
+        view->index = 0xffffffff;
+    }
+}
+
+/*
+============================================================================
+    cmd buffer
+============================================================================
+*/
+
+struct r_cmd_buffer_t r_AllocCmdBuffer(uint32_t cmd_size)
+{
+    struct r_cmd_buffer_t cmd_buffer = {};
+    cmd_buffer.cmds = ds_list_create(cmd_size, 8192);
+//    cmd_buffer.data = ds_list_create(R_CMD_DATA_SLOT_SIZE, 8192);
+    return cmd_buffer;
+}
+
+void r_ResetCmdBuffer(struct r_cmd_buffer_t *cmd_buffer)
+{
+    if(cmd_buffer)
+    {
+        cmd_buffer->cmds.cursor = 0;
+    }
+}
+
+void r_FreeCmdBuffer(struct r_cmd_buffer_t *cmd_buffer)
+{
+    if(cmd_buffer && cmd_buffer->cmds.buffers)
+    {
+        r_ResetCmdBuffer(cmd_buffer);
+        ds_list_destroy(&cmd_buffer->cmds);
+        cmd_buffer->cmds.buffers = NULL;
+    }
+}
+
+void *r_AllocCmd(struct r_cmd_buffer_t *cmd_buffer)
+{
+    uint32_t index = ds_list_add_element(&cmd_buffer->cmds, NULL);
+    void *cmd = ds_list_get_element(&cmd_buffer->cmds, index);
+//    cmd->data = NULL;
+    return cmd;
+}
+
+struct r_i_cmd_buffer_t r_AllocImmediateCmdBuffer(uint32_t cmd_size)
+{
+    struct r_i_cmd_buffer_t cmd_buffer = {};
+    cmd_buffer.base = r_AllocCmdBuffer(cmd_size);
+//    cmd_buffer.cmds = ds_list_create(cmd_size, 8192);
+    cmd_buffer.data = ds_list_create(R_I_CMD_DATA_SLOT_SIZE, 8192);
+    return cmd_buffer;
+}
+
+void r_ResetImmediateCmdBuffer(struct r_i_cmd_buffer_t *cmd_buffer)
+{
+    if(cmd_buffer)
+    {
+        r_ResetCmdBuffer(&cmd_buffer->base);
+        cmd_buffer->data.cursor = 0;
+        cmd_buffer->draw_state = NULL;
+        cmd_buffer->uniforms = NULL;
+        cmd_buffer->dirty_shader = 0;
+
+        if(cmd_buffer->big_allocs)
+        {
+            struct r_i_cmd_data_t *cmd_data = cmd_buffer->big_allocs;
+
+            while(cmd_data)
+            {
+                struct r_i_cmd_data_t *next_cmd_data = cmd_data->next;
+                mem_Free(cmd_data);
+                cmd_data = next_cmd_data;
+            }
+
+            cmd_buffer->big_allocs = NULL;
+        }
+    }
+}
+
+void r_FreeImmediateCmdBuffer(struct r_i_cmd_buffer_t *cmd_buffer)
+{
+    if(cmd_buffer && cmd_buffer->base.cmds.buffers)
+    {
+        r_ResetImmediateCmdBuffer(cmd_buffer);
+        r_FreeCmdBuffer(&cmd_buffer->base);
+    }
+}
+
+//struct r_i_cmd_t *r_AllocImmediateCmd(struct r_i_cmd_buffer_t *cmd_buffer)
+//{
+//    return (struct r_i_cmd_t *)r_AllocCmd(&cmd_buffer->base);
+//}
+
+void r_IssueImmediateCmd(struct r_i_cmd_buffer_t *cmd_buffer, uint32_t type, void *data)
+{
+    struct r_i_cmd_t *cmd = (struct r_i_cmd_t *)r_AllocCmd(&cmd_buffer->base);
+    cmd->type = type;
+    cmd->data = data;
+}
+
+void *r_AllocImmediateCmdData(struct r_i_cmd_buffer_t *cmd_buffer, uint32_t size)
+{
+    struct r_i_cmd_data_t *data;
+
+    uint32_t required_size = R_I_CMD_DATA_SLOT_SIZE + size;
+
+    if(required_size <= cmd_buffer->data.buffer_size)
+    {
+        uint32_t required_slots = required_size / cmd_buffer->data.elem_size;
+        uint32_t available_slots = cmd_buffer->data.buffer_size - (cmd_buffer->data.cursor % cmd_buffer->data.buffer_size);
+
+        if(required_size % R_I_CMD_DATA_SLOT_SIZE)
+        {
+            required_slots++;
+        }
+
+        if(required_slots > available_slots)
+        {
+             cmd_buffer->data.cursor += available_slots;
+        }
+
+        uint32_t data_index = ds_list_add_element(&cmd_buffer->data, NULL);
+        data = ds_list_get_element(&cmd_buffer->data, data_index);
+        required_slots--;
+        cmd_buffer->data.cursor += required_slots;
+    }
+    else
+    {
+        data = mem_Calloc(1, required_size);
+        data->next = cmd_buffer->big_allocs;
+        cmd_buffer->big_allocs = data;
+    }
+
+    /* this is guaranteed to give a properly aligned address for any data type */
+    void *user_data = (char *)data + R_I_CMD_DATA_SLOT_SIZE;
+    memset(user_data, 0, size);
+
+    return user_data;
+}
+
+//void r_BeginCmdBuffer(struct r_cmd_buffer_t *cmd_buffer)
+//{
+//    r_ResetCmdBuffer(cmd_buffer);
+//}
+//
+//void r_EndCmdBuffer(struct r_cmd_buffer_t *cmd_buffer)
+//{
+//
+//}
 
 /*
 ============================================================================
@@ -1080,6 +1404,11 @@ struct r_framebuffer_t *r_CreateFramebuffer(uint16_t width, uint16_t height)
     return framebuffer;
 }
 
+struct r_framebuffer_t *r_GetActiveFramebuffer()
+{
+    return r_active_framebuffer;
+}
+
 struct r_framebuffer_t *r_GetFramebuffer(uint32_t index)
 {
     struct r_framebuffer_t *framebuffer = ds_slist_get_element(&r_framebuffers, index);
@@ -1165,6 +1494,38 @@ void r_AddAttachment(struct r_framebuffer_t *framebuffer, uint16_t attachment, u
         else
         {
             glFramebufferTexture2D(GL_READ_FRAMEBUFFER, target_attachment, GL_TEXTURE_2D, texture->handle, 0);
+        }
+
+        glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
+    }
+}
+
+void r_SetAttachment(struct r_framebuffer_t *framebuffer, struct r_texture_t *texture, uint16_t attachment)
+{
+    if(framebuffer && framebuffer->index != 0xffff && texture && texture->index != 0xffff)
+    {
+        glBindFramebuffer(GL_READ_FRAMEBUFFER, framebuffer->handle);
+
+        if(attachment == GL_DEPTH_ATTACHMENT || attachment == GL_STENCIL_ATTACHMENT)
+        {
+            framebuffer->depth_attachment = texture;
+            glFramebufferTexture2D(GL_READ_FRAMEBUFFER, attachment, GL_TEXTURE_2D, texture->handle, 0);
+        }
+        else
+        {
+            uint16_t attachment_index = attachment - GL_COLOR_ATTACHMENT0;
+
+            if(attachment_index < R_MAX_COLOR_ATTACHMENTS)
+            {
+                framebuffer->color_attachments[attachment_index] = texture;
+
+                if(attachment_index >= framebuffer->color_attachment_count)
+                {
+                    framebuffer->color_attachment_count = attachment_index + 1;
+                }
+
+                glFramebufferTexture2D(GL_READ_FRAMEBUFFER, attachment, GL_TEXTURE_2D, texture->handle, 0);
+            }
         }
 
         glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
@@ -1360,16 +1721,19 @@ void r_BindMaterial(struct r_material_t *material)
     {
         r_renderer_state.material_swaps++;
 
-        glActiveTexture(GL_TEXTURE0 + R_ALBEDO_TEX_UNIT);
-        glBindTexture(GL_TEXTURE_2D, material->diffuse_texture->handle);
+//        glActiveTexture(GL_TEXTURE0 + R_ALBEDO_TEX_UNIT);
+//        glBindTexture(GL_TEXTURE_2D, material->diffuse_texture->handle);
+        r_BindTexture(material->diffuse_texture, GL_TEXTURE0 + R_ALBEDO_TEX_UNIT);
         r_SetDefaultUniformI(R_UNIFORM_TEX_ALBEDO, R_ALBEDO_TEX_UNIT);
 
-        glActiveTexture(GL_TEXTURE0 + R_ROUGHNESS_TEX_UNIT);
-        glBindTexture(GL_TEXTURE_2D, material->roughness_texture->handle);
+//        glActiveTexture(GL_TEXTURE0 + R_ROUGHNESS_TEX_UNIT);
+//        glBindTexture(GL_TEXTURE_2D, material->roughness_texture->handle);
+        r_BindTexture(material->roughness_texture, GL_TEXTURE0 + R_ROUGHNESS_TEX_UNIT);
         r_SetDefaultUniformI(R_UNIFORM_TEX_ROUGHNESS, R_ROUGHNESS_TEX_UNIT);
 
-        glActiveTexture(GL_TEXTURE0 + R_NORMAL_TEX_UNIT);
-        glBindTexture(GL_TEXTURE_2D, material->normal_texture->handle);
+//        glActiveTexture(GL_TEXTURE0 + R_NORMAL_TEX_UNIT);
+//        glBindTexture(GL_TEXTURE_2D, material->normal_texture->handle);
+        r_BindTexture(material->normal_texture, GL_TEXTURE0 + R_NORMAL_TEX_UNIT);
         r_SetDefaultUniformI(R_UNIFORM_TEX_NORMAL, R_NORMAL_TEX_UNIT);
     }
 }
@@ -2228,76 +2592,14 @@ void r_DestroyAllLighs()
 ============================================================================
 */
 
-struct r_shader_t *r_LoadShader(char *vertex_file_name, char *fragment_file_name)
+struct r_shader_t *r_CreateShader(struct r_shader_desc_t *desc)
 {
-    FILE *shader_file;
-    uint32_t vertex_shader;
-    uint32_t fragment_shader;
-    uint32_t shader_program;
-    char *shader_source;
-    struct r_shader_t *shader;
-    int32_t compilation_status;
-    int32_t info_log_length;
-    char *info_log;
-    char include_error[256];
-    char vertex_full_path[PATH_MAX];
-    char fragment_full_path[PATH_MAX];
+    uint32_t compilation_status = 0;
+    uint32_t info_log_length = 0;
+    char *info_log = NULL;
 
-    strcpy(vertex_full_path, vertex_file_name);
-    strcpy(fragment_full_path, fragment_file_name);
-
-    if(!strstr(vertex_full_path, "shaders"))
-    {
-        ds_path_append_end("shaders", vertex_full_path, vertex_full_path, PATH_MAX);
-    }
-
-    if(!strstr(vertex_full_path, ".vert"))
-    {
-        ds_path_set_ext(vertex_full_path, "vert", vertex_full_path, PATH_MAX);
-    }
-
-    if(!ds_file_exists(vertex_full_path))
-    {
-        log_ScopedLogMessage(LOG_TYPE_ERROR, "Couldn't load vertex shader %s", vertex_full_path);
-        return NULL;
-    }
-
-
-    if(!strstr(fragment_full_path, "shaders"))
-    {
-        ds_path_append_end("shaders", fragment_full_path, fragment_full_path, PATH_MAX);
-    }
-
-    if(!strstr(fragment_full_path, ".frag"))
-    {
-        ds_path_set_ext(fragment_full_path, "frag", fragment_full_path, PATH_MAX);
-    }
-
-    if(!ds_file_exists(fragment_full_path))
-    {
-        log_ScopedLogMessage(LOG_TYPE_ERROR, "Couldn't load fragment shader %s", fragment_full_path);
-        return NULL;
-    }
-
-
-    shader_file = fopen(vertex_full_path, "rb");
-    ds_file_read(shader_file, (void **)&shader_source, NULL);
-    fclose(shader_file);
-
-    char *preprocessed_shader_source = stb_include_string(shader_source, NULL, "shaders", NULL, include_error);
-
-    if(!preprocessed_shader_source)
-    {
-//        printf("r_LoadShader: preprocessor error: %s\n", include_error);
-        log_ScopedLogMessage(LOG_TYPE_ERROR, "Preprocessor error: %s", include_error);
-        mem_Free(shader_source);
-        return NULL;
-    }
-
-    vertex_shader = glCreateShader(GL_VERTEX_SHADER);
-    glShaderSource(vertex_shader, 1, (const GLchar * const *)&preprocessed_shader_source, NULL);
-    free(preprocessed_shader_source);
-    mem_Free(shader_source);
+    uint32_t vertex_shader = glCreateShader(GL_VERTEX_SHADER);
+    glShaderSource(vertex_shader, 1, (const GLchar * const *)&desc->vertex_code, NULL);
     glCompileShader(vertex_shader);
     glGetShaderiv(vertex_shader, GL_COMPILE_STATUS, &compilation_status);
 
@@ -2306,29 +2608,14 @@ struct r_shader_t *r_LoadShader(char *vertex_file_name, char *fragment_file_name
         glGetShaderiv(vertex_shader, GL_INFO_LOG_LENGTH, &info_log_length);
         info_log = mem_Calloc(1, info_log_length);
         glGetShaderInfoLog(vertex_shader, info_log_length, NULL, info_log);
-        log_ScopedLogMessage(LOG_TYPE_ERROR, "Shader [%s] vertex stage compilation failed!\n Info log: %s", vertex_full_path, info_log);
+        log_ScopedLogMessage(LOG_TYPE_ERROR, "Shader [%s] vertex stage compilation failed!\n Info log: %s", desc->name, info_log);
         mem_Free(info_log);
         glDeleteShader(vertex_shader);
         return NULL;
     }
 
-    shader_file = fopen(fragment_full_path, "rb");
-    ds_file_read(shader_file, (void **)&shader_source, NULL);
-    fclose(shader_file);
-    preprocessed_shader_source = stb_include_string(shader_source, NULL, "shaders", NULL, include_error);
-
-    if(!preprocessed_shader_source)
-    {
-        log_ScopedLogMessage(LOG_TYPE_ERROR, "Preprocessor error: %s", include_error);
-        glDeleteShader(vertex_shader);
-        mem_Free(shader_source);
-    }
-
-
-    fragment_shader = glCreateShader(GL_FRAGMENT_SHADER);
-    glShaderSource(fragment_shader, 1, (const GLchar * const *)&preprocessed_shader_source, NULL);
-    free(preprocessed_shader_source);
-    mem_Free(shader_source);
+    uint32_t fragment_shader = glCreateShader(GL_FRAGMENT_SHADER);
+    glShaderSource(fragment_shader, 1, (const GLchar * const *)&desc->fragment_code, NULL);
     glCompileShader(fragment_shader);
     glGetShaderiv(fragment_shader, GL_COMPILE_STATUS, &compilation_status);
     if(!compilation_status)
@@ -2336,15 +2623,14 @@ struct r_shader_t *r_LoadShader(char *vertex_file_name, char *fragment_file_name
         glGetShaderiv(fragment_shader, GL_INFO_LOG_LENGTH, &info_log_length);
         info_log = mem_Calloc(1, info_log_length);
         glGetShaderInfoLog(fragment_shader, info_log_length, NULL, info_log);
-        log_ScopedLogMessage(LOG_TYPE_ERROR, "Shader [%s] fragment stage compilation failed!\n Info log: %s", fragment_full_path, info_log);
+        log_ScopedLogMessage(LOG_TYPE_ERROR, "Shader [%s] fragment stage compilation failed!\n Info log: %s", desc->name, info_log);
         mem_Free(info_log);
         glDeleteShader(vertex_shader);
         glDeleteShader(fragment_shader);
         return NULL;
     }
 
-
-    shader_program = glCreateProgram();
+    uint32_t shader_program = glCreateProgram();
     glAttachShader(shader_program, vertex_shader);
     glAttachShader(shader_program, fragment_shader);
     glLinkProgram(shader_program);
@@ -2356,84 +2642,313 @@ struct r_shader_t *r_LoadShader(char *vertex_file_name, char *fragment_file_name
         glGetProgramiv(shader_program, GL_INFO_LOG_LENGTH, &info_log_length);
         info_log = mem_Calloc(1, info_log_length);
         glGetProgramInfoLog(shader_program, info_log_length, NULL, info_log);
-        log_ScopedLogMessage(LOG_TYPE_ERROR, "Program linking for shaders [%s] and [%s] failed!\n Info log: %s", vertex_full_path, fragment_full_path, info_log);
-//        printf("r_LoadShader: program linking failed for shaders %s and %s!\n", vertex_full_path, fragment_full_path);
-//        printf("info log:\n %s\n", info_log);
+        log_ScopedLogMessage(LOG_TYPE_ERROR, "Program linking for shader [%s] failed!\n Info log: %s", desc->name, info_log);
         mem_Free(info_log);
         glDeleteProgram(shader_program);
         return NULL;
     }
 
-    uint32_t shader_index = ds_slist_add_element(&r_shaders, NULL);
-    shader = ds_slist_get_element(&r_shaders, shader_index);
-    shader->index = shader_index;
+    uint32_t index = ds_slist_add_element(&r_shaders, NULL);
+    struct r_shader_t *shader = ds_slist_get_element(&r_shaders, index);
+    shader->index = index;
     shader->handle = shader_program;
 
-    for(uint32_t uniform_index = 0; uniform_index < R_UNIFORM_LAST; uniform_index++)
+//    for(uint32_t attrib_index = 0; attrib_index < desc->attrib_count; attrib_index++)
+//    {
+//        struct r_vertex_attrib_t *attrib = desc->vertex_attribs + attrib_index;
+//        glBindAttribLocation(shader_program, attrib->location, attrib->name);
+//    }
+
+    struct r_vertex_layout_t *vertex_layout = desc->vertex_layout;
+//    shader->vertex_layout.attrib_count = vertex_layout->attrib_count;
+    shader->vertex_layout.stride = vertex_layout->stride;
+    shader->vertex_layout.attribs = mem_Calloc(vertex_layout->attrib_count, sizeof(struct r_vertex_attrib_t));
+
+    memcpy(shader->vertex_layout.attribs, vertex_layout->attribs, sizeof(struct r_vertex_attrib_t) * vertex_layout->attrib_count);
+
+    for(uint32_t attrib_index = 0; attrib_index < vertex_layout->attrib_count; attrib_index++)
     {
-        shader->uniforms[uniform_index].location = glGetUniformLocation(shader_program, r_default_uniforms[uniform_index].name);
+        struct r_vertex_attrib_t *desc_attrib = vertex_layout->attribs + attrib_index;
+        struct r_vertex_attrib_t *shader_attrib = shader->vertex_layout.attribs + shader->vertex_layout.attrib_count;
+        shader_attrib->location = glGetAttribLocation(shader->handle, desc_attrib->name);
+        if(shader_attrib->location != GL_INVALID_INDEX)
+        {
+            shader->vertex_layout.attrib_count++;
+        }
     }
 
-    uint32_t point_light_uniform_block = glGetProgramResourceIndex(shader_program, GL_SHADER_STORAGE_BLOCK, "r_point_lights");
-    uint32_t spot_light_uniform_block = glGetProgramResourceIndex(shader_program, GL_SHADER_STORAGE_BLOCK, "r_spot_lights");
-    uint32_t light_indices_uniform_block = glGetProgramResourceIndex(shader_program, GL_SHADER_STORAGE_BLOCK, "r_light_indices");
-    uint32_t shadow_indices_uniform_block = glGetProgramResourceIndex(shader_program, GL_SHADER_STORAGE_BLOCK, "r_shadow_maps");
+    shader->uniforms = mem_Calloc(desc->uniform_count, sizeof(struct r_uniform_t));
+    shader->uniform_count = desc->uniform_count;
+    memcpy(shader->uniforms, desc->uniforms, sizeof(struct r_uniform_t) * desc->uniform_count);
 
+    for(uint32_t uniform_index = 0; uniform_index < desc->uniform_count; uniform_index++)
+    {
+        struct r_uniform_t *desc_uniform = desc->uniforms + uniform_index;
+        struct r_uniform_t *shader_uniform = shader->uniforms + uniform_index;
+        shader_uniform->location = glGetUniformLocation(shader->handle, desc_uniform->name);
+    }
+
+    uint32_t point_light_uniform_block = glGetProgramResourceIndex(shader->handle, GL_SHADER_STORAGE_BLOCK, "r_point_lights");
+    uint32_t spot_light_uniform_block = glGetProgramResourceIndex(shader->handle, GL_SHADER_STORAGE_BLOCK, "r_spot_lights");
+    uint32_t light_indices_uniform_block = glGetProgramResourceIndex(shader->handle, GL_SHADER_STORAGE_BLOCK, "r_light_indices");
+    uint32_t shadow_indices_uniform_block = glGetProgramResourceIndex(shader->handle, GL_SHADER_STORAGE_BLOCK, "r_shadow_maps");
+
+    /* TODO: refactor this into a better API. It should be possible to pass
+    this kind of stuff in a shader description. */
     if(point_light_uniform_block != 0xffffffff)
     {
-        glShaderStorageBlockBinding(shader_program, point_light_uniform_block, R_POINT_LIGHT_UNIFORM_BUFFER_BINDING);
+        glShaderStorageBlockBinding(shader->handle, point_light_uniform_block, R_POINT_LIGHT_UNIFORM_BUFFER_BINDING);
     }
 
     if(spot_light_uniform_block != 0xffffffff)
     {
-        glShaderStorageBlockBinding(shader_program, spot_light_uniform_block, R_SPOT_LIGHT_UNIFORM_BUFFER_BINDING);
+        glShaderStorageBlockBinding(shader->handle, spot_light_uniform_block, R_SPOT_LIGHT_UNIFORM_BUFFER_BINDING);
     }
 
     if(light_indices_uniform_block != 0xffffffff)
     {
-        glShaderStorageBlockBinding(shader_program, light_indices_uniform_block, R_LIGHT_INDICES_UNIFORM_BUFFER_BINDING);
+        glShaderStorageBlockBinding(shader->handle, light_indices_uniform_block, R_LIGHT_INDICES_UNIFORM_BUFFER_BINDING);
     }
 
     if(shadow_indices_uniform_block != 0xffffffff)
     {
-        glShaderStorageBlockBinding(shader_program, shadow_indices_uniform_block, R_SHADOW_INDICES_BUFFER_BINDING);
+        glShaderStorageBlockBinding(shader->handle, shadow_indices_uniform_block, R_SHADOW_INDICES_BUFFER_BINDING);
     }
-
-    shader->attribs = 0;
-
-    if(glGetAttribLocation(shader_program, "r_position") != -1)
-    {
-        shader->attribs |= R_ATTRIB_POSITION;
-        glBindAttribLocation(shader_program, R_POSITION_LOCATION, "r_position");
-    }
-
-    if(glGetAttribLocation(shader_program, "r_tex_coords") != -1)
-    {
-        shader->attribs |= R_ATTRIB_TEX_COORDS;
-        glBindAttribLocation(shader_program, R_TEX_COORDS_LOCATION, "r_tex_coords");
-    }
-
-    if(glGetAttribLocation(shader_program, "r_normal") != -1)
-    {
-        shader->attribs |= R_ATTRIB_NORMAL;
-        glBindAttribLocation(shader_program, R_NORMAL_LOCATION, "r_normal");
-    }
-
-    if(glGetAttribLocation(shader_program, "r_tangent") != -1)
-    {
-        shader->attribs |= R_ATTRIB_TANGENT;
-        glBindAttribLocation(shader_program, R_TANGENT_LOCATION, "r_tangent");
-    }
-
-    if(glGetAttribLocation(shader_program, "r_color") != -1)
-    {
-        shader->attribs |= R_ATTRIB_COLOR;
-        glBindAttribLocation(shader_program, R_COLOR_LOCATION, "r_color");
-    }
-
-    log_ScopedLogMessage(LOG_TYPE_NOTICE, "Shaders [%s] and [%s] loaded!", vertex_full_path, fragment_full_path);
 
     return shader;
+}
+
+struct r_shader_t *r_LoadShader(struct r_shader_desc_t *desc)
+{
+    FILE *shader_file;
+//    uint32_t vertex_shader;
+//    uint32_t fragment_shader;
+//    uint32_t shader_program;
+    char *shader_source;
+    struct r_shader_t *shader = NULL;
+//    int32_t compilation_status;
+//    int32_t info_log_length;
+//    char *info_log;
+    char include_error[256];
+    char vertex_full_path[PATH_MAX];
+    char fragment_full_path[PATH_MAX];
+    struct r_shader_desc_t shader_desc = {
+        .uniform_count = desc->uniform_count,
+        .uniforms = desc->uniforms,
+        .vertex_layout = desc->vertex_layout
+    };
+
+    strcpy(vertex_full_path, desc->vertex_code);
+    strcpy(fragment_full_path, desc->fragment_code);
+
+    if(!strstr(vertex_full_path, "shaders"))
+    {
+        ds_path_append_end("shaders", vertex_full_path, vertex_full_path, PATH_MAX);
+    }
+
+    if(!strstr(vertex_full_path, ".vert"))
+    {
+        ds_path_set_ext(vertex_full_path, "vert", vertex_full_path, PATH_MAX);
+    }
+
+    if(ds_file_exists(vertex_full_path))
+    {
+        if(!strstr(fragment_full_path, "shaders"))
+        {
+            ds_path_append_end("shaders", fragment_full_path, fragment_full_path, PATH_MAX);
+        }
+
+        if(!strstr(fragment_full_path, ".frag"))
+        {
+            ds_path_set_ext(fragment_full_path, "frag", fragment_full_path, PATH_MAX);
+        }
+
+        if(ds_file_exists(fragment_full_path))
+        {
+            shader_file = fopen(vertex_full_path, "rb");
+            ds_file_read(shader_file, (void **)&shader_source, NULL);
+            fclose(shader_file);
+
+            shader_desc.vertex_code = stb_include_string(shader_source, NULL, "shaders", NULL, include_error);
+            mem_Free(shader_source);
+
+            if(shader_desc.vertex_code)
+            {
+                shader_file = fopen(fragment_full_path, "rb");
+                ds_file_read(shader_file, (void **)&shader_source, NULL);
+                fclose(shader_file);
+                shader_desc.fragment_code = stb_include_string(shader_source, NULL, "shaders", NULL, include_error);
+                mem_Free(shader_source);
+
+                if(shader_desc.fragment_code)
+                {
+                    shader = r_CreateShader(&shader_desc);
+
+                    if(shader)
+                    {
+                        log_ScopedLogMessage(LOG_TYPE_NOTICE, "Shaders [%s] and [%s] loaded!", vertex_full_path, fragment_full_path);
+                    }
+                }
+                else
+                {
+                    log_ScopedLogMessage(LOG_TYPE_ERROR, "Preprocessor error: %s", include_error);
+                }
+
+                mem_Free(shader_desc.fragment_code);
+            }
+            else
+            {
+                log_ScopedLogMessage(LOG_TYPE_ERROR, "Preprocessor error: %s", include_error);
+            }
+
+            mem_Free(shader_desc.vertex_code);
+        }
+        else
+        {
+            log_ScopedLogMessage(LOG_TYPE_ERROR, "Couldn't load fragment shader %s", fragment_full_path);
+        }
+    }
+    else
+    {
+        log_ScopedLogMessage(LOG_TYPE_ERROR, "Couldn't load vertex shader %s", vertex_full_path);
+    }
+
+
+//    vertex_shader = glCreateShader(GL_VERTEX_SHADER);
+//    glShaderSource(vertex_shader, 1, (const GLchar * const *)&preprocessed_shader_source, NULL);
+//    free(preprocessed_shader_source);
+//    mem_Free(shader_source);
+//    glCompileShader(vertex_shader);
+//    glGetShaderiv(vertex_shader, GL_COMPILE_STATUS, &compilation_status);
+
+//    if(!compilation_status)
+//    {
+//        glGetShaderiv(vertex_shader, GL_INFO_LOG_LENGTH, &info_log_length);
+//        info_log = mem_Calloc(1, info_log_length);
+//        glGetShaderInfoLog(vertex_shader, info_log_length, NULL, info_log);
+//        log_ScopedLogMessage(LOG_TYPE_ERROR, "Shader [%s] vertex stage compilation failed!\n Info log: %s", vertex_full_path, info_log);
+//        mem_Free(info_log);
+//        glDeleteShader(vertex_shader);
+//        return NULL;
+//    }
+
+
+
+
+//    fragment_shader = glCreateShader(GL_FRAGMENT_SHADER);
+//    glShaderSource(fragment_shader, 1, (const GLchar * const *)&preprocessed_shader_source, NULL);
+//    free(preprocessed_shader_source);
+//    mem_Free(shader_source);
+//    glCompileShader(fragment_shader);
+//    glGetShaderiv(fragment_shader, GL_COMPILE_STATUS, &compilation_status);
+//    if(!compilation_status)
+//    {
+//        glGetShaderiv(fragment_shader, GL_INFO_LOG_LENGTH, &info_log_length);
+//        info_log = mem_Calloc(1, info_log_length);
+//        glGetShaderInfoLog(fragment_shader, info_log_length, NULL, info_log);
+//        log_ScopedLogMessage(LOG_TYPE_ERROR, "Shader [%s] fragment stage compilation failed!\n Info log: %s", fragment_full_path, info_log);
+//        mem_Free(info_log);
+//        glDeleteShader(vertex_shader);
+//        glDeleteShader(fragment_shader);
+//        return NULL;
+//    }
+
+
+//    shader_program = glCreateProgram();
+//    glAttachShader(shader_program, vertex_shader);
+//    glAttachShader(shader_program, fragment_shader);
+//    glLinkProgram(shader_program);
+//    glDeleteShader(vertex_shader);
+//    glDeleteShader(fragment_shader);
+//    glGetProgramiv(shader_program, GL_LINK_STATUS, &compilation_status);
+//    if(!compilation_status)
+//    {
+//        glGetProgramiv(shader_program, GL_INFO_LOG_LENGTH, &info_log_length);
+//        info_log = mem_Calloc(1, info_log_length);
+//        glGetProgramInfoLog(shader_program, info_log_length, NULL, info_log);
+//        log_ScopedLogMessage(LOG_TYPE_ERROR, "Program linking for shaders [%s] and [%s] failed!\n Info log: %s", vertex_full_path, fragment_full_path, info_log);
+////        printf("r_LoadShader: program linking failed for shaders %s and %s!\n", vertex_full_path, fragment_full_path);
+////        printf("info log:\n %s\n", info_log);
+//        mem_Free(info_log);
+//        glDeleteProgram(shader_program);
+//        return NULL;
+//    }
+
+//    uint32_t shader_index = ds_slist_add_element(&r_shaders, NULL);
+//    shader = ds_slist_get_element(&r_shaders, shader_index);
+//    shader->index = shader_index;
+//    shader->handle = shader_program;
+//
+//    for(uint32_t uniform_index = 0; uniform_index < R_UNIFORM_LAST; uniform_index++)
+//    {
+//        shader->uniforms[uniform_index].location = glGetUniformLocation(shader_program, r_default_uniforms[uniform_index].name);
+//    }
+
+//    uint32_t point_light_uniform_block = glGetProgramResourceIndex(shader_program, GL_SHADER_STORAGE_BLOCK, "r_point_lights");
+//    uint32_t spot_light_uniform_block = glGetProgramResourceIndex(shader_program, GL_SHADER_STORAGE_BLOCK, "r_spot_lights");
+//    uint32_t light_indices_uniform_block = glGetProgramResourceIndex(shader_program, GL_SHADER_STORAGE_BLOCK, "r_light_indices");
+//    uint32_t shadow_indices_uniform_block = glGetProgramResourceIndex(shader_program, GL_SHADER_STORAGE_BLOCK, "r_shadow_maps");
+//
+//    if(point_light_uniform_block != 0xffffffff)
+//    {
+//        glShaderStorageBlockBinding(shader_program, point_light_uniform_block, R_POINT_LIGHT_UNIFORM_BUFFER_BINDING);
+//    }
+//
+//    if(spot_light_uniform_block != 0xffffffff)
+//    {
+//        glShaderStorageBlockBinding(shader_program, spot_light_uniform_block, R_SPOT_LIGHT_UNIFORM_BUFFER_BINDING);
+//    }
+//
+//    if(light_indices_uniform_block != 0xffffffff)
+//    {
+//        glShaderStorageBlockBinding(shader_program, light_indices_uniform_block, R_LIGHT_INDICES_UNIFORM_BUFFER_BINDING);
+//    }
+//
+//    if(shadow_indices_uniform_block != 0xffffffff)
+//    {
+//        glShaderStorageBlockBinding(shader_program, shadow_indices_uniform_block, R_SHADOW_INDICES_BUFFER_BINDING);
+//    }
+
+//    shader->attribs = 0;
+//
+//    if(glGetAttribLocation(shader_program, "r_position") != -1)
+//    {
+//        shader->attribs |= R_ATTRIB_POSITION;
+//        glBindAttribLocation(shader_program, R_POSITION_LOCATION, "r_position");
+//    }
+//
+//    if(glGetAttribLocation(shader_program, "r_tex_coords") != -1)
+//    {
+//        shader->attribs |= R_ATTRIB_TEX_COORDS;
+//        glBindAttribLocation(shader_program, R_TEX_COORDS_LOCATION, "r_tex_coords");
+//    }
+//
+//    if(glGetAttribLocation(shader_program, "r_normal") != -1)
+//    {
+//        shader->attribs |= R_ATTRIB_NORMAL;
+//        glBindAttribLocation(shader_program, R_NORMAL_LOCATION, "r_normal");
+//    }
+//
+//    if(glGetAttribLocation(shader_program, "r_tangent") != -1)
+//    {
+//        shader->attribs |= R_ATTRIB_TANGENT;
+//        glBindAttribLocation(shader_program, R_TANGENT_LOCATION, "r_tangent");
+//    }
+//
+//    if(glGetAttribLocation(shader_program, "r_color") != -1)
+//    {
+//        shader->attribs |= R_ATTRIB_COLOR;
+//        glBindAttribLocation(shader_program, R_COLOR_LOCATION, "r_color");
+//    }
+
+//    shader->vertex_layout = &r_default_vertex_layout;
+
+    return shader;
+}
+
+struct r_shader_t *r_GetDefaultShader(uint32_t shader)
+{
+
 }
 
 void r_FreeShader(struct r_shader_t *shader)
@@ -2468,152 +2983,160 @@ void r_BindShader(struct r_shader_t *shader)
         r_SetDefaultUniformF(R_UNIFORM_Z_NEAR, r_z_near);
         r_SetDefaultUniformF(R_UNIFORM_CLUSTER_DENOM, r_denom);
 
-        if(shader->attribs & R_ATTRIB_POSITION)
-        {
-            glEnableVertexArrayAttrib(r_vao, R_POSITION_LOCATION);
-            glVertexAttribPointer(R_POSITION_LOCATION, 3, GL_FLOAT, GL_FALSE, sizeof(struct r_vert_t), (void *)offsetof(struct r_vert_t, pos));
-        }
-        else
-        {
-            glDisableVertexArrayAttrib(r_vao, R_POSITION_LOCATION);
-        }
-
-        if(shader->attribs & R_ATTRIB_NORMAL)
-        {
-            glEnableVertexArrayAttrib(r_vao, R_NORMAL_LOCATION);
-            glVertexAttribPointer(R_NORMAL_LOCATION, 4, GL_FLOAT, GL_FALSE, sizeof(struct r_vert_t), (void *)offsetof(struct r_vert_t, normal));
-        }
-        else
-        {
-            glDisableVertexArrayAttrib(r_vao, R_NORMAL_LOCATION);
-        }
-
-        if(shader->attribs & R_ATTRIB_TANGENT)
-        {
-            glEnableVertexArrayAttrib(r_vao, R_TANGENT_LOCATION);
-            glVertexAttribPointer(R_TANGENT_LOCATION, 3, GL_FLOAT, GL_FALSE, sizeof(struct r_vert_t), (void *)offsetof(struct r_vert_t, tangent));
-        }
-        else
-        {
-            glDisableVertexArrayAttrib(r_vao, R_TANGENT_LOCATION);
-        }
-
-        if(shader->attribs & R_ATTRIB_TEX_COORDS)
-        {
-            glEnableVertexArrayAttrib(r_vao, R_TEX_COORDS_LOCATION);
-            glVertexAttribPointer(R_TEX_COORDS_LOCATION, 2, GL_FLOAT, GL_FALSE, sizeof(struct r_vert_t), (void *)offsetof(struct r_vert_t, tex_coords));
-        }
-        else
-        {
-            glDisableVertexArrayAttrib(r_vao, R_TEX_COORDS_LOCATION);
-        }
+        r_BindVertexLayout(&shader->vertex_layout);
     }
 }
 
-struct r_named_uniform_t *r_GetNamedUniform(struct r_shader_t *shader, char *name)
+void r_BindVertexLayout(struct r_vertex_layout_t *layout)
 {
-    if(shader)
+    if(layout && layout->attrib_count)
     {
-        if(!shader->named_uniforms.elem_size)
+        for(uint32_t attrib_index = 0; attrib_index < layout->attrib_count; attrib_index++)
         {
-            shader->named_uniforms = ds_list_create(sizeof(struct r_named_uniform_t), 8);
+            struct r_vertex_attrib_t *attrib = layout->attribs + attrib_index;
+            struct r_gl_type_size_t *type_size = r_gl_type_sizes + attrib->format;
+
+            glEnableVertexArrayAttrib(r_vao, attrib->location);
+            glVertexAttribPointer(attrib->location, type_size->size, type_size->type, attrib->normalized, layout->stride, (void *)attrib->offset);
         }
     }
-
-    for(uint32_t uniform_index = 0; uniform_index < shader->named_uniforms.cursor; uniform_index++)
-    {
-        struct r_named_uniform_t *uniform = ds_list_get_element(&shader->named_uniforms, uniform_index);
-
-        if(!strcmp(uniform->name, name))
-        {
-            return uniform;
-        }
-    }
-
-    struct r_named_uniform_t *uniform = NULL;
-    uint32_t uniform_location = glGetUniformLocation(shader->handle, name);
-    if(uniform_location != GL_INVALID_INDEX)
-    {
-        GLenum type;
-        GLint size;
-        uint32_t uniform_type;
-        glGetActiveUniform(shader->handle, uniform_location, 0, NULL, &size, &type, NULL);
-
-        switch(type)
-        {
-            case GL_FLOAT:
-                uniform_type = R_UNIFORM_TYPE_FLOAT;
-            break;
-
-            case GL_INT:
-            case GL_SAMPLER_1D:
-            case GL_SAMPLER_2D:
-            case GL_SAMPLER_3D:
-            case GL_SAMPLER_CUBE:
-            case GL_SAMPLER_1D_SHADOW:
-            case GL_SAMPLER_2D_SHADOW:
-            case GL_SAMPLER_1D_ARRAY:
-            case GL_SAMPLER_2D_ARRAY:
-            case GL_UNSIGNED_INT_SAMPLER_1D:
-            case GL_UNSIGNED_INT_SAMPLER_2D:
-            case GL_UNSIGNED_INT_SAMPLER_3D:
-            case GL_UNSIGNED_INT_SAMPLER_CUBE:
-                uniform_type = R_UNIFORM_TYPE_INT;
-            break;
-
-            case GL_UNSIGNED_INT:
-                uniform_type = R_UNIFORM_TYPE_UINT;
-            break;
-
-            case GL_FLOAT_VEC2:
-                uniform_type = R_UNIFORM_TYPE_VEC2;
-            break;
-
-            case GL_FLOAT_VEC3:
-                uniform_type = R_UNIFORM_TYPE_VEC3;
-            break;
-
-            case GL_FLOAT_VEC4:
-                uniform_type = R_UNIFORM_TYPE_VEC4;
-            break;
-
-            case GL_FLOAT_MAT2:
-                uniform_type = R_UNIFORM_TYPE_MAT2;
-            break;
-
-            case GL_FLOAT_MAT3:
-                uniform_type = R_UNIFORM_TYPE_MAT3;
-            break;
-
-            case GL_FLOAT_MAT4:
-                uniform_type = R_UNIFORM_TYPE_MAT4;
-            break;
-
-            default:
-                uniform_type = R_UNIFORM_TYPE_UNKNOWN;
-            break;
-        }
-
-        if(uniform_type != R_UNIFORM_TYPE_UNKNOWN)
-        {
-            uint32_t index = ds_list_add_element(&shader->named_uniforms, NULL);
-            uniform = ds_list_get_element(&shader->named_uniforms, index);
-            uniform->uniform.location = uniform_location;
-            uniform->type = uniform_type;
-            uniform->name = mem_Calloc(1, strlen(name) + 1);
-            strcpy(uniform->name, name);
-        }
-    }
-
-    return uniform;
 }
 
-uint32_t r_GetUniformIndex(struct r_shader_t *shader, char *name)
+//struct r_named_uniform_t *r_GetNamedUniform(struct r_shader_t *shader, char *name)
+//{
+//    if(shader)
+//    {
+//        if(!shader->named_uniforms.elem_size)
+//        {
+//            shader->named_uniforms = ds_list_create(sizeof(struct r_named_uniform_t), 8);
+//        }
+//    }
+//
+//    for(uint32_t uniform_index = 0; uniform_index < shader->named_uniforms.cursor; uniform_index++)
+//    {
+//        struct r_named_uniform_t *uniform = ds_list_get_element(&shader->named_uniforms, uniform_index);
+//
+//        if(!strcmp(uniform->name, name))
+//        {
+//            return uniform;
+//        }
+//    }
+//
+//    struct r_named_uniform_t *uniform = NULL;
+//    uint32_t uniform_location = glGetUniformLocation(shader->handle, name);
+//    if(uniform_location != GL_INVALID_INDEX)
+//    {
+//        GLenum type;
+//        GLint size;
+//        uint32_t uniform_type;
+//        glGetActiveUniform(shader->handle, uniform_location, 0, NULL, &size, &type, NULL);
+//
+//        switch(type)
+//        {
+//            case GL_FLOAT:
+//                uniform_type = R_UNIFORM_TYPE_FLOAT;
+//            break;
+//
+//            case GL_INT:
+//            case GL_SAMPLER_1D:
+//            case GL_SAMPLER_2D:
+//            case GL_SAMPLER_3D:
+//            case GL_SAMPLER_CUBE:
+//            case GL_SAMPLER_1D_SHADOW:
+//            case GL_SAMPLER_2D_SHADOW:
+//            case GL_SAMPLER_1D_ARRAY:
+//            case GL_SAMPLER_2D_ARRAY:
+//            case GL_UNSIGNED_INT_SAMPLER_1D:
+//            case GL_UNSIGNED_INT_SAMPLER_2D:
+//            case GL_UNSIGNED_INT_SAMPLER_3D:
+//            case GL_UNSIGNED_INT_SAMPLER_CUBE:
+//                uniform_type = R_UNIFORM_TYPE_INT;
+//            break;
+//
+//            case GL_UNSIGNED_INT:
+//                uniform_type = R_UNIFORM_TYPE_UINT;
+//            break;
+//
+//            case GL_FLOAT_VEC2:
+//                uniform_type = R_UNIFORM_TYPE_VEC2;
+//            break;
+//
+//            case GL_FLOAT_VEC3:
+//                uniform_type = R_UNIFORM_TYPE_VEC3;
+//            break;
+//
+//            case GL_FLOAT_VEC4:
+//                uniform_type = R_UNIFORM_TYPE_VEC4;
+//            break;
+//
+//            case GL_FLOAT_MAT2:
+//                uniform_type = R_UNIFORM_TYPE_MAT2;
+//            break;
+//
+//            case GL_FLOAT_MAT3:
+//                uniform_type = R_UNIFORM_TYPE_MAT3;
+//            break;
+//
+//            case GL_FLOAT_MAT4:
+//                uniform_type = R_UNIFORM_TYPE_MAT4;
+//            break;
+//
+//            default:
+//                uniform_type = R_UNIFORM_TYPE_UNKNOWN;
+//            break;
+//        }
+//
+//        if(uniform_type != R_UNIFORM_TYPE_UNKNOWN)
+//        {
+//            uint32_t index = ds_list_add_element(&shader->named_uniforms, NULL);
+//            uniform = ds_list_get_element(&shader->named_uniforms, index);
+//            uniform->uniform.location = uniform_location;
+//            uniform->type = uniform_type;
+//            uniform->name = mem_Calloc(1, strlen(name) + 1);
+//            strcpy(uniform->name, name);
+//        }
+//    }
+//
+//    return uniform;
+//}
+
+//uint32_t r_GetUniformIndex(struct r_shader_t *shader, char *name)
+//{
+//    return glGetUniformLocation(shader->handle, name);
+//}
+
+void r_SetUniform(uint32_t uniform, void *value)
 {
-    return glGetUniformLocation(shader->handle, name);
+    struct r_uniform_t *uniform_ptr = r_current_shader->uniforms + uniform;
+
+    if(value)
+    {
+        switch(uniform_ptr->type)
+        {
+            case R_UNIFORM_TYPE_MAT4:
+                r_SetUniformMat4(uniform, value);
+            break;
+
+            case R_UNIFORM_TYPE_VEC2:
+                r_SetUniformVec2(uniform, value);
+            break;
+
+            case R_UNIFORM_TYPE_FLOAT:
+                r_SetUniformF(uniform, *(float *)value);
+            break;
+
+            case R_UNIFORM_TYPE_INT:
+                r_SetUniformI(uniform, *(int32_t *)value);
+            break;
+
+            case R_UNIFORM_TYPE_UINT:
+                r_SetUniformUI(uniform, *(uint32_t *)value);
+            break;
+        }
+    }
 }
 
-void r_SetDefaultUniformI(uint32_t uniform, int32_t value)
+void r_SetUniformI(uint32_t uniform, int32_t value)
 {
     if(r_current_shader->uniforms[uniform].location != GL_INVALID_INDEX)
     {
@@ -2621,7 +3144,12 @@ void r_SetDefaultUniformI(uint32_t uniform, int32_t value)
     }
 }
 
-void r_SetDefaultUniformUI(uint32_t uniform, uint32_t value)
+void r_SetDefaultUniformI(uint32_t uniform, int32_t value)
+{
+    r_SetUniformI(uniform, value);
+}
+
+void r_SetUniformUI(uint32_t uniform, uint32_t value)
 {
     if(r_current_shader->uniforms[uniform].location != GL_INVALID_INDEX)
     {
@@ -2629,7 +3157,12 @@ void r_SetDefaultUniformUI(uint32_t uniform, uint32_t value)
     }
 }
 
-void r_SetDefaultUniformF(uint32_t uniform, float value)
+void r_SetDefaultUniformUI(uint32_t uniform, uint32_t value)
+{
+    r_SetUniformUI(uniform, value);
+}
+
+void r_SetUniformF(uint32_t uniform, float value)
 {
     if(r_current_shader->uniforms[uniform].location != GL_INVALID_INDEX)
     {
@@ -2637,7 +3170,12 @@ void r_SetDefaultUniformF(uint32_t uniform, float value)
     }
 }
 
-void r_SetDefaultUniformVec2(uint32_t uniform, vec2_t *value)
+void r_SetDefaultUniformF(uint32_t uniform, float value)
+{
+    r_SetUniformF(uniform, value);
+}
+
+void r_SetUniformVec2(uint32_t uniform, vec2_t *value)
 {
     if(r_current_shader->uniforms[uniform].location != GL_INVALID_INDEX)
     {
@@ -2645,7 +3183,12 @@ void r_SetDefaultUniformVec2(uint32_t uniform, vec2_t *value)
     }
 }
 
-void r_SetDefaultUniformMat4(uint32_t uniform, mat4_t *matrix)
+void r_SetDefaultUniformVec2(uint32_t uniform, vec2_t *value)
+{
+    r_SetUniformVec2(uniform, value);
+}
+
+void r_SetUniformMat4(uint32_t uniform, mat4_t *matrix)
 {
     if(r_current_shader->uniforms[uniform].location != GL_INVALID_INDEX)
     {
@@ -2653,43 +3196,52 @@ void r_SetDefaultUniformMat4(uint32_t uniform, mat4_t *matrix)
     }
 }
 
-void r_SetNamedUniformByName(char *uniform, void *value)
+void r_SetDefaultUniformMat4(uint32_t uniform, mat4_t *matrix)
 {
-    struct r_named_uniform_t *named_uniform = r_GetNamedUniform(r_current_shader, uniform);
-    r_SetNamedUniform(named_uniform, value);
+    r_SetUniformMat4(uniform, matrix);
 }
 
-void r_SetNamedUniform(struct r_named_uniform_t *uniform, void *value)
-{
-    if(uniform)
-    {
-        switch(uniform->type)
-        {
-            case R_UNIFORM_TYPE_VEC4:
-                r_SetNamedUniformVec4(uniform, value);
-            break;
-        }
-    }
-}
-
-void r_SetNamedUniformI(struct r_named_uniform_t *uniform, int32_t value)
-{
-    if(uniform && uniform->uniform.location != GL_INVALID_INDEX)
-    {
-        glUniform1i(uniform->uniform.location, value);
-    }
-}
-
-void r_SetNamedUniformVec4(struct r_named_uniform_t *uniform, vec4_t *value)
-{
-    if(uniform && uniform->uniform.location != GL_INVALID_INDEX)
-    {
-        glUniform4fv(uniform->uniform.location, 1, (const float *)value->comps);
-    }
-}
+//void r_SetNamedUniformByName(char *uniform, void *value)
+//{
+//    struct r_named_uniform_t *named_uniform = r_GetNamedUniform(r_current_shader, uniform);
+//    r_SetNamedUniform(named_uniform, value);
+//}
+//
+//void r_SetNamedUniform(struct r_named_uniform_t *uniform, void *value)
+//{
+//    if(uniform)
+//    {
+//        switch(uniform->type)
+//        {
+//            case R_UNIFORM_TYPE_VEC4:
+//                r_SetNamedUniformVec4(uniform, value);
+//            break;
+//        }
+//    }
+//}
+//
+//void r_SetNamedUniformI(struct r_named_uniform_t *uniform, int32_t value)
+//{
+//    if(uniform && uniform->uniform.location != GL_INVALID_INDEX)
+//    {
+//        glUniform1i(uniform->uniform.location, value);
+//    }
+//}
+//
+//void r_SetNamedUniformVec4(struct r_named_uniform_t *uniform, vec4_t *value)
+//{
+//    if(uniform && uniform->uniform.location != GL_INVALID_INDEX)
+//    {
+//        glUniform4fv(uniform->uniform.location, 1, (const float *)value->comps);
+//    }
+//}
 
 /*
 ============================================================================
 ============================================================================
 ============================================================================
 */
+
+#ifdef __cplusplus
+}
+#endif

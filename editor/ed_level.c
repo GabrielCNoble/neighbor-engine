@@ -35,7 +35,46 @@ struct r_model_t *ed_light_pickable_model;
 struct r_model_t *ed_ball_widget_model;
 //struct ed_pickable_t *ed_translation_widget;
 struct r_shader_t *ed_outline_shader;
-struct r_i_verts_t *ed_grid;
+struct r_shader_t *ed_zero_depth_shader;
+
+#define ED_GRID_DIVS 301
+#define ED_GRID_QUAD_SIZE 250.0
+#define ED_W_BRUSH_BOX_CROSSHAIR_DIM 0.3
+
+struct r_vert_t ed_grid[] =
+{
+    [0] = {
+        .pos = vec3_t_c(-ED_GRID_QUAD_SIZE, 0.0, -ED_GRID_QUAD_SIZE),
+        .tex_coords = vec2_t_c(0.0, 0.0),
+        .color = vec4_t_c(1.0, 0.0, 0.0, 1.0)
+    },
+    [1] = {
+        .pos = vec3_t_c(-ED_GRID_QUAD_SIZE, 0.0, ED_GRID_QUAD_SIZE),
+        .tex_coords = vec2_t_c(1.0, 0.0),
+        .color = vec4_t_c(0.0, 1.0, 0.0, 1.0)
+    },
+    [2] = {
+        .pos = vec3_t_c(ED_GRID_QUAD_SIZE, 0.0, ED_GRID_QUAD_SIZE),
+        .tex_coords = vec2_t_c(1.0, 1.0),
+        .color = vec4_t_c(0.0, 0.0, 1.0, 1.0)
+    },
+    [3] = {
+        .pos = vec3_t_c(ED_GRID_QUAD_SIZE, 0.0, ED_GRID_QUAD_SIZE),
+        .tex_coords = vec2_t_c(1.0, 1.0),
+        .color = vec4_t_c(0.0, 0.0, 1.0, 1.0)
+    },
+    [4] = {
+        .pos = vec3_t_c(ED_GRID_QUAD_SIZE, 0.0, -ED_GRID_QUAD_SIZE),
+        .tex_coords = vec2_t_c(0.0, 1.0),
+        .color = vec4_t_c(0.0, 0.0, 1.0, 1.0)
+    },
+    [5] = {
+        .pos = vec3_t_c(-ED_GRID_QUAD_SIZE, 0.0, -ED_GRID_QUAD_SIZE),
+        .tex_coords = vec2_t_c(0.0, 0.0),
+        .color = vec4_t_c(1.0, 0.0, 0.0, 1.0)
+    }
+};
+//struct r_i_verts_t *ed_grid;
 
 extern struct ds_slist_t r_lights[];
 extern struct ds_slist_t r_materials;
@@ -47,7 +86,9 @@ extern struct ds_slist_t g_enemies[];
 extern struct ds_list_t e_root_transforms;
 
 extern mat4_t r_projection_matrix;
+extern struct r_shader_t *r_immediate_shader;
 extern mat4_t r_camera_matrix;
+extern mat4_t r_view_matrix;
 extern uint32_t r_width;
 extern uint32_t r_height;
 extern float r_fov;
@@ -89,10 +130,6 @@ float ed_w_angular_snap_values[] =
     0.25,
     0.5
 };
-
-#define ED_GRID_DIVS 301
-#define ED_GRID_QUAD_SIZE 250.0
-#define ED_W_BRUSH_BOX_CROSSHAIR_DIM 0.3
 
 #define ED_LEVEL_CAMERA_PITCH (-0.15)
 #define ED_LEVEL_CAMERA_YAW (-0.3)
@@ -169,9 +206,49 @@ void ed_l_Init(struct ed_editor_t *editor)
     ed_level_state.camera_yaw = ED_LEVEL_CAMERA_YAW;
     ed_level_state.camera_pos = ED_LEVEL_CAMERA_POS;
 
-    ed_center_grid_shader = r_LoadShader("shaders/ed_grid.vert", "shaders/ed_grid.frag");
-    ed_picking_shader = r_LoadShader("shaders/ed_pick.vert", "shaders/ed_pick.frag");
-    ed_outline_shader = r_LoadShader("shaders/ed_outline.vert", "shaders/ed_outline.frag");
+    struct r_shader_desc_t shader_desc;
+    shader_desc = (struct r_shader_desc_t){
+        .vertex_code = "shaders/ed_grid.vert",
+        .fragment_code = "shaders/ed_grid.frag",
+        .vertex_layout = &R_DEFAULT_VERTEX_LAYOUT,
+        .uniforms = R_DEFAULT_UNIFORMS,
+        .uniform_count = sizeof(R_DEFAULT_UNIFORMS) / sizeof(R_DEFAULT_UNIFORMS[0])
+    };
+    ed_center_grid_shader = r_LoadShader(&shader_desc);
+
+    shader_desc = (struct r_shader_desc_t){
+        .vertex_code = "shaders/ed_pick.vert",
+        .fragment_code = "shaders/ed_pick.frag",
+        .vertex_layout = &R_DEFAULT_VERTEX_LAYOUT,
+        .uniforms = R_DEFAULT_UNIFORMS,
+        .uniform_count = sizeof(R_DEFAULT_UNIFORMS) / sizeof(R_DEFAULT_UNIFORMS[0])
+    };
+    ed_picking_shader = r_LoadShader(&shader_desc);
+
+    shader_desc = (struct r_shader_desc_t){
+        .vertex_code = "shaders/ed_outline.vert",
+        .fragment_code = "shaders/ed_outline.frag",
+        .vertex_layout = &R_DEFAULT_VERTEX_LAYOUT,
+        .uniforms = R_DEFAULT_UNIFORMS,
+        .uniform_count = sizeof(R_DEFAULT_UNIFORMS) / sizeof(R_DEFAULT_UNIFORMS[0])
+    };
+    ed_outline_shader = r_LoadShader(&shader_desc);
+
+    shader_desc = (struct r_shader_desc_t){
+        .vertex_code = "shaders/ed_zero_depth.vert",
+        .fragment_code = "shaders/ed_zero_depth.frag",
+        .vertex_layout = &R_DEFAULT_VERTEX_LAYOUT,
+        .uniforms = R_DEFAULT_UNIFORMS,
+        .uniform_count = sizeof(R_DEFAULT_UNIFORMS) / sizeof(R_DEFAULT_UNIFORMS[0])
+    };
+    ed_zero_depth_shader = r_LoadShader(&shader_desc);
+
+//    ed_center_grid_shader = r_LoadShader("shaders/ed_grid.vert", "shaders/ed_grid.frag");
+//    ed_picking_shader = r_LoadShader("shaders/ed_pick.vert", "shaders/ed_pick.frag");
+//    ed_outline_shader = r_LoadShader("shaders/ed_outline.vert", "shaders/ed_outline.frag");
+//    ed_zero_depth_shader = r_LoadShader("shaders/ed_zero_depth.vert", "shaders/ed_zero_depth.frag");
+
+
     ed_translation_widget_model = r_LoadModel("models/twidget.mof");
     ed_rotation_widget_model = r_LoadModel("models/rwidget.mof");
     ed_ball_widget_model = r_LoadModel("models/bwidget.mof");
@@ -315,32 +392,32 @@ void ed_l_Init(struct ed_editor_t *editor)
     ds_buffer_destroy(&index_buffer);
     ds_buffer_destroy(&batch_buffer);
 
-    ed_grid = r_i_AllocImmediateExternData(sizeof(struct r_i_verts_t) + sizeof(struct r_vert_t) * 6);
-
-    ed_grid->count = 6;
-    ed_grid->verts[0].pos = vec3_t_c(-ED_GRID_QUAD_SIZE, 0.0, -ED_GRID_QUAD_SIZE);
-    ed_grid->verts[0].tex_coords = vec2_t_c(0.0, 0.0);
-    ed_grid->verts[0].color = vec4_t_c(1.0, 0.0, 0.0, 1.0);
-
-    ed_grid->verts[1].pos = vec3_t_c(-ED_GRID_QUAD_SIZE, 0.0, ED_GRID_QUAD_SIZE);
-    ed_grid->verts[1].tex_coords = vec2_t_c(1.0, 0.0);
-    ed_grid->verts[1].color = vec4_t_c(0.0, 1.0, 0.0, 1.0);
-
-    ed_grid->verts[2].pos = vec3_t_c(ED_GRID_QUAD_SIZE, 0.0, ED_GRID_QUAD_SIZE);
-    ed_grid->verts[2].tex_coords = vec2_t_c(1.0, 1.0);
-    ed_grid->verts[2].color = vec4_t_c(0.0, 0.0, 1.0, 1.0);
-
-    ed_grid->verts[3].pos = vec3_t_c(ED_GRID_QUAD_SIZE, 0.0, ED_GRID_QUAD_SIZE);
-    ed_grid->verts[3].tex_coords = vec2_t_c(1.0, 1.0);
-    ed_grid->verts[3].color = vec4_t_c(0.0, 0.0, 1.0, 1.0);
-
-    ed_grid->verts[4].pos = vec3_t_c(ED_GRID_QUAD_SIZE, 0.0, -ED_GRID_QUAD_SIZE);
-    ed_grid->verts[4].tex_coords = vec2_t_c(0.0, 1.0);
-    ed_grid->verts[4].color = vec4_t_c(0.0, 0.0, 1.0, 1.0);
-
-    ed_grid->verts[5].pos = vec3_t_c(-ED_GRID_QUAD_SIZE, 0.0, -ED_GRID_QUAD_SIZE);
-    ed_grid->verts[5].tex_coords = vec2_t_c(0.0, 0.0);
-    ed_grid->verts[5].color = vec4_t_c(1.0, 0.0, 0.0, 1.0);
+//    ed_grid = r_i_AllocImmediateExternData(sizeof(struct r_i_verts_t) + sizeof(struct r_vert_t) * 6);
+//
+//    ed_grid->count = 6;
+//    ed_grid->verts[0].pos = vec3_t_c(-ED_GRID_QUAD_SIZE, 0.0, -ED_GRID_QUAD_SIZE);
+//    ed_grid->verts[0].tex_coords = vec2_t_c(0.0, 0.0);
+//    ed_grid->verts[0].color = vec4_t_c(1.0, 0.0, 0.0, 1.0);
+//
+//    ed_grid->verts[1].pos = vec3_t_c(-ED_GRID_QUAD_SIZE, 0.0, ED_GRID_QUAD_SIZE);
+//    ed_grid->verts[1].tex_coords = vec2_t_c(1.0, 0.0);
+//    ed_grid->verts[1].color = vec4_t_c(0.0, 1.0, 0.0, 1.0);
+//
+//    ed_grid->verts[2].pos = vec3_t_c(ED_GRID_QUAD_SIZE, 0.0, ED_GRID_QUAD_SIZE);
+//    ed_grid->verts[2].tex_coords = vec2_t_c(1.0, 1.0);
+//    ed_grid->verts[2].color = vec4_t_c(0.0, 0.0, 1.0, 1.0);
+//
+//    ed_grid->verts[3].pos = vec3_t_c(ED_GRID_QUAD_SIZE, 0.0, ED_GRID_QUAD_SIZE);
+//    ed_grid->verts[3].tex_coords = vec2_t_c(1.0, 1.0);
+//    ed_grid->verts[3].color = vec4_t_c(0.0, 0.0, 1.0, 1.0);
+//
+//    ed_grid->verts[4].pos = vec3_t_c(ED_GRID_QUAD_SIZE, 0.0, -ED_GRID_QUAD_SIZE);
+//    ed_grid->verts[4].tex_coords = vec2_t_c(0.0, 1.0);
+//    ed_grid->verts[4].color = vec4_t_c(0.0, 0.0, 1.0, 1.0);
+//
+//    ed_grid->verts[5].pos = vec3_t_c(-ED_GRID_QUAD_SIZE, 0.0, -ED_GRID_QUAD_SIZE);
+//    ed_grid->verts[5].tex_coords = vec2_t_c(0.0, 0.0);
+//    ed_grid->verts[5].color = vec4_t_c(1.0, 0.0, 0.0, 1.0);
 
 
     struct r_texture_t *diffuse;
@@ -391,22 +468,22 @@ void ed_l_Resume()
 
 void ed_w_ManipulatorWidgetSetupPickableDrawState(uint32_t pickable_index, struct ed_pickable_t *pickable)
 {
-    struct r_named_uniform_t *color_uniform = r_GetNamedUniform(ed_outline_shader, "ed_color");
-
-    switch(pickable_index)
-    {
-        case 0:
-            r_i_SetUniform(color_uniform, 1, &vec4_t_c(1.0, 0.0, 0.0, 1.0));
-        break;
-
-        case 1:
-            r_i_SetUniform(color_uniform, 1, &vec4_t_c(0.0, 1.0, 0.0, 1.0));
-        break;
-
-        case 2:
-            r_i_SetUniform(color_uniform, 1, &vec4_t_c(0.0, 0.0, 1.0, 1.0));
-        break;
-    }
+//    struct r_named_uniform_t *color_uniform = r_GetNamedUniform(ed_outline_shader, "ed_color");
+//
+//    switch(pickable_index)
+//    {
+//        case 0:
+//            r_SetNamedUniform(color_uniform, &vec4_t_c(1.0, 0.0, 0.0, 1.0));
+//        break;
+//
+//        case 1:
+//            r_SetNamedUniform(color_uniform, &vec4_t_c(0.0, 1.0, 0.0, 1.0));
+//        break;
+//
+//        case 2:
+//            r_SetNamedUniform(color_uniform, &vec4_t_c(0.0, 0.0, 1.0, 1.0));
+//        break;
+//    }
 }
 
 /*
@@ -1587,25 +1664,44 @@ void ed_LevelEditorDrawManipulator()
 
 void ed_LevelEditorDrawWidgets()
 {
-    r_i_SetShader(ed_outline_shader);
-    ed_LevelEditorDrawManipulator();
+//    r_BindShader(ed_outline_shader);
+//    ed_LevelEditorDrawManipulator();
 }
 
 void ed_LevelEditorDrawGrid()
 {
-    r_i_SetModelMatrix(NULL);
-    r_i_SetViewProjectionMatrix(NULL);
-    r_i_SetBlending(GL_TRUE, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    r_i_SetStencil(GL_FALSE, GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE);
-    r_i_SetRasterizer(GL_FALSE, GL_BACK, GL_FILL);
-    r_i_SetShader(ed_center_grid_shader);
-    r_i_DrawVerts(R_I_DRAW_CMD_TRIANGLE_LIST, ed_grid, 1.0);
-    r_i_SetShader(NULL);
-    r_i_SetModelMatrix(NULL);
-    r_i_SetViewProjectionMatrix(NULL);
-    r_i_SetBlending(GL_FALSE, GL_ONE, GL_ZERO);
-    r_i_DrawLine(&vec3_t_c(-10000.0, 0.0, 0.0), &vec3_t_c(10000.0, 0.0, 0.0), &vec4_t_c(1.0, 0.0, 0.0, 1.0), 3.0);
-    r_i_DrawLine(&vec3_t_c(0.0, 0.0, -10000.0), &vec3_t_c(0.0, 0.0, 10000.0), &vec4_t_c(0.0, 0.0, 1.0, 1.0), 3.0);
+//    r_i_SetModelMatrix(NULL);
+//    r_i_SetViewProjectionMatrix(NULL);
+//    r_i_SetBlending(GL_TRUE, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+//    r_i_SetStencil(GL_FALSE, GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE);
+//    r_i_SetRasterizer(GL_FALSE, GL_BACK, GL_FILL);
+//    r_i_SetShader(ed_center_grid_shader);
+//    r_i_DrawVerts(R_I_DRAW_CMD_TRIANGLE_LIST, ed_grid, 1.0);
+//    r_i_SetShader(NULL);
+//    r_i_SetModelMatrix(NULL);
+//    r_i_SetViewProjectionMatrix(NULL);
+//    r_i_SetBlending(GL_FALSE, GL_ONE, GL_ZERO);
+
+
+//    r_BindShader(ed_center_grid_shader);
+//    r_SetDefaultUniformMat4(R_UNIFORM_MODEL_VIEW_PROJECTION_MATRIX, &r_view_projection_matrix);
+//    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+//    glEnable(GL_BLEND);
+//    glEnable(GL_DEPTH_TEST);
+//    glDepthFunc(GL_LESS);
+//    glDisable(GL_CULL_FACE);
+//    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+//    r_DrawVerts(ed_grid, 6, GL_TRIANGLES);
+//
+//
+//
+//    glLineWidth(4.0);
+//    r_BindShader(r_immediate_shader);
+//    r_SetDefaultUniformMat4(R_UNIFORM_MODEL_VIEW_PROJECTION_MATRIX, &r_view_projection_matrix);
+//    r_DrawLine(&vec3_t_c(-10000.0, 0.0, 0.0), &vec3_t_c(10000.0, 0.0, 0.0), &vec4_t_c(1.0, 0.0, 0.0, 1.0));
+//    r_DrawLine(&vec3_t_c(0.0, 0.0, -10000.0), &vec3_t_c(0.0, 0.0, 10000.0), &vec4_t_c(0.0, 0.0, 1.0, 1.0));
+//    glDisable(GL_BLEND);
+//    glEnable(GL_CULL_FACE);
 }
 
 //void ed_LevelEditorDrawBrushes()
@@ -1628,9 +1724,13 @@ void ed_LevelEditorDrawGrid()
 
 void ed_LevelEditorDrawLights()
 {
-    r_i_SetModelMatrix(NULL);
-    r_i_SetViewProjectionMatrix(NULL);
-    r_i_SetShader(NULL);
+//    r_i_SetModelMatrix(NULL);
+//    r_i_SetViewProjectionMatrix(NULL);
+//    r_i_SetShader(NULL);
+
+    /* r_SetImmediateModeDefaults();
+    r_SetDefaultUniformMat4(R_UNIFORM_MODEL_VIEW_PROJECTION_MATRIX, &r_view_projection_matrix);
+    glPointSize(8.0);
 
     for(uint32_t light_index = 0; light_index < r_lights[R_LIGHT_TYPE_POINT].cursor; light_index++)
     {
@@ -1640,7 +1740,7 @@ void ed_LevelEditorDrawLights()
         {
             vec3_t position = light->position;
             vec4_t color = vec4_t_c(light->color.x, light->color.y, light->color.z, 1.0);
-            r_i_DrawPoint(&position, &color, 8.0);
+            r_DrawPoint(&position, &color);
         }
     }
 
@@ -1653,215 +1753,254 @@ void ed_LevelEditorDrawLights()
         {
             vec3_t position = light->position;
             vec4_t color = vec4_t_c(light->color.x, light->color.y, light->color.z, 1.0);
-            r_i_DrawPoint(&position, &color, 8.0);
+            r_DrawPoint(&position, &color);
         }
-    }
+    } */
 }
 
 void ed_LevelEditorDrawSelections()
 {
-    struct ds_list_t *selections = &ed_level_state.pickables.selections;
-
-    if(selections->cursor)
-    {
-        r_i_SetViewProjectionMatrix(NULL);
-        r_i_SetShader(ed_outline_shader);
-        r_i_SetBuffers(NULL, NULL);
-        r_i_SetRasterizer(GL_TRUE, GL_FRONT, GL_LINE);
-        r_i_SetModelMatrix(NULL);
-
-        uint32_t selection_count = selections->cursor - 1;
-        uint32_t selection_index = 0;
-        uint8_t stencil_value = 1;
-
-        struct r_named_uniform_t *color_uniform = r_GetNamedUniform(ed_outline_shader, "ed_color");
-
-        for(uint32_t index = 0; index < 2; index++)
-        {
-            for(; selection_index < selection_count; selection_index++)
-            {
-                struct ed_pickable_t *pickable = *(struct ed_pickable_t **)ds_list_get_element(selections, selection_index);
-
-                mat4_t base_model_view_projection_matrix;
-                mat4_t model_view_projection_matrix;
-                ed_PickableModelViewProjectionMatrix(pickable, NULL, &base_model_view_projection_matrix);
-//                r_i_SetViewProjectionMatrix(&model_view_projection_matrix);
-                struct r_i_draw_list_t *draw_list = NULL;
-
-                switch(pickable->type)
-                {
-                    case ED_PICKABLE_TYPE_FACE:
-                    {
-                        struct ed_pickable_range_t *range = pickable->ranges;
-                        while(range)
-                        {
-                            mat4_t_mul(&model_view_projection_matrix, &range->offset, &base_model_view_projection_matrix);
-                            draw_list = r_i_AllocDrawList(1);
-                            draw_list->commands->start = range->start;
-                            draw_list->commands->count = range->count;
-                            draw_list->size = 6.0;
-                            draw_list->indexed = 1;
-
-                            r_i_SetViewProjectionMatrix(&model_view_projection_matrix);
-                            r_i_SetDrawMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE, 0xff);
-                            r_i_SetStencil(GL_TRUE, GL_KEEP, GL_KEEP, GL_REPLACE, GL_ALWAYS, 0xff, 0xff);
-                            r_i_SetDepth(GL_TRUE, GL_ALWAYS);
-                            r_i_SetRasterizer(GL_TRUE, GL_BACK, GL_FILL);
-                            r_i_DrawImmediate(R_I_DRAW_CMD_TRIANGLE_LIST, draw_list);
-                            range = range->next;
-                        }
-
-                        r_i_SetUniform(color_uniform, 1, &vec4_t_c(0.2, 0.7, 0.4, 1.0));
-                        range = pickable->ranges;
-                        while(range)
-                        {
-                            mat4_t_mul(&model_view_projection_matrix, &range->offset, &base_model_view_projection_matrix);
-                            draw_list = r_i_AllocDrawList(1);
-                            draw_list->commands->start = range->start;
-                            draw_list->commands->count = range->count;
-                            draw_list->size = 6.0;
-                            draw_list->indexed = 1;
-
-                            r_i_SetViewProjectionMatrix(&model_view_projection_matrix);
-                            r_i_SetDrawMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
-                            r_i_SetStencil(GL_TRUE, GL_KEEP, GL_KEEP, GL_KEEP, GL_EQUAL, 0xff, 0x00);
-                            r_i_SetRasterizer(GL_TRUE, GL_BACK, GL_LINE);
-                            r_i_DrawImmediate(R_I_DRAW_CMD_TRIANGLE_LIST, draw_list);
-
-                            range = range->next;
-                        }
-
-                        r_i_SetUniform(color_uniform, 1, &vec4_t_c(0.3, 0.4, 1.0, 0.4));
-                        range = pickable->ranges;
-                        while(range)
-                        {
-                            mat4_t_mul(&model_view_projection_matrix, &range->offset, &base_model_view_projection_matrix);
-                            draw_list = r_i_AllocDrawList(1);
-                            draw_list->commands->start = range->start;
-                            draw_list->commands->count = range->count;
-                            draw_list->size = 4.0;
-                            draw_list->indexed = 1;
-
-                            r_i_SetViewProjectionMatrix(&model_view_projection_matrix);
-                            r_i_SetBlending(GL_TRUE, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-                            r_i_SetDrawMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE, 0xff);
-                            r_i_SetStencil(GL_TRUE, GL_KEEP, GL_KEEP, GL_REPLACE, GL_ALWAYS, 0xff, 0x00);
-                            r_i_SetDepth(GL_TRUE, GL_ALWAYS);
-                            r_i_SetRasterizer(GL_TRUE, GL_BACK, GL_FILL);
-                            r_i_DrawImmediate(R_I_DRAW_CMD_TRIANGLE_LIST, draw_list);
-
-                            range = range->next;
-                        }
-                    }
-                    break;
-
-
-                    case ED_PICKABLE_TYPE_EDGE:
-                    {
-                        draw_list = r_i_AllocDrawList(1);
-                        struct ed_pickable_range_t *range = pickable->ranges;
-
-                        mat4_t_mul(&model_view_projection_matrix, &range->offset, &base_model_view_projection_matrix);
-                        r_i_SetUniform(color_uniform, 1, &vec4_t_c(1.0, 0.7, 0.4, 1.0));
-
-                        draw_list->commands->start = range->start;
-                        draw_list->commands->count = range->count;
-                        draw_list->size = 4.0;
-                        draw_list->indexed = 1;
-
-                        r_i_SetViewProjectionMatrix(&model_view_projection_matrix);
-                        r_i_SetDrawMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE, 0xff);
-                        r_i_SetDepth(GL_TRUE, GL_ALWAYS);
-                        r_i_DrawImmediate(R_I_DRAW_CMD_LINE_LIST, draw_list);
-                    }
-                    break;
-
-                    default:
-                        if(index)
-                        {
-                            r_i_SetUniform(color_uniform, 1, &vec4_t_c(1.0, 0.4, 0.0, 1.0));
-                        }
-                        else
-                        {
-                            r_i_SetUniform(color_uniform, 1, &vec4_t_c(1.0, 0.2, 0.0, 1.0));
-                        }
-
-                        r_i_SetViewProjectionMatrix(&base_model_view_projection_matrix);
-
-
-                        draw_list = r_i_AllocDrawList(1);
-                        draw_list->commands[0].start = pickable->ranges->start;
-                        draw_list->commands[0].count = pickable->ranges->count;
-                        draw_list->size = 4.0;
-                        draw_list->indexed = 1;
+//    struct ds_list_t *selections = &ed_level_state.pickables.selections;
 //
-                        r_i_SetDrawMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE, 0xff);
-                        r_i_SetDepth(GL_TRUE, GL_ALWAYS);
-                        r_i_SetStencil(GL_TRUE, GL_KEEP, GL_KEEP, GL_REPLACE, GL_ALWAYS, 0xff, 0xff);
-                        r_i_SetRasterizer(GL_TRUE, GL_FRONT, GL_FILL);
-                        r_i_DrawImmediate(R_I_DRAW_CMD_TRIANGLE_LIST, draw_list);
-
-
-
-                        draw_list = r_i_AllocDrawList(1);
-                        draw_list->commands[0].start = pickable->ranges->start;
-                        draw_list->commands[0].count = pickable->ranges->count;
-                        draw_list->size = 4.0;
-                        draw_list->indexed = 1;
-
-                        r_i_SetDrawMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE, 0xff);
-                        r_i_SetDepth(GL_TRUE, GL_ALWAYS);
-                        r_i_SetStencil(GL_TRUE, GL_KEEP, GL_KEEP, GL_KEEP, GL_EQUAL, 0xff, 0x00);
-                        r_i_SetRasterizer(GL_TRUE, GL_FRONT, GL_LINE);
-                        r_i_DrawImmediate(R_I_DRAW_CMD_TRIANGLE_LIST, draw_list);
-
-
-
-                        draw_list = r_i_AllocDrawList(1);
-                        draw_list->commands[0].start = pickable->ranges->start;
-                        draw_list->commands[0].count = pickable->ranges->count;
-                        draw_list->size = 4.0;
-                        draw_list->indexed = 1;
-
-                        r_i_SetDrawMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE, 0xff);
-                        r_i_SetDepth(GL_TRUE, GL_ALWAYS);
-                        r_i_SetStencil(GL_TRUE, GL_KEEP, GL_KEEP, GL_REPLACE, GL_ALWAYS, 0xff, 0x00);
-                        r_i_SetRasterizer(GL_TRUE, GL_FRONT, GL_FILL);
-                        r_i_DrawImmediate(R_I_DRAW_CMD_TRIANGLE_LIST, draw_list);
-                    break;
-                }
-            }
-
-            selection_count++;
-        }
-
-        r_i_SetRasterizer(GL_TRUE, GL_BACK, GL_FILL);
-        r_i_SetDepth(GL_TRUE, GL_LESS);
-        r_i_SetBlending(GL_FALSE, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-        r_i_SetDrawMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE, 0xff);
-        r_i_SetStencil(GL_FALSE, GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE);
-        r_i_SetBlending(GL_FALSE, GL_NONE, GL_NONE);
-    }
-
-    struct ds_list_t *enemy_list = &ed_level_state.pickables.game_pickables[ED_PICKABLE_TYPE_ENEMY];
-
-    for(uint32_t index = 0; index < enemy_list->cursor; index++)
-    {
-        struct ed_pickable_t *pickable = *(struct ed_pickable_t **)ds_list_get_element(enemy_list, index);
-        struct g_enemy_t *enemy = g_GetEnemy(pickable->secondary_index, pickable->primary_index);
-
-        switch(enemy->type)
-        {
-            case G_ENEMY_TYPE_CAMERA:
-            {
-                struct g_camera_t *camera = (struct g_camera_t *)enemy;
-//                r_i_SetModelMatrix(&camera->entity->transform->transform);
-
-//                r_i_
-            }
-            break;
-        }
-    }
+//    if(selections->cursor)
+//    {
+//        r_BindShader(ed_outline_shader);
+//        glEnable(GL_DEPTH_TEST);
+//        glDepthFunc(GL_LESS);
+////        r_i_SetViewProjectionMatrix(NULL);
+////        r_i_SetShader(ed_outline_shader);
+////        r_i_SetBuffers(NULL, NULL);
+////        r_i_SetRasterizer(GL_TRUE, GL_FRONT, GL_LINE);
+////        r_i_SetModelMatrix(NULL);
+//
+//        uint32_t selection_count = selections->cursor - 1;
+//        uint32_t selection_index = 0;
+//        uint8_t stencil_value = 1;
+//
+//        struct r_named_uniform_t *color_uniform = r_GetNamedUniform(ed_outline_shader, "ed_color");
+//
+//        for(uint32_t index = 0; index < 2; index++)
+//        {
+//            for(; selection_index < selection_count; selection_index++)
+//            {
+//                struct ed_pickable_t *pickable = *(struct ed_pickable_t **)ds_list_get_element(selections, selection_index);
+//
+//                mat4_t base_model_view_projection_matrix;
+//                mat4_t model_view_projection_matrix;
+//                ed_PickableModelViewProjectionMatrix(pickable, NULL, &base_model_view_projection_matrix);
+////                r_i_SetViewProjectionMatrix(&model_view_projection_matrix);
+//                struct r_i_draw_list_t *draw_list = NULL;
+//
+//                switch(pickable->type)
+//                {
+//                    case ED_PICKABLE_TYPE_FACE:
+//                    {
+//                        struct ed_pickable_range_t *range = pickable->ranges;
+//                        glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
+//                        glEnable(GL_STENCIL_TEST);
+//                        glEnable(GL_DEPTH_TEST);
+//                        glDepthFunc(GL_LESS);
+//                        glDepthMask(GL_TRUE);
+//                        glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
+//                        glStencilFunc(GL_ALWAYS, 0xff, 0xff);
+//                        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+//                        glEnable(GL_POLYGON_OFFSET_FILL);
+//                        glEnable(GL_POLYGON_OFFSET_LINE);
+//                        glPolygonOffset(-1.0, 1.0);
+//                        while(range)
+//                        {
+//                            mat4_t_mul(&model_view_projection_matrix, &range->offset, &base_model_view_projection_matrix);
+//                            r_SetDefaultUniformMat4(R_UNIFORM_MODEL_VIEW_PROJECTION_MATRIX, &model_view_projection_matrix);
+//                            glDrawElements(GL_TRIANGLES, range->count, GL_UNSIGNED_INT, (void *)(range->start * sizeof(uint32_t)));
+////                            draw_list = r_i_AllocDrawList(1);
+////                            draw_list->commands->start = range->start;
+////                            draw_list->commands->count = range->count;
+////                            draw_list->size = 6.0;
+////                            draw_list->indexed = 1;
+////
+////                            r_i_SetViewProjectionMatrix(&model_view_projection_matrix);
+////                            r_i_SetDrawMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE, 0xff);
+////                            r_i_SetStencil(GL_TRUE, GL_KEEP, GL_KEEP, GL_REPLACE, GL_ALWAYS, 0xff, 0xff);
+////                            r_i_SetDepth(GL_TRUE, GL_ALWAYS);
+////                            r_i_SetRasterizer(GL_TRUE, GL_BACK, GL_FILL);
+////                            r_i_DrawImmediate(R_I_DRAW_CMD_TRIANGLE_LIST, draw_list);
+//                            range = range->next;
+//                        }
+//
+//                        r_SetNamedUniform(color_uniform, &vec4_t_c(0.2, 0.7, 0.4, 1.0));
+//                        glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+//                        glDepthMask(GL_TRUE);
+//                        glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
+//                        glStencilFunc(GL_EQUAL, 0x00, 0xff);
+//                        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+//                        range = pickable->ranges;
+//                        while(range)
+//                        {
+//                            mat4_t_mul(&model_view_projection_matrix, &range->offset, &base_model_view_projection_matrix);
+//                            r_SetDefaultUniformMat4(R_UNIFORM_MODEL_VIEW_PROJECTION_MATRIX, &model_view_projection_matrix);
+//                            glDrawElements(GL_TRIANGLES, range->count, GL_UNSIGNED_INT, (void *)(range->start * sizeof(uint32_t)));
+////                            draw_list = r_i_AllocDrawList(1);
+////                            draw_list->commands->start = range->start;
+////                            draw_list->commands->count = range->count;
+////                            draw_list->size = 6.0;
+////                            draw_list->indexed = 1;
+////
+////                            r_i_SetViewProjectionMatrix(&model_view_projection_matrix);
+////                            r_i_SetDrawMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+////                            r_i_SetStencil(GL_TRUE, GL_KEEP, GL_KEEP, GL_KEEP, GL_EQUAL, 0xff, 0x00);
+////                            r_i_SetRasterizer(GL_TRUE, GL_BACK, GL_LINE);
+////                            r_i_DrawImmediate(R_I_DRAW_CMD_TRIANGLE_LIST, draw_list);
+//
+//                            range = range->next;
+//                        }
+//
+//                        r_SetNamedUniform(color_uniform, &vec4_t_c(0.3, 0.4, 1.0, 0.4));
+////                        glEnable(GL_BLEND);
+////                        glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
+//                        glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
+//                        glStencilFunc(GL_ALWAYS, 0x00, 0xff);
+//                        glDepthFunc(GL_EQUAL);
+//                        glDepthMask(GL_FALSE);
+//                        glEnable(GL_DEPTH_TEST);
+//                        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+////                        glEnable(GL_POLYGON_OFFSET_FILL);
+////                        glPolygonOffset(-1.0, 1.0);
+//                        range = pickable->ranges;
+//                        while(range)
+//                        {
+//                            mat4_t_mul(&model_view_projection_matrix, &range->offset, &base_model_view_projection_matrix);
+//                            r_SetDefaultUniformMat4(R_UNIFORM_MODEL_VIEW_PROJECTION_MATRIX, &model_view_projection_matrix);
+//                            glDrawElements(GL_TRIANGLES, range->count, GL_UNSIGNED_INT, (void *)(range->start * sizeof(uint32_t)));
+////                            draw_list = r_i_AllocDrawList(1);
+////                            draw_list->commands->start = range->start;
+////                            draw_list->commands->count = range->count;
+////                            draw_list->size = 4.0;
+////                            draw_list->indexed = 1;
+////
+////                            r_i_SetViewProjectionMatrix(&model_view_projection_matrix);
+////                            r_i_SetBlending(GL_TRUE, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+////                            r_i_SetDrawMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE, 0xff);
+////                            r_i_SetStencil(GL_TRUE, GL_KEEP, GL_KEEP, GL_REPLACE, GL_ALWAYS, 0xff, 0x00);
+////                            r_i_SetDepth(GL_TRUE, GL_ALWAYS);
+////                            r_i_SetRasterizer(GL_TRUE, GL_BACK, GL_FILL);
+////                            r_i_DrawImmediate(R_I_DRAW_CMD_TRIANGLE_LIST, draw_list);
+//
+//                            range = range->next;
+//                        }
+//                    }
+//                    break;
+//
+//
+////                    case ED_PICKABLE_TYPE_EDGE:
+////                    {
+////                        draw_list = r_i_AllocDrawList(1);
+////                        struct ed_pickable_range_t *range = pickable->ranges;
+////
+////                        mat4_t_mul(&model_view_projection_matrix, &range->offset, &base_model_view_projection_matrix);
+////                        r_i_SetUniform(color_uniform, 1, &vec4_t_c(1.0, 0.7, 0.4, 1.0));
+////
+////                        draw_list->commands->start = range->start;
+////                        draw_list->commands->count = range->count;
+////                        draw_list->size = 4.0;
+////                        draw_list->indexed = 1;
+////
+////                        r_i_SetViewProjectionMatrix(&model_view_projection_matrix);
+////                        r_i_SetDrawMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE, 0xff);
+////                        r_i_SetDepth(GL_TRUE, GL_ALWAYS);
+////                        r_i_DrawImmediate(R_I_DRAW_CMD_LINE_LIST, draw_list);
+////                    }
+////                    break;
+//
+//                    default:
+//                        if(index)
+//                        {
+//                            r_SetNamedUniform(color_uniform, &vec4_t_c(1.0, 0.4, 0.0, 1.0));
+//                        }
+//                        else
+//                        {
+//                            r_SetNamedUniform(color_uniform, &vec4_t_c(1.0, 0.2, 0.0, 1.0));
+//                        }
+//
+////                        r_i_SetViewProjectionMatrix(&base_model_view_projection_matrix);
+//
+//                        uint32_t start = pickable->ranges->start * sizeof(uint32_t);
+//                        uint32_t count = pickable->ranges->count;
+//
+//                        r_SetDefaultUniformMat4(R_UNIFORM_MODEL_VIEW_PROJECTION_MATRIX, &base_model_view_projection_matrix);
+//                        glLineWidth(2.0);
+//                        glPolygonOffset(-1.0, 1.0);
+//                        glEnable(GL_POLYGON_OFFSET_LINE);
+//                        glStencilMask(0xff);
+//                        glEnable(GL_STENCIL_TEST);
+//                        glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+//                        glDepthFunc(GL_LESS);
+//                        glDepthMask(GL_TRUE);
+//                        glCullFace(GL_FRONT);
+//
+//                        glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
+//                        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+//                        glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
+//                        glStencilFunc(GL_EQUAL, 0x00, 0xff);
+//                        glDrawElements(GL_TRIANGLES, count, GL_UNSIGNED_INT, (void *)start);
+//
+//                        glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+//                        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+//                        glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
+//                        glStencilFunc(GL_NOTEQUAL, 0xff, 0xff);
+//                        glDrawElements(GL_TRIANGLES, count, GL_UNSIGNED_INT, (void *)start);
+//
+//                        glCullFace(GL_BACK);
+//                        glDepthFunc(GL_ALWAYS);
+//                        glDepthMask(GL_FALSE);
+//                        glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
+//                        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+//                        glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
+//                        glStencilFunc(GL_ALWAYS, 0x00, 0xff);
+//                        glDrawElements(GL_TRIANGLES, count, GL_UNSIGNED_INT, (void *)start);
+//
+//                    break;
+//                }
+//            }
+//
+//            selection_count++;
+//        }
+//
+////        r_i_SetRasterizer(GL_TRUE, GL_BACK, GL_FILL);
+////        r_i_SetDepth(GL_TRUE, GL_LESS);
+////        r_i_SetBlending(GL_FALSE, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+////        r_i_SetDrawMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE, 0xff);
+////        r_i_SetStencil(GL_FALSE, GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE);
+////        r_i_SetBlending(GL_FALSE, GL_NONE, GL_NONE);
+//        glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+//        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+//        glEnable(GL_DEPTH_TEST);
+//        glDepthFunc(GL_LESS);
+//        glDepthMask(GL_TRUE);
+//        glDisable(GL_STENCIL_TEST);
+//        glDisable(GL_BLEND);
+//        glCullFace(GL_BACK);
+//        glDisable(GL_POLYGON_OFFSET_LINE);
+//    }
+//
+//    struct ds_list_t *enemy_list = &ed_level_state.pickables.game_pickables[ED_PICKABLE_TYPE_ENEMY];
+//
+//    for(uint32_t index = 0; index < enemy_list->cursor; index++)
+//    {
+//        struct ed_pickable_t *pickable = *(struct ed_pickable_t **)ds_list_get_element(enemy_list, index);
+//        struct g_enemy_t *enemy = g_GetEnemy(pickable->secondary_index, pickable->primary_index);
+//
+//        switch(enemy->type)
+//        {
+//            case G_ENEMY_TYPE_CAMERA:
+//            {
+//                struct g_camera_t *camera = (struct g_camera_t *)enemy;
+////                r_i_SetModelMatrix(&camera->entity->transform->transform);
+//
+////                r_i_
+//            }
+//            break;
+//        }
+//    }
 }
 
 void ed_w_PingInfoWindow()
@@ -2113,16 +2252,19 @@ void ed_l_PlacementCrosshair(uint32_t just_changed)
         }
         igEnd();
 
-        r_i_SetModelMatrix(NULL);
-        r_i_SetViewProjectionMatrix(NULL);
+//        r_i_SetModelMatrix(NULL);
+//        r_i_SetViewProjectionMatrix(NULL);
 
-        r_i_DrawLine(&vec3_t_c(start.x + u_axis.x, start.y + u_axis.y, start.z + u_axis.z),
+        r_BindShader(r_immediate_shader);
+        glLineWidth(4.0);
+        r_SetDefaultUniformMat4(R_UNIFORM_MODEL_VIEW_PROJECTION_MATRIX, &r_view_projection_matrix);
+        r_DrawLine(&vec3_t_c(start.x + u_axis.x, start.y + u_axis.y, start.z + u_axis.z),
                      &vec3_t_c(end.x - u_axis.x, end.y - u_axis.y, end.z - u_axis.z),
-                     &vec4_t_c(1.0, 1.0, 1.0, 1.0), 4.0);
+                     &vec4_t_c(1.0, 1.0, 1.0, 1.0));
 
-        r_i_DrawLine(&vec3_t_c(start.x + v_axis.x, start.y + v_axis.y, start.z + v_axis.z),
+        r_DrawLine(&vec3_t_c(start.x + v_axis.x, start.y + v_axis.y, start.z + v_axis.z),
                      &vec3_t_c(end.x - v_axis.x, end.y - v_axis.y, end.z - v_axis.z),
-                     &vec4_t_c(1.0, 1.0, 1.0, 1.0), 4.0);
+                     &vec4_t_c(1.0, 1.0, 1.0, 1.0));
 
         if(in_GetMouseButtonState(SDL_BUTTON_LEFT) & IN_KEY_STATE_JUST_PRESSED)
         {
@@ -2194,10 +2336,8 @@ void ed_LevelEditorBrushBox(uint32_t just_changed)
 
             if(ed_w_IntersectPlaneFromCamera(mouse_x, mouse_y, &plane_point, &plane_orientation.rows[1], &intersection))
             {
-                r_i_SetModelMatrix(NULL);
-                r_i_SetViewProjectionMatrix(NULL);
-                r_i_SetShader(NULL);
-
+                r_BindShader(r_immediate_shader);
+                r_SetDefaultUniformMat4(R_UNIFORM_MODEL_VIEW_PROJECTION_MATRIX, &r_view_projection_matrix);
                 ed_l_LinearSnapValueOnSurface(&plane_point, &plane_orientation, &intersection);
 
                 context_data->brush.box_end = intersection;
@@ -2214,10 +2354,11 @@ void ed_LevelEditorBrushBox(uint32_t just_changed)
                 corners[2] = end;
                 vec3_t_fmadd(&corners[3], &start, &plane_orientation.rows[2], proj_v);
 
-                r_i_DrawLine(&corners[0], &corners[1], &vec4_t_c(0.0, 1.0, 0.0, 1.0), 2.0);
-                r_i_DrawLine(&corners[1], &corners[2], &vec4_t_c(0.0, 1.0, 0.0, 1.0), 2.0);
-                r_i_DrawLine(&corners[2], &corners[3], &vec4_t_c(0.0, 1.0, 0.0, 1.0), 2.0);
-                r_i_DrawLine(&corners[3], &corners[0], &vec4_t_c(0.0, 1.0, 0.0, 1.0), 2.0);
+                glLineWidth(2.0);
+                r_DrawLine(&corners[0], &corners[1], &vec4_t_c(0.0, 1.0, 0.0, 1.0));
+                r_DrawLine(&corners[1], &corners[2], &vec4_t_c(0.0, 1.0, 0.0, 1.0));
+                r_DrawLine(&corners[2], &corners[3], &vec4_t_c(0.0, 1.0, 0.0, 1.0));
+                r_DrawLine(&corners[3], &corners[0], &vec4_t_c(0.0, 1.0, 0.0, 1.0));
 
 
                 context_data->brush.box_size.x = fabsf(proj_u);
@@ -2427,9 +2568,9 @@ void ed_l_TransformSelections(uint32_t just_changed)
 
         in_GetMousePos(&mouse_x, &mouse_y);
 
-        r_i_SetShader(NULL);
-        r_i_SetViewProjectionMatrix(NULL);
-        r_i_SetModelMatrix(NULL);
+//        r_i_SetShader(NULL);
+//        r_i_SetViewProjectionMatrix(NULL);
+//        r_i_SetModelMatrix(NULL);
 
         switch(context_data->manipulator.transform_type)
         {

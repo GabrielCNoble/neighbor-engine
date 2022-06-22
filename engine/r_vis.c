@@ -68,8 +68,8 @@ void r_VisibleLights()
     vec2_t extents[2];
     vec4_t spot_verts[8];
 
-    r_i_SetShader(NULL);
-    r_i_SetModelMatrix(NULL);
+//    r_i_SetShader(NULL);
+//    r_i_SetModelMatrix(NULL);
 
     for(uint32_t light_index = 0; light_index < r_lights[R_LIGHT_TYPE_POINT].cursor; light_index++)
     {
@@ -465,14 +465,14 @@ void r_VisibleLights()
 
     if(r_renderer_state.draw_lights)
     {
-        r_i_SetViewProjectionMatrix(NULL);
-        r_i_SetModelMatrix(NULL);
-        r_i_SetShader(NULL);
+//        r_i_SetViewProjectionMatrix(NULL);
+//        r_i_SetModelMatrix(NULL);
+//        r_i_SetShader(NULL);
 
         for(uint32_t light_index = 0; light_index < r_visible_lights.cursor; light_index++)
         {
             struct r_light_t *light = *(struct r_light_t **)ds_list_get_element(&r_visible_lights, light_index);
-            struct r_i_draw_list_t *draw_list = r_i_AllocDrawList(1);
+//            struct r_i_draw_list_t *draw_list = r_i_AllocDrawList(1);
             mat4_t light_transform;
             uint32_t cmd_type;
 
@@ -492,13 +492,13 @@ void r_VisibleLights()
                     mat4_t_comp(&light_transform, &spot_light->orientation, &spot_light->position);
                     mat4_t_mul(&light_transform, &model_transform, &light_transform);
 
-                    draw_list->commands[0].start = r_spot_light_model->model_start;
-                    draw_list->commands[0].count = r_spot_light_model->model_count;
-                    draw_list->size = 1.0;
-                    draw_list->indexed = 1;
-
-                    cmd_type = R_I_DRAW_CMD_TRIANGLE_LIST;
-                    r_i_SetRasterizer(GL_FALSE, GL_BACK, GL_LINE);
+//                    draw_list->commands[0].start = r_spot_light_model->model_start;
+//                    draw_list->commands[0].count = r_spot_light_model->model_count;
+//                    draw_list->size = 1.0;
+//                    draw_list->indexed = 1;
+//
+//                    cmd_type = R_I_DRAW_CMD_TRIANGLE_LIST;
+//                    r_i_SetRasterizer(GL_FALSE, GL_BACK, GL_LINE);
                 }
                 break;
 
@@ -511,19 +511,19 @@ void r_VisibleLights()
                     orientation.rows[2].z = light->range;
                     mat4_t_comp(&light_transform, &orientation, &light->position);
 
-                    draw_list->commands[0].start = r_point_light_model->model_start;
-                    draw_list->commands[0].count = r_point_light_model->model_count;
-                    draw_list->size = 1.0;
-                    draw_list->indexed = 1;
+//                    draw_list->commands[0].start = r_point_light_model->model_start;
+//                    draw_list->commands[0].count = r_point_light_model->model_count;
+//                    draw_list->size = 1.0;
+//                    draw_list->indexed = 1;
 
                     cmd_type = R_I_DRAW_CMD_LINE_LIST;
-                    r_i_SetRasterizer(GL_FALSE, GL_BACK, GL_FILL);
+//                    r_i_SetRasterizer(GL_FALSE, GL_BACK, GL_FILL);
                 }
                 break;
             }
 
-            r_i_SetModelMatrix(&light_transform);
-            r_i_DrawImmediate(cmd_type, draw_list);
+//            r_i_SetModelMatrix(&light_transform);
+//            r_i_DrawImmediate(cmd_type, draw_list);
         }
     }
 
@@ -731,6 +731,7 @@ void r_VisibleEntitiesOnLights()
                     vec3_t entity_light_vec;
                     vec3_t light_ray_point;
                     vec3_t_sub(&entity_light_vec, &transform->transform.rows[3].xyz, &spot_light->position);
+                    vec3_t_add(&entity_light_vec, &entity_light_vec, &model->center);
 
                     float dist = vec3_t_dot(&entity_light_vec, &light_vec);
                     float angle = vec3_t_dot(&entity_light_vec, &light_vec) / dist;
@@ -788,6 +789,7 @@ void r_VisibleEntitiesOnLights()
 
                         vec3_t_mul(&model_extents, &model->extents, 0.5);
                         vec3_t_sub(&light_entity_vec, &transform->transform.rows[3].xyz, &light->position);
+                        vec3_t_add(&light_entity_vec, &light_entity_vec, &model->center);
                         float light_entity_dist = vec3_t_length(&light_entity_vec);
                         vec3_t_normalize(&normalized_light_entity_vec, &light_entity_vec);
                         vec3_t_fabs(&normalized_light_entity_vec, &normalized_light_entity_vec);

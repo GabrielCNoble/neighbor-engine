@@ -6,6 +6,7 @@
 extern uint32_t g_editor;
 extern uint32_t g_game_state;
 extern char *g_base_path;
+extern struct r_renderer_state_t r_renderer_state;
 
 int main(int argc, char *argv[])
 {
@@ -51,6 +52,7 @@ int main(int argc, char *argv[])
     {
         float delta_time = g_UpdateDeltaTime();
 //        delta_time = 0.0166;
+        r_BeginFrame();
         in_Input(delta_time);
         gui_BeginFrame(delta_time);
 
@@ -76,9 +78,19 @@ int main(int argc, char *argv[])
         r_VisibleLights();
         r_VisibleEntitiesOnLights();
         r_VisibleEntities();
-        r_BeginFrame();
+
+        if(r_renderer_state.draw_entities)
+        {
+            e_DebugDrawEntities();
+        }
+
+        if(r_renderer_state.draw_colliders)
+        {
+            p_DebugDrawPhysics();
+        }
+
         gui_EndFrame();
-        r_DrawCmds();
+        r_DrawFrame();
         r_EndFrame();
     }
 

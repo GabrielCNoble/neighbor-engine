@@ -5,6 +5,7 @@
 #include "dstuff/ds_mem.h"
 #include "dstuff/ds_matrix.h"
 #include "r_draw.h"
+#include "r_main.h"
 #include "log.h"
 
 #include "newton/include/dgNewton/Newton.h"
@@ -25,6 +26,8 @@ vec3_t p_gravity = vec3_t_c(0.0, -9.8, 0.0);
 uint32_t p_physics_frozen;
 
 extern struct r_renderer_state_t r_renderer_state;
+extern struct r_shader_t *r_immediate_shader;
+extern mat4_t r_view_projection_matrix;
 
 
 
@@ -919,55 +922,6 @@ struct p_collider_t *p_Raycast(vec3_t *from, vec3_t *to, float *time, struct p_c
     return NULL;
 }
 
-void p_DrawCollisionShape(mat4_t *base_transform, NewtonCollision *shape)
-{
-    NewtonCollisionInfoRecord collision_info;
-    vec3_t scale;
-    NewtonCollisionGetInfo(shape, &collision_info);
-    NewtonCollisionGetScale(shape, &scale.x, &scale.y, &scale.z);
-
-
-    mat4_t shape_transform;
-    mat4_t scale_transform = mat4_t_c_id();
-    mat4_t model_transform;
-    memcpy(shape_transform.comps, collision_info.m_offsetMatrix, sizeof(mat4_t));
-    mat4_t_mul(&model_transform, &shape_transform, base_transform);
-
-    scale_transform.rows[0].x = scale.x;
-    scale_transform.rows[1].y = scale.y;
-    scale_transform.rows[2].z = scale.z;
-    mat4_t_mul(&model_transform, &scale_transform, &model_transform);
-
-    if(collision_info.m_collisionType == SERIALIZE_ID_COMPOUND)
-    {
-        void *collision_node = NewtonCompoundCollisionGetFirstNode(shape);
-
-        while(collision_node)
-        {
-            NewtonCollision *child_shape = NewtonCompoundCollisionGetCollisionFromNode(shape, collision_node);
-            p_DrawCollisionShape(&model_transform, child_shape);
-            collision_node = NewtonCompoundCollisionGetNextNode(shape, collision_node);
-        }
-    }
-    else
-    {
-        r_i_SetModelMatrix(&model_transform);
-
-        switch(collision_info.m_collisionType)
-        {
-            case SERIALIZE_ID_BOX:
-            {
-                vec3_t size;
-                vec4_t color = vec4_t_c(1.0, 1.0, 1.0, 1.0);
-                size.x = collision_info.m_box.m_x * 0.5;
-                size.y = collision_info.m_box.m_y * 0.5;
-                size.z = collision_info.m_box.m_z * 0.5;
-                r_i_DrawBox(&size, &color);
-            }
-            break;
-        }
-    }
-}
 
 void p_StepPhysics(float delta_time)
 {
@@ -1022,112 +976,172 @@ void p_StepPhysics(float delta_time)
         }
     }
 
-//    for(uint32_t collider_index = 0; collider_index < p_colliders[P_COLLIDER_TYPE_DYNAMIC].cursor; collider_index++)
+//    if(r_renderer_state.draw_colliders)
 //    {
-//        struct p_dynamic_collider_t *collider = (struct p_dynamic_collider_t *)p_GetCollider(P_COLLIDER_TYPE_DYNAMIC, collider_index);
-//
-//        if(collider)
-//        {
-//            NewtonBody *rigid_body = (NewtonBody *)collider->rigid_body;
-////            collider->accumulated_force = vec3_t_c(0.0, 0.0, 0.0);
-////            NewtonBodyGetVelocity(rigid_body, collider->linear_velocity.comps);
-//        }
+//        p_DebugDrawPhysics();
 //    }
+}
 
-    if(r_renderer_state.draw_colliders)
+void p_DrawCollisionShape(mat4_t *base_transform, NewtonCollision *shape)
+{
+    NewtonCollisionInfoRecord collision_info;
+    vec3_t scale;
+    NewtonCollisionGetInfo(shape, &collision_info);
+    NewtonCollisionGetScale(shape, &scale.x, &scale.y, &scale.z);
+
+
+    mat4_t shape_transform;
+    mat4_t scale_transform = mat4_t_c_id();
+    mat4_t model_transform;
+    memcpy(shape_transform.comps, collision_info.m_offsetMatrix, sizeof(mat4_t));
+    mat4_t_mul(&model_transform, &shape_transform, base_transform);
+
+    scale_transform.rows[0].x = scale.x;
+    scale_transform.rows[1].y = scale.y;
+    scale_transform.rows[2].z = scale.z;
+    mat4_t_mul(&model_transform, &scale_transform, &model_transform);
+
+    if(collision_info.m_collisionType == SERIALIZE_ID_COMPOUND)
     {
-        p_DebugDrawPhysics();
+        void *collision_node = NewtonCompoundCollisionGetFirstNode(shape);
+
+        while(collision_node)
+        {
+            NewtonCollision *child_shape = NewtonCompoundCollisionGetCollisionFromNode(shape, collision_node);
+            p_DrawCollisionShape(&model_transform, child_shape);
+            collision_node = NewtonCompoundCollisionGetNextNode(shape, collision_node);
+        }
+    }
+    else
+    {
+        mat4_t_mul(&model_transform, &model_transform, &r_view_projection_matrix);
+        r_SetDefaultUniformMat4(R_UNIFORM_MODEL_VIEW_PROJECTION_MATRIX, &model_transform);
+
+        switch(collision_info.m_collisionType)
+        {
+            case SERIALIZE_ID_BOX:
+            {
+                vec3_t size;
+                vec4_t color = vec4_t_c(1.0, 1.0, 1.0, 1.0);
+                size.x = collision_info.m_box.m_x * 0.5;
+                size.y = collision_info.m_box.m_y * 0.5;
+                size.z = collision_info.m_box.m_z * 0.5;
+                r_DrawBox(&size, &color);
+            }
+            break;
+
+            case SERIALIZE_ID_TREE:
+            {
+
+            }
+            break;
+        }
+    }
+}
+
+void p_DrawConstraint(struct p_constraint_t *constraint)
+{
+    dCustomJoint *joint = (dCustomJoint *)constraint->constraint;
+    dMatrix matrix0;
+    dMatrix matrix1;
+    mat4_t transform0;
+    mat4_t transform1;
+
+    joint->CalculateGlobalMatrix(matrix0, matrix1);
+    NewtonBody *body0 = joint->GetBody0();
+    NewtonBody *body1 = joint->GetBody1();
+
+    NewtonBodyGetMatrix(body0, (float *)transform0.comps);
+    NewtonBodyGetMatrix(body1, (float *)transform1.comps);
+
+    switch(constraint->type)
+    {
+        case P_CONSTRAINT_TYPE_HINGE:
+        {
+            dCustomHinge *hinge_constraint = (dCustomHinge *)joint;
+            vec3_t hinge_pivot = vec3_t_c(matrix0[3][0], matrix0[3][1], matrix0[3][2]);
+            vec3_t hinge_axis = vec3_t_c(matrix0[0][0], matrix0[0][1], matrix0[0][2]);
+
+            vec3_t point0;
+            vec3_t_fmadd(&point0, &hinge_pivot, &hinge_axis, 0.3);
+            vec3_t point1;
+            vec3_t_fmadd(&point1, &hinge_pivot, &hinge_axis, -0.3);
+
+            vec4_t color = vec4_t_c(0.7, 0.7, 1.0, 0.0);
+            r_DrawLine(&point0, &point1, &color);
+            r_DrawLine(&transform0.rows[3].xyz, &hinge_pivot, &color);
+
+            hinge_pivot = vec3_t_c(matrix1[3][0], matrix1[3][1], matrix1[3][2]);
+            hinge_axis = vec3_t_c(matrix1[0][0], matrix1[0][1], matrix1[0][2]);
+
+            vec3_t_fmadd(&point0, &hinge_pivot, &hinge_axis, 0.3);
+            vec3_t_fmadd(&point1, &hinge_pivot, &hinge_axis, -0.3);
+
+            r_DrawLine(&point0, &point1, &color);
+            r_DrawLine(&transform1.rows[3].xyz, &hinge_pivot, &color);
+        }
+        break;
+
+        case P_CONSTRAINT_TYPE_SLIDER:
+        {
+            dCustomSlider *slider_constraint = (dCustomSlider *)joint;
+            vec3_t slider_center = vec3_t_c(matrix0[3][0], matrix0[3][1], matrix0[3][2]);
+            vec3_t slider_axis = vec3_t_c(matrix0[0][0], matrix0[0][1], matrix0[0][2]);
+            vec3_t axis1 = vec3_t_c(matrix0[1][0], matrix0[1][1], matrix0[1][2]);
+            vec3_t axis2 = vec3_t_c(matrix0[2][0], matrix0[2][1], matrix0[2][2]);
+
+            vec3_t point0;
+            vec3_t point1;
+
+            vec3_t_fmadd(&point0, &slider_center, &slider_axis, -constraint->slider.min_dist);
+            vec3_t_fmadd(&point1, &slider_center, &slider_axis, -constraint->slider.max_dist);
+
+            vec4_t color = vec4_t_c(0.7, 0.7, 1.0, 0.0);
+            r_DrawLine(&point0, &point1, &color);
+
+            slider_center = vec3_t_c(matrix1[3][0], matrix1[3][1], matrix1[3][2]);
+            slider_axis = vec3_t_c(matrix1[0][0], matrix1[0][1], matrix1[0][2]);
+
+            vec3_t_fmadd(&point0, &slider_center, &slider_axis, -constraint->slider.min_dist);
+            vec3_t_fmadd(&point1, &slider_center, &slider_axis, -constraint->slider.max_dist);
+
+            r_DrawLine(&point0, &point1, &color);
+        }
+        break;
     }
 }
 
 void p_DebugDrawPhysics()
 {
-    r_i_SetViewProjectionMatrix(NULL);
-    r_i_SetModelMatrix(NULL);
-    r_i_SetShader(NULL);
+//    r_i_SetViewProjectionMatrix(NULL);
+//    r_i_SetModelMatrix(NULL);
+//    r_i_SetShader(NULL);
 
-    for(uint32_t constraint_index = 0; constraint_index < p_constraints.cursor; constraint_index++)
+//    r_BindShader(r_immediate_shader);
+
+/*     r_SetImmediateModeDefaults();
+    r_SetDefaultUniformMat4(R_UNIFORM_MODEL_VIEW_PROJECTION_MATRIX, &r_view_projection_matrix);
+    glLineWidth(1.0); */
+//    glEnable(GL_DEPTH_TEST);
+//    glDepthFunc(GL_LESS);
+
+    /* for(uint32_t constraint_index = 0; constraint_index < p_constraints.cursor; constraint_index++)
     {
         struct p_constraint_t *constraint = (struct p_constraint_t *)ds_slist_get_element(&p_constraints, constraint_index);
         if(constraint && constraint->index != 0xffffffff)
         {
-            dCustomJoint *joint = (dCustomJoint *)constraint->constraint;
-            dMatrix matrix0;
-            dMatrix matrix1;
-            mat4_t transform0;
-            mat4_t transform1;
-
-            joint->CalculateGlobalMatrix(matrix0, matrix1);
-            NewtonBody *body0 = joint->GetBody0();
-            NewtonBody *body1 = joint->GetBody1();
-
-            NewtonBodyGetMatrix(body0, (float *)transform0.comps);
-            NewtonBodyGetMatrix(body1, (float *)transform1.comps);
-
-            switch(constraint->type)
-            {
-                case P_CONSTRAINT_TYPE_HINGE:
-                {
-                    dCustomHinge *hinge_constraint = (dCustomHinge *)joint;
-                    vec3_t hinge_pivot = vec3_t_c(matrix0[3][0], matrix0[3][1], matrix0[3][2]);
-                    vec3_t hinge_axis = vec3_t_c(matrix0[0][0], matrix0[0][1], matrix0[0][2]);
-
-                    vec3_t point0;
-                    vec3_t_fmadd(&point0, &hinge_pivot, &hinge_axis, 0.3);
-                    vec3_t point1;
-                    vec3_t_fmadd(&point1, &hinge_pivot, &hinge_axis, -0.3);
-
-                    vec4_t color = vec4_t_c(0.7, 0.7, 1.0, 0.0);
-                    r_i_DrawLine(&point0, &point1, &color, 1);
-                    r_i_DrawLine(&transform0.rows[3].xyz, &hinge_pivot, &color, 1);
-
-                    hinge_pivot = vec3_t_c(matrix1[3][0], matrix1[3][1], matrix1[3][2]);
-                    hinge_axis = vec3_t_c(matrix1[0][0], matrix1[0][1], matrix1[0][2]);
-
-                    vec3_t_fmadd(&point0, &hinge_pivot, &hinge_axis, 0.3);
-                    vec3_t_fmadd(&point1, &hinge_pivot, &hinge_axis, -0.3);
-
-                    r_i_DrawLine(&point0, &point1, &color, 1);
-                    r_i_DrawLine(&transform1.rows[3].xyz, &hinge_pivot, &color, 1);
-                }
-                break;
-
-                case P_CONSTRAINT_TYPE_SLIDER:
-                {
-                    dCustomSlider *slider_constraint = (dCustomSlider *)joint;
-                    vec3_t slider_center = vec3_t_c(matrix0[3][0], matrix0[3][1], matrix0[3][2]);
-                    vec3_t slider_axis = vec3_t_c(matrix0[0][0], matrix0[0][1], matrix0[0][2]);
-                    vec3_t axis1 = vec3_t_c(matrix0[1][0], matrix0[1][1], matrix0[1][2]);
-                    vec3_t axis2 = vec3_t_c(matrix0[2][0], matrix0[2][1], matrix0[2][2]);
-
-                    vec3_t point0;
-                    vec3_t point1;
-
-                    vec3_t_fmadd(&point0, &slider_center, &slider_axis, -constraint->slider.min_dist);
-                    vec3_t_fmadd(&point1, &slider_center, &slider_axis, -constraint->slider.max_dist);
-
-                    vec4_t color = vec4_t_c(0.7, 0.7, 1.0, 0.0);
-                    r_i_DrawLine(&point0, &point1, &color, 1);
-
-                    slider_center = vec3_t_c(matrix1[3][0], matrix1[3][1], matrix1[3][2]);
-                    slider_axis = vec3_t_c(matrix1[0][0], matrix1[0][1], matrix1[0][2]);
-
-                    vec3_t_fmadd(&point0, &slider_center, &slider_axis, -constraint->slider.min_dist);
-                    vec3_t_fmadd(&point1, &slider_center, &slider_axis, -constraint->slider.max_dist);
-
-                    r_i_DrawLine(&point0, &point1, &color, 1);
-                }
-                break;
-            }
+            p_DrawConstraint(constraint);
         }
     }
 
     for(uint32_t collider_index = 0; collider_index < p_colliders[P_COLLIDER_TYPE_DYNAMIC].cursor; collider_index++)
     {
         struct p_dynamic_collider_t *collider = (struct p_dynamic_collider_t *)p_GetCollider(P_COLLIDER_TYPE_DYNAMIC, collider_index);
+
         if(collider)
         {
             mat4_t base_transform;
+            mat4_t model_view_projection_matrix;
             mat4_t_comp(&base_transform, &collider->orientation, &collider->position);
             vec3_t origin = {};
             vec4_t axes[3] =
@@ -1137,17 +1151,34 @@ void p_DebugDrawPhysics()
                 vec4_t_c(0.0, 0.0, 1.0, 1.0),
             };
 
-            r_i_SetModelMatrix(&base_transform);
-            for(uint32_t axis = 0; axis < 3; axis++)
-            {
-                r_i_DrawLine(&origin, &axes[axis].xyz, &axes[axis], 1.0);
-            }
-
             NewtonBody *rigid_body = (NewtonBody *)collider->rigid_body;
             NewtonCollision *collision_shape = NewtonBodyGetCollision(rigid_body);
             p_DrawCollisionShape(&base_transform, collision_shape);
+            mat4_t_mul(&base_transform, &base_transform, &r_view_projection_matrix);
+
+            r_SetDefaultUniformMat4(R_UNIFORM_MODEL_VIEW_PROJECTION_MATRIX, &base_transform);
+            for(uint32_t axis = 0; axis < 3; axis++)
+            {
+                r_DrawLine(&origin, &axes[axis].xyz, &axes[axis]);
+            }
         }
-    }
+    } */
+
+//    for(uint32_t collider_index = 0; collider_index < p_colliders[P_COLLIDER_TYPE_STATIC].cursor; collider_index++)
+//    {
+//        struct p_static_collider_t *collider = (struct p_static_collider_t *)p_GetCollider(P_COLLIDER_TYPE_STATIC, collider_index);
+//
+//        if(collider)
+//        {
+//
+//            mat4_t base_transform;
+//            mat4_t_comp(&base_transform, &collider->orientation, &collider->position);
+//
+//            NewtonBody *rigid_body = (NewtonBody *)collider->rigid_body;
+//            NewtonCollision *collision_shape = NewtonBodyGetCollision(rigid_body);
+//            p_DrawCollisionShape(&base_transform, collision_shape);
+//        }
+//    }
 }
 
 #ifdef __cplusplus

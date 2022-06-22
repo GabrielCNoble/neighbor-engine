@@ -98,6 +98,7 @@ float r_CubeShadow(uint shadow_map, vec3 direction)
     }
 
     return shadow_term;
+//    return 1.0;
 }
 
 float r_SpotShadow(uint light_index, vec3 frag_pos)

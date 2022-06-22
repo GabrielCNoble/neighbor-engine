@@ -16,6 +16,8 @@ struct ds_list_t e_root_transforms;
 uint32_t e_valid_def_ents;
 
 extern struct r_renderer_state_t r_renderer_state;
+extern mat4_t r_view_projection_matrix;
+extern struct r_shader_t *r_immediate_shader;
 
 
 void e_Init()
@@ -804,6 +806,29 @@ void e_UpdateEntityNode(struct e_node_t *local_transform, mat4_t *parent_transfo
 //    mat4_t_mul(&transform->transform, &local_scale, &transform->transform);
 }
 
+void e_DebugDrawEntities()
+{
+    mat4_t model_view_projection_matrix;
+    r_BindShader(r_immediate_shader);
+    glLineWidth(1.0);
+    glEnable(GL_DEPTH_TEST);
+    glDepthFunc(GL_LESS);
+
+    for(uint32_t model_index = 0; model_index < e_components[E_COMPONENT_TYPE_MODEL].cursor; model_index++)
+    {
+        struct e_model_t *model = (struct e_model_t *)e_GetComponent(E_COMPONENT_TYPE_MODEL, model_index);
+        struct e_transform_t *transform = model->entity->transform;
+        model_view_projection_matrix = mat4_t_c_id();
+        vec3_t_add(&model_view_projection_matrix.rows[3].xyz, &model->center, &transform->transform.rows[3].xyz);
+        vec3_t half_extents;
+        vec3_t_mul(&half_extents, &model->extents, 0.5);
+
+        mat4_t_mul(&model_view_projection_matrix, &model_view_projection_matrix, &r_view_projection_matrix);
+        r_SetDefaultUniformMat4(R_UNIFORM_MODEL_VIEW_PROJECTION_MATRIX, &model_view_projection_matrix);
+        r_DrawBox(&half_extents, &vec4_t_c(0.0, 1.0, 0.0, 1.0));
+    }
+}
+
 void e_UpdateEntities()
 {
     for(uint32_t collider_index = 0; collider_index < e_components[E_COMPONENT_TYPE_COLLIDER].cursor; collider_index++)
@@ -839,35 +864,15 @@ void e_UpdateEntities()
         min = model->model->min;
 
         corners[0] = max;
-
-        corners[1].x = max.x;
-        corners[1].y = min.y;
-        corners[1].z = max.z;
-
-        corners[2].x = min.x;
-        corners[2].y = min.y;
-        corners[2].z = max.z;
-
-        corners[3].x = min.x;
-        corners[3].y = max.y;
-        corners[3].z = max.z;
-
-        corners[4].x = max.x;
-        corners[4].y = max.y;
-        corners[4].z = min.z;
-
-        corners[5].x = max.x;
-        corners[5].y = min.y;
-        corners[5].z = min.z;
-
-        corners[6].x = min.x;
-        corners[6].y = min.y;
-        corners[6].z = min.z;
-
+        corners[1] = vec3_t_c(max.x, min.y, max.z);
+        corners[2] = vec3_t_c(min.x, min.y, max.z);
+        corners[3] = vec3_t_c(min.x, max.y, max.z);
+        corners[4] = vec3_t_c(max.x, max.y, min.z);
+        corners[5] = vec3_t_c(max.x, min.y, min.z);
+        corners[6] = vec3_t_c(min.x, max.y, min.z);
         corners[7] = min;
 
         mat3_t rot_scale;
-
         rot_scale.rows[0] = transform->transform.rows[0].xyz;
         rot_scale.rows[1] = transform->transform.rows[1].xyz;
         rot_scale.rows[2] = transform->transform.rows[2].xyz;
@@ -879,60 +884,36 @@ void e_UpdateEntities()
         {
             vec3_t *corner = corners + corner_index;
             mat3_t_vec3_t_mul(corner, corner, &rot_scale);
-
-            if(max.x < corner->x) max.x = corner->x;
-            if(max.y < corner->y) max.y = corner->y;
-            if(max.z < corner->z) max.z = corner->z;
-
-            if(min.x > corner->x) min.x = corner->x;
-            if(min.y > corner->y) min.y = corner->y;
-            if(min.z > corner->z) min.z = corner->z;
+            vec3_t_max(&max, &max, corner);
+            vec3_t_min(&min, &min, corner);
         }
 
-        model->extents.x = max.x - min.x;
-        model->extents.y = max.y - min.y;
-        model->extents.z = max.z - min.z;
+        vec3_t_sub(&model->extents, &max, &min);
+        vec3_t_add(&model->center, &max, &min);
+        vec3_t_mul(&model->center, &model->center, 0.5);
     }
 
-    if(r_renderer_state.draw_entities)
-    {
-        r_i_SetViewProjectionMatrix(NULL);
-        r_i_SetModelMatrix(NULL);
-        r_i_SetShader(NULL);
-
-        vec3_t min;
-        vec3_t max;
-
-        for(uint32_t model_index = 0; model_index < e_components[E_COMPONENT_TYPE_MODEL].cursor; model_index++)
-        {
-            struct e_model_t *model = (struct e_model_t *)e_GetComponent(E_COMPONENT_TYPE_MODEL, model_index);
-            struct e_transform_t *transform = model->entity->transform;
-
-            vec3_t_mul(&max, &model->extents, 0.5);
-            vec3_t_mul(&min, &model->extents, -0.5);
-
-            vec3_t_add(&max, &max, &transform->transform.rows[3].xyz);
-            vec3_t_add(&min, &min, &transform->transform.rows[3].xyz);
-
-            vec4_t color = vec4_t_c(0.0, 1.0, 0.0, 1.0);
-
-            r_i_DrawLine(&vec3_t_c(min.x, max.y, max.z), &vec3_t_c(min.x, min.y, max.z), &color, 1.0);
-            r_i_DrawLine(&vec3_t_c(max.x, max.y, max.z), &vec3_t_c(max.x, min.y, max.z), &color, 1.0);
-            r_i_DrawLine(&vec3_t_c(min.x, max.y, max.z), &vec3_t_c(max.x, max.y, max.z), &color, 1.0);
-            r_i_DrawLine(&vec3_t_c(min.x, min.y, max.z), &vec3_t_c(max.x, min.y, max.z), &color, 1.0);
-
-            r_i_DrawLine(&vec3_t_c(min.x, max.y, min.z), &vec3_t_c(min.x, min.y, min.z), &color, 1.0);
-            r_i_DrawLine(&vec3_t_c(max.x, max.y, min.z), &vec3_t_c(max.x, min.y, min.z), &color, 1.0);
-            r_i_DrawLine(&vec3_t_c(min.x, max.y, min.z), &vec3_t_c(max.x, max.y, min.z), &color, 1.0);
-            r_i_DrawLine(&vec3_t_c(min.x, min.y, min.z), &vec3_t_c(max.x, min.y, min.z), &color, 1.0);
-
-
-            r_i_DrawLine(&vec3_t_c(min.x, max.y, min.z), &vec3_t_c(min.x, max.y, max.z), &color, 1.0);
-            r_i_DrawLine(&vec3_t_c(min.x, min.y, min.z), &vec3_t_c(min.x, min.y, max.z), &color, 1.0);
-            r_i_DrawLine(&vec3_t_c(max.x, max.y, min.z), &vec3_t_c(max.x, max.y, max.z), &color, 1.0);
-            r_i_DrawLine(&vec3_t_c(max.x, min.y, min.z), &vec3_t_c(max.x, min.y, max.z), &color, 1.0);
-        }
-    }
+//    if(r_renderer_state.draw_entities)
+//    {
+////        mat4_t model_view_projection_matrix;
+////        r_BindShader(r_immediate_shader);
+////        glLineWidth(1.0);
+////        glEnable(GL_DEPTH_TEST);
+////
+////        for(uint32_t model_index = 0; model_index < e_components[E_COMPONENT_TYPE_MODEL].cursor; model_index++)
+////        {
+////            struct e_model_t *model = (struct e_model_t *)e_GetComponent(E_COMPONENT_TYPE_MODEL, model_index);
+////            struct e_transform_t *transform = model->entity->transform;
+////            model_view_projection_matrix = mat4_t_c_id();
+////            vec3_t_add(&model_view_projection_matrix.rows[3].xyz, &model->center, &transform->transform.rows[3].xyz);
+////            vec3_t half_extents;
+////            vec3_t_mul(&half_extents, &model->extents, 0.5);
+////
+////            mat4_t_mul(&model_view_projection_matrix, &model_view_projection_matrix, &r_view_projection_matrix);
+////            r_SetDefaultUniformMat4(R_UNIFORM_MODEL_VIEW_PROJECTION_MATRIX, &model_view_projection_matrix);
+////            r_DrawBox(&half_extents, &vec4_t_c(0.0, 1.0, 0.0, 1.0));
+////        }
+//    }
 }
 
 

@@ -1013,7 +1013,7 @@
 	"../lib/dstuff/ds_slist.h"
 	<stdint.h>
 
-1640304294 c:\users\gabri\documents\compiler\metroid_thingy\engine\r_draw.h
+1655157588 c:\users\gabri\documents\compiler\metroid_thingy\engine\r_draw.h
 	"r_defs.h"
 	"r_main.h"
 
@@ -1026,15 +1026,16 @@
 	<stddef.h>
 	<stdalign.h>
 
-1639785011 c:\users\gabri\documents\compiler\metroid_thingy\engine\r_main.h
+1655835409 c:\users\gabri\documents\compiler\metroid_thingy\engine\r_main.h
 	"r_defs.h"
 	"r_draw.h"
 	"../lib/GLEW/include/GL/glew.h"
 
-1640448254 source:c:\users\gabri\documents\compiler\metroid_thingy\engine\gui.c
+1655884876 source:c:\users\gabri\documents\compiler\metroid_thingy\engine\gui.c
 	"gui.h"
 	"r_main.h"
 	"r_draw.h"
+	"r_draw_i.h"
 	"input.h"
 	<stdint.h>
 	"log.h"
@@ -1155,7 +1156,7 @@
 	"../lib/dstuff/ds_vector.h"
 	<stdint.h>
 
-1640304294 source:c:\users\gabri\documents\compiler\metroid_thingy\engine\main.c
+1655870850 source:c:\users\gabri\documents\compiler\metroid_thingy\engine\main.c
 	"SDL2/SDL.h"
 	"main.h"
 	"../lib/backtrace/include/backtrace.h"
@@ -1169,7 +1170,7 @@
 	"dstuff/ds_dbvt.h"
 	"r_draw.h"
 
-1640411398 source:c:\users\gabri\documents\compiler\metroid_thingy\editor\ed_brush.c
+1640469943 source:c:\users\gabri\documents\compiler\metroid_thingy\editor\ed_brush.c
 	<float.h>
 	"ed_brush.h"
 	"ed_pick_defs.h"
@@ -1181,8 +1182,9 @@
 	"../engine/ent.h"
 	"ed_bsp.h"
 
-1640448345 source:c:\users\gabri\documents\compiler\metroid_thingy\engine\r_draw.c
+1655886925 source:c:\users\gabri\documents\compiler\metroid_thingy\engine\r_draw.c
 	"r_draw.h"
+	"r_draw_i.h"
 	"SDL2/SDL.h"
 	"GL/glew.h"
 	"dstuff/ds_slist.h"
@@ -1206,7 +1208,7 @@
 	"../engine/game.h"
 	"../engine/input.h"
 
-1640304293 source:c:\users\gabri\documents\compiler\metroid_thingy\editor\ed_pick.c
+1654915509 source:c:\users\gabri\documents\compiler\metroid_thingy\editor\ed_pick.c
 	<stdio.h>
 	"ed_pick.h"
 	"ed_brush.h"
@@ -1244,7 +1246,7 @@
 	<float.h>
 	<stdlib.h>
 
-1639936798 source:c:\users\gabri\documents\compiler\metroid_thingy\engine\r_main.c
+1655886462 source:c:\users\gabri\documents\compiler\metroid_thingy\engine\r_main.c
 	"r_main.h"
 	"SDL2/SDL.h"
 	"GL/glew.h"
@@ -1260,7 +1262,7 @@
 	"anim.h"
 	"log.h"
 
-1639785011 source:c:\users\gabri\documents\compiler\metroid_thingy\engine\r_vis.c
+1640638596 source:c:\users\gabri\documents\compiler\metroid_thingy\engine\r_vis.c
 	"r_vis.h"
 	"ent.h"
 	"g_main.h"
@@ -1304,7 +1306,7 @@
 	"ed_defs.h"
 	"ed_pick_defs.h"
 
-1640304293 source:c:\users\gabri\documents\compiler\metroid_thingy\editor\ed_level.c
+1654919492 source:c:\users\gabri\documents\compiler\metroid_thingy\editor\ed_level.c
 	<float.h>
 	"ed_level.h"
 	"ed_pick.h"
@@ -1400,7 +1402,7 @@
 	<stddef.h>
 	<lzo/lzodefs.h>
 
-1640411072 c:\users\gabri\documents\compiler\metroid_thingy\engine\r_defs.h
+1655887294 c:\users\gabri\documents\compiler\metroid_thingy\engine\r_defs.h
 	"../lib/dstuff/ds_vector.h"
 	"../lib/dstuff/ds_matrix.h"
 	"../lib/dstuff/ds_alloc.h"
@@ -1409,7 +1411,7 @@
 	<stddef.h>
 	<stdalign.h>
 
-1640304293 c:\users\gabri\documents\compiler\metroid_thingy\engine\e_defs.h
+1640590074 c:\users\gabri\documents\compiler\metroid_thingy\engine\e_defs.h
 	<stdint.h>
 	"../lib/dstuff/ds_list.h"
 	"r_defs.h"
@@ -1429,7 +1431,7 @@
 1640304293 c:\users\gabri\documents\compiler\metroid_thingy\engine\ent.h
 	"e_defs.h"
 
-1640448004 source:c:\users\gabri\documents\compiler\metroid_thingy\editor\ed_ent.c
+1640637545 source:c:\users\gabri\documents\compiler\metroid_thingy\editor\ed_ent.c
 	"ed_ent.h"
 	"../engine/ent.h"
 	"../engine/p_defs.h"
@@ -1463,7 +1465,7 @@
 	"../engine/gui.h"
 	"ed_main.h"
 
-1640413852 source:c:\users\gabri\documents\compiler\metroid_thingy\engine\ent.c
+1640635154 source:c:\users\gabri\documents\compiler\metroid_thingy\engine\ent.c
 	<stdio.h>
 	"ent.h"
 	"phys.h"
@@ -1474,7 +1476,7 @@
 	"../lib/dstuff/ds_path.h"
 	"log.h"
 
-1640374695 source:c:\users\gabri\documents\compiler\metroid_thingy\engine\g_player.c
+1640469943 source:c:\users\gabri\documents\compiler\metroid_thingy\engine\g_player.c
 	"g_player.h"
 	"../engine/phys.h"
 	"../engine/r_main.h"
@@ -1491,7 +1493,7 @@
 1639785011 c:\users\gabri\documents\compiler\metroid_thingy\engine\p_col.h
 	"p_defs.h"
 
-1640306465 source:c:\users\gabri\documents\compiler\metroid_thingy\engine\phys.cpp
+1654826042 source:c:\users\gabri\documents\compiler\metroid_thingy\engine\phys.cpp
 	<float.h>
 	"phys.h"
 	"dstuff/ds_slist.h"
@@ -1499,6 +1501,7 @@
 	"dstuff/ds_mem.h"
 	"dstuff/ds_matrix.h"
 	"r_draw.h"
+	"r_main.h"
 	"log.h"
 	"newton/include/dgNewton/Newton.h"
 	"newton/include/dgNewton/NewtonStdAfx.h"
@@ -2562,4 +2565,10 @@
 1615098038 c:\users\gabri\documents\compiler\metroid_thingy\lib\newton\include\dgphysics\dgcollisionlumpedmassparticles.h
 	"dgCollision.h"
 	"dgCollisionConvex.h"
+
+1655884872 source:c:\users\gabri\documents\compiler\metroid_thingy\engine\r_draw_i.c
+	"r_draw_i.h"
+
+1655868881 c:\users\gabri\documents\compiler\metroid_thingy\engine\r_draw_i.h
+	"r_main.h"
 

@@ -23,6 +23,9 @@ uint32_t ed_picking_depth_texture;
 uint32_t ed_picking_object_texture;
 //uint32_t ed_show_renderer_info_window;
 extern struct r_model_t *ed_light_pickable_model;
+extern struct r_shader_t *r_immediate_shader;
+extern struct r_shader_t *ed_outline_shader;
+extern struct r_shader_t *ed_zero_depth_shader;
 
 void ed_PickingInit()
 {
@@ -158,58 +161,62 @@ struct ed_pickable_t *ed_SelectPickable(int32_t mouse_x, int32_t mouse_y, struct
     mat4_t view_projection_matrix;
     mat4_t model_matrix;
 
-    ed_BeginPicking();
-    struct r_named_uniform_t *ed_index = r_GetNamedUniform(ed_picking_shader, "ed_index");
-    struct r_named_uniform_t *ed_type = r_GetNamedUniform(ed_picking_shader, "ed_type");
+    struct r_framebuffer_t *active_framebuffer = r_GetActiveFramebuffer();
 
-    for(uint32_t pickable_index = 0; pickable_index < pickables->cursor; pickable_index++)
-    {
-        struct ed_pickable_t *pickable = ed_GetPickableOnList(pickable_index, pickables);
-
-        if(pickable && !((1 << pickable->type) & ignore_types))
-        {
-            mat4_t base_model_view_projection_matrix;
-            ed_PickableModelViewProjectionMatrix(pickable, parent_transform, &base_model_view_projection_matrix);
-//            r_SetDefaultUniformMat4(R_UNIFORM_MODEL_VIEW_PROJECTION_MATRIX, &model_view_projection_matrix);
-            r_SetNamedUniformI(ed_index, pickable->index + 1);
-            r_SetNamedUniformI(ed_type, pickable->type + 1);
-            struct ed_pickable_range_t *range = pickable->ranges;
-
-            if(pickable->mode == GL_POINTS)
-            {
-                glPointSize(8.0);
-            }
-            else
-            {
-                glPointSize(1.0);
-            }
-
-            if(pickable->mode == GL_LINES)
-            {
-                glLineWidth(8.0);
-            }
-            else
-            {
-                glLineWidth(1.0);
-            }
-
-            while(range)
-            {
-                mat4_t model_view_projection_matrix;
-                mat4_t_mul(&model_view_projection_matrix, &range->offset, &base_model_view_projection_matrix);
-                r_SetDefaultUniformMat4(R_UNIFORM_MODEL_VIEW_PROJECTION_MATRIX, &model_view_projection_matrix);
-                glDrawElements(pickable->mode, range->count, GL_UNSIGNED_INT, (void *)(sizeof(uint32_t) * range->start));
-                range = range->next;
-            }
-        }
-    }
-
-    struct ed_pickable_t result;
-
-    if(ed_EndPicking(mouse_x, mouse_y, &result))
-    {
-        selection = ds_slist_get_element(pickables, result.index);
-    }
+//    ed_BeginPicking();
+//    struct r_named_uniform_t *ed_index = r_GetNamedUniform(ed_picking_shader, "ed_index");
+//    struct r_named_uniform_t *ed_type = r_GetNamedUniform(ed_picking_shader, "ed_type");
+//
+//    for(uint32_t pickable_index = 0; pickable_index < pickables->cursor; pickable_index++)
+//    {
+//        struct ed_pickable_t *pickable = ed_GetPickableOnList(pickable_index, pickables);
+//
+//        if(pickable && !((1 << pickable->type) & ignore_types))
+//        {
+//            mat4_t base_model_view_projection_matrix;
+//            ed_PickableModelViewProjectionMatrix(pickable, parent_transform, &base_model_view_projection_matrix);
+////            r_SetDefaultUniformMat4(R_UNIFORM_MODEL_VIEW_PROJECTION_MATRIX, &model_view_projection_matrix);
+//            r_SetNamedUniformI(ed_index, pickable->index + 1);
+//            r_SetNamedUniformI(ed_type, pickable->type + 1);
+//            struct ed_pickable_range_t *range = pickable->ranges;
+//
+//            if(pickable->mode == GL_POINTS)
+//            {
+//                glPointSize(8.0);
+//            }
+//            else
+//            {
+//                glPointSize(1.0);
+//            }
+//
+//            if(pickable->mode == GL_LINES)
+//            {
+//                glLineWidth(8.0);
+//            }
+//            else
+//            {
+//                glLineWidth(1.0);
+//            }
+//
+//            while(range)
+//            {
+//                mat4_t model_view_projection_matrix;
+//                mat4_t_mul(&model_view_projection_matrix, &range->offset, &base_model_view_projection_matrix);
+//                r_SetDefaultUniformMat4(R_UNIFORM_MODEL_VIEW_PROJECTION_MATRIX, &model_view_projection_matrix);
+//                glDrawElements(pickable->mode, range->count, GL_UNSIGNED_INT, (void *)(sizeof(uint32_t) * range->start));
+//                range = range->next;
+//            }
+//        }
+//    }
+//
+//    struct ed_pickable_t result;
+//
+//    if(ed_EndPicking(mouse_x, mouse_y, &result))
+//    {
+//        selection = ds_slist_get_element(pickables, result.index);
+//    }
+//
+//    r_BindFramebuffer(active_framebuffer);
 
     return selection;
 }
@@ -246,59 +253,50 @@ void ed_DestroyWidget(struct ed_widget_t *widget)
 void ed_DrawWidget(struct ed_widget_t *widget, mat4_t *widget_transform)
 {
     mat4_t view_projection_matrix;
-//    widget->mvp_mat_fn(&view_projection_matrix, widget_transform);
+    r_BindShader(ed_outline_shader);
 
-//    r_i_SetViewProjectionMatrix(&view_projection_matrix);
-    r_i_SetDepth(GL_TRUE, GL_ALWAYS);
-    r_i_SetStencil(GL_TRUE, GL_KEEP, GL_KEEP, GL_REPLACE, GL_ALWAYS, 0xff, 0x01);
-    r_i_SetModelMatrix(NULL);
-
-    for(uint32_t pickable_index = 0; pickable_index < widget->pickables.cursor; pickable_index++)
+    for(uint32_t pass_index = 0; pass_index < 3; pass_index++)
     {
-        struct ed_pickable_t *pickable = ed_GetPickableOnList(pickable_index, &widget->pickables);
-
-        if(pickable)
+        switch(pass_index)
         {
-//            mat4_t transform = pickable->draw_transform;
-//            mat4_t_mul(&transform, &transform, widget_transform);
+            case 0:
+                glEnable(GL_DEPTH_TEST);
+                glDepthFunc(GL_ALWAYS);
+                glCullFace(GL_BACK);
+                glEnable(GL_STENCIL_TEST);
+                glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
+                glStencilFunc(GL_ALWAYS, 0x01, 0xff);
+            break;
 
-            mat4_t model_view_projection_matrix;
-            ed_PickableModelViewProjectionMatrix(pickable, widget_transform, &model_view_projection_matrix);
+            case 1:
+                glDepthFunc(GL_LEQUAL);
+                glStencilOp(GL_KEEP, GL_KEEP, GL_DECR);
+                glStencilFunc(GL_EQUAL, 0x01, 0xff);
+            break;
 
-//            r_i_SetModelMatrix(&pickable->transform);
-            r_i_SetViewProjectionMatrix(&model_view_projection_matrix);
-            struct r_i_draw_list_t *draw_list = r_i_AllocDrawList(1);
-            draw_list->commands[0].start = pickable->ranges->start;
-            draw_list->commands[0].count = pickable->ranges->count;
-            draw_list->indexed = 1;
-            r_i_DrawImmediate(R_I_DRAW_CMD_TRIANGLE_LIST, draw_list);
+            case 2:
+                glDisable(GL_STENCIL_TEST);
+                glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
+                r_BindShader(ed_zero_depth_shader);
+            break;
+        }
+
+        for(uint32_t pickable_index = 0; pickable_index < widget->pickables.cursor; pickable_index++)
+        {
+            struct ed_pickable_t *pickable = ed_GetPickableOnList(pickable_index, &widget->pickables);
+            widget->setup_ds_fn(pickable_index, pickable);
+
+            if(pickable)
+            {
+                mat4_t model_view_projection_matrix;
+                ed_PickableModelViewProjectionMatrix(pickable, widget_transform, &model_view_projection_matrix);
+                r_SetDefaultUniformMat4(R_UNIFORM_MODEL_VIEW_PROJECTION_MATRIX, &model_view_projection_matrix);
+                uint32_t start = pickable->ranges->start * sizeof(uint32_t);
+                uint32_t count = pickable->ranges->count;
+                glDrawElements(GL_TRIANGLES, count, GL_UNSIGNED_INT, (void *)start);
+            }
         }
     }
-
-    r_i_SetDepth(GL_TRUE, GL_LEQUAL);
-    r_i_SetStencil(GL_TRUE, GL_KEEP, GL_KEEP, GL_DECR, GL_EQUAL, 0xff, 0x01);
-
-    for(uint32_t pickable_index = 0; pickable_index < widget->pickables.cursor; pickable_index++)
-    {
-        struct ed_pickable_t *pickable = ed_GetPickableOnList(pickable_index, &widget->pickables);
-        widget->setup_ds_fn(pickable_index, pickable);
-
-        if(pickable)
-        {
-//            r_i_SetModelMatrix(&pickable->transform);
-            mat4_t model_view_projection_matrix;
-            ed_PickableModelViewProjectionMatrix(pickable, widget_transform, &model_view_projection_matrix);
-            r_i_SetViewProjectionMatrix(&model_view_projection_matrix);
-            struct r_i_draw_list_t *draw_list = r_i_AllocDrawList(1);
-            draw_list->commands[0].start = pickable->ranges->start;
-            draw_list->commands[0].count = pickable->ranges->count;
-            draw_list->indexed = 1;
-            r_i_DrawImmediate(R_I_DRAW_CMD_TRIANGLE_LIST, draw_list);
-        }
-    }
-
-    r_i_SetDepth(GL_TRUE, GL_LESS);
-    r_i_SetStencil(GL_FALSE, GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE);
 }
 
 void ed_WidgetDefaultSetupPickableDrawState(uint32_t pickable_index, struct ed_pickable_t *pickable)

@@ -8,7 +8,7 @@ float grid1_divs = grid0_divs * 10.0;
 float grid2_divs = grid1_divs * 10.0;
 float line_width = 2;
 
-#define MAX_ALPHA 0.35
+#define MAX_ALPHA 0.65
 
 void main()
 {

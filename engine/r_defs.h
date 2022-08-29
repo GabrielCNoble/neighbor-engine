@@ -5,6 +5,7 @@
 #include "../lib/dstuff/ds_matrix.h"
 #include "../lib/dstuff/ds_alloc.h"
 #include "../lib/dstuff/ds_buffer.h"
+#include "../lib/GLEW/include/GL/glew.h"
 #include <stdint.h>
 #include <stddef.h>
 #include <stdalign.h>
@@ -52,16 +53,39 @@ enum R_FORMATS
     R_FORMAT_RGBA32I,
     R_FORMAT_RGBA32UI,
     R_FORMAT_RGBA32F,
+
+    R_FORMAT_DEPTH16,
+//    R_FORMAT_DEPTH16F,
+    R_FORMAT_DEPTH32,
+    R_FORMAT_DEPTH32F,
+    R_FORMAT_DEPTH24_STENCIL8
 };
 
-struct r_gl_type_size_t
+struct r_gl_format_info_t
 {
-    uint16_t size;
-    uint16_t type;
+    uint32_t size;
+    uint32_t type;
+    uint32_t data_format;
+    uint32_t internal_format;
+};
+
+struct r_texture_desc_t
+{
+    uint16_t    format;
+    uint16_t    width;
+    uint16_t    height;
+    uint16_t    min_filter;
+    uint16_t    mag_filter;
+    uint16_t    addr_s;
+    uint16_t    addr_t;
+    uint8_t     base_level;
+    uint8_t     max_level;
+    uint8_t     anisotropy;
 };
 
 struct r_texture_t
 {
+    struct r_texture_desc_t *   desc;
     uint32_t                    handle;
     uint16_t                    index;
     uint16_t                    format;
@@ -484,16 +508,23 @@ struct r_model_skeleton_t
 
 #define R_MAX_COLOR_ATTACHMENTS 3
 #define R_DEPTH_ATTACHMENT R_MAX_COLOR_ATTACHMENTS
+#define R_INVALID_FRAMEBUFFER_INDEX 0xffffffff
+struct r_framebuffer_desc_t
+{
+    struct r_texture_desc_t *   color_attachments[R_MAX_COLOR_ATTACHMENTS];
+    struct r_texture_desc_t *   depth_attachment;
+    uint32_t                    width;
+    uint32_t                    height;
+};
 
 struct r_framebuffer_t
 {
-    struct r_texture_t         *color_attachments[R_MAX_COLOR_ATTACHMENTS];
-    struct r_texture_t         *depth_attachment;
+    struct r_texture_t *        color_attachments[R_MAX_COLOR_ATTACHMENTS];
+    struct r_texture_t *        depth_attachment;
     uint32_t                    handle;
-    uint16_t                    color_attachment_count;
-    uint16_t                    index;
-    uint16_t                    width;
-    uint16_t                    height;
+    uint32_t                    index;
+    uint32_t                    width;
+    uint32_t                    height;
 };
 
 struct r_draw_batch_t
@@ -866,6 +897,7 @@ enum R_I_CMDS
     R_I_CMD_SET_UNIFORM,
     R_I_CMD_SET_DRAW_STATE,
     R_I_CMD_DRAW,
+    R_I_CMD_CLEAR,
 };
 
 struct r_i_verts_t
@@ -897,6 +929,16 @@ struct r_i_mesh_t
 {
     struct r_i_verts_t         verts;
     struct r_i_indices_t       indices;
+};
+
+struct r_i_clear_t
+{
+    float r;
+    float g;
+    float b;
+    float a;
+    float depth;
+    uint32_t bitmask;
 };
 
 struct r_i_draw_list_t

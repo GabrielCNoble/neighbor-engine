@@ -6,9 +6,9 @@
 #include "../lib/dstuff/ds_alloc.h"
 #include "../lib/dstuff/ds_buffer.h"
 #include "ed_defs.h"
-#include "ed_brush.h"
+#include "brush.h"
 #include "ed_pick.h"
-#include "ed_level.h"
+#include "level.h"
 
 void ed_Init();
 

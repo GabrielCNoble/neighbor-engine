@@ -228,6 +228,10 @@ struct l_batch_record_t
 //    float yaw;
 //};
 
+struct l_level_t
+{
+    uint32_t index;
+};
 
 #endif
 

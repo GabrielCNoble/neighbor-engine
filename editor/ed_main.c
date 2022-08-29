@@ -1,6 +1,5 @@
+#include "obj.h"
 #include "ed_main.h"
-#include "ed_bsp.h"
-#include "ed_level.h"
 #include "ed_ent.h"
 #include "ed_proj.h"
 #include "dstuff/ds_slist.h"
@@ -53,6 +52,7 @@ extern char *g_base_path;
 void ed_Init()
 {
     log_ScopedLogMessage(LOG_TYPE_NOTICE, "Initializing editors...");
+    ed_ObjInit();
     ed_PickingInit();
 
     ed_editors[ED_EDITOR_LEVEL] = (struct ed_editor_t ){

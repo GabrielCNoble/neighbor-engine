@@ -66,21 +66,21 @@ enum ED_EDITORS
 
 struct ed_editor_t
 {
-    uint32_t index;
-    void (*init)(struct ed_editor_t *editor);
-    void (*shutdown)();
-    void (*suspend)();
-    void (*resume)();
-    void (*update)();
-    void (*open_explorer_save)(struct ed_explorer_state_t *explorer_state);
-    void (*open_explorer_load)(struct ed_explorer_state_t *explorer_state);
-    uint32_t (*explorer_select_folder)(char *path, char *file);
-    uint32_t (*explorer_load)(char *path, char *file);
-    uint32_t (*explorer_save)(char *path, char *file);
-    void (*explorer_new)();
+    uint32_t            index;
+    void              (*init)(struct ed_editor_t *editor);
+    void              (*shutdown)();
+    void              (*suspend)();
+    void              (*resume)();
+    void              (*update)();
+    void              (*open_explorer_save)(struct ed_explorer_state_t *explorer_state);
+    void              (*open_explorer_load)(struct ed_explorer_state_t *explorer_state);
+    uint32_t          (*explorer_select_folder)(char *path, char *file);
+    uint32_t          (*explorer_load)(char *path, char *file);
+    uint32_t          (*explorer_save)(char *path, char *file);
+    void              (*explorer_new)();
 
-    void (*current_state)(uint32_t just_changed);
-    void (*next_state)(uint32_t just_changed);
+    void              (*current_state)(uint32_t just_changed);
+    void              (*next_state)(uint32_t just_changed);
 };
 
 

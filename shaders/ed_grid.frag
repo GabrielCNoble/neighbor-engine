@@ -1,4 +1,4 @@
-#version 400 core
+#include "r_defs.h"
 
 in vec2 tex_coords;
 in float position_z;
@@ -54,4 +54,5 @@ void main()
     }
 
     gl_FragColor = vec4(color, alpha);
+//    gl_FragColor = vec4(tex_coords.xy, 0.0, 1.0);
 }

@@ -95,7 +95,9 @@ void r_i_SetDrawMask(struct r_i_cmd_buffer_t *cmd_buffer, struct r_i_draw_range_
 
 void r_i_SetScissor(struct r_i_cmd_buffer_t *cmd_buffer, struct r_i_draw_range_t *range, struct r_i_scissor_t *scissor);
 
-void r_i_SetFramebuffer(struct r_i_cmd_buffer_t *cmd_buffer, struct r_i_draw_range_t *range, struct r_framebuffer_t *framebuffer);
+void r_i_SetFramebuffer(struct r_i_cmd_buffer_t *cmd_buffer, struct r_i_draw_range_t *range, struct r_i_framebuffer_t *framebuffer);
+
+void r_i_Clear(struct r_i_cmd_buffer_t *cmd_buffer, struct r_i_draw_range_t *range, struct r_i_clear_t *clear);
 
 void r_i_DrawList(struct r_i_cmd_buffer_t *cmd_buffer, struct r_i_draw_list_t *draw_list);
 
@@ -118,11 +120,11 @@ struct r_i_mesh_t *r_i_AllocMesh(struct r_i_cmd_buffer_t *cmd_buffer, uint32_t v
 
 void r_DrawVerts(struct r_vert_t *verts, uint32_t count, uint32_t mode);
 
-void r_DrawBox(vec3_t *half_extents, vec4_t *color);
+void r_i_DrawBox(vec3_t *half_extents, vec4_t *color);
 
-void r_DrawLine(vec3_t *start, vec3_t *end, vec4_t *color);
+void r_i_DrawLine(vec3_t *start, vec3_t *end, vec4_t *color);
 
-void r_DrawPoint(vec3_t *pos, vec4_t *color);
+void r_i_DrawPoint(vec3_t *pos, vec4_t *color);
 
 //void r_FlushState();
 

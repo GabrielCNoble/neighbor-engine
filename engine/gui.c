@@ -63,7 +63,17 @@ void gui_Init()
     int width;
     int height;
     ImFontAtlas_GetTexDataAsRGBA32(io->Fonts, &pixels, &width, &height, NULL);
-    gui_font_atlas = r_CreateTexture("font_atlas", width, height, GL_RGBA8, GL_LINEAR, GL_LINEAR, pixels);
+    struct r_texture_desc_t texture_desc = {
+        .width = width,
+        .height = height,
+        .format = R_FORMAT_RGBA8,
+        .min_filter = GL_LINEAR,
+        .mag_filter = GL_LINEAR,
+        .addr_s = GL_CLAMP_TO_EDGE,
+        .addr_t = GL_CLAMP_TO_EDGE,
+    };
+//    gui_font_atlas = r_CreateTexture("font_atlas", width, height, R_FORMAT_RGBA8, GL_LINEAR, GL_LINEAR, pixels);
+    gui_font_atlas = r_CreateTexture("font_atlas", &texture_desc, pixels);
     ImFontAtlas_SetTexID(io->Fonts, (ImTextureID)gui_font_atlas);
 
     struct r_shader_desc_t shader_desc = {
@@ -199,6 +209,15 @@ void gui_EndFrame()
         .enable = GL_TRUE,
     };
     r_i_SetScissor(NULL, NULL, &scissor_state);
+
+    struct r_i_draw_mask_t draw_mask = {
+        .red = GL_TRUE,
+        .green = GL_TRUE,
+        .blue = GL_TRUE,
+        .alpha = GL_TRUE,
+        .depth = GL_TRUE,
+    };
+    r_i_SetDrawMask(NULL, NULL, &draw_mask);
 
     r_i_SetShader(NULL, gui_shader);
 

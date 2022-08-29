@@ -38,6 +38,7 @@ struct r_i_cmd_buffer_t r_immediate_cmd_buffer;
 //struct list_t r_immediate_batches;
 struct ds_slist_t r_shaders;
 struct ds_slist_t r_textures;
+struct ds_slist_t r_texture_descs;
 struct ds_slist_t r_materials;
 struct ds_slist_t r_models;
 struct ds_slist_t r_lights[R_LIGHT_TYPE_LAST];
@@ -198,50 +199,75 @@ uint32_t r_uniform_type_sizes[] =
     [R_UNIFORM_TYPE_TEXTURE] =  sizeof(uint32_t)
 };
 
-struct r_gl_type_size_t r_gl_type_sizes[] =
+struct r_gl_format_info_t r_gl_format_info[] =
 {
-    [R_FORMAT_RG8] =        {.type = GL_BYTE,           .size = 2},
-    [R_FORMAT_RG8I] =       {.type = GL_BYTE,           .size = 2},
-    [R_FORMAT_RG8UI] =      {.type = GL_UNSIGNED_BYTE,  .size = 2},
+    [R_FORMAT_RG8] =                {.type = GL_UNSIGNED_BYTE,      .size = 2, .data_format = GL_RG, .internal_format = GL_RG8},
+    [R_FORMAT_RG8I] =               {.type = GL_BYTE,               .size = 2, .data_format = GL_RG_INTEGER, .internal_format = GL_RG8I},
+    [R_FORMAT_RG8UI] =              {.type = GL_UNSIGNED_BYTE,      .size = 2, .data_format = GL_RG_INTEGER, .internal_format = GL_RG8UI},
 
-    [R_FORMAT_RG16] =       {.type = GL_SHORT,          .size = 2},
-    [R_FORMAT_RG16I] =      {.type = GL_SHORT,          .size = 2},
-    [R_FORMAT_RG16UI] =     {.type = GL_UNSIGNED_SHORT, .size = 2},
-    [R_FORMAT_RG16F] =      {.type = GL_HALF_FLOAT,     .size = 2},
+    [R_FORMAT_RG16] =               {.type = GL_UNSIGNED_SHORT,     .size = 2, .data_format = GL_RG, .internal_format = GL_RG16},
+    [R_FORMAT_RG16I] =              {.type = GL_SHORT,              .size = 2, .data_format = GL_RG_INTEGER, .internal_format = GL_RG16I},
+    [R_FORMAT_RG16UI] =             {.type = GL_UNSIGNED_SHORT,     .size = 2, .data_format = GL_RG_INTEGER, .internal_format = GL_RG16UI},
+    [R_FORMAT_RG16F] =              {.type = GL_HALF_FLOAT,         .size = 2, .data_format = GL_RG, .internal_format = GL_RG16F},
 
-    [R_FORMAT_RG32] =       {.type = GL_INT,            .size = 2},
-    [R_FORMAT_RG32I] =      {.type = GL_INT,            .size = 2},
-    [R_FORMAT_RG32UI] =     {.type = GL_UNSIGNED_INT,   .size = 2},
-    [R_FORMAT_RG32F] =      {.type = GL_FLOAT,          .size = 2},
+    [R_FORMAT_RG32] =               {.type = GL_UNSIGNED_INT,       .size = 2, .data_format = GL_RG_INTEGER, .internal_format = GL_RG32I},
+    [R_FORMAT_RG32I] =              {.type = GL_INT,                .size = 2, .data_format = GL_RG_INTEGER, .internal_format = GL_RG32I},
+    [R_FORMAT_RG32UI] =             {.type = GL_UNSIGNED_INT,       .size = 2, .data_format = GL_RG_INTEGER, .internal_format = GL_RG32UI},
+    [R_FORMAT_RG32F] =              {.type = GL_FLOAT,              .size = 2, .data_format = GL_RG, .internal_format = GL_RG32F},
 
-    [R_FORMAT_RGB8] =       {.type = GL_BYTE,           .size = 3},
-    [R_FORMAT_RGB8I] =      {.type = GL_BYTE,           .size = 3},
-    [R_FORMAT_RGB8UI] =     {.type = GL_UNSIGNED_BYTE,  .size = 3},
+    [R_FORMAT_RGB8] =               {.type = GL_UNSIGNED_BYTE,      .size = 3, .data_format = GL_RGB, .internal_format = GL_RGB8},
+    [R_FORMAT_RGB8I] =              {.type = GL_BYTE,               .size = 3, .data_format = GL_RGB_INTEGER, .internal_format = GL_RGB8I},
+    [R_FORMAT_RGB8UI] =             {.type = GL_UNSIGNED_BYTE,      .size = 3, .data_format = GL_RGB_INTEGER, .internal_format = GL_RGB8UI},
 
-    [R_FORMAT_RGB16] =      {.type = GL_SHORT,          .size = 3},
-    [R_FORMAT_RGB16I] =     {.type = GL_SHORT,          .size = 3},
-    [R_FORMAT_RGB16UI] =    {.type = GL_UNSIGNED_SHORT, .size = 3},
-    [R_FORMAT_RGB16F] =     {.type = GL_HALF_FLOAT,     .size = 3},
+    [R_FORMAT_RGB16] =              {.type = GL_UNSIGNED_SHORT,     .size = 3, .data_format = GL_RGB, .internal_format = GL_RGB16},
+    [R_FORMAT_RGB16I] =             {.type = GL_SHORT,              .size = 3, .data_format = GL_RGB_INTEGER, .internal_format = GL_RGB16I},
+    [R_FORMAT_RGB16UI] =            {.type = GL_UNSIGNED_SHORT,     .size = 3, .data_format = GL_RGB_INTEGER, .internal_format = GL_RGB16UI},
+    [R_FORMAT_RGB16F] =             {.type = GL_HALF_FLOAT,         .size = 3, .data_format = GL_RGB, .internal_format = GL_RGB16F},
 
-    [R_FORMAT_RGB32] =      {.type = GL_INT,            .size = 3},
-    [R_FORMAT_RGB32I] =     {.type = GL_INT,            .size = 3},
-    [R_FORMAT_RGB32UI] =    {.type = GL_UNSIGNED_INT,   .size = 3},
-    [R_FORMAT_RGB32F] =     {.type = GL_FLOAT,          .size = 3},
+    [R_FORMAT_RGB32] =              {.type = GL_UNSIGNED_INT,       .size = 3, .data_format = GL_RGB, .internal_format = GL_RGB32I},
+    [R_FORMAT_RGB32I] =             {.type = GL_INT,                .size = 3, .data_format = GL_RGB_INTEGER, .internal_format = GL_RGB32I},
+    [R_FORMAT_RGB32UI] =            {.type = GL_UNSIGNED_INT,       .size = 3, .data_format = GL_RGB_INTEGER, .internal_format = GL_RGB32UI},
+    [R_FORMAT_RGB32F] =             {.type = GL_FLOAT,              .size = 3, .data_format = GL_RGB, .internal_format = GL_RGB32F},
 
-    [R_FORMAT_RGBA8] =      {.type = GL_BYTE,           .size = 4},
-    [R_FORMAT_RGBA8I] =     {.type = GL_BYTE,           .size = 4},
-    [R_FORMAT_RGBA8UI] =    {.type = GL_UNSIGNED_BYTE,  .size = 4},
+    [R_FORMAT_RGBA8] =              {.type = GL_UNSIGNED_BYTE,      .size = 4, .data_format = GL_RGBA, .internal_format = GL_RGBA8},
+    [R_FORMAT_RGBA8I] =             {.type = GL_BYTE,               .size = 4, .data_format = GL_RGBA_INTEGER, .internal_format = GL_RGBA8I},
+    [R_FORMAT_RGBA8UI] =            {.type = GL_UNSIGNED_BYTE,      .size = 4, .data_format = GL_RGBA_INTEGER, .internal_format = GL_RGBA8UI},
 
-    [R_FORMAT_RGBA16] =     {.type = GL_SHORT,          .size = 4},
-    [R_FORMAT_RGBA16I] =    {.type = GL_SHORT,          .size = 4},
-    [R_FORMAT_RGBA16UI] =   {.type = GL_UNSIGNED_SHORT, .size = 4},
-    [R_FORMAT_RGBA16F] =    {.type = GL_HALF_FLOAT,     .size = 4},
+    [R_FORMAT_RGBA16] =             {.type = GL_UNSIGNED_SHORT,     .size = 4, .data_format = GL_RGBA, .internal_format = GL_RGBA16},
+    [R_FORMAT_RGBA16I] =            {.type = GL_SHORT,              .size = 4, .data_format = GL_RGBA_INTEGER, .internal_format = GL_RGBA16I},
+    [R_FORMAT_RGBA16UI] =           {.type = GL_UNSIGNED_SHORT,     .size = 4, .data_format = GL_RGBA_INTEGER, .internal_format = GL_RGBA16UI},
+    [R_FORMAT_RGBA16F] =            {.type = GL_HALF_FLOAT,         .size = 4, .data_format = GL_RGBA, .internal_format = GL_RGBA16F},
 
-    [R_FORMAT_RGBA32] =     {.type = GL_INT,            .size = 4},
-    [R_FORMAT_RGBA32I] =    {.type = GL_INT,            .size = 4},
-    [R_FORMAT_RGBA32UI] =   {.type = GL_UNSIGNED_INT,   .size = 4},
-    [R_FORMAT_RGBA32F] =    {.type = GL_FLOAT,          .size = 4},
+    [R_FORMAT_RGBA32] =             {.type = GL_UNSIGNED_INT,       .size = 4, .data_format = GL_RGBA, .internal_format = GL_RGBA32I},
+    [R_FORMAT_RGBA32I] =            {.type = GL_INT,                .size = 4, .data_format = GL_RGBA_INTEGER, .internal_format = GL_RGBA32I},
+    [R_FORMAT_RGBA32UI] =           {.type = GL_UNSIGNED_INT,       .size = 4, .data_format = GL_RGBA_INTEGER, .internal_format = GL_RGBA32UI},
+    [R_FORMAT_RGBA32F] =            {.type = GL_FLOAT,              .size = 4, .data_format = GL_RGBA, .internal_format = GL_RGBA32F},
+
+    [R_FORMAT_DEPTH16] =            {.type = GL_UNSIGNED_SHORT,     .size = 1, .data_format = GL_DEPTH_COMPONENT, .internal_format = GL_DEPTH_COMPONENT16},
+    [R_FORMAT_DEPTH32] =            {.type = GL_UNSIGNED_INT,       .size = 1, .data_format = GL_DEPTH_COMPONENT, .internal_format = GL_DEPTH_COMPONENT32},
+    [R_FORMAT_DEPTH32F] =           {.type = GL_FLOAT,              .size = 1, .data_format = GL_DEPTH_COMPONENT, .internal_format = GL_DEPTH_COMPONENT32F},
+    [R_FORMAT_DEPTH24_STENCIL8] =   {.type = GL_UNSIGNED_INT_24_8,  .size = 1, .data_format = GL_DEPTH_STENCIL, .internal_format = GL_DEPTH24_STENCIL8}
 };
+
+//case GL_DEPTH_COMPONENT16:
+//            *data_type = GL_UNSIGNED_SHORT;
+//            *data_format = GL_DEPTH_COMPONENT;
+//        break;
+//
+//        case GL_DEPTH_COMPONENT32:
+//            *data_type = GL_UNSIGNED_INT;
+//            *data_format = GL_DEPTH_COMPONENT;
+//        break;
+//
+//        case GL_DEPTH_COMPONENT32F:
+//            *data_type = GL_FLOAT;
+//            *data_format = GL_DEPTH_COMPONENT;
+//        break;
+//
+//        case GL_DEPTH24_STENCIL8:
+//            *data_type = GL_UNSIGNED_INT_24_8;
+//            *data_format = GL_DEPTH_STENCIL;
+//        break;
 
 //struct r_vertex_layout_t r_default_vertex_layout =
 //{
@@ -277,6 +303,7 @@ void r_Init()
     r_shaders = ds_slist_create(sizeof(struct r_shader_t), 16);
     r_materials = ds_slist_create(sizeof(struct r_material_t), 32);
     r_textures = ds_slist_create(sizeof(struct r_texture_t), 128);
+    r_texture_descs = ds_slist_create(sizeof(struct r_texture_desc_t), 128);
     r_models = ds_slist_create(sizeof(struct r_model_t), 512);
     r_framebuffers = ds_slist_create(sizeof(struct r_framebuffer_t), 8);
     r_lights[R_LIGHT_TYPE_POINT] = ds_slist_create(sizeof(struct r_point_light_t), 512);
@@ -289,11 +316,13 @@ void r_Init()
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
-
+    printf("shit\n");
     r_window = SDL_CreateWindow("doh", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, r_width, r_height, SDL_WINDOW_OPENGL);
+    printf("ass\n");
     r_context = SDL_GL_CreateContext(r_window);
     SDL_GL_MakeCurrent(r_window, r_context);
     SDL_GL_SetSwapInterval(1);
+    printf("nuts\n");
 
     GLenum status = glewInit();
     if(status != GLEW_OK)
@@ -430,9 +459,29 @@ void r_Init()
         0xff777777, 0xff444444, 0xff777777, 0xff444444,
         0xff444444, 0xff777777, 0xff444444, 0xff777777,
     };
-    r_default_albedo_texture = r_CreateTexture("default_albedo", 4, 4, GL_RGBA8, GL_NEAREST, GL_NEAREST, pixels);
+
+    struct r_texture_desc_t texture_desc;
+
+    texture_desc = (struct r_texture_desc_t) {
+        .format = R_FORMAT_RGBA8,
+        .width = 4,
+        .height = 4,
+        .min_filter = GL_NEAREST,
+        .mag_filter = GL_NEAREST,
+    };
+//    r_default_albedo_texture = r_CreateTexture("default_albedo", 4, 4, R_FORMAT_RGBA8, GL_NEAREST, GL_NEAREST, pixels);
+    r_default_albedo_texture = r_CreateTexture("default_albedo", &texture_desc, pixels);
+
     pixels[0] = 0x00ff7f7f;
-    r_default_normal_texture = r_CreateTexture("default_normal", 1, 1, GL_RGBA8, GL_LINEAR, GL_LINEAR, pixels);
+    texture_desc = (struct r_texture_desc_t) {
+        .format = R_FORMAT_RGBA8,
+        .width = 1,
+        .height = 1,
+        .min_filter = GL_LINEAR,
+        .mag_filter = GL_LINEAR,
+    };
+//    r_default_normal_texture = r_CreateTexture("default_normal", 1, 1, R_FORMAT_RGBA8, GL_LINEAR, GL_LINEAR, pixels);
+    r_default_normal_texture = r_CreateTexture("default_normal", &texture_desc, pixels);
 
     pixels[0] = 0x0000003f;
     pixels[1] = 0x0000009f;
@@ -454,7 +503,15 @@ void r_Init()
     pixels[14] = 0x0000009f;
     pixels[15] = 0x0000003f;
 
-    r_default_roughness_texture = r_CreateTexture("default_roughness", 4, 4, GL_RGBA8, GL_NEAREST, GL_NEAREST, pixels);
+    texture_desc = (struct r_texture_desc_t) {
+        .format = R_FORMAT_RGBA8,
+        .width = 1,
+        .height = 1,
+        .min_filter = GL_NEAREST,
+        .mag_filter = GL_NEAREST,
+    };
+//    r_default_roughness_texture = r_CreateTexture("default_roughness", 4, 4, R_FORMAT_RGBA8, GL_NEAREST, GL_NEAREST, pixels);
+    r_default_roughness_texture = r_CreateTexture("default_roughness", &texture_desc, pixels);
     r_default_material = r_CreateMaterial("default", NULL, NULL, NULL);
 
     r_clusters = mem_Calloc(R_CLUSTER_COUNT, sizeof(struct r_cluster_t));
@@ -925,9 +982,27 @@ void r_Init()
                                       (R_POINT_LIGHT_FRUSTUM_PLANE_BACK << R_POINT_LIGHT_FRUSTUM_PLANE3_SHIFT);
 
 
-    r_main_framebuffer = r_CreateFramebuffer(r_width, r_height);
-    r_AddAttachment(r_main_framebuffer, GL_COLOR_ATTACHMENT0, GL_RGBA8, GL_NEAREST, GL_NEAREST);
-    r_AddAttachment(r_main_framebuffer, GL_DEPTH_STENCIL_ATTACHMENT, GL_DEPTH24_STENCIL8, GL_NEAREST, GL_NEAREST);
+    struct r_framebuffer_desc_t framebuffer_desc;
+    framebuffer_desc = (struct r_framebuffer_desc_t) {
+        .color_attachments[0] = &(struct r_texture_desc_t){
+            .format = R_FORMAT_RGBA8,
+            .min_filter = GL_NEAREST,
+            .mag_filter = GL_NEAREST
+        },
+        .depth_attachment = &(struct r_texture_desc_t){
+            .format = R_FORMAT_DEPTH24_STENCIL8,
+            .min_filter = GL_NEAREST,
+            .mag_filter = GL_NEAREST
+        },
+        .width = r_width,
+        .height = r_height
+    };
+//    r_main_framebuffer = r_CreateFramebuffer(r_width, r_height);
+    r_main_framebuffer = r_CreateFramebuffer(&framebuffer_desc);
+//    r_AddAttachment(r_main_framebuffer, GL_COLOR_ATTACHMENT0, R_FORMAT_RGBA8, GL_NEAREST, GL_NEAREST);
+//    r_AddAttachment(r_main_framebuffer, GL_DEPTH_STENCIL_ATTACHMENT, R_FORMAT_DEPTH24_STENCIL8, GL_NEAREST, GL_NEAREST);
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, r_main_framebuffer->handle);
+    printf("%x\n", glCheckFramebufferStatus(GL_READ_FRAMEBUFFER));
 
 //    r_debug_framebuffer = r_CreateFramebuffer(r_width, r_height);
 //    r_AddAttachment(r_debug_framebuffer, GL_COLOR_ATTACHMENT0, GL_RGBA8, GL_NEAREST, GL_NEAREST);
@@ -935,9 +1010,18 @@ void r_Init()
 
 //    r_ui_framebuffer = r_CreateFramebuffer(r_width, r_height);
 //    r_AddAttachment(r_ui_framebuffer, GL_COLOR_ATTACHMENT0, GL_RGBA8, GL_NEAREST, GL_NEAREST);
-
-    r_volume_framebuffer = r_CreateFramebuffer(r_width / 2, r_height / 2);
-    r_AddAttachment(r_volume_framebuffer, GL_COLOR_ATTACHMENT0, GL_RGBA8, GL_NEAREST, GL_NEAREST);
+    framebuffer_desc = (struct r_framebuffer_desc_t) {
+        .color_attachments[0] = &(struct r_texture_desc_t){
+            .format = R_FORMAT_RGBA8,
+            .min_filter = GL_NEAREST,
+            .mag_filter = GL_NEAREST
+        },
+        .width = r_width / 2,
+        .height = r_height / 2
+    };
+//    r_volume_framebuffer = r_CreateFramebuffer(r_width / 2, r_height / 2);
+    r_volume_framebuffer = r_CreateFramebuffer(&framebuffer_desc);
+//    r_AddAttachment(r_volume_framebuffer, GL_COLOR_ATTACHMENT0, R_FORMAT_RGBA8, GL_NEAREST, GL_NEAREST);
 
 //
 //    glGenFramebuffers(1, &r_main_framebuffer);
@@ -1226,8 +1310,16 @@ struct r_texture_t *r_LoadTexture(char *file_name)
 
     ds_path_get_end(full_path, full_path, PATH_MAX);
     ds_path_drop_ext(full_path, full_path, PATH_MAX);
-
-    texture = r_CreateTexture(full_path, width, height, GL_RGBA8, GL_LINEAR_MIPMAP_LINEAR, GL_LINEAR_MIPMAP_LINEAR, pixels);
+    struct r_texture_desc_t texture_desc = {
+        .format = R_FORMAT_RGBA8,
+        .width = width,
+        .height = height,
+        .min_filter = GL_LINEAR,
+        .mag_filter = GL_LINEAR,
+        .max_level = 4,
+    };
+//    texture = r_CreateTexture(full_path, width, height, R_FORMAT_RGBA8, GL_LINEAR, GL_LINEAR, pixels);
+    texture = r_CreateTexture(full_path, &texture_desc, pixels);
     mem_Free(pixels);
 
     log_ScopedLogMessage(LOG_TYPE_NOTICE, "Texture [%s] loaded!", full_path);
@@ -1235,93 +1327,150 @@ struct r_texture_t *r_LoadTexture(char *file_name)
     return texture;
 }
 
-void r_TextureDataTypeAndFormat(uint32_t format, uint32_t *data_type, uint32_t *data_format)
-{
-    switch(format)
-    {
-        case GL_RGBA8:
-            *data_type = GL_UNSIGNED_BYTE;
-            *data_format = GL_RGBA;
-        break;
+//void r_TextureDataTypeAndFormat(uint32_t format, uint32_t *data_type, uint32_t *data_format)
+//{
+//    switch(format)
+//    {
+//        case GL_RGBA8:
+//            *data_type = GL_UNSIGNED_BYTE;
+//            *data_format = GL_RGBA;
+//        break;
+//
+//        case GL_RGBA16:
+//            *data_type = GL_UNSIGNED_SHORT;
+//            *data_format = GL_RGBA;
+//        break;
+//
+//        case GL_RGBA16F:
+//            *data_type = GL_FLOAT;
+//            *data_format = GL_RGBA;
+//        break;
+//
+//        case GL_RGBA32F:
+//            *data_type = GL_FLOAT;
+//            *data_format = GL_RGBA;
+//        break;
+//
+//        case GL_RGB8:
+//            *data_type = GL_UNSIGNED_BYTE;
+//            *data_format = GL_RGB;
+//        break;
+//
+//        case GL_RG8:
+//
+//        break;
+//
+//        case GL_RG8I:
+//
+//        break;
+//
+//        case GL_RG8UI:
+//
+//        break;
+//
+//        case GL_RG16:
+//
+//        break;
+//
+//        case GL_RG16F:
+//
+//        break;
+//
+////        case GL_RG
+//
+//        case GL_RED:
+//            *data_type = GL_UNSIGNED_BYTE;
+//            *data_format = GL_RED;
+//        break;
+//
+//        case GL_DEPTH_COMPONENT16:
+//            *data_type = GL_UNSIGNED_SHORT;
+//            *data_format = GL_DEPTH_COMPONENT;
+//        break;
+//
+//        case GL_DEPTH_COMPONENT32:
+//            *data_type = GL_UNSIGNED_INT;
+//            *data_format = GL_DEPTH_COMPONENT;
+//        break;
+//
+//        case GL_DEPTH_COMPONENT32F:
+//            *data_type = GL_FLOAT;
+//            *data_format = GL_DEPTH_COMPONENT;
+//        break;
+//
+//        case GL_DEPTH24_STENCIL8:
+//            *data_type = GL_UNSIGNED_INT_24_8;
+//            *data_format = GL_DEPTH_STENCIL;
+//        break;
+//    }
+//}
 
-        case GL_RGBA16:
-            *data_type = GL_UNSIGNED_SHORT;
-            *data_format = GL_RGBA;
-        break;
-
-        case GL_RGBA16F:
-            *data_type = GL_FLOAT;
-            *data_format = GL_RGBA;
-        break;
-
-        case GL_RGBA32F:
-            *data_type = GL_FLOAT;
-            *data_format = GL_RGBA;
-        break;
-
-        case GL_RGB8:
-            *data_type = GL_UNSIGNED_BYTE;
-            *data_format = GL_RGB;
-        break;
-
-        case GL_RED:
-            *data_type = GL_UNSIGNED_BYTE;
-            *data_format = GL_RED;
-        break;
-
-        case GL_DEPTH_COMPONENT16:
-            *data_type = GL_UNSIGNED_SHORT;
-            *data_format = GL_DEPTH_COMPONENT;
-        break;
-
-        case GL_DEPTH_COMPONENT32:
-            *data_type = GL_UNSIGNED_INT;
-            *data_format = GL_DEPTH_COMPONENT;
-        break;
-
-        case GL_DEPTH_COMPONENT32F:
-            *data_type = GL_FLOAT;
-            *data_format = GL_DEPTH_COMPONENT;
-        break;
-
-        case GL_DEPTH24_STENCIL8:
-            *data_type = GL_UNSIGNED_INT_24_8;
-            *data_format = GL_DEPTH_STENCIL;
-        break;
-    }
-}
-
-struct r_texture_t *r_CreateTexture(char *name, uint32_t width, uint32_t height, uint32_t format, uint32_t min_filter, uint32_t mag_filter, void *data)
+//struct r_texture_t *r_CreateTexture(char *name, uint32_t width, uint32_t height, uint32_t format, uint32_t min_filter, uint32_t mag_filter, void *data)
+struct r_texture_t* r_CreateTexture(char *name, struct r_texture_desc_t *desc, void *data)
 {
     uint32_t texture_index;
     struct r_texture_t *texture;
+    struct r_texture_desc_t *texture_desc;
     uint32_t data_format;
     uint32_t data_type;
 
-    r_TextureDataTypeAndFormat(format, &data_type, &data_format);
     texture_index = ds_slist_add_element(&r_textures, NULL);
     texture = ds_slist_get_element(&r_textures, texture_index);
+
+    ds_slist_add_element(&r_texture_descs, NULL);
+    texture_desc = ds_slist_get_element(&r_texture_descs, texture_index);
+
     texture->index = texture_index;
-    texture->format = format;
+//    texture->format = format_info-internal_format;
+    texture->desc = texture_desc;
+
+    *texture_desc = *desc;
+    struct r_gl_format_info_t format_info = r_gl_format_info[texture_desc->format];
+
+
 
     if(name)
     {
         strncpy(texture->name, name, sizeof(texture->name));
     }
 
+    if(!texture_desc->min_filter)
+    {
+        texture_desc->min_filter = GL_LINEAR_MIPMAP_LINEAR;
+    }
+
+    if(!texture_desc->mag_filter)
+    {
+        texture_desc->mag_filter = GL_LINEAR_MIPMAP_LINEAR;
+    }
+
+    if(!texture_desc->addr_s)
+    {
+        texture_desc->addr_s = GL_REPEAT;
+    }
+
+    if(!texture_desc->addr_t)
+    {
+        texture_desc->addr_t = GL_REPEAT;
+    }
+
     glGenTextures(1, &texture->handle);
     glBindTexture(GL_TEXTURE_2D, texture->handle);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, min_filter);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, mag_filter);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 4);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY, 4.0);
-    glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, data_format, data_type, data);
-    glGenerateMipmap(GL_TEXTURE_2D);
-    glBindTexture(GL_TEXTURE_2D, 0);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, texture_desc->min_filter);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, texture_desc->mag_filter);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, texture_desc->base_level);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, texture_desc->max_level);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, texture_desc->addr_s);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, texture_desc->addr_t);
+    glTexImage2D(GL_TEXTURE_2D, texture_desc->base_level, format_info.internal_format,
+                 texture_desc->width, texture_desc->height, 0, format_info.data_format, format_info.type, data);
 
+    if(texture_desc->max_level > texture_desc->base_level)
+    {
+        glGenerateMipmap(GL_TEXTURE_2D);
+    }
+
+    glBindTexture(GL_TEXTURE_2D, 0);
     return texture;
 }
 
@@ -1329,11 +1478,9 @@ void r_ResizeTexture(struct r_texture_t *texture, uint32_t width, uint32_t heigh
 {
     if(texture && texture->index != 0xffff)
     {
-        uint32_t data_type;
-        uint32_t data_format;
-        r_TextureDataTypeAndFormat(texture->format, &data_type, &data_format);
+        struct r_gl_format_info_t format_info = r_gl_format_info[texture->desc->format];
         glBindTexture(GL_TEXTURE_2D, texture->handle);
-        glTexImage2D(GL_TEXTURE_2D, 0, texture->format, width, height, 0, data_format, data_type, NULL);
+        glTexImage2D(GL_TEXTURE_2D, 0, texture->desc->format, width, height, 0, format_info.data_format, format_info.type, NULL);
     }
 }
 
@@ -1381,6 +1528,7 @@ void r_DestroyTexture(struct r_texture_t *texture)
     {
         glDeleteTextures(1, &texture->handle);
         ds_slist_remove_element(&r_textures, texture->index);
+        ds_slist_remove_element(&r_texture_descs, texture->index);
         texture->index = 0xffff;
     }
 }
@@ -1391,16 +1539,56 @@ void r_DestroyTexture(struct r_texture_t *texture)
 ============================================================================
 */
 
-struct r_framebuffer_t *r_CreateFramebuffer(uint16_t width, uint16_t height)
+//struct r_framebuffer_t *r_CreateFramebuffer(uint16_t width, uint16_t height)
+struct r_framebuffer_t *r_CreateFramebuffer(struct r_framebuffer_desc_t *desc)
 {
     uint32_t index = ds_slist_add_element(&r_framebuffers, NULL);
     struct r_framebuffer_t *framebuffer = ds_slist_get_element(&r_framebuffers, index);
-
-    framebuffer->color_attachment_count = 0;
-    framebuffer->width = width;
-    framebuffer->height = height;
     framebuffer->index = index;
+    framebuffer->width = desc->width;
+    framebuffer->height = desc->height;
     glGenFramebuffers(1, &framebuffer->handle);
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, framebuffer->handle);
+
+//    for(uint32_t attachment_index = 0; attachment_index < R_MAX_COLOR_ATTACHMENTS; attachment_index++)
+//    {
+//        framebuffer->color_attachments[attachment_index] = NULL;
+//    }
+
+    uint32_t attachment_count = 0;
+    for(uint32_t attachment_index = 0; attachment_index < R_MAX_COLOR_ATTACHMENTS; attachment_index++)
+    {
+        framebuffer->color_attachments[attachment_index] = NULL;
+
+        if(desc->color_attachments[attachment_index])
+        {
+            struct r_texture_desc_t texture_desc = *desc->color_attachments[attachment_index];
+            texture_desc.width = desc->width;
+            texture_desc.height = desc->height;
+            struct r_texture_t *texture = r_CreateTexture(NULL, &texture_desc, NULL);
+            framebuffer->color_attachments[attachment_count] = texture;
+            attachment_count++;
+            glFramebufferTexture2D(GL_READ_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + attachment_index, GL_TEXTURE_2D, texture->handle, 0);
+        }
+    }
+
+    framebuffer->depth_attachment = NULL;
+
+    if(desc->depth_attachment)
+    {
+        struct r_texture_desc_t texture_desc = *desc->depth_attachment;
+        texture_desc.width = desc->width;
+        texture_desc.height = desc->height;
+        struct r_texture_t *texture = r_CreateTexture(NULL, &texture_desc, NULL);
+        framebuffer->depth_attachment = texture;
+        glFramebufferTexture2D(GL_READ_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, texture->handle, 0);
+
+        if(texture_desc.format == R_FORMAT_DEPTH24_STENCIL8)
+        {
+            glFramebufferTexture2D(GL_READ_FRAMEBUFFER, GL_STENCIL_ATTACHMENT, GL_TEXTURE_2D, texture->handle, 0);
+        }
+    }
+
     return framebuffer;
 }
 
@@ -1423,82 +1611,92 @@ struct r_framebuffer_t *r_GetFramebuffer(uint32_t index)
 
 void r_DestroyFramebuffer(struct r_framebuffer_t *framebuffer)
 {
-    if(framebuffer && framebuffer->index != 0xffff)
+    if(framebuffer && framebuffer->index != R_INVALID_FRAMEBUFFER_INDEX)
     {
-        for(uint32_t index = 0; index < framebuffer->color_attachment_count; index++)
+        for(uint32_t index = 0; index < R_MAX_COLOR_ATTACHMENTS; index++)
         {
-            r_DestroyTexture(framebuffer->color_attachments[index]);
-            framebuffer->color_attachments[index] = NULL;
+            if(framebuffer->color_attachments[index] == NULL)
+            {
+                r_DestroyTexture(framebuffer->color_attachments[index]);
+                framebuffer->color_attachments[index] = NULL;
+            }
         }
 
-        framebuffer->color_attachment_count = 0;
-
-        if(framebuffer->depth_attachment)
+        if(framebuffer->depth_attachment == NULL)
         {
             r_DestroyTexture(framebuffer->depth_attachment);
         }
 
         glDeleteFramebuffers(1, &framebuffer->handle);
 
-        framebuffer->index = 0xffff;
+        framebuffer->index = R_INVALID_FRAMEBUFFER_INDEX;
     }
 }
 
-void r_AddAttachment(struct r_framebuffer_t *framebuffer, uint16_t attachment, uint16_t format, uint16_t min_filter, uint16_t mag_filter)
-{
-    if(framebuffer && framebuffer->index != 0xffff)
-    {
-        glBindFramebuffer(GL_READ_FRAMEBUFFER, framebuffer->handle);
-        struct r_texture_t *texture;
-        uint32_t target_attachment;
-
-        if(attachment == GL_DEPTH_ATTACHMENT || attachment == GL_DEPTH_STENCIL_ATTACHMENT)
-        {
-            if(framebuffer->depth_attachment)
-            {
-                r_DestroyTexture(framebuffer->depth_attachment);
-            }
-
-            framebuffer->depth_attachment = r_CreateTexture(NULL, framebuffer->width, framebuffer->height, format, GL_LINEAR, GL_LINEAR, NULL);
-            texture = framebuffer->depth_attachment;
-            target_attachment = GL_DEPTH_ATTACHMENT;
-        }
-        else
-        {
-            attachment -= GL_COLOR_ATTACHMENT0;
-
-            if(attachment >= R_MAX_COLOR_ATTACHMENTS)
-            {
-                return;
-            }
-
-            if(framebuffer->color_attachments[attachment])
-            {
-                r_DestroyTexture(framebuffer->color_attachments[attachment]);
-            }
-
-            framebuffer->color_attachments[attachment] = r_CreateTexture(NULL, framebuffer->width, framebuffer->height, format, min_filter, mag_filter, NULL);
-            texture = framebuffer->color_attachments[attachment];
-            target_attachment = GL_COLOR_ATTACHMENT0 + attachment;
-        }
-
-        if(target_attachment == GL_DEPTH_ATTACHMENT)
-        {
-            glFramebufferTexture2D(GL_READ_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, texture->handle, 0);
-
-            if(format == GL_DEPTH24_STENCIL8)
-            {
-                glFramebufferTexture2D(GL_READ_FRAMEBUFFER, GL_STENCIL_ATTACHMENT, GL_TEXTURE_2D, texture->handle, 0);
-            }
-        }
-        else
-        {
-            glFramebufferTexture2D(GL_READ_FRAMEBUFFER, target_attachment, GL_TEXTURE_2D, texture->handle, 0);
-        }
-
-        glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
-    }
-}
+//void r_AddAttachment(struct r_framebuffer_t *framebuffer, uint16_t attachment, uint16_t format, uint16_t min_filter, uint16_t mag_filter)
+//{
+//    if(framebuffer && framebuffer->index != R_INVALID_FRAMEBUFFER_INDEX)
+//    {
+//        glBindFramebuffer(GL_READ_FRAMEBUFFER, framebuffer->handle);
+//        struct r_texture_t *texture;
+//        uint32_t target_attachment;
+//
+//        struct r_texture_desc_t texture_desc = {
+//            .format = format,
+//            .width = framebuffer->width,
+//            .height = framebuffer->height,
+//            .min_filter = min_filter,
+//            .mag_filter = mag_filter,
+//        };
+//
+//        if(attachment == GL_DEPTH_ATTACHMENT || attachment == GL_DEPTH_STENCIL_ATTACHMENT)
+//        {
+//            if(framebuffer->depth_attachment)
+//            {
+//                r_DestroyTexture(framebuffer->depth_attachment);
+//            }
+////            framebuffer->depth_attachment = r_CreateTexture(NULL, framebuffer->width, framebuffer->height, format, GL_LINEAR, GL_LINEAR, NULL);
+//            framebuffer->depth_attachment = r_CreateTexture(NULL, &texture_desc, NULL);
+//            texture = framebuffer->depth_attachment;
+//            target_attachment = GL_DEPTH_ATTACHMENT;
+//        }
+//        else
+//        {
+//            attachment -= GL_COLOR_ATTACHMENT0;
+//
+//            if(attachment >= R_MAX_COLOR_ATTACHMENTS)
+//            {
+//                return;
+//            }
+//
+//            if(framebuffer->color_attachments[attachment])
+//            {
+//                r_DestroyTexture(framebuffer->color_attachments[attachment]);
+//            }
+//
+////            framebuffer->color_attachments[attachment] = r_CreateTexture(NULL, framebuffer->width, framebuffer->height, format, min_filter, mag_filter, NULL);
+//            framebuffer->color_attachments[attachment] = r_CreateTexture(NULL, &texture_desc, NULL);
+//            texture = framebuffer->color_attachments[attachment];
+//            target_attachment = GL_COLOR_ATTACHMENT0 + attachment;
+//        }
+//
+//        if(target_attachment == GL_DEPTH_ATTACHMENT)
+//        {
+//            glFramebufferTexture2D(GL_READ_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, texture->handle, 0);
+//
+//            if(format == R_FORMAT_DEPTH24_STENCIL8)
+//            {
+//                glFramebufferTexture2D(GL_READ_FRAMEBUFFER, GL_STENCIL_ATTACHMENT, GL_TEXTURE_2D, texture->handle, 0);
+//            }
+//        }
+//        else
+//        {
+//            glFramebufferTexture2D(GL_READ_FRAMEBUFFER, target_attachment, GL_TEXTURE_2D, texture->handle, 0);
+//        }
+//
+//        glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
+//    }
+//}
 
 void r_SetAttachment(struct r_framebuffer_t *framebuffer, struct r_texture_t *texture, uint16_t attachment)
 {
@@ -1519,10 +1717,10 @@ void r_SetAttachment(struct r_framebuffer_t *framebuffer, struct r_texture_t *te
             {
                 framebuffer->color_attachments[attachment_index] = texture;
 
-                if(attachment_index >= framebuffer->color_attachment_count)
-                {
-                    framebuffer->color_attachment_count = attachment_index + 1;
-                }
+//                if(attachment_index >= framebuffer->color_attachment_count)
+//                {
+//                    framebuffer->color_attachment_count = attachment_index + 1;
+//                }
 
                 glFramebufferTexture2D(GL_READ_FRAMEBUFFER, attachment, GL_TEXTURE_2D, texture->handle, 0);
             }
@@ -1538,10 +1736,10 @@ void r_ResizeFramebuffer(struct r_framebuffer_t *framebuffer, uint16_t width, ui
     {
         if(framebuffer->width != width || framebuffer->height != height)
         {
-            for(uint32_t index = 0; index < framebuffer->color_attachment_count; index++)
-            {
-                r_ResizeTexture(framebuffer->color_attachments[index], width, height);
-            }
+//            for(uint32_t index = 0; index < framebuffer->color_attachment_count; index++)
+//            {
+//                r_ResizeTexture(framebuffer->color_attachments[index], width, height);
+//            }
 
             if(framebuffer->depth_attachment)
             {
@@ -1611,6 +1809,15 @@ void r_BlitFramebuffer(struct r_framebuffer_t *src_framebuffer, struct r_framebu
     glBindFramebuffer(GL_READ_FRAMEBUFFER, src_handle);
     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, dst_handle);
     glBlitFramebuffer(0, 0, src_width, src_height, 0, 0, dst_width, dst_height, mask, filter);
+}
+
+void r_SampleFramebuffer(struct r_framebuffer_t *framebuffer, int32_t x, int32_t y, int32_t w, int32_t h, size_t size, void *data)
+{
+    struct r_texture_t *color_attachment = framebuffer->color_attachments[0];
+    struct r_gl_format_info_t format_info = r_gl_format_info[color_attachment->desc->format];
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, framebuffer->handle);
+    glReadPixels(x, y, w, h, format_info.data_format, format_info.type, data);
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
 }
 
 void r_PresentFramebuffer(struct r_framebuffer_t *framebuffer)
@@ -2673,6 +2880,9 @@ struct r_shader_t *r_CreateShader(struct r_shader_desc_t *desc)
         shader_attrib->location = glGetAttribLocation(shader->handle, desc_attrib->name);
         if(shader_attrib->location != GL_INVALID_INDEX)
         {
+            shader_attrib->format = desc_attrib->format;
+            shader_attrib->normalized = desc_attrib->normalized;
+            shader_attrib->offset = desc_attrib->offset;
             shader->vertex_layout.attrib_count++;
         }
     }
@@ -2688,13 +2898,13 @@ struct r_shader_t *r_CreateShader(struct r_shader_desc_t *desc)
         shader_uniform->location = glGetUniformLocation(shader->handle, desc_uniform->name);
     }
 
+    /* TODO: refactor this into a better API. It should be possible to pass
+    this kind of stuff in a shader description. */
     uint32_t point_light_uniform_block = glGetProgramResourceIndex(shader->handle, GL_SHADER_STORAGE_BLOCK, "r_point_lights");
     uint32_t spot_light_uniform_block = glGetProgramResourceIndex(shader->handle, GL_SHADER_STORAGE_BLOCK, "r_spot_lights");
     uint32_t light_indices_uniform_block = glGetProgramResourceIndex(shader->handle, GL_SHADER_STORAGE_BLOCK, "r_light_indices");
     uint32_t shadow_indices_uniform_block = glGetProgramResourceIndex(shader->handle, GL_SHADER_STORAGE_BLOCK, "r_shadow_maps");
 
-    /* TODO: refactor this into a better API. It should be possible to pass
-    this kind of stuff in a shader description. */
     if(point_light_uniform_block != 0xffffffff)
     {
         glShaderStorageBlockBinding(shader->handle, point_light_uniform_block, R_POINT_LIGHT_UNIFORM_BUFFER_BINDING);
@@ -2994,10 +3204,10 @@ void r_BindVertexLayout(struct r_vertex_layout_t *layout)
         for(uint32_t attrib_index = 0; attrib_index < layout->attrib_count; attrib_index++)
         {
             struct r_vertex_attrib_t *attrib = layout->attribs + attrib_index;
-            struct r_gl_type_size_t *type_size = r_gl_type_sizes + attrib->format;
+            struct r_gl_format_info_t *format_info = r_gl_format_info + attrib->format;
 
             glEnableVertexArrayAttrib(r_vao, attrib->location);
-            glVertexAttribPointer(attrib->location, type_size->size, type_size->type, attrib->normalized, layout->stride, (void *)attrib->offset);
+            glVertexAttribPointer(attrib->location, format_info->size, format_info->type, attrib->normalized, layout->stride, (void *)attrib->offset);
         }
     }
 }
@@ -3121,6 +3331,10 @@ void r_SetUniform(uint32_t uniform, void *value)
                 r_SetUniformVec2(uniform, value);
             break;
 
+            case R_UNIFORM_TYPE_VEC4:
+                r_SetUniformVec4(uniform, value);
+            break;
+
             case R_UNIFORM_TYPE_FLOAT:
                 r_SetUniformF(uniform, *(float *)value);
             break;
@@ -3180,6 +3394,14 @@ void r_SetUniformVec2(uint32_t uniform, vec2_t *value)
     if(r_current_shader->uniforms[uniform].location != GL_INVALID_INDEX)
     {
         glUniform2fv(r_current_shader->uniforms[uniform].location, 1, value->comps);
+    }
+}
+
+void r_SetUniformVec4(uint32_t uniform, vec4_t *value)
+{
+    if(r_current_shader->uniforms[uniform].location != GL_INVALID_INDEX)
+    {
+        glUniform4fv(r_current_shader->uniforms[uniform].location, 1, value->comps);
     }
 }
 

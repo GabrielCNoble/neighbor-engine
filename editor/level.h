@@ -1,9 +1,11 @@
-#ifndef ED_LEVEL_DEFS_H
-#define ED_LEVEL_DEFS_H
+#ifndef ED_LEVEL_H
+#define ED_LEVEL_H
 
+//#include "ed_pick.h"
 #include "ed_defs.h"
 #include "ed_pick_defs.h"
 #include "obj.h"
+//#include "ed_level_defs.h"
 
 enum ED_LEVEL_EDIT_MODES
 {
@@ -91,6 +93,7 @@ struct ed_level_state_t
     struct
     {
         struct ed_obj_context_t objects;
+        struct ed_obj_t *       last_picked;
     }obj;
 
     struct
@@ -190,8 +193,142 @@ struct ed_l_section_t
     uint64_t brush_section_size;
 };
 
-#endif
 
 
 
+void ed_l_Init(struct ed_editor_t *editor);
 
+void ed_l_Shutdown();
+
+void ed_l_Suspend();
+
+void ed_l_Resume();
+
+void ed_w_ManipulatorWidgetSetupPickableDrawState(uint32_t pickable_index, struct ed_pickable_t *pickable);
+
+/*
+=============================================================
+=============================================================
+=============================================================
+*/
+
+void ed_w_AddSelection(struct ed_pickable_t *selection, uint32_t multiple_key_down, struct ds_list_t *selections);
+
+void ed_w_DropSelection(struct ed_pickable_t *selection, struct ds_list_t *selections);
+
+void ed_w_ClearSelections(struct ds_list_t *selections);
+
+void ed_w_CopySelections(struct ds_list_t *selections);
+
+void ed_w_DeleteSelections();
+
+void ed_LevelEditorTranslateSelected(vec3_t *translation, uint32_t transform_mode);
+
+void ed_LevelEditorRotateSelected(mat3_t *rotation, vec3_t *pivot, uint32_t transform_mode);
+
+void ed_w_MarkPickableModified(struct ed_pickable_t *pickable);
+
+//void ed_w_MarkBrushModified(struct ed_brush_t *brush);
+
+/*
+=============================================================
+=============================================================
+=============================================================
+*/
+
+void ed_w_UpdateUI();
+
+void ed_w_UpdateManipulator();
+
+void ed_w_UpdatePickableObjects();
+
+void ed_l_Update();
+
+/*
+=============================================================
+=============================================================
+=============================================================
+*/
+
+void ed_LevelEditorDrawManipulator();
+
+void ed_LevelEditorDrawWidgets();
+
+void ed_LevelEditorDrawGrid();
+
+//void ed_LevelEditorDrawBrushes();
+
+void ed_LevelEditorDrawLights();
+
+void ed_LevelEditorDrawSelections();
+
+//void ed_w_PingInfoWindow();
+
+uint32_t ed_l_IntersectPlaneFromCamera(int32_t mouse_x, int32_t mouse_y, vec3_t *plane_point, vec3_t *plane_normal, vec3_t *result);
+
+void ed_w_PointPixelCoords(int32_t *x, int32_t *y, vec3_t *point);
+
+void ed_l_Idle(uint32_t just_changed);
+
+void ed_l_FlyCamera(uint32_t just_changed);
+
+void ed_l_LeftClick(uint32_t just_changed);
+
+void ed_l_RightClick(uint32_t just_changed);
+
+void ed_l_PlacementCrosshair(uint32_t just_changed);
+
+void ed_l_BrushBox(uint32_t just_changed);
+
+void ed_l_PickObjectOrWidget(uint32_t just_changed);
+
+void ed_l_PickObject(uint32_t just_changed);
+
+void ed_l_PlaceEntityAtCursor(uint32_t just_changed);
+
+void ed_l_PlaceLightAtCursor(uint32_t just_changed);
+
+void ed_l_PlaceEnemyAtCursor(uint32_t just_changed);
+
+void ed_l_TransformSelections(uint32_t just_changed);
+
+void ed_SerializeLevel(void **level_buffer, size_t *buffer_size, uint32_t serialize_brushes);
+
+void ed_DeserializeLevel(void *level_buffer, size_t buffer_size);
+
+void ed_l_SurfaceUnderMouse(int32_t mouse_x, int32_t mouse_y, vec3_t *plane_point, mat3_t *plane_orientation);
+
+void ed_l_LinearSnapValueOnSurface(vec3_t *plane_point, mat3_t *plane_orientation, vec3_t *snapped_value);
+
+uint32_t ed_l_SaveLevel(char *path, char *file);
+
+uint32_t ed_l_LoadLevel(char *path, char *file);
+
+uint32_t ed_l_SelectFolder(char *path, char *file);
+
+void ed_l_OpenExplorerSave(struct ed_explorer_state_t *explorer_state);
+
+void ed_l_OpenExplorerLoad(struct ed_explorer_state_t *explorer_state);
+
+void ed_l_ClearBrushEntities();
+
+void ed_l_RestoreBrushEntities();
+
+void ed_l_SaveGameLevelSnapshot();
+
+void ed_l_LoadGameLevelSnapshot();
+
+void ed_l_PlayGame();
+
+void ed_l_GamePaused();
+
+void ed_l_StopGame();
+
+void ed_l_ResetEditor();
+
+void ed_l_BuildWorldData();
+
+void ed_l_ClearWorldData();
+
+
+#endif // ED_W_CTX_H

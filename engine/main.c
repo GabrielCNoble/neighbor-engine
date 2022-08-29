@@ -92,6 +92,7 @@ int main(int argc, char *argv[])
         gui_EndFrame();
         r_DrawFrame();
         r_EndFrame();
+//        printf("frame\n");
     }
 
     log_LogMessage(LOG_TYPE_NOTICE, "Shutting down neighbor engine...");

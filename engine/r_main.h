@@ -74,7 +74,9 @@ void *r_AllocImmediateCmdData(struct r_i_cmd_buffer_t *cmd_buffer, uint32_t size
 
 struct r_texture_t     *r_LoadTexture(char *file_name);
 
-struct r_texture_t     *r_CreateTexture(char *name, uint32_t width, uint32_t height, uint32_t format, uint32_t min_filter, uint32_t mag_filter, void *data);
+//struct r_texture_t     *r_CreateTexture(char *name, uint32_t width, uint32_t height, uint32_t format, uint32_t min_filter, uint32_t mag_filter, void *data);
+
+struct r_texture_t     *r_CreateTexture(char *name, struct r_texture_desc_t *desc, void *data);
 
 void                    r_ResizeTexture(struct r_texture_t *texture, uint32_t width, uint32_t height);
 
@@ -92,7 +94,9 @@ void                    r_DestroyTexture(struct r_texture_t *texture);
 ============================================================================
 */
 
-struct r_framebuffer_t     *r_CreateFramebuffer(uint16_t width, uint16_t height);
+//struct r_framebuffer_t     *r_CreateFramebuffer(uint16_t width, uint16_t height);
+
+struct r_framebuffer_t *    r_CreateFramebuffer(struct r_framebuffer_desc_t *desc);
 
 struct r_framebuffer_t     *r_GetActiveFramebuffer();
 
@@ -100,15 +104,17 @@ struct r_framebuffer_t     *r_GetFramebuffer(uint32_t index);
 
 void                        r_DestroyFramebuffer(struct r_framebuffer_t *framebuffer);
 
-void                        r_AddAttachment(struct r_framebuffer_t *framebuffer, uint16_t attachment, uint16_t format, uint16_t min_filter, uint16_t mag_filter);
+//void                        r_AddAttachment(struct r_framebuffer_t *framebuffer, uint16_t attachment, uint16_t format, uint16_t min_filter, uint16_t mag_filter);
 
-void                        r_SetAttachment(struct r_framebuffer_t *framebuffer, struct r_texture_t *texture, uint16_t attachment);
+//void                        r_SetAttachment(struct r_framebuffer_t *framebuffer, struct r_texture_t *texture, uint16_t attachment);
 
 void                        r_ResizeFramebuffer(struct r_framebuffer_t *framebuffer, uint16_t width, uint16_t height);
 
 void                        r_BindFramebuffer(struct r_framebuffer_t *framebuffer);
 
 void                        r_BlitFramebuffer(struct r_framebuffer_t *src_framebuffer, struct r_framebuffer_t *dst_framebuffer, uint32_t mask, uint32_t filter);
+
+void                        r_SampleFramebuffer(struct r_framebuffer_t *framebuffer, int32_t x, int32_t y, int32_t w, int32_t h, size_t size, void *data);
 
 void                        r_PresentFramebuffer(struct r_framebuffer_t *framebuffer);
 
@@ -231,6 +237,8 @@ void                        r_SetUniformF(uint32_t uniform, float value);
 void                        r_SetDefaultUniformF(uint32_t uniform, float value);
 
 void                        r_SetUniformVec2(uint32_t uniform, vec2_t *value);
+
+void                        r_SetUniformVec4(uint32_t uniform, vec4_t *value);
 
 void                        r_SetDefaultUniformVec2(uint32_t uniform, vec2_t *value);
 

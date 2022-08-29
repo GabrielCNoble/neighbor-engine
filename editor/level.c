@@ -1,9 +1,12 @@
 #include <float.h>
-#include "ed_level.h"
+#include "level.h"
 #include "ed_pick.h"
-#include "ed_brush.h"
+#include "obj.h"
+#include "brush.h"
+#include "light.h"
 #include "ed_main.h"
 #include "../engine/r_main.h"
+#include "../engine/r_draw_i.h"
 #include "dstuff/ds_buffer.h"
 #include "../lib/dstuff/ds_path.h"
 #include "../lib/dstuff/ds_dir.h"
@@ -27,14 +30,16 @@ extern struct p_col_def_t l_world_col_def;
 extern struct p_collider_t *l_world_collider;
 extern struct r_model_t *l_world_model;
 
+//struct ed_obj_context_t ed_l_obj_context;
+
 struct r_shader_t *ed_center_grid_shader;
-struct r_shader_t *ed_picking_shader;
+//struct r_shader_t *ed_picking_shader;
 struct r_model_t *ed_translation_widget_model;
 struct r_model_t *ed_rotation_widget_model;
 struct r_model_t *ed_light_pickable_model;
 struct r_model_t *ed_ball_widget_model;
 //struct ed_pickable_t *ed_translation_widget;
-struct r_shader_t *ed_outline_shader;
+//struct r_shader_t *ed_outline_shader;
 struct r_shader_t *ed_zero_depth_shader;
 
 #define ED_GRID_DIVS 301
@@ -170,37 +175,43 @@ void ed_l_Init(struct ed_editor_t *editor)
 //    ed_world_context->next_state = ed_w_Idle;
 //    ed_world_context->context_data = &ed_level_state;
 
-    editor->next_state = ed_LevelEditorIdle;
+    editor->next_state = ed_l_Idle;
 
-    ed_level_state.pickables.last_selected = NULL;
-    ed_level_state.pickables.selections = ds_list_create(sizeof(struct ed_pickable_t *), 512);
-    ed_level_state.pickables.pickables = ds_slist_create(sizeof(struct ed_pickable_t), 512);
-    ed_level_state.pickables.modified_brushes = ds_list_create(sizeof(struct ed_brush_t *), 512);
-    ed_level_state.pickables.modified_pickables = ds_list_create(sizeof(struct ed_pickable_t *), 512);
+//    ed_l_obj_context = ed_CreateObjContext();
+
+    ed_level_state.obj.objects = ed_CreateObjContext();
+
+//    ed_level_state.pickables.last_selected = NULL;
+//    ed_level_state.pickables.selections = ds_list_create(sizeof(struct ed_pickable_t *), 512);
+//    ed_level_state.pickables.pickables = ds_slist_create(sizeof(struct ed_pickable_t), 512);
+//    ed_level_state.pickables.modified_brushes = ds_list_create(sizeof(struct ed_brush_t *), 512);
+//    ed_level_state.pickables.modified_pickables = ds_list_create(sizeof(struct ed_pickable_t *), 512);
     ed_level_state.selected_tools_tab = ED_L_TOOL_TAB_BRUSH;
     ed_level_state.selected_material = r_GetDefaultMaterial();
 
-    for(uint32_t game_pickable_type = ED_PICKABLE_TYPE_ENTITY; game_pickable_type < ED_PICKABLE_TYPE_LAST_GAME_PICKABLE; game_pickable_type++)
-    {
-        ed_level_state.pickables.game_pickables[game_pickable_type] = ds_list_create(sizeof(struct ed_pickable_t *), 512);
-    }
+//    for(uint32_t game_pickable_type = ED_PICKABLE_TYPE_ENTITY; game_pickable_type < ED_PICKABLE_TYPE_LAST_GAME_PICKABLE; game_pickable_type++)
+//    {
+//        ed_level_state.pickables.game_pickables[game_pickable_type] = ds_list_create(sizeof(struct ed_pickable_t *), 512);
+//    }
 
 
     ed_level_state.pickable_ranges = ds_slist_create(sizeof(struct ed_pickable_range_t), 512);
     ed_level_state.widgets = ds_slist_create(sizeof(struct ed_widget_t), 16);
 
-    ed_level_state.brush.bsp_nodes = ds_slist_create(sizeof(struct ed_bsp_node_t), 512);
-    ed_level_state.brush.bsp_polygons = ds_slist_create(sizeof(struct ed_bsp_polygon_t), 512);
+//    ed_level_state.brush.bsp_nodes = ds_slist_create(sizeof(struct ed_bsp_node_t), 512);
+//    ed_level_state.brush.bsp_polygons = ds_slist_create(sizeof(struct ed_bsp_polygon_t), 512);
     ed_level_state.brush.brushes = ds_slist_create(sizeof(struct ed_brush_t), 512);
     ed_level_state.brush.brush_edges = ds_slist_create(sizeof(struct ed_edge_t), 512);
     ed_level_state.brush.brush_faces = ds_slist_create(sizeof(struct ed_face_t), 512);
-    ed_level_state.brush.brush_face_polygons = ds_slist_create(sizeof(struct ed_face_polygon_t), 512);
-    ed_level_state.brush.brush_batches = ds_list_create(sizeof(struct ed_brush_batch_t), 512);
+//    ed_level_state.brush.brush_face_polygons = ds_slist_create(sizeof(struct ed_face_polygon_t), 512);
+    ed_level_state.brush.brush_materials = ds_slist_create(sizeof(struct ed_brush_material_t), 512);
+    ed_level_state.brush.brush_verts = ds_slist_create(sizeof(struct ed_vert_t), 512);
 
-    ed_level_state.brush.polygon_buffer = ds_buffer_create(sizeof(struct ed_bsp_polygon_t *), 0);
+//    ed_level_state.brush.polygon_buffer = ds_buffer_create(sizeof(struct ed_bsp_polygon_t *), 0);
     ed_level_state.brush.vertex_buffer = ds_buffer_create(sizeof(struct r_vert_t), 0);
     ed_level_state.brush.index_buffer = ds_buffer_create(sizeof(uint32_t), 0);
     ed_level_state.brush.batch_buffer = ds_buffer_create(sizeof(struct r_batch_t), 0);
+    ed_level_state.brush.face_buffer = ds_buffer_create(sizeof(struct ed_face_t *), 0);
 
     ed_level_state.camera_pitch = ED_LEVEL_CAMERA_PITCH;
     ed_level_state.camera_yaw = ED_LEVEL_CAMERA_YAW;
@@ -216,23 +227,23 @@ void ed_l_Init(struct ed_editor_t *editor)
     };
     ed_center_grid_shader = r_LoadShader(&shader_desc);
 
-    shader_desc = (struct r_shader_desc_t){
-        .vertex_code = "shaders/ed_pick.vert",
-        .fragment_code = "shaders/ed_pick.frag",
-        .vertex_layout = &R_DEFAULT_VERTEX_LAYOUT,
-        .uniforms = R_DEFAULT_UNIFORMS,
-        .uniform_count = sizeof(R_DEFAULT_UNIFORMS) / sizeof(R_DEFAULT_UNIFORMS[0])
-    };
-    ed_picking_shader = r_LoadShader(&shader_desc);
-
-    shader_desc = (struct r_shader_desc_t){
-        .vertex_code = "shaders/ed_outline.vert",
-        .fragment_code = "shaders/ed_outline.frag",
-        .vertex_layout = &R_DEFAULT_VERTEX_LAYOUT,
-        .uniforms = R_DEFAULT_UNIFORMS,
-        .uniform_count = sizeof(R_DEFAULT_UNIFORMS) / sizeof(R_DEFAULT_UNIFORMS[0])
-    };
-    ed_outline_shader = r_LoadShader(&shader_desc);
+//    shader_desc = (struct r_shader_desc_t){
+//        .vertex_code = "shaders/ed_pick.vert",
+//        .fragment_code = "shaders/ed_pick.frag",
+//        .vertex_layout = &R_DEFAULT_VERTEX_LAYOUT,
+//        .uniforms = R_DEFAULT_UNIFORMS,
+//        .uniform_count = sizeof(R_DEFAULT_UNIFORMS) / sizeof(R_DEFAULT_UNIFORMS[0])
+//    };
+//    ed_picking_shader = r_LoadShader(&shader_desc);
+//
+//    shader_desc = (struct r_shader_desc_t){
+//        .vertex_code = "shaders/ed_outline.vert",
+//        .fragment_code = "shaders/ed_outline.frag",
+//        .vertex_layout = &R_DEFAULT_VERTEX_LAYOUT,
+//        .uniforms = R_DEFAULT_UNIFORMS,
+//        .uniform_count = sizeof(R_DEFAULT_UNIFORMS) / sizeof(R_DEFAULT_UNIFORMS[0])
+//    };
+//    ed_outline_shader = r_LoadShader(&shader_desc);
 
     shader_desc = (struct r_shader_desc_t){
         .vertex_code = "shaders/ed_zero_depth.vert",
@@ -391,34 +402,6 @@ void ed_l_Init(struct ed_editor_t *editor)
     ds_buffer_destroy(&vert_buffer);
     ds_buffer_destroy(&index_buffer);
     ds_buffer_destroy(&batch_buffer);
-
-//    ed_grid = r_i_AllocImmediateExternData(sizeof(struct r_i_verts_t) + sizeof(struct r_vert_t) * 6);
-//
-//    ed_grid->count = 6;
-//    ed_grid->verts[0].pos = vec3_t_c(-ED_GRID_QUAD_SIZE, 0.0, -ED_GRID_QUAD_SIZE);
-//    ed_grid->verts[0].tex_coords = vec2_t_c(0.0, 0.0);
-//    ed_grid->verts[0].color = vec4_t_c(1.0, 0.0, 0.0, 1.0);
-//
-//    ed_grid->verts[1].pos = vec3_t_c(-ED_GRID_QUAD_SIZE, 0.0, ED_GRID_QUAD_SIZE);
-//    ed_grid->verts[1].tex_coords = vec2_t_c(1.0, 0.0);
-//    ed_grid->verts[1].color = vec4_t_c(0.0, 1.0, 0.0, 1.0);
-//
-//    ed_grid->verts[2].pos = vec3_t_c(ED_GRID_QUAD_SIZE, 0.0, ED_GRID_QUAD_SIZE);
-//    ed_grid->verts[2].tex_coords = vec2_t_c(1.0, 1.0);
-//    ed_grid->verts[2].color = vec4_t_c(0.0, 0.0, 1.0, 1.0);
-//
-//    ed_grid->verts[3].pos = vec3_t_c(ED_GRID_QUAD_SIZE, 0.0, ED_GRID_QUAD_SIZE);
-//    ed_grid->verts[3].tex_coords = vec2_t_c(1.0, 1.0);
-//    ed_grid->verts[3].color = vec4_t_c(0.0, 0.0, 1.0, 1.0);
-//
-//    ed_grid->verts[4].pos = vec3_t_c(ED_GRID_QUAD_SIZE, 0.0, -ED_GRID_QUAD_SIZE);
-//    ed_grid->verts[4].tex_coords = vec2_t_c(0.0, 1.0);
-//    ed_grid->verts[4].color = vec4_t_c(0.0, 0.0, 1.0, 1.0);
-//
-//    ed_grid->verts[5].pos = vec3_t_c(-ED_GRID_QUAD_SIZE, 0.0, -ED_GRID_QUAD_SIZE);
-//    ed_grid->verts[5].tex_coords = vec2_t_c(0.0, 0.0);
-//    ed_grid->verts[5].color = vec4_t_c(1.0, 0.0, 0.0, 1.0);
-
 
     struct r_texture_t *diffuse;
     struct r_texture_t *normal;
@@ -648,13 +631,13 @@ void ed_w_MarkPickableModified(struct ed_pickable_t *pickable)
     }
 }
 
-void ed_w_MarkBrushModified(struct ed_brush_t *brush)
-{
-    if(brush && brush->modified_index == 0xffffffff)
-    {
-        brush->modified_index = ds_list_add_element(&ed_level_state.pickables.modified_brushes, &brush);
-    }
-}
+//void ed_w_MarkBrushModified(struct ed_brush_t *brush)
+//{
+//    if(brush && brush->modified_index == 0xffffffff)
+//    {
+//        brush->modified_index = ds_list_add_element(&ed_level_state.pickables.modified_brushes, &brush);
+//    }
+//}
 
 /*
 =============================================================
@@ -714,24 +697,24 @@ void ed_w_UpdateUI()
 
                         case ED_PICKABLE_TYPE_FACE:
                         {
-                            struct ed_face_t *face = ed_GetFace(pickable->secondary_index);
-                            if(igBeginCombo("Face material", face->material->name, 0))
-                            {
-                                for(uint32_t material_index = 0; material_index < r_materials.cursor; material_index++)
-                                {
-                                    struct r_material_t *material = r_GetMaterial(material_index);
-                                    if(material)
-                                    {
-                                        if(igSelectable_Bool(material->name, material == face->material, 0, (ImVec2){0, 0}))
-                                        {
-                                            face->material = material;
-                                            ed_w_MarkBrushModified(face->brush);
-//                                            ed_SetFaceMaterial(face->brush, face->index, material);
-                                        }
-                                    }
-                                }
-                                igEndCombo();
-                            }
+//                            struct ed_face_t *face = ed_GetFace(pickable->secondary_index);
+//                            if(igBeginCombo("Face material", face->material->name, 0))
+//                            {
+//                                for(uint32_t material_index = 0; material_index < r_materials.cursor; material_index++)
+//                                {
+//                                    struct r_material_t *material = r_GetMaterial(material_index);
+//                                    if(material)
+//                                    {
+//                                        if(igSelectable_Bool(material->name, material == face->material, 0, (ImVec2){0, 0}))
+//                                        {
+//                                            face->material = material;
+//                                            ed_w_MarkBrushModified(face->brush);
+////                                            ed_SetFaceMaterial(face->brush, face->index, material);
+//                                        }
+//                                    }
+//                                }
+//                                igEndCombo();
+//                            }
                         }
                         break;
 
@@ -1310,314 +1293,314 @@ void ed_w_UpdateManipulator()
 
 void ed_w_UpdatePickableObjects()
 {
-    struct ds_list_t *pickables = &ed_level_state.pickables.modified_pickables;
-//    struct e_entity_t *entity;
-
-    uint32_t pickable_index = 0;
-    uint32_t pickable_count = pickables->cursor;
-
-    /* here we iterate over pickables marked as modified, so we can update the objects they reference. During
-    update, it may be necessary to mark additional pickables as modified. This currently happens only with
-    pickables that reference brushes, and is particularly noticeable in the case when a pickable that references
-    a brush face/edge/vertex gets modified by the user. Those directly modified pickables will be process twice
-    by the loop -- first, their transforms will be applied to brush geometry; then, their transforms will be
-    recomputed based on the up to date brush geometry. */
-
-    do
-    {
-        for(; pickable_index < pickable_count; pickable_index++)
-        {
-            struct ed_pickable_t *pickable = *(struct ed_pickable_t **)ds_list_get_element(pickables, pickable_index);
-
-            switch(pickable->type)
-            {
-                case ED_PICKABLE_TYPE_BRUSH:
-                {
-                    struct ed_brush_t *brush = ed_GetBrush(pickable->primary_index);
-                    struct r_batch_t *first_batch = brush->model->batches.buffer;
-                    pickable->ranges->start = first_batch->start;
-                    pickable->ranges->count = brush->model->indices.buffer_size;
-
-                    ed_level_state.world_data_stale = 1;
-
-                    if(pickable->transform_flags)
-                    {
-                        /* this pickable got directly modified by the user, so we'll apply the
-                        transforms here */
-                        if(pickable->transform_flags & ED_PICKABLE_TRANSFORM_FLAG_TRANSLATION)
-                        {
-                            vec3_t_add(&brush->position, &brush->position, &pickable->translation);
-                        }
-
-                        if(pickable->transform_flags & ED_PICKABLE_TRANSFORM_FLAG_ROTATION)
-                        {
-                            mat3_t_mul(&brush->orientation, &brush->orientation, &pickable->rotation);
-                        }
-
-                        brush->update_flags |= ED_BRUSH_UPDATE_FLAG_UV_COORDS;
-
-                        /* update brush to update its entity transform */
-                        ed_w_MarkBrushModified(brush);
-                    }
-
-                    struct ed_face_t *face = brush->faces;
-
-                    while(face)
-                    {
-                        /* face/edge/vertice pickables also depend on the up to date brush transform,
-                        so mark those as modified so they can have their transforms updated as well */
-                        ed_w_MarkPickableModified(face->pickable);
-
-                        struct ed_face_polygon_t *polygon = face->polygons;
-
-                        while(polygon)
-                        {
-
-                            struct ed_edge_t *edge = polygon->edges;
-
-                            while(edge)
-                            {
-                                uint32_t polygon_side = edge->polygons[1].polygon == polygon;
-                                ed_w_MarkPickableModified(edge->pickable);
-                                edge = edge->polygons[polygon_side].next;
-                            }
-
-                            polygon = polygon->next;
-                        }
-
-                        face = face->next;
-                    }
-
-                    mat4_t_comp(&pickable->transform, &brush->orientation, &brush->position);
-//                    pickable->draw_transform = pickable->transform;
-                }
-                break;
-
-                case ED_PICKABLE_TYPE_FACE:
-                {
-                    struct ed_brush_t *brush = ed_GetBrush(pickable->primary_index);
-                    struct ed_face_t *face = ed_GetFace(pickable->secondary_index);
-                    struct r_batch_t *first_batch = brush->model->batches.buffer;
-
-                    if(pickable->range_count > face->clipped_polygon_count)
-                    {
-                        while(pickable->range_count > face->clipped_polygon_count)
-                        {
-                            struct ed_pickable_range_t *next_range = pickable->ranges->next;
-                            next_range->prev = NULL;
-
-                            ed_FreePickableRange(pickable->ranges);
-                            pickable->range_count--;
-                            pickable->ranges = next_range;
-                        }
-                    }
-                    else if(pickable->range_count < face->clipped_polygon_count)
-                    {
-                        while(pickable->range_count < face->clipped_polygon_count)
-                        {
-                            struct ed_pickable_range_t *new_range = ed_AllocPickableRange();
-                            new_range->next = pickable->ranges;
-                            if(pickable->ranges)
-                            {
-                                pickable->ranges->prev = new_range;
-                            }
-                            pickable->ranges = new_range;
-                            pickable->range_count++;
-                        }
-                    }
-
-                    struct ed_bsp_polygon_t *polygon = face->clipped_polygons;
-                    struct ed_pickable_range_t *range = pickable->ranges;
-
-                    while(polygon)
-                    {
-                        range->start = polygon->model_start + first_batch->start;
-                        range->count = polygon->model_count;
-
-                        polygon = polygon->next;
-                        range = range->next;
-                    }
-
-                    if(pickable->transform_flags)
-                    {
-                        /* this pickable was directly modified by the user, so we'll apply the transforms
-                        here*/
-
-                        if(pickable->transform_flags & ED_PICKABLE_TRANSFORM_FLAG_TRANSLATION)
-                        {
-                            ed_TranslateBrushFace(brush, pickable->secondary_index, &pickable->translation);
-                        }
-
-                        if(pickable->transform_flags & ED_PICKABLE_TRANSFORM_FLAG_ROTATION)
-                        {
-                            ed_RotateBrushFace(brush, pickable->secondary_index, &pickable->rotation);
-                        }
-
-                        /* we're modifying brush geometry here, so mark the brush as modified so things
-                        like face polygon normals/centers/uvs/mesh can be recomputed */
-                        ed_w_MarkBrushModified(brush);
-
-                        /* the brush pickable position depends on the position of its vertices (the brush origin
-                        needs to be recomputed every time some vertice gets moved), so mark it as modified,
-                        so it can have its transform recomputed */
-                        ed_w_MarkPickableModified(brush->pickable);
-                    }
-                    else
-                    {
-                        /* this pickable wasn't modified directly, but was marked as modified because its transform
-                        was affected by some brush geometry/transform change */
-                        vec3_t face_position = face->center;
-                        mat3_t_vec3_t_mul(&face_position, &face_position, &brush->orientation);
-
-                        mat4_t_comp(&pickable->transform, &brush->orientation, &brush->position);
-                        vec3_t_add(&pickable->transform.rows[3].xyz, &pickable->transform.rows[3].xyz, &face_position);
-
-                        mat4_t draw_offset;
-                        mat4_t_identity(&draw_offset);
-                        vec3_t_mul(&draw_offset.rows[3].xyz, &face->center, -1.0);
-//                        mat4_t_mul(&draw_offset, &draw_offset, &pickable->transform);
-
-                        struct ed_pickable_range_t *range = pickable->ranges;
-
-                        while(range)
-                        {
-                            range->offset = draw_offset;
-                            range = range->next;
-                        }
-                    }
-                }
-                break;
-
-                case ED_PICKABLE_TYPE_EDGE:
-                {
-                    struct ed_brush_t *brush = ed_GetBrush(pickable->primary_index);
-                    struct ed_edge_t *edge = ed_GetEdge(pickable->secondary_index);
-                    struct r_model_t *model = brush->model;
-                    struct r_batch_t *first_batch = model->batches.buffer;
-
-                    if(!pickable->range_count)
-                    {
-                        pickable->ranges = ed_AllocPickableRange();
-                        pickable->range_count = 1;
-                    }
-
-                    pickable->ranges->start = first_batch->start + edge->model_start;
-                    pickable->ranges->count = 2;
-
-                    if(pickable->transform_flags)
-                    {
-                        if(pickable->transform_flags & ED_PICKABLE_TRANSFORM_FLAG_TRANSLATION)
-                        {
-                            ed_TranslateBrushEdge(brush, pickable->secondary_index, &pickable->translation);
-                        }
-
-                        ed_w_MarkBrushModified(brush);
-
-                        ed_w_MarkPickableModified(brush->pickable);
-                    }
-                    else
-                    {
-                        struct ed_vert_t *vert0 = edge->verts[0].vert;
-                        struct ed_vert_t *vert1 = edge->verts[1].vert;
-
-                        vec3_t edge_center;
-                        vec3_t_add(&edge_center, &vert0->vert, &vert1->vert);
-                        vec3_t_mul(&edge_center, &edge_center, 0.5);
-
-                        mat3_t_vec3_t_mul(&edge_center, &edge_center, &brush->orientation);
-                        mat4_t_comp(&pickable->transform, &brush->orientation, &brush->position);
-                        vec3_t_add(&pickable->transform.rows[3].xyz, &pickable->transform.rows[3].xyz, &edge_center);
-                        vec3_t_mul(&pickable->ranges->offset.rows[3].xyz, &edge_center, -1.0);
-
-                    }
-                }
-                break;
-
-                case ED_PICKABLE_TYPE_LIGHT:
-                {
-                    struct r_light_t *light = r_GetLight(pickable->primary_index);
-                    mat3_t rot;
-
-                    if(pickable->transform_flags & ED_PICKABLE_TRANSFORM_FLAG_TRANSLATION)
-                    {
-                        vec3_t_add(&light->position, &light->position, &pickable->translation);
-                    }
-
-                    if(light->type == R_LIGHT_TYPE_SPOT && (pickable->transform_flags & ED_PICKABLE_TRANSFORM_FLAG_ROTATION))
-                    {
-                        struct r_spot_light_t *spot_light = (struct r_spot_light_t *)light;
-                        mat3_t_mul(&spot_light->orientation, &spot_light->orientation, &pickable->rotation);
-                    }
-
-                    mat3_t_identity(&rot);
-                    mat4_t_comp(&pickable->transform, &rot, &light->position);
-                }
-                break;
-
-                case ED_PICKABLE_TYPE_ENTITY:
-                {
-                    struct e_entity_t *entity = e_GetEntity(pickable->primary_index);
-
-                    if(pickable->transform_flags)
-                    {
-                        if(pickable->transform_flags & ED_PICKABLE_TRANSFORM_FLAG_TRANSLATION)
-                        {
-                            e_TranslateEntity(entity, &pickable->translation);
-                        }
-
-                        if(pickable->transform_flags & ED_PICKABLE_TRANSFORM_FLAG_ROTATION)
-                        {
-                            e_RotateEntity(entity, &pickable->rotation);
-                        }
-                    }
-
-                    ed_UpdateEntityPickableRanges(pickable, entity);
-                    e_UpdateEntityNode(entity->node, &mat4_t_c_id());
-                    pickable->transform = entity->transform->transform;
-                }
-                break;
-
-                case ED_PICKABLE_TYPE_ENEMY:
-                {
-                    struct g_enemy_t *enemy = g_GetEnemy(pickable->secondary_index, pickable->primary_index);
-
-                    if(pickable->transform_flags & ED_PICKABLE_TRANSFORM_FLAG_TRANSLATION)
-                    {
-                        g_TranslateEnemy(enemy, &pickable->translation);
-                    }
-
-                    if(pickable->transform_flags & ED_PICKABLE_TRANSFORM_FLAG_ROTATION)
-                    {
-                        g_RotateEnemy(enemy, &pickable->rotation);
-                    }
-
-                    ed_UpdateEntityPickableRanges(pickable, enemy->thing.entity);
-                    e_UpdateEntityNode(enemy->thing.entity->node, &mat4_t_c_id());
-                    pickable->transform = enemy->thing.entity->transform->transform;
-                }
-                break;
-            }
-
-            pickable->transform_flags = 0;
-            pickable->modified_index = 0xffffffff;
-        }
-
-        struct ds_list_t *modified_brushes = &ed_level_state.pickables.modified_brushes;
-
-        for(uint32_t brush_index = 0; brush_index < modified_brushes->cursor; brush_index++)
-        {
-            struct ed_brush_t *brush = *(struct ed_brush_t **)ds_list_get_element(modified_brushes, brush_index);
-            ed_UpdateBrush(brush);
-            brush->modified_index = 0xffffffff;
-        }
-
-        modified_brushes->cursor = 0;
-
-        pickable_count = pickables->cursor;
-    }
-    while(pickable_index < pickable_count);
-
-    pickables->cursor = 0;
+//    struct ds_list_t *pickables = &ed_level_state.pickables.modified_pickables;
+////    struct e_entity_t *entity;
+//
+//    uint32_t pickable_index = 0;
+//    uint32_t pickable_count = pickables->cursor;
+//
+//    /* here we iterate over pickables marked as modified, so we can update the objects they reference. During
+//    update, it may be necessary to mark additional pickables as modified. This currently happens only with
+//    pickables that reference brushes, and is particularly noticeable in the case when a pickable that references
+//    a brush face/edge/vertex gets modified by the user. Those directly modified pickables will be process twice
+//    by the loop -- first, their transforms will be applied to brush geometry; then, their transforms will be
+//    recomputed based on the up to date brush geometry. */
+//
+//    do
+//    {
+//        for(; pickable_index < pickable_count; pickable_index++)
+//        {
+//            struct ed_pickable_t *pickable = *(struct ed_pickable_t **)ds_list_get_element(pickables, pickable_index);
+//
+//            switch(pickable->type)
+//            {
+//                case ED_PICKABLE_TYPE_BRUSH:
+//                {
+//                    struct ed_brush_t *brush = ed_GetBrush(pickable->primary_index);
+//                    struct r_batch_t *first_batch = brush->model->batches.buffer;
+//                    pickable->ranges->start = first_batch->start;
+//                    pickable->ranges->count = brush->model->indices.buffer_size;
+//
+//                    ed_level_state.world_data_stale = 1;
+//
+//                    if(pickable->transform_flags)
+//                    {
+//                        /* this pickable got directly modified by the user, so we'll apply the
+//                        transforms here */
+//                        if(pickable->transform_flags & ED_PICKABLE_TRANSFORM_FLAG_TRANSLATION)
+//                        {
+//                            vec3_t_add(&brush->position, &brush->position, &pickable->translation);
+//                        }
+//
+//                        if(pickable->transform_flags & ED_PICKABLE_TRANSFORM_FLAG_ROTATION)
+//                        {
+//                            mat3_t_mul(&brush->orientation, &brush->orientation, &pickable->rotation);
+//                        }
+//
+//                        brush->update_flags |= ED_BRUSH_UPDATE_FLAG_UV_COORDS;
+//
+//                        /* update brush to update its entity transform */
+//                        ed_w_MarkBrushModified(brush);
+//                    }
+//
+//                    struct ed_face_t *face = brush->faces;
+//
+//                    while(face)
+//                    {
+//                        /* face/edge/vertice pickables also depend on the up to date brush transform,
+//                        so mark those as modified so they can have their transforms updated as well */
+//                        ed_w_MarkPickableModified(face->pickable);
+//
+//                        struct ed_face_polygon_t *polygon = face->polygons;
+//
+//                        while(polygon)
+//                        {
+//
+//                            struct ed_edge_t *edge = polygon->edges;
+//
+//                            while(edge)
+//                            {
+//                                uint32_t polygon_side = edge->polygons[1].polygon == polygon;
+//                                ed_w_MarkPickableModified(edge->pickable);
+//                                edge = edge->polygons[polygon_side].next;
+//                            }
+//
+//                            polygon = polygon->next;
+//                        }
+//
+//                        face = face->next;
+//                    }
+//
+//                    mat4_t_comp(&pickable->transform, &brush->orientation, &brush->position);
+////                    pickable->draw_transform = pickable->transform;
+//                }
+//                break;
+//
+//                case ED_PICKABLE_TYPE_FACE:
+//                {
+//                    struct ed_brush_t *brush = ed_GetBrush(pickable->primary_index);
+//                    struct ed_face_t *face = ed_GetFace(pickable->secondary_index);
+//                    struct r_batch_t *first_batch = brush->model->batches.buffer;
+//
+//                    if(pickable->range_count > face->clipped_polygon_count)
+//                    {
+//                        while(pickable->range_count > face->clipped_polygon_count)
+//                        {
+//                            struct ed_pickable_range_t *next_range = pickable->ranges->next;
+//                            next_range->prev = NULL;
+//
+//                            ed_FreePickableRange(pickable->ranges);
+//                            pickable->range_count--;
+//                            pickable->ranges = next_range;
+//                        }
+//                    }
+//                    else if(pickable->range_count < face->clipped_polygon_count)
+//                    {
+//                        while(pickable->range_count < face->clipped_polygon_count)
+//                        {
+//                            struct ed_pickable_range_t *new_range = ed_AllocPickableRange();
+//                            new_range->next = pickable->ranges;
+//                            if(pickable->ranges)
+//                            {
+//                                pickable->ranges->prev = new_range;
+//                            }
+//                            pickable->ranges = new_range;
+//                            pickable->range_count++;
+//                        }
+//                    }
+//
+//                    struct ed_bsp_polygon_t *polygon = face->clipped_polygons;
+//                    struct ed_pickable_range_t *range = pickable->ranges;
+//
+//                    while(polygon)
+//                    {
+//                        range->start = polygon->model_start + first_batch->start;
+//                        range->count = polygon->model_count;
+//
+//                        polygon = polygon->next;
+//                        range = range->next;
+//                    }
+//
+//                    if(pickable->transform_flags)
+//                    {
+//                        /* this pickable was directly modified by the user, so we'll apply the transforms
+//                        here*/
+//
+//                        if(pickable->transform_flags & ED_PICKABLE_TRANSFORM_FLAG_TRANSLATION)
+//                        {
+//                            ed_TranslateBrushFace(brush, pickable->secondary_index, &pickable->translation);
+//                        }
+//
+//                        if(pickable->transform_flags & ED_PICKABLE_TRANSFORM_FLAG_ROTATION)
+//                        {
+//                            ed_RotateBrushFace(brush, pickable->secondary_index, &pickable->rotation);
+//                        }
+//
+//                        /* we're modifying brush geometry here, so mark the brush as modified so things
+//                        like face polygon normals/centers/uvs/mesh can be recomputed */
+//                        ed_w_MarkBrushModified(brush);
+//
+//                        /* the brush pickable position depends on the position of its vertices (the brush origin
+//                        needs to be recomputed every time some vertice gets moved), so mark it as modified,
+//                        so it can have its transform recomputed */
+//                        ed_w_MarkPickableModified(brush->pickable);
+//                    }
+//                    else
+//                    {
+//                        /* this pickable wasn't modified directly, but was marked as modified because its transform
+//                        was affected by some brush geometry/transform change */
+//                        vec3_t face_position = face->center;
+//                        mat3_t_vec3_t_mul(&face_position, &face_position, &brush->orientation);
+//
+//                        mat4_t_comp(&pickable->transform, &brush->orientation, &brush->position);
+//                        vec3_t_add(&pickable->transform.rows[3].xyz, &pickable->transform.rows[3].xyz, &face_position);
+//
+//                        mat4_t draw_offset;
+//                        mat4_t_identity(&draw_offset);
+//                        vec3_t_mul(&draw_offset.rows[3].xyz, &face->center, -1.0);
+////                        mat4_t_mul(&draw_offset, &draw_offset, &pickable->transform);
+//
+//                        struct ed_pickable_range_t *range = pickable->ranges;
+//
+//                        while(range)
+//                        {
+//                            range->offset = draw_offset;
+//                            range = range->next;
+//                        }
+//                    }
+//                }
+//                break;
+//
+//                case ED_PICKABLE_TYPE_EDGE:
+//                {
+//                    struct ed_brush_t *brush = ed_GetBrush(pickable->primary_index);
+//                    struct ed_edge_t *edge = ed_GetEdge(pickable->secondary_index);
+//                    struct r_model_t *model = brush->model;
+//                    struct r_batch_t *first_batch = model->batches.buffer;
+//
+//                    if(!pickable->range_count)
+//                    {
+//                        pickable->ranges = ed_AllocPickableRange();
+//                        pickable->range_count = 1;
+//                    }
+//
+//                    pickable->ranges->start = first_batch->start + edge->model_start;
+//                    pickable->ranges->count = 2;
+//
+//                    if(pickable->transform_flags)
+//                    {
+//                        if(pickable->transform_flags & ED_PICKABLE_TRANSFORM_FLAG_TRANSLATION)
+//                        {
+//                            ed_TranslateBrushEdge(brush, pickable->secondary_index, &pickable->translation);
+//                        }
+//
+//                        ed_w_MarkBrushModified(brush);
+//
+//                        ed_w_MarkPickableModified(brush->pickable);
+//                    }
+//                    else
+//                    {
+//                        struct ed_vert_t *vert0 = edge->verts[0].vert;
+//                        struct ed_vert_t *vert1 = edge->verts[1].vert;
+//
+//                        vec3_t edge_center;
+//                        vec3_t_add(&edge_center, &vert0->vert, &vert1->vert);
+//                        vec3_t_mul(&edge_center, &edge_center, 0.5);
+//
+//                        mat3_t_vec3_t_mul(&edge_center, &edge_center, &brush->orientation);
+//                        mat4_t_comp(&pickable->transform, &brush->orientation, &brush->position);
+//                        vec3_t_add(&pickable->transform.rows[3].xyz, &pickable->transform.rows[3].xyz, &edge_center);
+//                        vec3_t_mul(&pickable->ranges->offset.rows[3].xyz, &edge_center, -1.0);
+//
+//                    }
+//                }
+//                break;
+//
+//                case ED_PICKABLE_TYPE_LIGHT:
+//                {
+//                    struct r_light_t *light = r_GetLight(pickable->primary_index);
+//                    mat3_t rot;
+//
+//                    if(pickable->transform_flags & ED_PICKABLE_TRANSFORM_FLAG_TRANSLATION)
+//                    {
+//                        vec3_t_add(&light->position, &light->position, &pickable->translation);
+//                    }
+//
+//                    if(light->type == R_LIGHT_TYPE_SPOT && (pickable->transform_flags & ED_PICKABLE_TRANSFORM_FLAG_ROTATION))
+//                    {
+//                        struct r_spot_light_t *spot_light = (struct r_spot_light_t *)light;
+//                        mat3_t_mul(&spot_light->orientation, &spot_light->orientation, &pickable->rotation);
+//                    }
+//
+//                    mat3_t_identity(&rot);
+//                    mat4_t_comp(&pickable->transform, &rot, &light->position);
+//                }
+//                break;
+//
+//                case ED_PICKABLE_TYPE_ENTITY:
+//                {
+//                    struct e_entity_t *entity = e_GetEntity(pickable->primary_index);
+//
+//                    if(pickable->transform_flags)
+//                    {
+//                        if(pickable->transform_flags & ED_PICKABLE_TRANSFORM_FLAG_TRANSLATION)
+//                        {
+//                            e_TranslateEntity(entity, &pickable->translation);
+//                        }
+//
+//                        if(pickable->transform_flags & ED_PICKABLE_TRANSFORM_FLAG_ROTATION)
+//                        {
+//                            e_RotateEntity(entity, &pickable->rotation);
+//                        }
+//                    }
+//
+//                    ed_UpdateEntityPickableRanges(pickable, entity);
+//                    e_UpdateEntityNode(entity->node, &mat4_t_c_id());
+//                    pickable->transform = entity->transform->transform;
+//                }
+//                break;
+//
+//                case ED_PICKABLE_TYPE_ENEMY:
+//                {
+//                    struct g_enemy_t *enemy = g_GetEnemy(pickable->secondary_index, pickable->primary_index);
+//
+//                    if(pickable->transform_flags & ED_PICKABLE_TRANSFORM_FLAG_TRANSLATION)
+//                    {
+//                        g_TranslateEnemy(enemy, &pickable->translation);
+//                    }
+//
+//                    if(pickable->transform_flags & ED_PICKABLE_TRANSFORM_FLAG_ROTATION)
+//                    {
+//                        g_RotateEnemy(enemy, &pickable->rotation);
+//                    }
+//
+//                    ed_UpdateEntityPickableRanges(pickable, enemy->thing.entity);
+//                    e_UpdateEntityNode(enemy->thing.entity->node, &mat4_t_c_id());
+//                    pickable->transform = enemy->thing.entity->transform->transform;
+//                }
+//                break;
+//            }
+//
+//            pickable->transform_flags = 0;
+//            pickable->modified_index = 0xffffffff;
+//        }
+//
+//        struct ds_list_t *modified_brushes = &ed_level_state.pickables.modified_brushes;
+//
+//        for(uint32_t brush_index = 0; brush_index < modified_brushes->cursor; brush_index++)
+//        {
+//            struct ed_brush_t *brush = *(struct ed_brush_t **)ds_list_get_element(modified_brushes, brush_index);
+//            ed_UpdateBrush(brush);
+//            brush->modified_index = 0xffffffff;
+//        }
+//
+//        modified_brushes->cursor = 0;
+//
+//        pickable_count = pickables->cursor;
+//    }
+//    while(pickable_index < pickable_count);
+//
+//    pickables->cursor = 0;
 }
 
 void ed_l_Update()
@@ -1681,6 +1664,61 @@ void ed_LevelEditorDrawGrid()
 //    r_i_SetModelMatrix(NULL);
 //    r_i_SetViewProjectionMatrix(NULL);
 //    r_i_SetBlending(GL_FALSE, GL_ONE, GL_ZERO);
+
+//    r_UpdateViewProjectionMatrix();
+
+    mat4_t view_projection_matrix;
+    mat4_t_identity(&view_projection_matrix);
+
+    view_projection_matrix.rows[3].y = -2;
+
+    mat4_t_mul(&view_projection_matrix, &view_projection_matrix, &r_projection_matrix);
+
+    r_i_SetShader(NULL, ed_center_grid_shader);
+    struct r_i_uniform_t uniforms[] = {
+        (struct r_i_uniform_t){
+            .uniform = R_UNIFORM_MODEL_VIEW_PROJECTION_MATRIX,
+            .count = 1,
+            .value = &r_view_projection_matrix
+        }
+    };
+    r_i_SetUniforms(NULL, NULL, uniforms, 1);
+
+    struct r_i_blending_t blend_state = {
+        .enable = GL_TRUE,
+        .src_factor = GL_SRC_ALPHA,
+        .dst_factor = GL_ONE_MINUS_SRC_ALPHA
+    };
+    r_i_SetBlending(NULL, NULL, &blend_state);
+
+    struct r_i_depth_t depth_state = {
+        .enable = GL_TRUE,
+        .func = GL_LESS
+    };
+    r_i_SetDepth(NULL, NULL, &depth_state);
+
+    struct r_i_raster_t raster_state = {
+        .cull_enable = GL_FALSE,
+        .cull_face = GL_DONT_CARE,
+        .polygon_mode = GL_FILL
+    };
+    r_i_SetRasterizer(NULL, NULL, &raster_state);
+
+
+    struct r_i_draw_list_t *draw_list = r_i_AllocDrawList(NULL, 1);
+    struct r_i_mesh_t *mesh = r_i_AllocMesh(NULL, sizeof(struct r_vert_t), 6, 0);
+    memcpy(mesh->verts.verts, ed_grid, sizeof(ed_grid));
+
+    draw_list->mode = GL_TRIANGLES;
+    draw_list->mesh = mesh;
+    draw_list->indexed = 0;
+
+    draw_list->ranges[0].start = 0;
+    draw_list->ranges[0].count = 6;
+    draw_list->ranges[0].draw_state = NULL;
+    draw_list->ranges[0].uniforms = NULL;
+
+    r_i_DrawList(NULL, draw_list);
 
 
 //    r_BindShader(ed_center_grid_shader);
@@ -1760,6 +1798,7 @@ void ed_LevelEditorDrawLights()
 
 void ed_LevelEditorDrawSelections()
 {
+    ed_DrawSelections(&ed_level_state.obj.objects, NULL);
 //    struct ds_list_t *selections = &ed_level_state.pickables.selections;
 //
 //    if(selections->cursor)
@@ -2008,7 +2047,7 @@ void ed_w_PingInfoWindow()
     ed_level_state.info_window_alpha = 1.0;
 }
 
-uint32_t ed_w_IntersectPlaneFromCamera(int32_t mouse_x, int32_t mouse_y, vec3_t *plane_point, vec3_t *plane_normal, vec3_t *result)
+uint32_t ed_l_IntersectPlaneFromCamera(int32_t mouse_x, int32_t mouse_y, vec3_t *plane_point, vec3_t *plane_normal, vec3_t *result)
 {
     vec3_t mouse_pos;
     vec3_t camera_pos;
@@ -2062,7 +2101,7 @@ void ed_w_PointPixelCoords(int32_t *x, int32_t *y, vec3_t *point)
     *y = r_height * (1.0 - ((result.y / result.w) * 0.5 + 0.5));
 }
 
-void ed_LevelEditorIdle(uint32_t just_changed)
+void ed_l_Idle(uint32_t just_changed)
 {
 //    struct ed_level_state_t *context_data = &ed_level_state;
     struct ds_list_t *selections = &ed_level_state.pickables.selections;
@@ -2096,16 +2135,16 @@ void ed_LevelEditorIdle(uint32_t just_changed)
     }
     else if(in_GetKeyState(SDL_SCANCODE_LALT) & IN_KEY_STATE_PRESSED)
     {
-        ed_SetNextState(ed_LevelEditorFlyCamera);
+        ed_SetNextState(ed_l_FlyCamera);
         in_SetMouseWarp(1);
     }
     else if(in_GetMouseButtonState(SDL_BUTTON_LEFT) & IN_KEY_STATE_JUST_PRESSED)
     {
-        ed_SetNextState(ed_LevelEditorLeftClick);
+        ed_SetNextState(ed_l_LeftClick);
     }
     else if(in_GetMouseButtonState(SDL_BUTTON_RIGHT) & IN_KEY_STATE_JUST_PRESSED)
     {
-        ed_SetNextState(ed_LevelEditorRightClick);
+        ed_SetNextState(ed_l_RightClick);
     }
     else if(in_GetKeyState(SDL_SCANCODE_LCTRL) & IN_KEY_STATE_PRESSED)
     {
@@ -2143,14 +2182,14 @@ void ed_LevelEditorIdle(uint32_t just_changed)
 //    }
 }
 
-void ed_LevelEditorFlyCamera(uint32_t just_changed)
+void ed_l_FlyCamera(uint32_t just_changed)
 {
     float dx;
     float dy;
 
     if(!(in_GetKeyState(SDL_SCANCODE_LALT) & IN_KEY_STATE_PRESSED))
     {
-        ed_SetNextState(ed_LevelEditorIdle);
+        ed_SetNextState(ed_l_Idle);
         in_SetMouseWarp(0);
         return;
     }
@@ -2193,7 +2232,7 @@ void ed_LevelEditorFlyCamera(uint32_t just_changed)
     vec3_t_add(&ed_level_state.camera_pos, &ed_level_state.camera_pos, &vec3_t_c(translation.x, translation.y, translation.z));
 }
 
-void ed_LevelEditorRightClick(uint32_t just_changed)
+void ed_l_RightClick(uint32_t just_changed)
 {
     struct ed_level_state_t *context_data = &ed_level_state;
 
@@ -2224,7 +2263,7 @@ void ed_l_PlacementCrosshair(uint32_t just_changed)
         mat3_t *plane_orientation = &context_data->pickables.plane_orientation;
 
         ed_l_SurfaceUnderMouse(mouse_x, mouse_y, plane_point, plane_orientation);
-        ed_w_IntersectPlaneFromCamera(mouse_x, mouse_y, plane_point, &plane_orientation->rows[1], plane_point);
+        ed_l_IntersectPlaneFromCamera(mouse_x, mouse_y, plane_point, &plane_orientation->rows[1], plane_point);
         ed_l_LinearSnapValueOnSurface(plane_point, plane_orientation, plane_point);
 
         vec3_t start = *plane_point;
@@ -2271,7 +2310,7 @@ void ed_l_PlacementCrosshair(uint32_t just_changed)
             switch(context_data->selected_tools_tab)
             {
                 case ED_L_TOOL_TAB_BRUSH:
-                    ed_SetNextState(ed_LevelEditorBrushBox);
+                    ed_SetNextState(ed_l_BrushBox);
                 break;
 
                 case ED_L_TOOL_TAB_LIGHT:
@@ -2293,18 +2332,18 @@ void ed_l_PlacementCrosshair(uint32_t just_changed)
     }
     else
     {
-        ed_SetNextState(ed_LevelEditorIdle);
+        ed_SetNextState(ed_l_Idle);
     }
 }
 
-void ed_LevelEditorLeftClick(uint32_t just_changed)
+void ed_l_LeftClick(uint32_t just_changed)
 {
     struct ed_level_state_t *context_data = &ed_level_state;
     context_data->pickables.ignore_types = ED_PICKABLE_BRUSH_PART_MASK;
     ed_l_PickObjectOrWidget(just_changed);
 }
 
-void ed_LevelEditorBrushBox(uint32_t just_changed)
+void ed_l_BrushBox(uint32_t just_changed)
 {
     struct ed_level_state_t *context_data = &ed_level_state;
     uint32_t right_button_down = in_GetMouseButtonState(SDL_BUTTON_LEFT) & IN_KEY_STATE_PRESSED;
@@ -2320,7 +2359,7 @@ void ed_LevelEditorBrushBox(uint32_t just_changed)
     {
         if(in_GetKeyState(SDL_SCANCODE_ESCAPE) & IN_KEY_STATE_PRESSED)
         {
-            ed_SetNextState(ed_LevelEditorIdle);
+            ed_SetNextState(ed_l_Idle);
         }
         else
         {
@@ -2334,7 +2373,7 @@ void ed_LevelEditorBrushBox(uint32_t just_changed)
             vec3_t plane_point = context_data->pickables.plane_point;
             mat3_t plane_orientation = context_data->pickables.plane_orientation;
 
-            if(ed_w_IntersectPlaneFromCamera(mouse_x, mouse_y, &plane_point, &plane_orientation.rows[1], &intersection))
+            if(ed_l_IntersectPlaneFromCamera(mouse_x, mouse_y, &plane_point, &plane_orientation.rows[1], &intersection))
             {
                 r_BindShader(r_immediate_shader);
                 r_SetDefaultUniformMat4(R_UNIFORM_MODEL_VIEW_PROJECTION_MATRIX, &r_view_projection_matrix);
@@ -2403,20 +2442,25 @@ void ed_LevelEditorBrushBox(uint32_t just_changed)
     {
         vec3_t position;
         vec3_t size;
+        mat3_t orientation;
 
         size.x = context_data->brush.box_size.x;
         size.y = 1.0;
         size.z = context_data->brush.box_size.y;
 
+        size = vec3_t_c(1.0, 1.0, 1.0);
+        mat3_t_identity(&orientation);
+
         if(size.x != 0.0 || size.z != 0.0)
         {
             vec3_t_add(&position, &context_data->brush.box_start, &context_data->brush.box_end);
             vec3_t_mul(&position, &position, 0.5);
+            position = vec3_t_c(0.0, 0.0, 0.0);
             vec3_t_fmadd(&position, &position, &context_data->pickables.plane_orientation.rows[1], size.y * 0.5);
-
-            ed_CreateBrushPickable(&position, &context_data->pickables.plane_orientation, &size, NULL);
+//            ed_CreateObj(&ed_l_obj_context, ED_OBJ_TYPE_BRUSH, &position, &context_data->pickables.plane_orientation, &size, NULL);
+            ed_CreateObj(&ed_level_state.obj.objects, ED_OBJ_TYPE_BRUSH, &position, &orientation, &size, NULL);
         }
-        ed_SetNextState(ed_LevelEditorIdle);
+        ed_SetNextState(ed_l_Idle);
     }
 }
 
@@ -2465,50 +2509,57 @@ void ed_l_PickObject(uint32_t just_changed)
 //    uint32_t mode_change = context_data->pickables.edit_mode != context_data->pickables.next_edit_mode;
 
     in_GetMousePos(&mouse_x, &mouse_y);
-
+//    printf("piss\n");
     if(!(button_state & IN_KEY_STATE_PRESSED))
     {
-        uint32_t ignore_types = context_data->pickables.ignore_types;
-        struct ds_slist_t *pickables = &context_data->pickables.pickables;
+        ed_level_state.obj.last_picked = ed_PickObject(&ed_level_state.obj.objects, mouse_x, mouse_y, 0);
 
-        context_data->pickables.last_selected = ed_SelectPickable(mouse_x, mouse_y, pickables, NULL, ignore_types);
-
-        if(context_data->pickables.last_selected)
+        if(ed_level_state.obj.last_picked)
         {
-            struct ed_pickable_t *pickable = context_data->pickables.last_selected;
-
-            if((1 << pickable->type) & ED_PICKABLE_BRUSH_PART_MASK)
-            {
-                struct ed_brush_t *brush = ed_GetBrush(pickable->primary_index);
-
-                if(brush->pickable->selection_index != 0xffffffff)
-                {
-                    ed_w_DropSelection(brush->pickable, NULL);
-                }
-            }
-            else if(pickable->type == ED_PICKABLE_TYPE_BRUSH)
-            {
-                struct ed_brush_t *brush = ed_GetBrush(pickable->primary_index);
-                struct ed_face_t *face = brush->faces;
-
-                while(face)
-                {
-                    if(face->pickable->selection_index != 0xffffffff)
-                    {
-                        ed_w_DropSelection(face->pickable, NULL);
-                    }
-
-                    face = face->next;
-                }
-            }
-
             uint32_t shift_state = in_GetKeyState(SDL_SCANCODE_LSHIFT);
-            ed_w_AddSelection(context_data->pickables.last_selected, shift_state & IN_KEY_STATE_PRESSED, NULL);
+            ed_AddObjToSelections(&ed_level_state.obj.objects, shift_state & IN_KEY_STATE_PRESSED, ed_level_state.obj.last_picked);
         }
-
-        context_data->pickables.last_selected = NULL;
-
-        ed_SetNextState(ed_LevelEditorIdle);
+//        uint32_t ignore_types = context_data->pickables.ignore_types;
+//        struct ds_slist_t *pickables = &context_data->pickables.pickables;
+//
+//        context_data->pickables.last_selected = ed_SelectPickable(mouse_x, mouse_y, pickables, NULL, ignore_types);
+//
+//        if(context_data->pickables.last_selected)
+//        {
+//            struct ed_pickable_t *pickable = context_data->pickables.last_selected;
+//
+//            if((1 << pickable->type) & ED_PICKABLE_BRUSH_PART_MASK)
+//            {
+//                struct ed_brush_t *brush = ed_GetBrush(pickable->primary_index);
+//
+//                if(brush->pickable->selection_index != 0xffffffff)
+//                {
+//                    ed_w_DropSelection(brush->pickable, NULL);
+//                }
+//            }
+//            else if(pickable->type == ED_PICKABLE_TYPE_BRUSH)
+//            {
+//                struct ed_brush_t *brush = ed_GetBrush(pickable->primary_index);
+//                struct ed_face_t *face = brush->faces;
+//
+//                while(face)
+//                {
+//                    if(face->pickable->selection_index != 0xffffffff)
+//                    {
+//                        ed_w_DropSelection(face->pickable, NULL);
+//                    }
+//
+//                    face = face->next;
+//                }
+//            }
+//
+//            uint32_t shift_state = in_GetKeyState(SDL_SCANCODE_LSHIFT);
+//            ed_w_AddSelection(context_data->pickables.last_selected, shift_state & IN_KEY_STATE_PRESSED, NULL);
+//        }
+//
+//        context_data->pickables.last_selected = NULL;
+//
+        ed_SetNextState(ed_l_Idle);
     }
 }
 
@@ -2521,7 +2572,7 @@ void ed_l_PlaceEntityAtCursor(uint32_t just_changed)
 
     vec3_t_fmadd(&position, &position, &orientation.rows[2], 0.2);
     ed_CreateEntityPickable(ent_def, &position, &vec3_t_c(1.0, 1.0, 1.0), &orientation, NULL);
-    ed_SetNextState(ed_LevelEditorIdle);
+    ed_SetNextState(ed_l_Idle);
 }
 
 void ed_l_PlaceLightAtCursor(uint32_t just_changed)
@@ -2530,8 +2581,13 @@ void ed_l_PlaceLightAtCursor(uint32_t just_changed)
     uint32_t type = ed_level_state.pickables.light_type;
     vec3_t position;
     vec3_t_fmadd(&position, &context_data->pickables.plane_point, &context_data->pickables.plane_orientation.rows[1], 0.2);
-    ed_CreateLightPickable(&position, &vec3_t_c(1.0, 1.0, 1.0), 6.0, 10.0, type, NULL);
-    ed_SetNextState(ed_LevelEditorIdle);
+    struct ed_light_args_t light_args = {};
+    light_args.type = type;
+    light_args.color = vec3_t_c(1.0, 1.0, 1.0);
+    light_args.radius = 10.0;
+    light_args.energy = 10.0;
+    ed_CreateObj(&ed_level_state.obj.objects, ED_OBJ_TYPE_LIGHT, &vec3_t_c(2.0, 0.0, 0.0), NULL, NULL, &light_args);
+    ed_SetNextState(ed_l_Idle);
 }
 
 void ed_l_PlaceEnemyAtCursor(uint32_t just_changed)
@@ -2541,7 +2597,7 @@ void ed_l_PlaceEnemyAtCursor(uint32_t just_changed)
     vec3_t position;
     vec3_t_fmadd(&position, &context_data->pickables.plane_point, &context_data->pickables.plane_orientation.rows[1], 0.2);
     ed_CreateEnemyPickable(type, &position, &mat3_t_c_id(), NULL);
-    ed_SetNextState(ed_LevelEditorIdle);
+    ed_SetNextState(ed_l_Idle);
 }
 
 void ed_l_TransformSelections(uint32_t just_changed)
@@ -2584,7 +2640,7 @@ void ed_l_TransformSelections(uint32_t just_changed)
                 vec3_t_fmadd(&plane_normal, &manipulator_cam_vec, &axis_vec, -proj);
                 vec3_t_normalize(&plane_normal, &plane_normal);
 
-                ed_w_IntersectPlaneFromCamera(mouse_x, mouse_y, &manipulator_transform->rows[3].xyz, &plane_normal, &intersection);
+                ed_l_IntersectPlaneFromCamera(mouse_x, mouse_y, &manipulator_transform->rows[3].xyz, &plane_normal, &intersection);
 
                 vec3_t cur_offset;
                 vec3_t_sub(&cur_offset, &intersection, &manipulator_transform->rows[3].xyz);
@@ -2631,7 +2687,7 @@ void ed_l_TransformSelections(uint32_t just_changed)
 
             case ED_L_TRANSFORM_TYPE_ROTATION:
             {
-                ed_w_IntersectPlaneFromCamera(mouse_x, mouse_y, &manipulator_transform->rows[3].xyz, &axis_vec, &intersection);
+                ed_l_IntersectPlaneFromCamera(mouse_x, mouse_y, &manipulator_transform->rows[3].xyz, &axis_vec, &intersection);
 
                 vec3_t manipulator_mouse_vec;
                 vec3_t_sub(&manipulator_mouse_vec, &intersection, &manipulator_transform->rows[3].xyz);
@@ -2691,7 +2747,7 @@ void ed_l_TransformSelections(uint32_t just_changed)
     }
     else
     {
-        ed_SetNextState(ed_LevelEditorIdle);
+        ed_SetNextState(ed_l_Idle);
         context_data->pickables.last_selected = NULL;
     }
 }
@@ -2712,7 +2768,7 @@ void ed_SerializeLevel(void **level_buffer, size_t *buffer_size, uint32_t serial
         level_editor_section_size += sizeof(struct ed_brush_record_t) * ed_level_state.brush.brushes.used;
         level_editor_section_size += sizeof(struct ed_vert_record_t) * ed_level_state.brush.brush_vert_count;
         level_editor_section_size += sizeof(struct ed_edge_record_t) * ed_level_state.brush.brush_edges.used;
-        level_editor_section_size += sizeof(struct ed_polygon_record_t) * ed_level_state.brush.brush_face_polygons.used;
+//        level_editor_section_size += sizeof(struct ed_polygon_record_t) * ed_level_state.brush.brush_face_polygons.used;
         /* each edge is referenced by two polygons, so its index will be serialized twice */
         level_editor_section_size += sizeof(size_t) * ed_level_state.brush.brush_edges.used * 2;
         level_editor_section_size += sizeof(struct ed_face_t) * ed_level_state.brush.brush_faces.used;
@@ -2873,57 +2929,57 @@ void ed_SerializeLevel(void **level_buffer, size_t *buffer_size, uint32_t serial
                 uint32_t polygon_id = 0;
                 struct ed_face_t *face = brush->faces;
                 /* serialize faces and polygons */
-                while(face)
-                {
-                    struct ed_face_record_t *face_record = face_records + brush_record->face_count;
-                    brush_record->face_count++;
-
-                    strcpy(face_record->material, face->material->name);
-                    face_record->uv_rot = face->tex_coords_rot;
-                    face_record->uv_scale = face->tex_coords_scale;
-                    face_record->polygon_start = cur_out_buffer - start_out_buffer;
-
-                    struct ed_face_polygon_t *polygon = face->polygons;
-
-                    while(polygon)
-                    {
-                        struct ed_polygon_record_t *polygon_record = (struct ed_polygon_record_t *)cur_out_buffer;
-                        cur_out_buffer += sizeof(struct ed_polygon_record_t);
-                        cur_out_buffer += sizeof(size_t) * polygon->edge_count;
-
-                        /* go over all the edges of this polygon and store connectivity data. The indices
-                        stored are for the serialized records */
-                        struct ed_edge_t *edge = polygon->edges;
-
-                        while(edge)
-                        {
-                            uint32_t polygon_side = edge->polygons[1].polygon == polygon;
-                            struct ed_edge_record_t *edge_record = edge_records + edge->s_index;
-
-                            /* store the serialization index of this edge in the edge list of this polygon
-                            record */
-                            polygon_record->edges[polygon_record->edge_count] = edge->s_index;
-                            /* store on which side of this edge the polygon is */
-                            edge_record->polygons[polygon_side] = polygon_id;
-                            polygon_record->edge_count++;
-
-                            if(edge_record->polygons[0] != 0xffffffff && edge_record->polygons[1] != 0xffffffff)
-                            {
-                                /* this edge has been referenced twice, so we can clear its serialization index. This
-                                is necessary for other serializations to properly happen in the future. */
-                                edge->s_index = 0xffffffff;
-                            }
-
-                            edge = edge->polygons[polygon_side].next;
-                        }
-
-                        face_record->polygon_count++;
-                        polygon = polygon->next;
-                        polygon_id++;
-                    }
-
-                    face = face->next;
-                }
+//                while(face)
+//                {
+//                    struct ed_face_record_t *face_record = face_records + brush_record->face_count;
+//                    brush_record->face_count++;
+//
+//                    strcpy(face_record->material, face->material->name);
+//                    face_record->uv_rot = face->tex_coords_rot;
+//                    face_record->uv_scale = face->tex_coords_scale;
+//                    face_record->polygon_start = cur_out_buffer - start_out_buffer;
+//
+//                    struct ed_face_polygon_t *polygon = face->polygons;
+//
+//                    while(polygon)
+//                    {
+//                        struct ed_polygon_record_t *polygon_record = (struct ed_polygon_record_t *)cur_out_buffer;
+//                        cur_out_buffer += sizeof(struct ed_polygon_record_t);
+//                        cur_out_buffer += sizeof(size_t) * polygon->edge_count;
+//
+//                        /* go over all the edges of this polygon and store connectivity data. The indices
+//                        stored are for the serialized records */
+//                        struct ed_edge_t *edge = polygon->edges;
+//
+//                        while(edge)
+//                        {
+//                            uint32_t polygon_side = edge->polygons[1].polygon == polygon;
+//                            struct ed_edge_record_t *edge_record = edge_records + edge->s_index;
+//
+//                            /* store the serialization index of this edge in the edge list of this polygon
+//                            record */
+//                            polygon_record->edges[polygon_record->edge_count] = edge->s_index;
+//                            /* store on which side of this edge the polygon is */
+//                            edge_record->polygons[polygon_side] = polygon_id;
+//                            polygon_record->edge_count++;
+//
+//                            if(edge_record->polygons[0] != 0xffffffff && edge_record->polygons[1] != 0xffffffff)
+//                            {
+//                                /* this edge has been referenced twice, so we can clear its serialization index. This
+//                                is necessary for other serializations to properly happen in the future. */
+//                                edge->s_index = 0xffffffff;
+//                            }
+//
+//                            edge = edge->polygons[polygon_side].next;
+//                        }
+//
+//                        face_record->polygon_count++;
+//                        polygon = polygon->next;
+//                        polygon_id++;
+//                    }
+//
+//                    face = face->next;
+//                }
 
                 brush_record->record_size = cur_out_buffer - (char *)brush_record->record_size;
             }
@@ -3233,7 +3289,7 @@ void ed_DeserializeLevel(void *level_buffer, size_t buffer_size)
         brush->update_flags |= ED_BRUSH_UPDATE_FLAG_FACE_POLYGONS;
         brush->position = brush_record->position;
         brush->orientation = brush_record->orientation;
-        brush->main_brush = brush;
+//        brush->main_brush = brush;
 
         /* first read all verts of this brush, and store the allocation index back into the vertex record,
         so we can map between a record and a vertex further down */
@@ -3248,65 +3304,65 @@ void ed_DeserializeLevel(void *level_buffer, size_t buffer_size)
         uint32_t polygon_id = 0;
 
         /* deserialize faces */
-        for(uint32_t face_index = 0; face_index < brush_record->face_count; face_index++)
-        {
-            struct ed_face_record_t *face_record = face_records + face_index;
-            struct ed_face_t *face = ed_AllocFace(brush);
-
-            face->material = r_FindMaterial(face_record->material);
-            face->tex_coords_rot = face_record->uv_rot;
-            face->tex_coords_scale = face_record->uv_scale;
-
-            struct ed_face_polygon_t *last_polygon = NULL;
-
-            struct ed_polygon_record_t *polygon_records = (struct ed_polygon_record_t *)(start_in_buffer + face_record->polygon_start);
-            for(uint32_t polygon_index = 0; polygon_index < face_record->polygon_count; polygon_index++)
-            {
-                struct ed_polygon_record_t *polygon_record = polygon_records + polygon_index;
-                struct ed_face_polygon_t *polygon = ed_AllocFacePolygon(brush, face);
-
-                for(uint32_t edge_index = 0; edge_index < polygon_record->edge_count; edge_index++)
-                {
-                    struct ed_edge_record_t *edge_record = edge_records + polygon_record->edges[edge_index];
-                    /* find in which side of the serialized edge the serialized polygon is */
-                    uint32_t polygon_side = edge_record->polygons[1] == polygon_id;
-                    struct ed_edge_t *edge;
-
-                    if(edge_record->d_index == 0xffffffff)
-                    {
-                        edge = ed_AllocEdge(brush);
-                        /* we store the allocated index for the edge in the serialized data, so
-                        we can quickly map to the allocated edge from the serialized edge */
-                        edge_record->d_index = edge->index;
-                        struct ed_vert_record_t *vert0_record = vert_records + edge_record->vertices[0];
-                        struct ed_vert_record_t *vert1_record = vert_records + edge_record->vertices[1];
-                        struct ed_vert_t *vert0 = ed_GetVert(brush, vert0_record->d_index);
-                        struct ed_vert_t *vert1 = ed_GetVert(brush, vert1_record->d_index);
-
-                        edge->verts[0].vert = vert0;
-                        edge->verts[1].vert = vert1;
-
-                        ed_LinkVertEdge(vert0, edge);
-                        ed_LinkVertEdge(vert1, edge);
-                    }
-                    else
-                    {
-                        edge = ed_GetEdge(edge_record->d_index);
-                        /* clearing this here allows us to deserialize the contents of this
-                        buffer as many times as we want. Not terribly useful, but ehh. */
-                        edge_record->d_index = 0xffffffff;
-                    }
-
-                    edge->polygons[polygon_side].polygon = polygon;
-                    ed_LinkFacePolygonEdge(polygon, edge);
-                }
-
-                polygon_id++;
-            }
-        }
+//        for(uint32_t face_index = 0; face_index < brush_record->face_count; face_index++)
+//        {
+//            struct ed_face_record_t *face_record = face_records + face_index;
+//            struct ed_face_t *face = ed_AllocFace(brush);
+//
+//            face->material = r_FindMaterial(face_record->material);
+//            face->tex_coords_rot = face_record->uv_rot;
+//            face->tex_coords_scale = face_record->uv_scale;
+//
+//            struct ed_face_polygon_t *last_polygon = NULL;
+//
+//            struct ed_polygon_record_t *polygon_records = (struct ed_polygon_record_t *)(start_in_buffer + face_record->polygon_start);
+//            for(uint32_t polygon_index = 0; polygon_index < face_record->polygon_count; polygon_index++)
+//            {
+//                struct ed_polygon_record_t *polygon_record = polygon_records + polygon_index;
+//                struct ed_face_polygon_t *polygon = ed_AllocFacePolygon(brush, face);
+//
+//                for(uint32_t edge_index = 0; edge_index < polygon_record->edge_count; edge_index++)
+//                {
+//                    struct ed_edge_record_t *edge_record = edge_records + polygon_record->edges[edge_index];
+//                    /* find in which side of the serialized edge the serialized polygon is */
+//                    uint32_t polygon_side = edge_record->polygons[1] == polygon_id;
+//                    struct ed_edge_t *edge;
+//
+//                    if(edge_record->d_index == 0xffffffff)
+//                    {
+//                        edge = ed_AllocEdge(brush);
+//                        /* we store the allocated index for the edge in the serialized data, so
+//                        we can quickly map to the allocated edge from the serialized edge */
+//                        edge_record->d_index = edge->index;
+//                        struct ed_vert_record_t *vert0_record = vert_records + edge_record->vertices[0];
+//                        struct ed_vert_record_t *vert1_record = vert_records + edge_record->vertices[1];
+//                        struct ed_vert_t *vert0 = ed_GetVert(brush, vert0_record->d_index);
+//                        struct ed_vert_t *vert1 = ed_GetVert(brush, vert1_record->d_index);
+//
+//                        edge->verts[0].vert = vert0;
+//                        edge->verts[1].vert = vert1;
+//
+//                        ed_LinkVertEdge(vert0, edge);
+//                        ed_LinkVertEdge(vert1, edge);
+//                    }
+//                    else
+//                    {
+//                        edge = ed_GetEdge(edge_record->d_index);
+//                        /* clearing this here allows us to deserialize the contents of this
+//                        buffer as many times as we want. Not terribly useful, but ehh. */
+//                        edge_record->d_index = 0xffffffff;
+//                    }
+//
+//                    edge->polygons[polygon_side].polygon = polygon;
+//                    ed_LinkFacePolygonEdge(polygon, edge);
+//                }
+//
+//                polygon_id++;
+//            }
+//        }
 
         ed_UpdateBrush(brush);
-        ed_CreateBrushPickable(NULL, NULL, NULL, brush);
+//        ed_CreateBrushPickable(NULL, NULL, NULL, brush);
     }
 
     ed_w_UpdatePickableObjects();
@@ -3316,53 +3372,53 @@ void ed_DeserializeLevel(void *level_buffer, size_t buffer_size)
 
 void ed_l_SurfaceUnderMouse(int32_t mouse_x, int32_t mouse_y, vec3_t *plane_point, mat3_t *plane_orientation)
 {
-    uint32_t ignore_types = ED_PICKABLE_OBJECT_MASK | ED_PICKABLE_TYPE_MASK_EDGE | ED_PICKABLE_TYPE_MASK_VERT;
-    struct ds_slist_t *pickables = &ed_level_state.pickables.pickables;
-    struct ed_pickable_t *surface = ed_SelectPickable(mouse_x, mouse_y, pickables, NULL, ignore_types);
-
-    if(surface)
-    {
-        struct ed_brush_t *brush = ed_GetBrush(surface->primary_index);
-        struct ed_face_t *face = ed_GetFace(surface->secondary_index);
-        plane_orientation->rows[1] = face->polygons->normal;
-        *plane_point = *(vec3_t *)ds_list_get_element(&face->clipped_polygons->vertices, 0);
-        mat3_t_vec3_t_mul(&plane_orientation->rows[1], &plane_orientation->rows[1], &brush->orientation);
-        mat3_t_vec3_t_mul(plane_point, plane_point, &brush->orientation);
-        vec3_t_add(plane_point, plane_point, &brush->position);
-
-        float max_axis_proj = -FLT_MAX;
-        uint32_t j_axis_index = 0;
-//        mat3_t *plane_orientation = &context_data->brush.plane_orientation;
-        vec3_t axes[] =
-        {
-            vec3_t_c(1.0, 0.0, 0.0),
-            vec3_t_c(0.0, 1.0, 0.0),
-            vec3_t_c(0.0, 0.0, 1.0),
-        };
-
-        for(uint32_t comp_index = 0; comp_index < 3; comp_index++)
-        {
-            float axis_proj = fabsf(plane_orientation->rows[1].comps[comp_index]);
-
-            if(axis_proj > max_axis_proj)
-            {
-                max_axis_proj = axis_proj;
-                j_axis_index = comp_index;
-            }
-        }
-
-        uint32_t k_axis_index = (j_axis_index + 1) % 3;
-        vec3_t_cross(&plane_orientation->rows[0], &axes[k_axis_index], &plane_orientation->rows[1]);
-        vec3_t_normalize(&plane_orientation->rows[0], &plane_orientation->rows[0]);
-
-        vec3_t_cross(&plane_orientation->rows[2], &plane_orientation->rows[1], &plane_orientation->rows[0]);
-        vec3_t_normalize(&plane_orientation->rows[2], &plane_orientation->rows[2]);
-    }
-    else
-    {
-        *plane_point = vec3_t_c(0.0, 0.0, 0.0);
-        *plane_orientation = mat3_t_c_id();
-    }
+//    uint32_t ignore_types = ED_PICKABLE_OBJECT_MASK | ED_PICKABLE_TYPE_MASK_EDGE | ED_PICKABLE_TYPE_MASK_VERT;
+//    struct ds_slist_t *pickables = &ed_level_state.pickables.pickables;
+//    struct ed_pickable_t *surface = ed_SelectPickable(mouse_x, mouse_y, pickables, NULL, ignore_types);
+//
+//    if(surface)
+//    {
+//        struct ed_brush_t *brush = ed_GetBrush(surface->primary_index);
+//        struct ed_face_t *face = ed_GetFace(surface->secondary_index);
+//        plane_orientation->rows[1] = face->polygons->normal;
+//        *plane_point = *(vec3_t *)ds_list_get_element(&face->clipped_polygons->vertices, 0);
+//        mat3_t_vec3_t_mul(&plane_orientation->rows[1], &plane_orientation->rows[1], &brush->orientation);
+//        mat3_t_vec3_t_mul(plane_point, plane_point, &brush->orientation);
+//        vec3_t_add(plane_point, plane_point, &brush->position);
+//
+//        float max_axis_proj = -FLT_MAX;
+//        uint32_t j_axis_index = 0;
+////        mat3_t *plane_orientation = &context_data->brush.plane_orientation;
+//        vec3_t axes[] =
+//        {
+//            vec3_t_c(1.0, 0.0, 0.0),
+//            vec3_t_c(0.0, 1.0, 0.0),
+//            vec3_t_c(0.0, 0.0, 1.0),
+//        };
+//
+//        for(uint32_t comp_index = 0; comp_index < 3; comp_index++)
+//        {
+//            float axis_proj = fabsf(plane_orientation->rows[1].comps[comp_index]);
+//
+//            if(axis_proj > max_axis_proj)
+//            {
+//                max_axis_proj = axis_proj;
+//                j_axis_index = comp_index;
+//            }
+//        }
+//
+//        uint32_t k_axis_index = (j_axis_index + 1) % 3;
+//        vec3_t_cross(&plane_orientation->rows[0], &axes[k_axis_index], &plane_orientation->rows[1]);
+//        vec3_t_normalize(&plane_orientation->rows[0], &plane_orientation->rows[0]);
+//
+//        vec3_t_cross(&plane_orientation->rows[2], &plane_orientation->rows[1], &plane_orientation->rows[0]);
+//        vec3_t_normalize(&plane_orientation->rows[2], &plane_orientation->rows[2]);
+//    }
+//    else
+//    {
+//        *plane_point = vec3_t_c(0.0, 0.0, 0.0);
+//        *plane_orientation = mat3_t_c_id();
+//    }
 }
 
 void ed_l_LinearSnapValueOnSurface(vec3_t *plane_point, mat3_t *plane_orientation, vec3_t *snapped_value)
@@ -3753,149 +3809,149 @@ void ed_l_BuildWorldData()
 {
 //    ed_l_ClearBrushEntities();
 
-    if((ed_level_state.world_data_stale || !l_world_collider) && ed_level_state.brush.brushes.used)
-    {
-        printf("ed_l_BuildWorldData\n");
-        ed_level_state.world_data_stale = 0;
-
-        float start = g_GetDeltaTime();
-        struct ed_bsp_polygon_t *clipped_polygons = NULL;
-
-        for(uint32_t brush_index = 0; brush_index < ed_level_state.brush.brushes.cursor; brush_index++)
-        {
-            struct ed_brush_t *brush = ed_GetBrush(brush_index);
-
-            if(brush)
-            {
-                struct ed_bsp_polygon_t *brush_polygons = ed_BspPolygonsFromBrush(brush);
-                clipped_polygons = ed_ClipPolygonLists(clipped_polygons, brush_polygons);
-            }
-        }
-
-        float end = g_GetDeltaTime();
-        printf("bsp took %f seconds\n", end - start);
-
-        struct ds_buffer_t *polygon_buffer = &ed_level_state.brush.polygon_buffer;
-        struct ds_buffer_t *batch_buffer = &ed_level_state.brush.batch_buffer;
-        struct ds_buffer_t *vertex_buffer = &ed_level_state.brush.vertex_buffer;
-        struct ds_buffer_t *index_buffer = &ed_level_state.brush.index_buffer;
-
-        struct ed_bsp_polygon_t *polygon = clipped_polygons;
-        uint32_t polygon_count = 0;
-        uint32_t index_count = 0;
-        uint32_t vert_count = 0;
-
-        while(polygon)
-        {
-            if(polygon_count >= polygon_buffer->buffer_size)
-            {
-                ds_buffer_resize(polygon_buffer, polygon_buffer->buffer_size + 16);
-            }
-
-            ((struct ed_bsp_polygon_t **)polygon_buffer->buffer)[polygon_count] = polygon;
-            index_count += (polygon->vertices.cursor - 2) * 3;
-            vert_count += polygon->vertices.cursor;
-            polygon_count++;
-            polygon = polygon->next;
-        }
-
-        qsort(polygon_buffer->buffer, polygon_count, polygon_buffer->elem_size, ed_CompareBspPolygons);
-
-        if(index_count > index_buffer->buffer_size)
-        {
-            ds_buffer_resize(index_buffer, index_count);
-        }
-
-        if(vert_count > vertex_buffer->buffer_size)
-        {
-            ds_buffer_resize(vertex_buffer, vert_count);
-        }
-
-        uint32_t batch_count = 0;
-        struct r_material_t *cur_material = NULL;
-        struct ds_buffer_t col_vertex_buffer = ds_buffer_create(sizeof(vec3_t), vert_count);
-
-        uint32_t *world_indices = index_buffer->buffer;
-        struct r_vert_t *world_verts = vertex_buffer->buffer;
-        vec3_t *world_col_verts = col_vertex_buffer.buffer;
-
-
-        vert_count = 0;
-
-        struct r_batch_t *batch = NULL;
-
-        for(uint32_t polygon_index = 0; polygon_index < polygon_count; polygon_index++)
-        {
-            struct ed_bsp_polygon_t *polygon = ((struct ed_bsp_polygon_t **)polygon_buffer->buffer)[polygon_index];
-
-            if(polygon->face_polygon->face->material != cur_material)
-            {
-                cur_material = polygon->face_polygon->face->material;
-
-                if(batch_count >= batch_buffer->buffer_size)
-                {
-                    ds_buffer_resize(batch_buffer, batch_count + 1);
-                }
-
-                batch = ((struct r_batch_t *)batch_buffer->buffer) + batch_count;
-                batch->material = cur_material;
-                batch->count = 0;
-                batch->start = 0;
-
-                if(batch_count)
-                {
-                    struct r_batch_t *prev_batch = ((struct r_batch_t *)batch_buffer->buffer) + batch_count - 1;
-                    batch->start = prev_batch->start + prev_batch->count;
-                }
-
-                batch_count++;
-            }
-
-            for(uint32_t vert_index = 1; vert_index < polygon->vertices.cursor - 1;)
-            {
-                world_indices[batch->start + batch->count] = vert_count;
-                batch->count++;
-
-                world_indices[batch->start + batch->count] = vert_count + vert_index;
-                vert_index++;
-                batch->count++;
-
-                world_indices[batch->start + batch->count] = vert_count + vert_index;
-                batch->count++;
-            }
-
-            for(uint32_t vert_index = 0; vert_index < polygon->vertices.cursor; vert_index++)
-            {
-                struct r_vert_t *vert = ds_list_get_element(&polygon->vertices, vert_index);
-                world_verts[vert_index + vert_count] = *vert;
-                world_col_verts[vert_index + vert_count] = vert->pos;
-            }
-
-            vert_count += polygon->vertices.cursor;
-            polygon = polygon->next;
-        }
-
-        struct ds_buffer_t col_index_buffer = ds_buffer_copy(index_buffer);
-
-        if(vert_count)
-        {
-            l_world_shape->itri_mesh.verts = world_col_verts;
-            l_world_shape->itri_mesh.vert_count = vert_count;
-            l_world_shape->itri_mesh.indices = col_index_buffer.buffer;
-            l_world_shape->itri_mesh.index_count = index_count;
-            l_world_collider = p_CreateCollider(&l_world_col_def, &vec3_t_c(1.0, 1.0, 1.0), &vec3_t_c(0.0, 0.0, 0.0), &mat3_t_c_id());
-
-            struct r_model_geometry_t model_geometry = {};
-
-            model_geometry.batches = batch_buffer->buffer;
-            model_geometry.batch_count = batch_count;
-            model_geometry.verts = vertex_buffer->buffer;
-            model_geometry.vert_count = vert_count;
-            model_geometry.indices = index_buffer->buffer;
-            model_geometry.index_count = index_count;
-            l_world_model = r_CreateModel(&model_geometry, NULL, "world_model");
-        }
-    }
+//    if((ed_level_state.world_data_stale || !l_world_collider) && ed_level_state.brush.brushes.used)
+//    {
+//        printf("ed_l_BuildWorldData\n");
+//        ed_level_state.world_data_stale = 0;
+//
+//        float start = g_GetDeltaTime();
+//        struct ed_bsp_polygon_t *clipped_polygons = NULL;
+//
+//        for(uint32_t brush_index = 0; brush_index < ed_level_state.brush.brushes.cursor; brush_index++)
+//        {
+//            struct ed_brush_t *brush = ed_GetBrush(brush_index);
+//
+//            if(brush)
+//            {
+//                struct ed_bsp_polygon_t *brush_polygons = ed_BspPolygonsFromBrush(brush);
+//                clipped_polygons = ed_ClipPolygonLists(clipped_polygons, brush_polygons);
+//            }
+//        }
+//
+//        float end = g_GetDeltaTime();
+//        printf("bsp took %f seconds\n", end - start);
+//
+//        struct ds_buffer_t *polygon_buffer = &ed_level_state.brush.polygon_buffer;
+//        struct ds_buffer_t *batch_buffer = &ed_level_state.brush.batch_buffer;
+//        struct ds_buffer_t *vertex_buffer = &ed_level_state.brush.vertex_buffer;
+//        struct ds_buffer_t *index_buffer = &ed_level_state.brush.index_buffer;
+//
+//        struct ed_bsp_polygon_t *polygon = clipped_polygons;
+//        uint32_t polygon_count = 0;
+//        uint32_t index_count = 0;
+//        uint32_t vert_count = 0;
+//
+//        while(polygon)
+//        {
+//            if(polygon_count >= polygon_buffer->buffer_size)
+//            {
+//                ds_buffer_resize(polygon_buffer, polygon_buffer->buffer_size + 16);
+//            }
+//
+//            ((struct ed_bsp_polygon_t **)polygon_buffer->buffer)[polygon_count] = polygon;
+//            index_count += (polygon->vertices.cursor - 2) * 3;
+//            vert_count += polygon->vertices.cursor;
+//            polygon_count++;
+//            polygon = polygon->next;
+//        }
+//
+//        qsort(polygon_buffer->buffer, polygon_count, polygon_buffer->elem_size, ed_CompareBspPolygons);
+//
+//        if(index_count > index_buffer->buffer_size)
+//        {
+//            ds_buffer_resize(index_buffer, index_count);
+//        }
+//
+//        if(vert_count > vertex_buffer->buffer_size)
+//        {
+//            ds_buffer_resize(vertex_buffer, vert_count);
+//        }
+//
+//        uint32_t batch_count = 0;
+//        struct r_material_t *cur_material = NULL;
+//        struct ds_buffer_t col_vertex_buffer = ds_buffer_create(sizeof(vec3_t), vert_count);
+//
+//        uint32_t *world_indices = index_buffer->buffer;
+//        struct r_vert_t *world_verts = vertex_buffer->buffer;
+//        vec3_t *world_col_verts = col_vertex_buffer.buffer;
+//
+//
+//        vert_count = 0;
+//
+//        struct r_batch_t *batch = NULL;
+//
+//        for(uint32_t polygon_index = 0; polygon_index < polygon_count; polygon_index++)
+//        {
+//            struct ed_bsp_polygon_t *polygon = ((struct ed_bsp_polygon_t **)polygon_buffer->buffer)[polygon_index];
+//
+//            if(polygon->face_polygon->face->material != cur_material)
+//            {
+//                cur_material = polygon->face_polygon->face->material;
+//
+//                if(batch_count >= batch_buffer->buffer_size)
+//                {
+//                    ds_buffer_resize(batch_buffer, batch_count + 1);
+//                }
+//
+//                batch = ((struct r_batch_t *)batch_buffer->buffer) + batch_count;
+//                batch->material = cur_material;
+//                batch->count = 0;
+//                batch->start = 0;
+//
+//                if(batch_count)
+//                {
+//                    struct r_batch_t *prev_batch = ((struct r_batch_t *)batch_buffer->buffer) + batch_count - 1;
+//                    batch->start = prev_batch->start + prev_batch->count;
+//                }
+//
+//                batch_count++;
+//            }
+//
+//            for(uint32_t vert_index = 1; vert_index < polygon->vertices.cursor - 1;)
+//            {
+//                world_indices[batch->start + batch->count] = vert_count;
+//                batch->count++;
+//
+//                world_indices[batch->start + batch->count] = vert_count + vert_index;
+//                vert_index++;
+//                batch->count++;
+//
+//                world_indices[batch->start + batch->count] = vert_count + vert_index;
+//                batch->count++;
+//            }
+//
+//            for(uint32_t vert_index = 0; vert_index < polygon->vertices.cursor; vert_index++)
+//            {
+//                struct r_vert_t *vert = ds_list_get_element(&polygon->vertices, vert_index);
+//                world_verts[vert_index + vert_count] = *vert;
+//                world_col_verts[vert_index + vert_count] = vert->pos;
+//            }
+//
+//            vert_count += polygon->vertices.cursor;
+//            polygon = polygon->next;
+//        }
+//
+//        struct ds_buffer_t col_index_buffer = ds_buffer_copy(index_buffer);
+//
+//        if(vert_count)
+//        {
+//            l_world_shape->itri_mesh.verts = world_col_verts;
+//            l_world_shape->itri_mesh.vert_count = vert_count;
+//            l_world_shape->itri_mesh.indices = col_index_buffer.buffer;
+//            l_world_shape->itri_mesh.index_count = index_count;
+//            l_world_collider = p_CreateCollider(&l_world_col_def, &vec3_t_c(1.0, 1.0, 1.0), &vec3_t_c(0.0, 0.0, 0.0), &mat3_t_c_id());
+//
+//            struct r_model_geometry_t model_geometry = {};
+//
+//            model_geometry.batches = batch_buffer->buffer;
+//            model_geometry.batch_count = batch_count;
+//            model_geometry.verts = vertex_buffer->buffer;
+//            model_geometry.vert_count = vert_count;
+//            model_geometry.indices = index_buffer->buffer;
+//            model_geometry.index_count = index_count;
+//            l_world_model = r_CreateModel(&model_geometry, NULL, "world_model");
+//        }
+//    }
 }
 
 void ed_l_ClearWorldData()

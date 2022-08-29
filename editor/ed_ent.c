@@ -9,7 +9,7 @@
 #include "../engine/input.h"
 #include "../engine/gui.h"
 #include "../engine/phys.h"
-#include "ed_level.h"
+#include "level.h"
 #include "ed_main.h"
 #include <stddef.h>
 #include <math.h>

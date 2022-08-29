@@ -1,7 +1,7 @@
 #include <stdlib.h>
 
 #include "ed_bsp.h"
-#include "ed_brush.h"
+#include "brush.h"
 
 //#define ED_BSP_DELTA 0.0001
 //

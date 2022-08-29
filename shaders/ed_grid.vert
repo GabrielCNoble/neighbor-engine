@@ -1,6 +1,5 @@
-#version 400 core
-layout(location = 0)in vec4 r_position;
-layout(location = 3)in vec2 r_tex_coords;
+#include "r_defs.h"
+#include "r_default_attribs.h"
 
 uniform mat4 r_model_view_projection_matrix;
 
@@ -9,7 +8,8 @@ out float position_z;
 
 void main()
 {
-    gl_Position = r_model_view_projection_matrix * r_position;
-    position_z = gl_Position.z;
+    vec4 position = r_model_view_projection_matrix * r_position;
+    gl_Position = position;
+    position_z = position.z;
     tex_coords = r_tex_coords;
 }

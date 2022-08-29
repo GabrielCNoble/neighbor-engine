@@ -40,6 +40,15 @@ void r_i_ApplyDrawState(struct r_i_draw_state_t *draw_state)
         r_BindFramebuffer(framebuffer->framebuffer);
     }
 
+    if(draw_state->draw_mask)
+    {
+        struct r_i_draw_mask_t *draw_mask = draw_state->draw_mask;
+
+        glColorMask(draw_mask->red, draw_mask->green, draw_mask->blue, draw_mask->alpha);
+        glDepthMask(draw_mask->depth);
+        glStencilMask(draw_mask->stencil);
+    }
+
     if(draw_state->rasterizer)
     {
         struct r_i_raster_t *rasterizer = draw_state->rasterizer;
@@ -348,9 +357,39 @@ void r_i_SetScissor(struct r_i_cmd_buffer_t *cmd_buffer, struct r_i_draw_range_t
     *draw_state->scissor = *scissor;
 }
 
-void r_i_SetFramebuffer(struct r_i_cmd_buffer_t *cmd_buffer, struct r_i_draw_range_t *range, struct r_framebuffer_t *framebuffer)
+void r_i_SetFramebuffer(struct r_i_cmd_buffer_t *cmd_buffer, struct r_i_draw_range_t *range, struct r_i_framebuffer_t *framebuffer)
 {
+    if(!cmd_buffer)
+    {
+        cmd_buffer = &r_immediate_cmd_buffer;
+    }
 
+    struct r_i_draw_state_t *draw_state = r_i_DrawState(cmd_buffer, range);
+
+    if(!draw_state->framebuffer)
+    {
+        draw_state->framebuffer = r_AllocImmediateCmdData(cmd_buffer, sizeof(struct r_i_framebuffer_t));
+    }
+
+    *draw_state->framebuffer = *framebuffer;
+}
+
+void r_i_Clear(struct r_i_cmd_buffer_t *cmd_buffer, struct r_i_draw_range_t *range, struct r_i_clear_t *clear)
+{
+    if(!cmd_buffer)
+    {
+        cmd_buffer = &r_immediate_cmd_buffer;
+    }
+
+    if(cmd_buffer->draw_state)
+    {
+        r_IssueImmediateCmd(cmd_buffer, R_I_CMD_SET_DRAW_STATE, cmd_buffer->draw_state);
+        cmd_buffer->draw_state = NULL;
+    }
+
+    struct r_i_clear_t *clear_state = r_AllocImmediateCmdData(cmd_buffer, sizeof(struct r_i_clear_t));
+    *clear_state = *clear;
+    r_IssueImmediateCmd(cmd_buffer, R_I_CMD_CLEAR, clear_state);
 }
 
 void r_i_DrawList(struct r_i_cmd_buffer_t *cmd_buffer, struct r_i_draw_list_t *draw_list)
@@ -414,14 +453,29 @@ struct r_i_mesh_t *r_i_AllocMesh(struct r_i_cmd_buffer_t *cmd_buffer, uint32_t v
     mesh->verts.count = vert_count;
     mesh->verts.stride = vert_size;
     mesh->verts.verts = r_AllocImmediateCmdData(cmd_buffer, vert_size * vert_count);
+    mesh->indices.count = index_count;
 
     if(index_count)
     {
-        mesh->indices.count = index_count;
         mesh->indices.indices = r_AllocImmediateCmdData(cmd_buffer, sizeof(uint32_t) * index_count);
     }
 
     return mesh;
+}
+
+void r_i_DrawBox(vec3_t *half_extents, vec4_t *color)
+{
+
+}
+
+void r_i_DrawLine(vec3_t *start, vec3_t *end, vec4_t *color)
+{
+
+}
+
+void r_i_DrawPoint(vec3_t *pos, vec4_t *color)
+{
+
 }
 
 //struct r_i_indices_t *r_i_AllocIndices(struct r_i_cmd_buffer_t *cmd_buffer, uint32_t index_count)

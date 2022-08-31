@@ -93,7 +93,8 @@ struct ed_level_state_t
     struct
     {
         struct ed_obj_context_t objects;
-        struct ed_obj_t *       last_picked;
+        struct ed_obj_result_t  last_picked;
+//        struct ed_obj_t *       last_picked;
     }obj;
 
     struct

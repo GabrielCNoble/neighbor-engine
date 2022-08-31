@@ -55,7 +55,7 @@ void load_wavefront(char *file_name,  struct geometry_data_t *geometry_data)
     int j = 0;
     int k = 0;
     char *file_buffer;
-    uint32_t file_size;
+    size_t file_size;
     vec4_t vec_attrib;
     int attrib_size;
     FILE *file;
@@ -302,7 +302,7 @@ void load_wavefront_mtl(char *file_name, struct geometry_data_t *geometry_data)
     int i = 0;
     int j;
     char *file_buffer;
-    uint32_t file_size;
+    size_t file_size;
 //    struct material_data_t *current_material = NULL;
     struct batch_data_t *current_batch = NULL;
     int value_str_index;

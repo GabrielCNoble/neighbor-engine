@@ -10,18 +10,27 @@ struct ed_obj_funcs_t ed_obj_funcs[ED_OBJ_TYPE_LAST] = {
     [ED_OBJ_TYPE_BRUSH] = {
         .create                 = ed_CreateBrushObject,
         .destroy                = ed_DestroyBrushObject,
-        .update                 = ed_UpdateBrushObject,
+        .update_handle_obj      = ed_UpdateBrushHandleObject,
+        .update_base_obj        = ed_UpdateBrushBaseObject,
         .render_pick            = ed_RenderPickBrushObject,
-        .render_outline         = ed_RenderOutlineBrushObject,
+        .render_draw            = ed_RenderDrawBrushObject,
         .draw_transform         = ed_WorldSpaceDrawTransform
     },
-    [ED_OBJ_TYPE_LIGHT] = {
-        .create         = ed_CreateLightObject,
-        .destroy        = ed_DestroyLightObject,
-        .update         = ed_UpdateLightObject,
-        .render_pick    = ed_RenderPickLightObject,
-        .render_outline = ed_RenderOutlineLightObject
+    [ED_OBJ_TYPE_FACE] = {
+        .create                 = ed_CreateFaceObject,
+        .destroy                = ed_DestroyFaceObject,
+        .update_handle_obj      = ed_UpdateFaceHandleObject,
+        .update_base_obj        = ed_UpdateFaceBaseObject,
+        .render_draw            = ed_RenderDrawFaceObject,
+        .draw_transform         = ed_FaceObjectDrawTransform
     }
+//    [ED_OBJ_TYPE_LIGHT] = {
+//        .create                 = ed_CreateLightObject,
+//        .destroy                = ed_DestroyLightObject,
+//        .update_handle_obj      = ed_UpdateLightHandleObject,
+//        .render_pick            = ed_RenderPickLightObject,
+//        .render_outline         = ed_RenderOutlineLightObject
+//    }
 };
 
 struct r_i_draw_state_t ed_obj_render_pick_states[ED_OBJ_TYPE_LAST] = {
@@ -52,7 +61,7 @@ void ed_ObjInit()
 {
     struct r_framebuffer_desc_t framebuffer_desc = {
         .color_attachments[0] = &(struct r_texture_desc_t) {
-            .format = R_FORMAT_RG32UI,
+            .format = R_FORMAT_RGBA32UI,
             .min_filter = GL_NEAREST,
             .mag_filter = GL_NEAREST,
         },
@@ -82,9 +91,17 @@ void ed_ObjInit()
             [ED_PICK_SHADER_UNIFORM_OBJ_INDEX] = {
                 .name = "ed_obj_index",
                 .type = R_UNIFORM_TYPE_INT
-            }
+            },
+            [ED_PICK_SHADER_UNIFORM_OBJ_DATA0] = {
+                .name = "ed_obj_data0",
+                .type = R_UNIFORM_TYPE_INT,
+            },
+            [ED_PICK_SHADER_UNIFORM_OBJ_DATA1] = {
+                .name = "ed_obj_data1",
+                .type = R_UNIFORM_TYPE_INT,
+            },
         },
-        .uniform_count = 3
+        .uniform_count = 5
     };
     ed_picking_shader = r_LoadShader(&shader_desc);
 
@@ -118,7 +135,7 @@ struct ed_obj_context_t ed_CreateObjContext()
         context.objects[type] = ds_slist_create(sizeof(struct ed_obj_t), 512);
     }
 
-    context.selections = ds_list_create(sizeof(struct ed_obj_t *), 512);
+    context.selections = ds_list_create(sizeof(struct ed_obj_result_t ), 512);
 
     return context;
 }
@@ -148,10 +165,10 @@ struct ed_obj_h ed_CreateObj(struct ed_obj_context_t *context, uint32_t type, ve
         object->base_obj = ed_obj_funcs[type].create(position, orientation, scale, args);
         object->context = context;
 
+        ed_obj_funcs[type].update_handle_obj(object);
+
         handle.index = index;
         handle.type = type;
-
-        mat4_t_identity(&object->transform);
     }
 
     return handle;
@@ -184,9 +201,9 @@ struct ed_obj_t *ed_GetObject(struct ed_obj_context_t *context, struct ed_obj_h 
     return obj;
 }
 
-struct ed_obj_t *ed_PickObject(struct ed_obj_context_t *context, int32_t mouse_x, int32_t mouse_y, uint32_t ignore_mask)
+struct ed_obj_result_t ed_PickObject(struct ed_obj_context_t *context, int32_t mouse_x, int32_t mouse_y, uint32_t ignore_mask)
 {
-    struct ed_obj_t *result = NULL;
+    struct ed_obj_result_t result = {};
 
     struct r_i_framebuffer_t framebuffer = { .framebuffer = ed_pick_framebuffer };
     struct r_i_depth_t depth = { .enable = GL_TRUE, .func = GL_LESS };
@@ -223,25 +240,30 @@ struct ed_obj_t *ed_PickObject(struct ed_obj_context_t *context, int32_t mouse_x
             {
                 mat4_t model_view_projection_matrix;
                 funcs->draw_transform(object, &model_view_projection_matrix);
-                struct r_i_uniform_t uniforms[] = {
-                    [0] = {
-                        .uniform = ED_PICK_SHADER_UNIFORM_MODEL_VIEW_PROJECTION_MATRIX,
-                        .value = &model_view_projection_matrix,
-                        .count = 1,
-                    },
-                    [1] = {
-                        .uniform = ED_PICK_SHADER_UNIFORM_OBJ_TYPE,
-                        .value = &pick_type,
-                        .count = 1,
-                    },
-                    [2] = {
-                        .uniform = ED_PICK_SHADER_UNIFORM_OBJ_INDEX,
-                        .value = &pick_index,
-                        .count = 1,
-                    }
-                };
-                r_i_SetUniforms(&ed_pick_cmd_buffer, NULL, uniforms, 3);
-                funcs->render_pick(object, &ed_pick_cmd_buffer);
+                struct r_i_draw_list_t *draw_list = funcs->render_pick(object, &ed_pick_cmd_buffer);
+
+                if(draw_list != NULL)
+                {
+                    struct r_i_uniform_t uniforms[] = {
+                        [0] = {
+                            .uniform = ED_PICK_SHADER_UNIFORM_MODEL_VIEW_PROJECTION_MATRIX,
+                            .value = &model_view_projection_matrix,
+                            .count = 1,
+                        },
+                        [1] = {
+                            .uniform = ED_PICK_SHADER_UNIFORM_OBJ_TYPE,
+                            .value = &pick_type,
+                            .count = 1,
+                        },
+                        [2] = {
+                            .uniform = ED_PICK_SHADER_UNIFORM_OBJ_INDEX,
+                            .value = &pick_index,
+                            .count = 1,
+                        },
+                    };
+                    r_i_SetUniforms(&ed_pick_cmd_buffer, NULL, uniforms, 3);
+                    r_i_DrawList(&ed_pick_cmd_buffer, draw_list);
+                }
             }
         }
 
@@ -250,13 +272,17 @@ struct ed_obj_t *ed_PickObject(struct ed_obj_context_t *context, int32_t mouse_x
 
     r_RunImmCmdBuffer(&ed_pick_cmd_buffer);
     mouse_y = r_height - (mouse_y + 1);
-    int32_t pickable_index[2] = {};
-    r_SampleFramebuffer(ed_pick_framebuffer, mouse_x, mouse_y, 1, 1, sizeof(pickable_index), pickable_index);
+    int32_t pick[4] = {};
+    r_SampleFramebuffer(ed_pick_framebuffer, mouse_x, mouse_y, 1, 1, sizeof(pick), pick);
 
-    if(pickable_index[0])
+    if(pick[0])
     {
-        result = ed_GetObject(context, (struct ed_obj_h){.type = pickable_index[1] - 1, .index = pickable_index[0] - 1});
+        result.object = ed_GetObject(context, (struct ed_obj_h){.type = pick[1] - 1, .index = pick[0] - 1});
+        result.data0 = pick[2];
+        result.data1 = pick[3];
     }
+
+//    printf("%x %d %d\n", result.object, result.data0, result.data1);
 
     return result;
 }
@@ -267,27 +293,33 @@ void ed_DrawSelections(struct ed_obj_context_t *context, struct r_i_cmd_buffer_t
 
     for(uint32_t selection_index = 0; selection_index < context->selections.cursor; selection_index++)
     {
-        struct ed_obj_t *object = *(struct ed_obj_t **)ds_list_get_element(&context->selections, selection_index);
+        struct ed_obj_result_t *object = (struct ed_obj_result_t *)ds_list_get_element(&context->selections, selection_index);
         mat4_t model_view_projection_matrix;
-        ed_obj_funcs[object->type].draw_transform(object, &model_view_projection_matrix);
+        ed_obj_funcs[object->object->type].draw_transform(object->object, &model_view_projection_matrix);
         struct r_i_uniform_t uniforms = {
             .uniform = R_UNIFORM_MODEL_VIEW_PROJECTION_MATRIX,
             .count = 1,
             .value = &model_view_projection_matrix
         };
         r_i_SetUniforms(cmd_buffer, NULL, &uniforms, 1);
-        ed_obj_funcs[object->type].render_outline(object, cmd_buffer);
+        struct r_i_draw_list_t *draw_list = ed_obj_funcs[object->object->type].render_draw(object, cmd_buffer);
+
+        if(draw_list != NULL)
+        {
+            r_i_DrawList(cmd_buffer, draw_list);
+        }
+
     }
 }
 
-void ed_AddObjToSelections(struct ed_obj_context_t *context, uint32_t multiple, struct ed_obj_t *obj)
+void ed_AddObjToSelections(struct ed_obj_context_t *context, uint32_t multiple, struct ed_obj_result_t *obj)
 {
-    if(context && obj && obj->context == context)
+    if(context != NULL && obj != NULL && obj->object != NULL && obj->object->context == context)
     {
-        if(obj->selection_index != ED_INVALID_OBJ_SELECTION_INDEX)
+        if(obj->object->selection_index != ED_INVALID_OBJ_SELECTION_INDEX)
         {
             uint32_t last_index = context->selections.cursor - 1;
-            uint32_t selection_index = obj->selection_index;
+            uint32_t selection_index = obj->object->selection_index;
 
             /* This selection already exists in the list. In this case, it can either be the
             main selection (last in the list), in which case it'll be dropped from the list, or
@@ -317,26 +349,26 @@ void ed_AddObjToSelections(struct ed_obj_context_t *context, uint32_t multiple, 
         }
 
         /* This is either a new selection, or an already existing selection becoming the main selection. */
-        obj->selection_index = ds_list_add_element(&context->selections, &obj);
+        obj->object->selection_index = ds_list_add_element(&context->selections, obj);
     }
 }
 
-void ed_DropObjFromSelections(struct ed_obj_context_t *context, struct ed_obj_t *obj)
+void ed_DropObjFromSelections(struct ed_obj_context_t *context, struct ed_obj_result_t *obj)
 {
-    if(context && obj && obj->context == context)
+    if(context != NULL && obj != NULL && obj->object != NULL && obj->object->context == context)
     {
-        if(obj->selection_index != ED_INVALID_OBJ_SELECTION_INDEX)
+        if(obj->object->selection_index != ED_INVALID_OBJ_SELECTION_INDEX)
         {
             uint32_t last_index = context->selections.cursor - 1;
-            ds_list_remove_element(&context->selections, obj->selection_index);
+            ds_list_remove_element(&context->selections, obj->object->selection_index);
 
-            if(context->selections.cursor && obj->selection_index != last_index)
+            if(context->selections.cursor && obj->object->selection_index != last_index)
             {
-                struct ed_obj_t *moved_obj = *(struct ed_obj_t **)ds_list_get_element(&context->selections, obj->selection_index);
-                moved_obj->selection_index = obj->selection_index;
+                struct ed_obj_result_t *moved_obj = (struct ed_obj_result_t *)ds_list_get_element(&context->selections, obj->object->selection_index);
+                moved_obj->object->selection_index = obj->object->selection_index;
             }
 
-            obj->selection_index = ED_INVALID_OBJ_SELECTION_INDEX;
+            obj->object->selection_index = ED_INVALID_OBJ_SELECTION_INDEX;
         }
     }
 }
@@ -345,8 +377,8 @@ void ed_ClearSelections(struct ed_obj_context_t *context)
 {
     for(uint32_t index = 0; index < context->selections.cursor; index++)
     {
-        struct ed_obj_t *obj = *(struct ed_obj_t **)ds_list_get_element(&context->selections, index);
-        obj->selection_index = ED_INVALID_OBJ_SELECTION_INDEX;
+        struct ed_obj_result_t *obj = (struct ed_obj_result_t *)ds_list_get_element(&context->selections, index);
+        obj->object->selection_index = ED_INVALID_OBJ_SELECTION_INDEX;
     }
 
     context->selections.cursor = 0;

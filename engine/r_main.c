@@ -1113,6 +1113,8 @@ struct r_view_t *r_CreateView(struct r_view_desc_t *view_desc)
     view->world_cmd_buffer = r_AllocCmdBuffer(sizeof(struct r_world_cmd_t));
     view->immediate_cmd_buffer = r_AllocImmediateCmdBuffer(sizeof(struct r_i_cmd_t));
     view->lights = ds_list_create(sizeof(struct r_light_t *), 512);
+
+    return view;
 }
 
 void r_DestroyView(struct r_view_t *view)
@@ -1411,8 +1413,8 @@ struct r_texture_t* r_CreateTexture(char *name, struct r_texture_desc_t *desc, v
     uint32_t texture_index;
     struct r_texture_t *texture;
     struct r_texture_desc_t *texture_desc;
-    uint32_t data_format;
-    uint32_t data_type;
+//    uint32_t data_format;
+//    uint32_t data_type;
 
     texture_index = ds_slist_add_element(&r_textures, NULL);
     texture = ds_slist_get_element(&r_textures, texture_index);
@@ -1454,6 +1456,7 @@ struct r_texture_t* r_CreateTexture(char *name, struct r_texture_desc_t *desc, v
         texture_desc->addr_t = GL_REPEAT;
     }
 
+    while(glGetError() != GL_NO_ERROR);
     glGenTextures(1, &texture->handle);
     glBindTexture(GL_TEXTURE_2D, texture->handle);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, texture_desc->min_filter);
@@ -2801,8 +2804,8 @@ void r_DestroyAllLighs()
 
 struct r_shader_t *r_CreateShader(struct r_shader_desc_t *desc)
 {
-    uint32_t compilation_status = 0;
-    uint32_t info_log_length = 0;
+    int compilation_status = 0;
+    int info_log_length = 0;
     char *info_log = NULL;
 
     uint32_t vertex_shader = glCreateShader(GL_VERTEX_SHADER);
@@ -3158,7 +3161,7 @@ struct r_shader_t *r_LoadShader(struct r_shader_desc_t *desc)
 
 struct r_shader_t *r_GetDefaultShader(uint32_t shader)
 {
-
+    return NULL;
 }
 
 void r_FreeShader(struct r_shader_t *shader)
@@ -3207,7 +3210,7 @@ void r_BindVertexLayout(struct r_vertex_layout_t *layout)
             struct r_gl_format_info_t *format_info = r_gl_format_info + attrib->format;
 
             glEnableVertexArrayAttrib(r_vao, attrib->location);
-            glVertexAttribPointer(attrib->location, format_info->size, format_info->type, attrib->normalized, layout->stride, (void *)attrib->offset);
+            glVertexAttribPointer(attrib->location, format_info->size, format_info->type, attrib->normalized, layout->stride, (void *)((uintptr_t)attrib->offset));
         }
     }
 }

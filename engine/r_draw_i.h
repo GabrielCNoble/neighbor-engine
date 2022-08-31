@@ -118,11 +118,11 @@ struct r_i_mesh_t *r_i_AllocMesh(struct r_i_cmd_buffer_t *cmd_buffer, uint32_t v
 
 
 
-void r_DrawVerts(struct r_vert_t *verts, uint32_t count, uint32_t mode);
+void r_i_DrawVerts(struct r_i_cmd_buffer_t *cmd_buffer, struct r_vert_t *verts, uint32_t vert_count, uint32_t *indices, uint32_t index_count, uint32_t mode);
 
 void r_i_DrawBox(vec3_t *half_extents, vec4_t *color);
 
-void r_i_DrawLine(vec3_t *start, vec3_t *end, vec4_t *color);
+void r_i_DrawLine(struct r_i_cmd_buffer_t *cmd_buffer, vec3_t *start, vec3_t *end, vec4_t *color);
 
 void r_i_DrawPoint(vec3_t *pos, vec4_t *color);
 

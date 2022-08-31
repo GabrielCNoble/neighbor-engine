@@ -219,6 +219,11 @@ void gui_EndFrame()
     };
     r_i_SetDrawMask(NULL, NULL, &draw_mask);
 
+    struct r_i_stencil_t stencil = {
+        .enable = GL_FALSE
+    };
+    r_i_SetStencil(NULL, NULL, &stencil);
+
     r_i_SetShader(NULL, gui_shader);
 
     struct r_i_uniform_t uniforms[] = {

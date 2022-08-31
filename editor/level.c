@@ -7,9 +7,10 @@
 #include "ed_main.h"
 #include "../engine/r_main.h"
 #include "../engine/r_draw_i.h"
-#include "dstuff/ds_buffer.h"
+#include "../lib/dstuff/ds_buffer.h"
 #include "../lib/dstuff/ds_path.h"
 #include "../lib/dstuff/ds_dir.h"
+#include "../lib/dstuff/ds_file.h"
 #include "../engine/gui.h"
 #include "../engine/g_main.h"
 #include "../engine/g_enemy.h"
@@ -195,8 +196,8 @@ void ed_l_Init(struct ed_editor_t *editor)
 //    }
 
 
-    ed_level_state.pickable_ranges = ds_slist_create(sizeof(struct ed_pickable_range_t), 512);
-    ed_level_state.widgets = ds_slist_create(sizeof(struct ed_widget_t), 16);
+//    ed_level_state.pickable_ranges = ds_slist_create(sizeof(struct ed_pickable_range_t), 512);
+//    ed_level_state.widgets = ds_slist_create(sizeof(struct ed_widget_t), 16);
 
 //    ed_level_state.brush.bsp_nodes = ds_slist_create(sizeof(struct ed_bsp_node_t), 512);
 //    ed_level_state.brush.bsp_polygons = ds_slist_create(sizeof(struct ed_bsp_polygon_t), 512);
@@ -268,56 +269,56 @@ void ed_l_Init(struct ed_editor_t *editor)
     ed_level_state.manipulator.linear_snap = 0.25;
     ed_level_state.manipulator.transform_type = ED_L_TRANSFORM_TYPE_TRANSLATION;
 //    ed_level_state.manipulator.transform_space = ED_L_TRANSFORM_SPACE_WORLD;
-    ed_level_state.manipulator.widgets[ED_L_TRANSFORM_TYPE_TRANSLATION] = ed_CreateWidget(NULL);
-    struct ed_widget_t *widget = ed_level_state.manipulator.widgets[ED_L_TRANSFORM_TYPE_TRANSLATION];
-    widget->setup_ds_fn = ed_w_ManipulatorWidgetSetupPickableDrawState;
+//    ed_level_state.manipulator.widgets[ED_L_TRANSFORM_TYPE_TRANSLATION] = ed_CreateWidget(NULL);
+//    struct ed_widget_t *widget = ed_level_state.manipulator.widgets[ED_L_TRANSFORM_TYPE_TRANSLATION];
+//    widget->setup_ds_fn = ed_w_ManipulatorWidgetSetupPickableDrawState;
 
-    struct ed_pickable_t *translation_axis;
-    translation_axis = ed_CreatePickableOnList(ED_PICKABLE_TYPE_WIDGET, &widget->pickables);
-    translation_axis->camera_distance = 50.0;
-    translation_axis->mode = GL_TRIANGLES;
-    translation_axis->range_count = 1;
-    translation_axis->ranges = ed_AllocPickableRange();
-    translation_axis->ranges->start = ((struct r_batch_t *)ed_translation_widget_model->batches.buffer)->start;
-    translation_axis->ranges->count = ed_translation_widget_model->indices.buffer_size;
-    translation_axis->primary_index = 0;
-    translation_axis->draw_transf_flags = ED_PICKABLE_DRAW_TRANSF_FLAG_FIXED_CAM_DIST;
-    mat4_t_identity(&translation_axis->transform);
-    translation_axis->transform.rows[0].x = 1.0;
-    translation_axis->transform.rows[1].y = 1.0;
-    translation_axis->transform.rows[2].z = 1.6;
-    mat4_t_rotate_y(&translation_axis->transform, 0.5);
+//    struct ed_pickable_t *translation_axis;
+//    translation_axis = ed_CreatePickableOnList(ED_PICKABLE_TYPE_WIDGET, &widget->pickables);
+//    translation_axis->camera_distance = 50.0;
+//    translation_axis->mode = GL_TRIANGLES;
+//    translation_axis->range_count = 1;
+//    translation_axis->ranges = ed_AllocPickableRange();
+//    translation_axis->ranges->start = ((struct r_batch_t *)ed_translation_widget_model->batches.buffer)->start;
+//    translation_axis->ranges->count = ed_translation_widget_model->indices.buffer_size;
+//    translation_axis->primary_index = 0;
+//    translation_axis->draw_transf_flags = ED_PICKABLE_DRAW_TRANSF_FLAG_FIXED_CAM_DIST;
+//    mat4_t_identity(&translation_axis->transform);
+//    translation_axis->transform.rows[0].x = 1.0;
+//    translation_axis->transform.rows[1].y = 1.0;
+//    translation_axis->transform.rows[2].z = 1.6;
+//    mat4_t_rotate_y(&translation_axis->transform, 0.5);
 //    translation_axis->draw_transform = translation_axis->transform;
 
-    translation_axis = ed_CreatePickableOnList(ED_PICKABLE_TYPE_WIDGET, &widget->pickables);
-    translation_axis->camera_distance = 50.0;
-    translation_axis->mode = GL_TRIANGLES;
-    translation_axis->range_count = 1;
-    translation_axis->ranges = ed_AllocPickableRange();
-    translation_axis->ranges->start = ((struct r_batch_t *)ed_translation_widget_model->batches.buffer)->start;
-    translation_axis->ranges->count = ed_translation_widget_model->indices.buffer_size;
-    translation_axis->primary_index = 0;
-    translation_axis->draw_transf_flags = ED_PICKABLE_DRAW_TRANSF_FLAG_FIXED_CAM_DIST;
-    mat4_t_identity(&translation_axis->transform);
-    translation_axis->transform.rows[0].x = 1.0;
-    translation_axis->transform.rows[1].y = 1.0;
-    translation_axis->transform.rows[2].z = 1.6;
-    mat4_t_rotate_x(&translation_axis->transform, -0.5);
+//    translation_axis = ed_CreatePickableOnList(ED_PICKABLE_TYPE_WIDGET, &widget->pickables);
+//    translation_axis->camera_distance = 50.0;
+//    translation_axis->mode = GL_TRIANGLES;
+//    translation_axis->range_count = 1;
+//    translation_axis->ranges = ed_AllocPickableRange();
+//    translation_axis->ranges->start = ((struct r_batch_t *)ed_translation_widget_model->batches.buffer)->start;
+//    translation_axis->ranges->count = ed_translation_widget_model->indices.buffer_size;
+//    translation_axis->primary_index = 0;
+//    translation_axis->draw_transf_flags = ED_PICKABLE_DRAW_TRANSF_FLAG_FIXED_CAM_DIST;
+//    mat4_t_identity(&translation_axis->transform);
+//    translation_axis->transform.rows[0].x = 1.0;
+//    translation_axis->transform.rows[1].y = 1.0;
+//    translation_axis->transform.rows[2].z = 1.6;
+//    mat4_t_rotate_x(&translation_axis->transform, -0.5);
 //    translation_axis->draw_transform = translation_axis->transform;
 
-    translation_axis = ed_CreatePickableOnList(ED_PICKABLE_TYPE_WIDGET, &widget->pickables);
-    translation_axis->camera_distance = 50.0;
-    translation_axis->mode = GL_TRIANGLES;
-    translation_axis->range_count = 1;
-    translation_axis->ranges = ed_AllocPickableRange();
-    translation_axis->ranges->start = ((struct r_batch_t *)ed_translation_widget_model->batches.buffer)->start;
-    translation_axis->ranges->count = ed_translation_widget_model->indices.buffer_size;
-    translation_axis->primary_index = 0;
-    translation_axis->draw_transf_flags = ED_PICKABLE_DRAW_TRANSF_FLAG_FIXED_CAM_DIST;
-    mat4_t_identity(&translation_axis->transform);
-    translation_axis->transform.rows[0].x = 1.0;
-    translation_axis->transform.rows[1].y = 1.0;
-    translation_axis->transform.rows[2].z = 1.6;
+//    translation_axis = ed_CreatePickableOnList(ED_PICKABLE_TYPE_WIDGET, &widget->pickables);
+//    translation_axis->camera_distance = 50.0;
+//    translation_axis->mode = GL_TRIANGLES;
+//    translation_axis->range_count = 1;
+//    translation_axis->ranges = ed_AllocPickableRange();
+//    translation_axis->ranges->start = ((struct r_batch_t *)ed_translation_widget_model->batches.buffer)->start;
+//    translation_axis->ranges->count = ed_translation_widget_model->indices.buffer_size;
+//    translation_axis->primary_index = 0;
+//    translation_axis->draw_transf_flags = ED_PICKABLE_DRAW_TRANSF_FLAG_FIXED_CAM_DIST;
+//    mat4_t_identity(&translation_axis->transform);
+//    translation_axis->transform.rows[0].x = 1.0;
+//    translation_axis->transform.rows[1].y = 1.0;
+//    translation_axis->transform.rows[2].z = 1.6;
 //    translation_axis->draw_transform = translation_axis->transform;
 
 
@@ -327,56 +328,56 @@ void ed_l_Init(struct ed_editor_t *editor)
 
 
 
-    ed_level_state.manipulator.widgets[ED_L_TRANSFORM_TYPE_ROTATION] = ed_CreateWidget(NULL);
-    widget = ed_level_state.manipulator.widgets[ED_L_TRANSFORM_TYPE_ROTATION];
-    widget->setup_ds_fn = ed_w_ManipulatorWidgetSetupPickableDrawState;
+//    ed_level_state.manipulator.widgets[ED_L_TRANSFORM_TYPE_ROTATION] = ed_CreateWidget(NULL);
+//    widget = ed_level_state.manipulator.widgets[ED_L_TRANSFORM_TYPE_ROTATION];
+//    widget->setup_ds_fn = ed_w_ManipulatorWidgetSetupPickableDrawState;
 
-    struct ed_pickable_t *rotation_axis;
-    rotation_axis = ed_CreatePickableOnList(ED_PICKABLE_TYPE_WIDGET, &widget->pickables);
-    rotation_axis->camera_distance = 50.0;
-    rotation_axis->mode = GL_TRIANGLES;
-    rotation_axis->range_count = 1;
-    rotation_axis->ranges = ed_AllocPickableRange();
-    rotation_axis->ranges->start = ((struct r_batch_t *)ed_rotation_widget_model->batches.buffer)->start;
-    rotation_axis->ranges->count = ed_rotation_widget_model->indices.buffer_size;
-    rotation_axis->primary_index = 0;
-    rotation_axis->draw_transf_flags = ED_PICKABLE_DRAW_TRANSF_FLAG_FIXED_CAM_DIST;
-    mat4_t_identity(&rotation_axis->transform);
-    rotation_axis->transform.rows[0].x = 8.0;
-    rotation_axis->transform.rows[1].y = 8.0;
-    rotation_axis->transform.rows[2].z = 8.0;
-    mat4_t_rotate_y(&rotation_axis->transform, 0.5);
+//    struct ed_pickable_t *rotation_axis;
+//    rotation_axis = ed_CreatePickableOnList(ED_PICKABLE_TYPE_WIDGET, &widget->pickables);
+//    rotation_axis->camera_distance = 50.0;
+//    rotation_axis->mode = GL_TRIANGLES;
+//    rotation_axis->range_count = 1;
+//    rotation_axis->ranges = ed_AllocPickableRange();
+//    rotation_axis->ranges->start = ((struct r_batch_t *)ed_rotation_widget_model->batches.buffer)->start;
+//    rotation_axis->ranges->count = ed_rotation_widget_model->indices.buffer_size;
+//    rotation_axis->primary_index = 0;
+//    rotation_axis->draw_transf_flags = ED_PICKABLE_DRAW_TRANSF_FLAG_FIXED_CAM_DIST;
+//    mat4_t_identity(&rotation_axis->transform);
+//    rotation_axis->transform.rows[0].x = 8.0;
+//    rotation_axis->transform.rows[1].y = 8.0;
+//    rotation_axis->transform.rows[2].z = 8.0;
+//    mat4_t_rotate_y(&rotation_axis->transform, 0.5);
 //    rotation_axis->draw_transform = rotation_axis->transform;
 
-    rotation_axis = ed_CreatePickableOnList(ED_PICKABLE_TYPE_WIDGET, &widget->pickables);
-    rotation_axis->camera_distance = 50.0;
-    rotation_axis->mode = GL_TRIANGLES;
-    rotation_axis->range_count = 1;
-    rotation_axis->ranges = ed_AllocPickableRange();
-    rotation_axis->ranges->start = ((struct r_batch_t *)ed_rotation_widget_model->batches.buffer)->start;
-    rotation_axis->ranges->count = ed_rotation_widget_model->indices.buffer_size;
-    rotation_axis->primary_index = 0;
-    rotation_axis->draw_transf_flags = ED_PICKABLE_DRAW_TRANSF_FLAG_FIXED_CAM_DIST;
-    mat4_t_identity(&rotation_axis->transform);
-    rotation_axis->transform.rows[0].x = 8.0;
-    rotation_axis->transform.rows[1].y = 8.0;
-    rotation_axis->transform.rows[2].z = 8.0;
-    mat4_t_rotate_x(&rotation_axis->transform, -0.5);
+//    rotation_axis = ed_CreatePickableOnList(ED_PICKABLE_TYPE_WIDGET, &widget->pickables);
+//    rotation_axis->camera_distance = 50.0;
+//    rotation_axis->mode = GL_TRIANGLES;
+//    rotation_axis->range_count = 1;
+//    rotation_axis->ranges = ed_AllocPickableRange();
+//    rotation_axis->ranges->start = ((struct r_batch_t *)ed_rotation_widget_model->batches.buffer)->start;
+//    rotation_axis->ranges->count = ed_rotation_widget_model->indices.buffer_size;
+//    rotation_axis->primary_index = 0;
+//    rotation_axis->draw_transf_flags = ED_PICKABLE_DRAW_TRANSF_FLAG_FIXED_CAM_DIST;
+//    mat4_t_identity(&rotation_axis->transform);
+//    rotation_axis->transform.rows[0].x = 8.0;
+//    rotation_axis->transform.rows[1].y = 8.0;
+//    rotation_axis->transform.rows[2].z = 8.0;
+//    mat4_t_rotate_x(&rotation_axis->transform, -0.5);
 //    rotation_axis->draw_transform = rotation_axis->transform;
 
-    rotation_axis = ed_CreatePickableOnList(ED_PICKABLE_TYPE_WIDGET, &widget->pickables);
-    rotation_axis->camera_distance = 50.0;
-    rotation_axis->mode = GL_TRIANGLES;
-    rotation_axis->range_count = 1;
-    rotation_axis->ranges = ed_AllocPickableRange();
-    rotation_axis->ranges->start = ((struct r_batch_t *)ed_rotation_widget_model->batches.buffer)->start;
-    rotation_axis->ranges->count = ed_rotation_widget_model->indices.buffer_size;
-    rotation_axis->primary_index = 0;
-    rotation_axis->draw_transf_flags = ED_PICKABLE_DRAW_TRANSF_FLAG_FIXED_CAM_DIST;
-    mat4_t_identity(&rotation_axis->transform);
-    rotation_axis->transform.rows[0].x = 8.0;
-    rotation_axis->transform.rows[1].y = 8.0;
-    rotation_axis->transform.rows[2].z = 8.0;
+//    rotation_axis = ed_CreatePickableOnList(ED_PICKABLE_TYPE_WIDGET, &widget->pickables);
+//    rotation_axis->camera_distance = 50.0;
+//    rotation_axis->mode = GL_TRIANGLES;
+//    rotation_axis->range_count = 1;
+//    rotation_axis->ranges = ed_AllocPickableRange();
+//    rotation_axis->ranges->start = ((struct r_batch_t *)ed_rotation_widget_model->batches.buffer)->start;
+//    rotation_axis->ranges->count = ed_rotation_widget_model->indices.buffer_size;
+//    rotation_axis->primary_index = 0;
+//    rotation_axis->draw_transf_flags = ED_PICKABLE_DRAW_TRANSF_FLAG_FIXED_CAM_DIST;
+//    mat4_t_identity(&rotation_axis->transform);
+//    rotation_axis->transform.rows[0].x = 8.0;
+//    rotation_axis->transform.rows[1].y = 8.0;
+//    rotation_axis->transform.rows[2].z = 8.0;
 //    rotation_axis->draw_transform = rotation_axis->transform;
 
 
@@ -2294,16 +2295,37 @@ void ed_l_PlacementCrosshair(uint32_t just_changed)
 //        r_i_SetModelMatrix(NULL);
 //        r_i_SetViewProjectionMatrix(NULL);
 
-        r_BindShader(r_immediate_shader);
-        glLineWidth(4.0);
-        r_SetDefaultUniformMat4(R_UNIFORM_MODEL_VIEW_PROJECTION_MATRIX, &r_view_projection_matrix);
-        r_DrawLine(&vec3_t_c(start.x + u_axis.x, start.y + u_axis.y, start.z + u_axis.z),
+        r_i_SetShader(NULL, NULL);
+        struct r_i_uniform_t view_projection_matrix = {
+            .uniform = R_UNIFORM_MODEL_VIEW_PROJECTION_MATRIX,
+            .count = 1,
+            .value = &r_view_projection_matrix
+        };
+        r_i_SetUniforms(NULL, NULL, &view_projection_matrix, 1);
+
+        struct r_i_raster_t rasterizer = {
+            .size = 4.0,
+        };
+        r_i_SetRasterizer(NULL, NULL, &rasterizer);
+
+        r_i_DrawLine(NULL, &vec3_t_c(start.x + u_axis.x, start.y + u_axis.y, start.z + u_axis.z),
                      &vec3_t_c(end.x - u_axis.x, end.y - u_axis.y, end.z - u_axis.z),
                      &vec4_t_c(1.0, 1.0, 1.0, 1.0));
 
-        r_DrawLine(&vec3_t_c(start.x + v_axis.x, start.y + v_axis.y, start.z + v_axis.z),
+        r_i_DrawLine(NULL, &vec3_t_c(start.x + v_axis.x, start.y + v_axis.y, start.z + v_axis.z),
                      &vec3_t_c(end.x - v_axis.x, end.y - v_axis.y, end.z - v_axis.z),
                      &vec4_t_c(1.0, 1.0, 1.0, 1.0));
+
+//        r_BindShader(r_immediate_shader);
+//        glLineWidth(4.0);
+//        r_SetDefaultUniformMat4(R_UNIFORM_MODEL_VIEW_PROJECTION_MATRIX, &r_view_projection_matrix);
+//        r_DrawLine(&vec3_t_c(start.x + u_axis.x, start.y + u_axis.y, start.z + u_axis.z),
+//                     &vec3_t_c(end.x - u_axis.x, end.y - u_axis.y, end.z - u_axis.z),
+//                     &vec4_t_c(1.0, 1.0, 1.0, 1.0));
+
+//        r_DrawLine(&vec3_t_c(start.x + v_axis.x, start.y + v_axis.y, start.z + v_axis.z),
+//                     &vec3_t_c(end.x - v_axis.x, end.y - v_axis.y, end.z - v_axis.z),
+//                     &vec4_t_c(1.0, 1.0, 1.0, 1.0));
 
         if(in_GetMouseButtonState(SDL_BUTTON_LEFT) & IN_KEY_STATE_JUST_PRESSED)
         {
@@ -2375,8 +2397,22 @@ void ed_l_BrushBox(uint32_t just_changed)
 
             if(ed_l_IntersectPlaneFromCamera(mouse_x, mouse_y, &plane_point, &plane_orientation.rows[1], &intersection))
             {
-                r_BindShader(r_immediate_shader);
-                r_SetDefaultUniformMat4(R_UNIFORM_MODEL_VIEW_PROJECTION_MATRIX, &r_view_projection_matrix);
+//                r_BindShader(r_immediate_shader);
+//                r_SetDefaultUniformMat4(R_UNIFORM_MODEL_VIEW_PROJECTION_MATRIX, &r_view_projection_matrix);
+                r_i_SetShader(NULL, NULL);
+                struct r_i_uniform_t model_view_projection_matrix = {
+                    .uniform = R_UNIFORM_MODEL_VIEW_PROJECTION_MATRIX,
+                    .count = 1,
+                    .value = &r_view_projection_matrix
+                };
+                r_i_SetUniforms(NULL, NULL, &model_view_projection_matrix, 1);
+
+                struct r_i_raster_t rasterizer = {
+                    .size = 2.0
+                };
+                r_i_SetRasterizer(NULL, NULL, &rasterizer);
+
+
                 ed_l_LinearSnapValueOnSurface(&plane_point, &plane_orientation, &intersection);
 
                 context_data->brush.box_end = intersection;
@@ -2393,11 +2429,11 @@ void ed_l_BrushBox(uint32_t just_changed)
                 corners[2] = end;
                 vec3_t_fmadd(&corners[3], &start, &plane_orientation.rows[2], proj_v);
 
-                glLineWidth(2.0);
-                r_DrawLine(&corners[0], &corners[1], &vec4_t_c(0.0, 1.0, 0.0, 1.0));
-                r_DrawLine(&corners[1], &corners[2], &vec4_t_c(0.0, 1.0, 0.0, 1.0));
-                r_DrawLine(&corners[2], &corners[3], &vec4_t_c(0.0, 1.0, 0.0, 1.0));
-                r_DrawLine(&corners[3], &corners[0], &vec4_t_c(0.0, 1.0, 0.0, 1.0));
+//                glLineWidth(2.0);
+                r_i_DrawLine(NULL, &corners[0], &corners[1], &vec4_t_c(0.0, 1.0, 0.0, 1.0));
+                r_i_DrawLine(NULL, &corners[1], &corners[2], &vec4_t_c(0.0, 1.0, 0.0, 1.0));
+                r_i_DrawLine(NULL, &corners[2], &corners[3], &vec4_t_c(0.0, 1.0, 0.0, 1.0));
+                r_i_DrawLine(NULL, &corners[3], &corners[0], &vec4_t_c(0.0, 1.0, 0.0, 1.0));
 
 
                 context_data->brush.box_size.x = fabsf(proj_u);
@@ -2448,17 +2484,17 @@ void ed_l_BrushBox(uint32_t just_changed)
         size.y = 1.0;
         size.z = context_data->brush.box_size.y;
 
-        size = vec3_t_c(1.0, 1.0, 1.0);
-        mat3_t_identity(&orientation);
+//        size = vec3_t_c(1.0, 1.0, 1.0);
+//        mat3_t_identity(&orientation);
 
         if(size.x != 0.0 || size.z != 0.0)
         {
             vec3_t_add(&position, &context_data->brush.box_start, &context_data->brush.box_end);
             vec3_t_mul(&position, &position, 0.5);
-            position = vec3_t_c(0.0, 0.0, 0.0);
+//            position = vec3_t_c(0.0, 0.0, 0.0);
             vec3_t_fmadd(&position, &position, &context_data->pickables.plane_orientation.rows[1], size.y * 0.5);
 //            ed_CreateObj(&ed_l_obj_context, ED_OBJ_TYPE_BRUSH, &position, &context_data->pickables.plane_orientation, &size, NULL);
-            ed_CreateObj(&ed_level_state.obj.objects, ED_OBJ_TYPE_BRUSH, &position, &orientation, &size, NULL);
+            ed_CreateObj(&ed_level_state.obj.objects, ED_OBJ_TYPE_BRUSH, &position, &context_data->pickables.plane_orientation, &size, NULL);
         }
         ed_SetNextState(ed_l_Idle);
     }
@@ -2512,53 +2548,49 @@ void ed_l_PickObject(uint32_t just_changed)
 //    printf("piss\n");
     if(!(button_state & IN_KEY_STATE_PRESSED))
     {
-        ed_level_state.obj.last_picked = ed_PickObject(&ed_level_state.obj.objects, mouse_x, mouse_y, 0);
+        ed_level_state.obj.last_picked = ed_PickObject(&ed_level_state.obj.objects, mouse_x, mouse_y, (1 << ED_OBJ_TYPE_FACE));
 
-        if(ed_level_state.obj.last_picked)
+        if(ed_level_state.obj.last_picked.object != NULL)
         {
             uint32_t shift_state = in_GetKeyState(SDL_SCANCODE_LSHIFT);
-            ed_AddObjToSelections(&ed_level_state.obj.objects, shift_state & IN_KEY_STATE_PRESSED, ed_level_state.obj.last_picked);
+
+            if(ed_level_state.obj.last_picked.object->type == ED_OBJ_TYPE_BRUSH)
+            {
+                if(ed_level_state.obj.last_picked.data0 == ED_BRUSH_ELEMENT_FACE)
+                {
+                    struct ed_brush_t *brush = (struct ed_brush_t *)ed_level_state.obj.last_picked.object->base_obj;
+                    struct ed_face_t *face = ed_GetFace(ed_level_state.obj.last_picked.data1);
+
+                    if(!face->object)
+                    {
+                        struct ed_obj_h face_obj = ed_CreateObj(&ed_level_state.obj.objects, ED_OBJ_TYPE_FACE,
+                                                             &brush->position,
+                                                             &brush->orientation,
+                                                             &vec3_t_c(1.0, 1.0, 1.0), &ed_level_state.obj.last_picked);
+
+                        face->object = ed_GetObject(&ed_level_state.obj.objects, face_obj);
+                    }
+
+
+                    ed_level_state.obj.last_picked.object = face->object;
+                }
+            }
+
+            ed_AddObjToSelections(&ed_level_state.obj.objects, shift_state & IN_KEY_STATE_PRESSED, &ed_level_state.obj.last_picked);
+
+            for(uint32_t index = 0; index < ed_level_state.obj.objects.objects[ED_OBJ_TYPE_FACE].cursor; index++)
+            {
+                struct ed_obj_t *object = ed_GetObject(&ed_level_state.obj.objects, (struct ed_obj_h){.type = ED_OBJ_TYPE_FACE, .index = index});
+
+                if(object && object->selection_index == ED_INVALID_OBJ_SELECTION_INDEX)
+                {
+                    ed_DestroyObj(&ed_level_state.obj.objects, object);
+                    struct ed_face_t *face = (struct ed_face_t *)object->base_obj;
+                    face->object = NULL;
+                }
+            }
         }
-//        uint32_t ignore_types = context_data->pickables.ignore_types;
-//        struct ds_slist_t *pickables = &context_data->pickables.pickables;
-//
-//        context_data->pickables.last_selected = ed_SelectPickable(mouse_x, mouse_y, pickables, NULL, ignore_types);
-//
-//        if(context_data->pickables.last_selected)
-//        {
-//            struct ed_pickable_t *pickable = context_data->pickables.last_selected;
-//
-//            if((1 << pickable->type) & ED_PICKABLE_BRUSH_PART_MASK)
-//            {
-//                struct ed_brush_t *brush = ed_GetBrush(pickable->primary_index);
-//
-//                if(brush->pickable->selection_index != 0xffffffff)
-//                {
-//                    ed_w_DropSelection(brush->pickable, NULL);
-//                }
-//            }
-//            else if(pickable->type == ED_PICKABLE_TYPE_BRUSH)
-//            {
-//                struct ed_brush_t *brush = ed_GetBrush(pickable->primary_index);
-//                struct ed_face_t *face = brush->faces;
-//
-//                while(face)
-//                {
-//                    if(face->pickable->selection_index != 0xffffffff)
-//                    {
-//                        ed_w_DropSelection(face->pickable, NULL);
-//                    }
-//
-//                    face = face->next;
-//                }
-//            }
-//
-//            uint32_t shift_state = in_GetKeyState(SDL_SCANCODE_LSHIFT);
-//            ed_w_AddSelection(context_data->pickables.last_selected, shift_state & IN_KEY_STATE_PRESSED, NULL);
-//        }
-//
-//        context_data->pickables.last_selected = NULL;
-//
+
         ed_SetNextState(ed_l_Idle);
     }
 }
@@ -2586,7 +2618,7 @@ void ed_l_PlaceLightAtCursor(uint32_t just_changed)
     light_args.color = vec3_t_c(1.0, 1.0, 1.0);
     light_args.radius = 10.0;
     light_args.energy = 10.0;
-    ed_CreateObj(&ed_level_state.obj.objects, ED_OBJ_TYPE_LIGHT, &vec3_t_c(2.0, 0.0, 0.0), NULL, NULL, &light_args);
+    ed_CreateObj(&ed_level_state.obj.objects, ED_OBJ_TYPE_LIGHT, &vec3_t_c(0.0, 0.0, 0.0), NULL, NULL, &light_args);
     ed_SetNextState(ed_l_Idle);
 }
 
@@ -3416,8 +3448,8 @@ void ed_l_SurfaceUnderMouse(int32_t mouse_x, int32_t mouse_y, vec3_t *plane_poin
 //    }
 //    else
 //    {
-//        *plane_point = vec3_t_c(0.0, 0.0, 0.0);
-//        *plane_orientation = mat3_t_c_id();
+        *plane_point = vec3_t_c(0.0, 0.0, 0.0);
+        *plane_orientation = mat3_t_c_id();
 //    }
 }
 

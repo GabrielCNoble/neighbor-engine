@@ -15,10 +15,12 @@ void *ed_CreateLightObject(vec3_t *position, mat3_t *orientation, vec3_t *scale,
 
 void ed_DestroyLightObject(void *base_obj);
 
-void ed_RenderPickLightObject(struct ed_obj_t *object, struct r_i_cmd_buffer_t *cmd_buffer);
+struct r_i_draw_list_t *ed_RenderPickLightObject(struct ed_obj_t *object, struct r_i_cmd_buffer_t *cmd_buffer);
 
-void ed_RenderOutlineLightObject(struct ed_obj_t *object, struct r_i_cmd_buffer_t *cmd_buffer);
+struct r_i_draw_list_t *ed_RenderOutlineLightObject(struct ed_obj_result_t *object, struct r_i_cmd_buffer_t *cmd_buffer);
 
-void ed_UpdateLightObject(struct ed_obj_t *object);
+void ed_UpdateLightHandleObject(struct ed_obj_t *object);
+
+void ed_UpdateLightBaseObject(struct ed_obj_result_t *object);
 
 #endif // ED_LIGHT_H

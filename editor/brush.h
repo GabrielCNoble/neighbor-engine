@@ -97,10 +97,14 @@ struct ed_face_t
 //    struct r_material_t *       material;
 
     uint32_t                        edge_count;
+    mat3_t                          orientation;
     vec3_t                          normal;
     vec3_t                          tangent;
     vec3_t                          center;
     vec3_t                          center_uv;
+
+    uint32_t                        first_index;
+    uint32_t                        index_count;
 
 //    struct ed_brush_batch_t *material;
 //    struct ed_face_polygon_t *polygons;
@@ -138,6 +142,14 @@ enum ED_BRUSH_UPDATE_FLAGS
 //    ED_BRUSH_UPDATE_FLAG_CLIPPED_POLYGONS = 1 << 2,
     ED_BRUSH_UPDATE_FLAG_UV_COORDS = 1 << 2,
     ED_BRUSH_UPDATE_FLAG_MODEL = 1 << 3,
+};
+
+enum ED_BRUSH_ELEMENTS
+{
+    ED_BRUSH_ELEMENT_BODY = 0,
+    ED_BRUSH_ELEMENT_FACE = 1,
+    ED_BRUSH_ELEMENT_EDGE = 2,
+    ED_BRUSH_ELEMENT_VERT = 3,
 };
 
 struct ed_brush_t
@@ -323,15 +335,36 @@ void ed_UpdateBrushEntity(struct ed_brush_t *brush);
 
 void ed_UpdateBrush(struct ed_brush_t *brush);
 
+
+
 void *ed_CreateBrushObject(vec3_t *position, mat3_t *orientation, vec3_t *scale, void *args);
 
 void ed_DestroyBrushObject(void *base_obj);
 
-void ed_RenderPickBrushObject(struct ed_obj_t *object, struct r_i_cmd_buffer_t *cmd_buffer);
+struct r_i_draw_list_t *ed_RenderPickBrushObject(struct ed_obj_t *object, struct r_i_cmd_buffer_t *cmd_buffer);
 
-void ed_RenderOutlineBrushObject(struct ed_obj_t *object, struct r_i_cmd_buffer_t *cmd_buffer);
+struct r_i_draw_list_t *ed_RenderDrawBrushObject(struct ed_obj_result_t *object, struct r_i_cmd_buffer_t *cmd_buffer);
 
-void ed_UpdateBrushObject(struct ed_obj_t *object);
+void ed_UpdateBrushHandleObject(struct ed_obj_t *object);
+
+void ed_UpdateBrushBaseObject(struct ed_obj_result_t *object);
+
+
+
+void *ed_CreateFaceObject(vec3_t *position, mat3_t *orientation, vec3_t *scale, void *args);
+
+void ed_DestroyFaceObject(void *base_obj);
+
+//struct r_i_draw_list_t *ed_RenderPickFaceObject(struct ed_obj_t *object, struct r_i_cmd_buffer_t *cmd_buffer);
+
+struct r_i_draw_list_t *ed_RenderDrawFaceObject(struct ed_obj_result_t *object, struct r_i_cmd_buffer_t *cmd_buffer);
+
+void ed_UpdateFaceHandleObject(struct ed_obj_t *object);
+
+void ed_UpdateFaceBaseObject(struct ed_obj_result_t *object);
+
+void ed_FaceObjectDrawTransform(struct ed_obj_t *object, mat4_t *model_view_projection_matrix);
+
 
 //void ed_BuildWorldGeometry();
 

@@ -52,7 +52,7 @@ struct ds_registry_t
 
 long ds_file_size(FILE *file);
 
-void ds_file_read(FILE *file, void **buffer, uint32_t *buffer_size);
+void ds_file_read(FILE *file, void **buffer, size_t *buffer_size);
 
 void ds_file_write(void **buffer, long *buffer_size);
 
@@ -96,10 +96,10 @@ long ds_file_size(FILE *file)
     return size;
 }
 
-void ds_file_read(FILE *file, void **buffer, uint32_t *buffer_size)
+void ds_file_read(FILE *file, void **buffer, size_t *buffer_size)
 {
     char *file_buffer = NULL;
-    long size = 0;
+    size_t size = 0;
 
     if(file)
     {
@@ -110,9 +110,10 @@ void ds_file_read(FILE *file, void **buffer, uint32_t *buffer_size)
     }
 
     *buffer = (void *)file_buffer;
-    if(buffer_size)
+
+    if(buffer_size != NULL)
     {
-        *buffer_size = (uint32_t)size;
+        *buffer_size = size;
     }
 }
 

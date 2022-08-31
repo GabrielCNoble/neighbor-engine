@@ -45,7 +45,9 @@ extern "C"
 {
 #endif
 
-#define mat3_t_c_id() ((mat3_t){1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0})
+#define mat3_t_c(a, b, c, d, e, f, g, h, i) ((mat3_t){a, b, c, d, e, f, g, h, i})
+
+#define mat3_t_c_id() mat3_t_c(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0)
 
 void mat3_t_mul(mat3_t *r, mat3_t *a, mat3_t *b);
 

@@ -123,14 +123,14 @@ struct ed_manipulator_t
 //    uint32_t index;
 //};
 
-struct ed_widget_t
-{
-    uint32_t index;
-    uint32_t stencil_layer;
-    struct ds_slist_t pickables;
-
-//    void (*mvp_mat_fn)(mat4_t *view_projection_matrix, mat4_t *widget_transform);
-    void (*setup_ds_fn)(uint32_t pickable_index, struct ed_pickable_t *pickable);
-};
+//struct ed_widget_t
+//{
+//    uint32_t index;
+//    uint32_t stencil_layer;
+//    struct ds_slist_t pickables;
+//
+////    void (*mvp_mat_fn)(mat4_t *view_projection_matrix, mat4_t *widget_transform);
+//    void (*setup_ds_fn)(uint32_t pickable_index, struct ed_pickable_t *pickable);
+//};
 
 #endif

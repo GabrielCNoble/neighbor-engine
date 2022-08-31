@@ -845,6 +845,10 @@ struct r_i_raster_t
     uint16_t            polygon_mode;
     uint16_t            cull_face;
     uint16_t            cull_enable;
+    uint16_t            polygon_offset_enable;
+    uint16_t            mode;
+    float               factor;
+    float               units;
 };
 
 struct r_i_draw_mask_t

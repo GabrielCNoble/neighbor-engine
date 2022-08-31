@@ -45,14 +45,29 @@ struct ed_obj_t
     void *                          base_obj;
 };
 
+//struct ed_pick_data_t
+//{
+//    struct r_i_draw_list_t *    draw_list;
+//    uint32_t                    data0;
+//    uint32_t                    data1;
+//};
+
+struct ed_obj_result_t
+{
+    struct ed_obj_t *   object;
+    uint32_t            data0;
+    uint32_t            data1;
+};
+
 struct ed_obj_funcs_t
 {
-    void                (*render_pick)      (struct ed_obj_t *object, struct r_i_cmd_buffer_t *cmd_buffer);
-    void                (*render_outline)   (struct ed_obj_t *object, struct r_i_cmd_buffer_t *cmd_buffer);
-    void                (*update)           (struct ed_obj_t *object);
-    void *              (*create)           (vec3_t *position, mat3_t *orientation, vec3_t *scale, void *args);
-    void                (*destroy)          (void *base_obj);
-    void                (*draw_transform)   (struct ed_obj_t *objectt, mat4_t *view_projection_matrix);
+    struct r_i_draw_list_t *  (*render_pick)             (struct ed_obj_t *object, struct r_i_cmd_buffer_t *cmd_buffer);
+    struct r_i_draw_list_t *  (*render_draw)             (struct ed_obj_result_t *object, struct r_i_cmd_buffer_t *cmd_buffer);
+    void                      (*update_handle_obj)       (struct ed_obj_result_t *object);
+    void                      (*update_base_obj)         (struct ed_obj_result_t *object);
+    void *                    (*create)                  (vec3_t *position, mat3_t *orientation, vec3_t *scale, void *args);
+    void                      (*destroy)                 (void *base_obj);
+    void                      (*draw_transform)          (struct ed_obj_t *object, mat4_t *view_projection_matrix);
 };
 
 struct ed_obj_h
@@ -65,6 +80,8 @@ struct ed_obj_h
 #define ED_PICK_SHADER_UNIFORM_MODEL_VIEW_PROJECTION_MATRIX 0
 #define ED_PICK_SHADER_UNIFORM_OBJ_TYPE                     1
 #define ED_PICK_SHADER_UNIFORM_OBJ_INDEX                    2
+#define ED_PICK_SHADER_UNIFORM_OBJ_DATA0                    3
+#define ED_PICK_SHADER_UNIFORM_OBJ_DATA1                    4
 
 
 #define ED_OUTLINE_SHADER_UNIFORM_MODEL_VIEW_PROJECTION_MATRIX  0
@@ -84,13 +101,15 @@ void ed_DestroyObj(struct ed_obj_context_t *context, struct ed_obj_t *object);
 
 struct ed_obj_t *ed_GetObject(struct ed_obj_context_t *context, struct ed_obj_h handle);
 
-struct ed_obj_t *ed_PickObject(struct ed_obj_context_t *context, int32_t mouse_x, int32_t mouse_y, uint32_t ignore_mask);
+struct ed_obj_result_t ed_PickObject(struct ed_obj_context_t *context, int32_t mouse_x, int32_t mouse_y, uint32_t ignore_mask);
+
+//void ed_UpdateHandleObj(struct ed_obj_context_t *context, )
 
 void ed_DrawSelections(struct ed_obj_context_t *context, struct r_i_cmd_buffer_t *cmd_buffer);
 
-void ed_AddObjToSelections(struct ed_obj_context_t *context, uint32_t multiple, struct ed_obj_t *obj);
+void ed_AddObjToSelections(struct ed_obj_context_t *context, uint32_t multiple, struct ed_obj_result_t *obj);
 
-void ed_DropObjFromSelections(struct ed_obj_context_t *context, struct ed_obj_t *obj);
+void ed_DropObjFromSelections(struct ed_obj_context_t *context, struct ed_obj_result_t *obj);
 
 void ed_ClearSelections(struct ed_obj_context_t *context);
 

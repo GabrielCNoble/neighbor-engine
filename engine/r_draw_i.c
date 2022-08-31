@@ -53,6 +53,9 @@ void r_i_ApplyDrawState(struct r_i_draw_state_t *draw_state)
     {
         struct r_i_raster_t *rasterizer = draw_state->rasterizer;
 
+        glLineWidth(rasterizer->size);
+        glPointSize(rasterizer->size);
+
         if(rasterizer->polygon_mode != GL_DONT_CARE)
         {
             glPolygonMode(GL_FRONT_AND_BACK, rasterizer->polygon_mode);
@@ -73,6 +76,19 @@ void r_i_ApplyDrawState(struct r_i_draw_state_t *draw_state)
         if(rasterizer->cull_face != GL_DONT_CARE)
         {
             glCullFace(rasterizer->cull_face);
+        }
+
+        if(rasterizer->polygon_offset_enable != GL_DONT_CARE)
+        {
+            if(rasterizer->polygon_offset_enable)
+            {
+                glEnable(GL_POLYGON_OFFSET_FILL);
+                glPolygonOffset(rasterizer->factor, rasterizer->units);
+            }
+            else
+            {
+                glDisable(GL_POLYGON_OFFSET_FILL);
+            }
         }
     }
 
@@ -468,9 +484,44 @@ void r_i_DrawBox(vec3_t *half_extents, vec4_t *color)
 
 }
 
-void r_i_DrawLine(vec3_t *start, vec3_t *end, vec4_t *color)
+void r_i_DrawVerts(struct r_i_cmd_buffer_t *cmd_buffer, struct r_vert_t *verts, uint32_t vert_count, uint32_t *indices, uint32_t index_count, uint32_t mode)
 {
+    struct r_i_draw_list_t *draw_list = r_i_AllocDrawList(cmd_buffer, 1);
+    struct r_i_mesh_t *mesh = r_i_AllocMesh(cmd_buffer, sizeof(struct r_vert_t), vert_count, index_count);
+    memcpy(mesh->verts.verts, verts, sizeof(struct r_vert_t) * vert_count);
 
+    if(index_count)
+    {
+        memcpy(mesh->indices.indices, indices, sizeof(uint32_t) * index_count);
+    }
+    else
+    {
+        index_count = vert_count;
+    }
+
+    draw_list->ranges[0].start = 0;
+    draw_list->ranges[0].count = index_count;
+    draw_list->mode = mode;
+    draw_list->indexed = index_count;
+    draw_list->mesh = mesh;
+
+    r_i_DrawList(cmd_buffer, draw_list);
+}
+
+void r_i_DrawLine(struct r_i_cmd_buffer_t *cmd_buffer, vec3_t *start, vec3_t *end, vec4_t *color)
+{
+    struct r_vert_t verts[2] = {
+        [0] = {
+            .pos = *start,
+            .color = *color
+        },
+        [1] = {
+            .pos = *end,
+            .color = *color
+        }
+    };
+
+    r_i_DrawVerts(cmd_buffer, verts, 2, NULL, 0, GL_LINES);
 }
 
 void r_i_DrawPoint(vec3_t *pos, vec4_t *color)

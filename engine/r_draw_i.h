@@ -105,6 +105,8 @@ struct r_i_draw_list_t *r_i_AllocDrawList(struct r_i_cmd_buffer_t *cmd_buffer, u
 
 struct r_i_mesh_t *r_i_AllocMesh(struct r_i_cmd_buffer_t *cmd_buffer, uint32_t vert_size, uint32_t vert_count, uint32_t index_count);
 
+struct r_i_mesh_t *r_i_AllocMeshForModel(struct r_i_cmd_buffer_t *cmd_buffer, struct r_model_t *model);
+
 //struct r_i_indices_t *r_i_AllocIndices(struct r_i_cmd_buffer_t *cmd_buffer, uint32_t index_count);
 //
 //struct r_i_verts_t *r_i_AllocVerts(struct r_i_cmd_buffer_t *cmd_buffer, uint32_t vert_count, uint32_t vert_size);
@@ -124,7 +126,7 @@ void r_i_DrawBox(vec3_t *half_extents, vec4_t *color);
 
 void r_i_DrawLine(struct r_i_cmd_buffer_t *cmd_buffer, vec3_t *start, vec3_t *end, vec4_t *color);
 
-void r_i_DrawPoint(vec3_t *pos, vec4_t *color);
+void r_i_DrawPoint(struct r_i_cmd_buffer_t *cmd_buffer, vec3_t *pos, vec4_t *color);
 
 //void r_FlushState();
 

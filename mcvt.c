@@ -364,6 +364,7 @@ int main(int argc, char *argv[])
                                                 only the position must be modified. So, we restore it to the value before
                                                 the modification */
                                                 bone_transform = old_bone_transform;
+                                                rotation_index--;
                                             }
 
                                             lowest_time = time;

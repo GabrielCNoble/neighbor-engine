@@ -7,7 +7,7 @@
 
 uniform sampler2D r_tex0;
 
-#define R_SHADOW_SAMPLE_COUNT 16
+#define R_SHADOW_SAMPLE_COUNT 64
 //#define OFFSET_SIZE 0.005
 //
 //vec2 offsets[9] =
@@ -49,7 +49,8 @@ void main()
 
     int dither_x = int(gl_FragCoord.x) % 4;
     int dither_y = int(gl_FragCoord.y) % 4;
-    float dither = r_dither_pattern[dither_x][dither_y];
+//    float dither = r_dither_pattern[dither_x][dither_y];
+    float dither = 0.0;
 
     for(int index = 0; index < r_spot_light_count; index++)
     {

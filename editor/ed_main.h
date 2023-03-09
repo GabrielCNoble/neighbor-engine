@@ -6,7 +6,7 @@
 #include "../lib/dstuff/ds_alloc.h"
 #include "../lib/dstuff/ds_buffer.h"
 #include "ed_defs.h"
-#include "brush.h"
+//#include "ent.h"
 #include "ed_pick.h"
 #include "level.h"
 

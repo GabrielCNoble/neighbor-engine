@@ -43,6 +43,8 @@ struct e_entity_t *e_CopyEntity(struct e_entity_t *entity);
 
 struct e_entity_t *e_GetEntity(uint32_t index);
 
+struct e_node_t *e_GetRootTransform(uint32_t index);
+
 void e_DestroyEntity(struct e_entity_t *entity);
 
 void e_DestroyAllEntities();

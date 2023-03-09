@@ -9,5 +9,4 @@ void main()
 {
     vec4 text_color = texture(r_tex0, tex_coords);
     gl_FragColor = color * text_color;
-//    gl_FragColor = color;
 }

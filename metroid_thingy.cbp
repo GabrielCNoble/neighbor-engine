@@ -73,10 +73,6 @@
 			<Add directory="lib/backtrace/lib" />
 			<Add directory="lib/newton/lib" />
 		</Linker>
-		<Unit filename="editor/brush.c">
-			<Option compilerVar="CC" />
-		</Unit>
-		<Unit filename="editor/brush.h" />
 		<Unit filename="editor/ed_brush_defs.h" />
 		<Unit filename="editor/ed_defs.h" />
 		<Unit filename="editor/ed_ent.c">
@@ -102,14 +98,26 @@
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="editor/level.h" />
-		<Unit filename="editor/light.c">
+		<Unit filename="editor/obj/brush.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="editor/light.h" />
-		<Unit filename="editor/obj.c">
+		<Unit filename="editor/obj/brush.h" />
+		<Unit filename="editor/obj/ent.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="editor/obj.h" />
+		<Unit filename="editor/obj/ent.h" />
+		<Unit filename="editor/obj/light.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="editor/obj/light.h" />
+		<Unit filename="editor/obj/obj.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="editor/obj/obj.h" />
+		<Unit filename="editor/tool.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="editor/tool.h" />
 		<Unit filename="engine/anim.c">
 			<Option compilerVar="CC" />
 		</Unit>

@@ -693,7 +693,7 @@ void ed_e_Update()
     r_SetViewPos(&forward_vec);
 
     ed_entity_state.light->position = forward_vec;
-    ed_LevelEditorDrawGrid();
+    ed_l_DrawGrid();
 
     p_DebugDrawPhysics();
 }

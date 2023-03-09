@@ -3,7 +3,7 @@
 
 #include "ed_defs.h"
 #include "ed_pick_defs.h"
-#include "obj.h"
+#include "obj/obj.h"
 
 enum ED_LEVEL_EDIT_MODES
 {

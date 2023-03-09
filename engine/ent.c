@@ -6,6 +6,7 @@
 #include "g_main.h"
 #include "../lib/dstuff/ds_slist.h"
 #include "../lib/dstuff/ds_path.h"
+#include "../lib/dstuff/ds_file.h"
 #include "log.h"
 
 struct ds_list_t e_components[E_COMPONENT_TYPE_LAST];
@@ -59,6 +60,7 @@ struct e_ent_def_t *e_AllocEntDef(uint32_t type)
     ent_def->node_count = 0;
     ent_def->constraint_count = 0;
     ent_def->collider_count = 0;
+    ent_def->ref_count = 0;
     ent_def->shape_count = 0;
     ent_def->next = NULL;
     ent_def->prev = NULL;
@@ -645,6 +647,7 @@ struct e_entity_t *e_SpawnEntity(struct e_ent_def_t *ent_def, vec3_t *position, 
 {
     struct e_entity_t *entity = e_SpawnEntityRecursive(ent_def, position, scale, /* &ent_def->scale, */ orientation, NULL);
     entity->node->root_index = ds_list_add_element(&e_root_transforms, &entity->node);
+    ent_def->ref_count++;
 
     if(ent_def->type == E_ENT_DEF_TYPE_ROOT)
     {
@@ -678,6 +681,18 @@ struct e_entity_t *e_GetEntity(uint32_t index)
     return entity;
 }
 
+struct e_node_t *e_GetRootTransform(uint32_t index)
+{
+    struct e_node_t *node = *(struct e_node_t **)ds_list_get_element(&e_root_transforms, index);
+
+    if(node && node->index == 0xffffffff)
+    {
+        node = NULL;
+    }
+
+    return node;
+}
+
 void e_DestroyEntity(struct e_entity_t *entity)
 {
     if(entity && entity->index != 0xffffffff)
@@ -701,6 +716,8 @@ void e_DestroyEntity(struct e_entity_t *entity)
             e_DeallocComponent(entity->components[component]);
             entity->components[component] = NULL;
         }
+
+        entity->def->ref_count--;
 
         ds_slist_remove_element(&e_entities, entity->index);
         entity->index = 0xffffffff;
@@ -846,7 +863,8 @@ void e_UpdateEntities()
 
     for(uint32_t root_index = 0; root_index < e_root_transforms.cursor; root_index++)
     {
-        struct e_node_t *local_transform = *(struct e_node_t **)ds_list_get_element(&e_root_transforms, root_index);
+//        struct e_node_t *local_transform = *(struct e_node_t **)ds_list_get_element(&e_root_transforms, root_index);
+        struct e_node_t *local_transform = e_GetRootTransform(root_index);
         e_UpdateEntityNode(local_transform, &mat4_t_c_id());
     }
 

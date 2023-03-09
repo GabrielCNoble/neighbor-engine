@@ -31,7 +31,14 @@ extern mat4_t r_view_projection_matrix;
 
 
 
-
+char *p_col_type_names[P_COLLIDER_TYPE_LAST] =
+{
+    "Static",
+    "Kinematic",
+    "Dynamic",
+    "Trigger",
+    "Character"
+};
 
 
 

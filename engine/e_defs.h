@@ -69,6 +69,9 @@ struct e_ent_def_t
     /* number of nodes in the hierarchy */
     uint32_t node_count;
 
+    /* number of entities referencing this def */
+    uint32_t ref_count;
+
     struct e_constraint_t *constraints;
     /* number of constraints in the hierarchy */
     uint32_t constraint_count;
@@ -157,19 +160,19 @@ struct e_model_t
 
 struct e_entity_t
 {
-    uint32_t index;
-    struct e_ent_def_t *def;
+    uint32_t                        index;
+    struct e_ent_def_t *            def;
     union
     {
         struct
         {
-            struct e_node_t *node;
-            struct e_transform_t *transform;
-            struct e_model_t *model;
-            struct e_collider_t *collider;
+            struct e_node_t *       node;
+            struct e_transform_t *  transform;
+            struct e_model_t *      model;
+            struct e_collider_t *   collider;
         };
 
-        struct e_component_t *components[E_COMPONENT_TYPE_LAST];
+        struct e_component_t *      components[E_COMPONENT_TYPE_LAST];
     };
 };
 

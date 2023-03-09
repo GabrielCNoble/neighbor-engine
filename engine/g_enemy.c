@@ -29,7 +29,9 @@ void g_EnemyInit()
     g_enemies[G_ENEMY_TYPE_TURRET] = ds_slist_create(sizeof(struct g_turret_t), 32);
 
     g_enemy_ent_defs[G_ENEMY_TYPE_CAMERA] = e_LoadEntDef("camera.ent");
-    g_enemy_ent_defs[G_ENEMY_TYPE_TURRET] = e_LoadEntDef("turret.ent");
+    e_LoadEntDef("cabinet.ent");
+    e_LoadEntDef("chair.ent");
+//    g_enemy_ent_defs[G_ENEMY_TYPE_TURRET] = e_LoadEntDef("turret.ent");
 }
 
 /*

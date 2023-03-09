@@ -109,6 +109,13 @@ uint32_t r_shadow_map_framebuffer;
 struct r_shadow_bucket_t r_shadow_buckets[R_SHADOW_BUCKET_COUNT];
 struct ds_chunk_h r_screen_tri_chunk;
 uint32_t r_screen_tri_start;
+uint32_t r_immediate_cmd_id = 0;
+
+char *r_light_type_names[R_LIGHT_TYPE_LAST] =
+{
+    [R_LIGHT_TYPE_POINT] = "Point",
+    [R_LIGHT_TYPE_SPOT] = "Spot"
+};
 
 
 vec2_t r_point_shadow_projection_params;
@@ -1222,8 +1229,10 @@ void r_FreeImmediateCmdBuffer(struct r_i_cmd_buffer_t *cmd_buffer)
 void r_IssueImmediateCmd(struct r_i_cmd_buffer_t *cmd_buffer, uint32_t type, void *data)
 {
     struct r_i_cmd_t *cmd = (struct r_i_cmd_t *)r_AllocCmd(&cmd_buffer->base);
+    cmd->id = r_immediate_cmd_id;
     cmd->type = type;
     cmd->data = data;
+    r_immediate_cmd_id++;
 }
 
 void *r_AllocImmediateCmdData(struct r_i_cmd_buffer_t *cmd_buffer, uint32_t size)

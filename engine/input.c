@@ -6,10 +6,12 @@
 #define IN_DOUBLE_CLICK_FRAMES 25
 
 const Uint8 *in_keyboard;
-uint8_t in_keyboard_state[SDL_NUM_SCANCODES];
+//uint8_t in_keyboard_state[SDL_NUM_SCANCODES];
 char in_text_buffer[512];
-uint32_t in_mouse_state[4];
+//uint32_t in_mouse_state[4];
 uint32_t in_mouse_timers[4] = {IN_DOUBLE_CLICK_FRAMES, IN_DOUBLE_CLICK_FRAMES, IN_DOUBLE_CLICK_FRAMES, IN_DOUBLE_CLICK_FRAMES};
+
+struct in_input_state_t in_input_state;
 
 int32_t in_mouse_x;
 int32_t in_mouse_y;
@@ -42,12 +44,12 @@ void in_Input(float delta_time)
     for(uint32_t mouse_button = SDL_BUTTON_LEFT; mouse_button <= SDL_BUTTON_RIGHT; mouse_button++)
     {
         uint32_t button_index = mouse_button - 1;
-        in_mouse_state[button_index] &= ~(IN_KEY_STATE_JUST_PRESSED | IN_KEY_STATE_JUST_RELEASED | IN_KEY_STATE_DOUBLE_CLICKED);
+        in_input_state.mouse[button_index] &= ~(IN_KEY_STATE_JUST_PRESSED | IN_KEY_STATE_JUST_RELEASED | IN_KEY_STATE_DOUBLE_CLICKED);
     }
 
     for(uint32_t scancode = 0; scancode < SDL_NUM_SCANCODES; scancode++)
     {
-        in_keyboard_state[scancode] &= ~(IN_KEY_STATE_JUST_PRESSED | IN_KEY_STATE_JUST_RELEASED);
+        in_input_state.keyboard[scancode] &= ~(IN_KEY_STATE_JUST_PRESSED | IN_KEY_STATE_JUST_RELEASED);
     }
 
     in_prev_mouse_x = in_mouse_x;
@@ -76,16 +78,16 @@ void in_Input(float delta_time)
 
                 if(event.button.state == SDL_PRESSED)
                 {
-                    in_mouse_state[button] = IN_KEY_STATE_PRESSED | IN_KEY_STATE_JUST_PRESSED;
+                    in_input_state.mouse[button] = IN_KEY_STATE_PRESSED | IN_KEY_STATE_JUST_PRESSED;
 
                     if(event.button.clicks > 1)
                     {
-                        in_mouse_state[button] |= IN_KEY_STATE_DOUBLE_CLICKED;
+                        in_input_state.mouse[button] |= IN_KEY_STATE_DOUBLE_CLICKED;
                     }
                 }
                 else
                 {
-                    in_mouse_state[button] = IN_KEY_STATE_JUST_RELEASED;
+                    in_input_state.mouse[button] = IN_KEY_STATE_JUST_RELEASED;
                 }
             }
             break;
@@ -98,11 +100,11 @@ void in_Input(float delta_time)
 
                     if(event.key.state == SDL_PRESSED)
                     {
-                        in_keyboard_state[scancode] = IN_KEY_STATE_PRESSED | IN_KEY_STATE_JUST_PRESSED;
+                        in_input_state.keyboard[scancode] = IN_KEY_STATE_PRESSED | IN_KEY_STATE_JUST_PRESSED;
                     }
                     else
                     {
-                        in_keyboard_state[scancode] = IN_KEY_STATE_JUST_RELEASED;
+                        in_input_state.keyboard[scancode] = IN_KEY_STATE_JUST_RELEASED;
                     }
                 }
             break;
@@ -172,12 +174,12 @@ uint32_t in_GetKeyState(SDL_Scancode scancode)
         return 0;
     }
 
-    return in_keyboard_state[scancode];
+    return in_input_state.keyboard[scancode];
 }
 
-uint8_t *in_GetKeyStates()
+uint8_t *in_GetKeyboardState()
 {
-    return in_keyboard_state;
+    return in_input_state.keyboard;
 }
 
 uint32_t in_GetMouseButtonState(uint32_t button)
@@ -187,12 +189,12 @@ uint32_t in_GetMouseButtonState(uint32_t button)
         return 0;
     }
 
-    return in_mouse_state[button - 1];
+    return in_input_state.mouse[button - 1];
 }
 
 uint32_t *in_GetMouseButtonStates()
 {
-    return in_mouse_state;
+    return in_input_state.mouse;
 }
 
 uint32_t in_GetMouseDoubleClickState(uint32_t button, uint32_t timeout)

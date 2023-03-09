@@ -10,6 +10,7 @@ ImGuiContext *gui_context;
 struct r_texture_t *gui_font_atlas;
 mat4_t gui_projection_matrix;
 struct r_shader_t *gui_shader;
+SDL_Cursor *gui_cursor[ImGuiMouseCursor_COUNT];
 
 extern uint32_t r_width;
 extern uint32_t r_height;
@@ -34,6 +35,8 @@ void gui_Init()
     ImGuiIO *io = igGetIO();
 
     io->ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+    io->BackendFlags |= ImGuiBackendFlags_HasMouseCursors;
+    io->ConfigWindowsResizeFromEdges = true;
     io->IniFilename = NULL;
 
     io->KeyMap[ImGuiKey_Tab] = SDL_SCANCODE_TAB;
@@ -58,6 +61,16 @@ void gui_Init()
     io->KeyMap[ImGuiKey_X] = SDL_SCANCODE_X;
     io->KeyMap[ImGuiKey_Y] = SDL_SCANCODE_Y;
     io->KeyMap[ImGuiKey_Z] = SDL_SCANCODE_Z;
+
+    gui_cursor[ImGuiMouseCursor_Arrow] = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_ARROW);
+    gui_cursor[ImGuiMouseCursor_TextInput] = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_IBEAM);
+    gui_cursor[ImGuiMouseCursor_ResizeAll] = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_SIZEALL);
+    gui_cursor[ImGuiMouseCursor_ResizeNS] = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_SIZENS);
+    gui_cursor[ImGuiMouseCursor_ResizeEW] = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_SIZEWE);
+    gui_cursor[ImGuiMouseCursor_ResizeNESW] = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_SIZENESW);
+    gui_cursor[ImGuiMouseCursor_ResizeNWSE] = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_SIZENWSE);
+    gui_cursor[ImGuiMouseCursor_Hand] = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_HAND);
+    gui_cursor[ImGuiMouseCursor_NotAllowed] = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_NO);
 
     unsigned char *pixels;
     int width;
@@ -109,7 +122,7 @@ void gui_BeginFrame(float delta_time)
     io->DisplaySize.y = r_height;
     int32_t mouse_x;
     int32_t mouse_y;
-    uint8_t *keyboard_state = in_GetKeyStates();
+    uint8_t *keyboard_state = in_GetKeyboardState();
     uint32_t *mouse_state = in_GetMouseButtonStates();
 
     in_GetMousePos(&mouse_x, &mouse_y);
@@ -118,6 +131,17 @@ void gui_BeginFrame(float delta_time)
     io->MouseDown[0] = mouse_state[SDL_BUTTON_LEFT - 1] & IN_KEY_STATE_PRESSED;
     io->MouseDown[1] = mouse_state[SDL_BUTTON_RIGHT - 1] & IN_KEY_STATE_PRESSED;
     io->MouseDown[2] = mouse_state[SDL_BUTTON_MIDDLE - 1] & IN_KEY_STATE_PRESSED;
+    ImGuiMouseCursor cursor = igGetMouseCursor();
+
+    if(io->MouseDrawCursor || cursor == ImGuiMouseCursor_None)
+    {
+        SDL_ShowCursor(0);
+    }
+    else
+    {
+        SDL_SetCursor(gui_cursor[cursor]);
+        SDL_ShowCursor(1);
+    }
 
     if(io->WantTextInput)
     {
@@ -186,27 +210,26 @@ void gui_EndFrame()
 //    glClear(GL_COLOR_BUFFER_BIT);
 
     struct r_i_blending_t blend_state = {
-        .enable = GL_TRUE,
+        .enable = R_I_ENABLE,
         .src_factor = GL_SRC_ALPHA,
         .dst_factor = GL_ONE_MINUS_SRC_ALPHA
     };
     r_i_SetBlending(NULL, NULL, &blend_state);
 
     struct r_i_depth_t depth_state = {
-        .enable = GL_TRUE,
+        .enable = R_I_ENABLE,
         .func = GL_ALWAYS,
     };
     r_i_SetDepth(NULL, NULL, &depth_state);
 
     struct r_i_raster_t raster_state = {
-        .cull_enable = GL_FALSE,
-        .cull_face = GL_DONT_CARE,
+        .cull_enable = R_I_DISABLE,
         .polygon_mode = GL_FILL
     };
     r_i_SetRasterizer(NULL, NULL, &raster_state);
 
     struct r_i_scissor_t scissor_state = {
-        .enable = GL_TRUE,
+        .enable = R_I_ENABLE,
     };
     r_i_SetScissor(NULL, NULL, &scissor_state);
 
@@ -220,7 +243,7 @@ void gui_EndFrame()
     r_i_SetDrawMask(NULL, NULL, &draw_mask);
 
     struct r_i_stencil_t stencil = {
-        .enable = GL_FALSE
+        .enable = R_I_DISABLE
     };
     r_i_SetStencil(NULL, NULL, &stencil);
 
@@ -283,10 +306,23 @@ void gui_EndFrame()
                 .y = clip_y,
                 .width = clip_w,
                 .height = clip_h,
-                .enable = GL_DONT_CARE
+                .enable = R_I_DONT_CARE
             };
 
             r_i_SetScissor(NULL, range, &scissor_state);
+
+            struct r_i_texture_t texture = {
+                .texture = (struct r_texture_t *)src_cmd->TextureId,
+                .tex_unit = 0,
+            };
+
+            struct r_i_uniform_t uniform = {
+                .uniform = R_UNIFORM_TEX0,
+                .count = 1,
+                .value = &texture
+            };
+
+            r_i_SetUniforms(NULL, range, &uniform, 1);
 
             range->start = src_cmd->IdxOffset;
             range->count = src_cmd->ElemCount;

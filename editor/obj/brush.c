@@ -1,7 +1,8 @@
 #include <float.h>
 #include "brush.h"
 //#include "ed_pick_defs.h"
-#include "ed_level_defs.h"
+//#include "ed_level_defs.h"
+#include "../level.h"
 #include "dstuff/ds_buffer.h"
 #include "../engine/r_main.h"
 #include "../engine/r_draw_i.h"
@@ -79,9 +80,258 @@ vec3_t ed_cube_brush_tangents[] =
 
 extern struct ed_level_state_t ed_level_state;
 extern mat4_t r_view_projection_matrix;
+extern struct ed_obj_funcs_t ed_obj_funcs[];
+//struct ds_list_t ed_brush_verts;
+
+struct ed_vert_t *ed_brush_verts[64];
 
 //extern struct ds_slist_t ed_polygons;
 //extern struct ds_slist_t ed_bsp_nodes;
+
+static void *ed_CreateBrushObject(vec3_t *position, mat3_t *orientation, vec3_t *scale, void *args)
+{
+    return ed_CreateBrush(position, orientation, scale);
+}
+
+static void ed_DestroyBrushObject(struct ed_obj_t *object)
+{
+    ed_DestroyBrush((struct ed_brush_t *)object->base_obj);
+}
+
+static void ed_UpdateBrushObject(struct ed_obj_t *object, struct ed_operator_event_t *event)
+{
+    struct ed_brush_t *brush = (struct ed_brush_t *)object->base_obj;
+
+    if(event != NULL)
+    {
+        switch(event->operator->type)
+        {
+            case ED_OPERATOR_TRANSFORM:
+            {
+                switch(event->transform_event.type)
+                {
+                    case ED_TRANSFORM_OPERATOR_MODE_TRANSLATE:
+                    {
+                        vec3_t_add(&brush->position, &brush->position, &event->transform_event.translation.translation);
+                    }
+                    break;
+
+                    case ED_TRANSFORM_OPERATOR_MODE_ROTATE:
+                    {
+                        mat3_t_mul(&brush->orientation, &brush->orientation, &event->transform_event.rotation.rotation);
+                    }
+                    break;
+                }
+            }
+            break;
+        }
+    }
+
+    ed_UpdateBrush(brush);
+    mat4_t_comp(&object->transform, &brush->orientation, &brush->position);
+}
+
+static struct r_i_draw_list_t *ed_PickBrushObject(struct ed_obj_t *object, struct r_i_cmd_buffer_t *command_buffer, struct ed_operator_event_t *pick_event)
+{
+    struct ed_brush_t *brush = object->base_obj;
+    struct r_i_draw_list_t *draw_list = NULL;
+    mat4_t model_view_projection_matrix;
+    mat4_t_mul(&model_view_projection_matrix, &object->transform, &r_view_projection_matrix);
+
+//    struct r_i_raster_t rasterizer;
+
+    draw_list = r_i_AllocDrawList(command_buffer, 1);
+    draw_list->mesh = r_i_AllocMesh(command_buffer, sizeof(struct r_vert_t), brush->model->verts.buffer_size, brush->model->indices.buffer_size);
+    memcpy(draw_list->mesh->verts.verts, brush->model->verts.buffer, sizeof(struct r_vert_t) * brush->model->verts.buffer_size);
+    memcpy(draw_list->mesh->indices.indices, brush->model->indices.buffer, sizeof(uint32_t) * brush->model->indices.buffer_size);
+    draw_list->ranges[0].start = 0;
+    draw_list->ranges[0].count = brush->model->indices.buffer_size;
+    draw_list->mode = GL_TRIANGLES;
+    draw_list->indexed = 1;
+
+    struct r_i_uniform_t uniform;
+    uniform.value = &model_view_projection_matrix;
+    uniform.uniform = ED_PICK_SHADER_UNIFORM_MODEL_VIEW_PROJECTION_MATRIX;
+    uniform.count = 1;
+
+    r_i_SetUniforms(command_buffer, NULL, &uniform, 1);
+
+    return draw_list;
+}
+
+static struct r_i_draw_list_t *ed_DrawBrushObjectSelected(struct ed_obj_t *object, struct r_i_cmd_buffer_t *command_buffer)
+{
+    struct ed_brush_t *brush = object->base_obj;
+    struct r_i_draw_list_t *draw_list = NULL;
+    struct r_i_raster_t rasterizer;
+    struct r_i_stencil_t stencil;
+    struct r_i_depth_t depth;
+    struct r_i_draw_mask_t draw_mask;
+    vec4_t outline_color = vec4_t_c(1.0, 0.5, 0.0, 1.0);
+
+    mat4_t model_view_projection_matrix;
+    mat4_t_mul(&model_view_projection_matrix, &object->transform, &r_view_projection_matrix);
+
+    struct r_i_uniform_t uniforms[2] = {
+        {
+            .uniform = ED_OUTLINE_SHADER_UNIFORM_COLOR,
+            .count = 1,
+            .value = &outline_color
+        },
+        {
+            .uniform = ED_OUTLINE_SHADER_UNIFORM_MODEL_VIEW_PROJECTION_MATRIX,
+            .count = 1,
+            .value = &model_view_projection_matrix
+        }
+    };
+
+    draw_list = r_i_AllocDrawList(command_buffer, 3);
+
+
+//    color = (struct r_i_uniform_t){
+//        .uniform = ED_OUTLINE_SHADER_UNIFORM_COLOR,
+//        .count = 1,
+//        .value = &outline_color
+//    };
+
+    /* fill stencil buffer with 0xff where the brush is */
+    rasterizer = (struct r_i_raster_t) {
+        .polygon_mode = GL_FILL,
+        .cull_face = GL_BACK,
+        .cull_enable = R_I_ENABLE,
+        .line_width = 2.0
+    };
+    stencil = (struct r_i_stencil_t) {
+        .enable = R_I_ENABLE,
+        .func = GL_ALWAYS,
+        .stencil_fail = GL_KEEP,
+        .depth_fail = GL_KEEP,
+        .depth_pass = GL_REPLACE,
+        .mask = 0xff,
+        .ref = 0xff
+    };
+
+    draw_mask = (struct r_i_draw_mask_t) {
+        .red = GL_FALSE,
+        .green = GL_FALSE,
+        .blue = GL_FALSE,
+        .alpha = GL_FALSE,
+        .depth = GL_FALSE,
+        .stencil = 0xff
+    };
+
+    depth = (struct r_i_depth_t) {
+        .func = GL_LESS,
+        .enable = R_I_DISABLE
+    };
+
+    r_i_SetUniforms(command_buffer, &draw_list->ranges[0], uniforms, 2);
+    r_i_SetRasterizer(command_buffer, &draw_list->ranges[0], &rasterizer);
+    r_i_SetStencil(command_buffer, &draw_list->ranges[0], &stencil);
+    r_i_SetDrawMask(command_buffer, &draw_list->ranges[0], &draw_mask);
+    r_i_SetDepth(command_buffer, &draw_list->ranges[0], &depth);
+    draw_list->ranges[0].start = brush->model->model_start;
+    draw_list->ranges[0].count = brush->model->model_count;
+
+
+
+    /* draw wireframe only where the stencil buffer isn't 0xff */
+    rasterizer = (struct r_i_raster_t) {
+        .polygon_mode = GL_LINE,
+        .cull_face = GL_BACK,
+        .cull_enable = R_I_ENABLE,
+
+    };
+    stencil = (struct r_i_stencil_t) {
+        .enable = R_I_ENABLE,
+        .func = GL_NOTEQUAL,
+        .stencil_fail = GL_KEEP,
+        .depth_fail = GL_KEEP,
+        .depth_pass = GL_KEEP,
+        .mask = 0xff,
+        .ref = 0xff
+    };
+
+    draw_mask = (struct r_i_draw_mask_t) {
+        .red = GL_TRUE,
+        .green = GL_TRUE,
+        .blue = GL_TRUE,
+        .alpha = GL_TRUE,
+        .depth = GL_FALSE,
+        .stencil = 0xff
+    };
+
+    depth = (struct r_i_depth_t) {
+        .func = GL_LESS,
+        .enable = R_I_ENABLE,
+    };
+
+    r_i_SetRasterizer(command_buffer, &draw_list->ranges[1], &rasterizer);
+    r_i_SetStencil(command_buffer, &draw_list->ranges[1], &stencil);
+    r_i_SetDrawMask(command_buffer, &draw_list->ranges[1], &draw_mask);
+    r_i_SetDepth(command_buffer, &draw_list->ranges[1], &depth);
+    draw_list->ranges[1].start = brush->model->model_start;
+    draw_list->ranges[1].count = brush->model->model_count;
+
+
+    /* clear brush stencil pixels back to 0 */
+    rasterizer = (struct r_i_raster_t) {
+        .polygon_mode = GL_FILL,
+        .cull_face = GL_BACK,
+        .cull_enable = R_I_ENABLE
+    };
+    stencil = (struct r_i_stencil_t) {
+        .enable = R_I_ENABLE,
+        .func = GL_ALWAYS,
+        .stencil_fail = GL_REPLACE,
+        .depth_fail = GL_REPLACE,
+        .depth_pass = GL_REPLACE,
+        .mask = 0xff,
+        .ref = 0x00
+    };
+
+    draw_mask = (struct r_i_draw_mask_t) {
+        .red = GL_FALSE,
+        .green = GL_FALSE,
+        .blue = GL_FALSE,
+        .alpha = GL_FALSE,
+        .depth = GL_FALSE,
+        .stencil = 0xff
+    };
+
+    depth = (struct r_i_depth_t) {
+        .func = GL_LEQUAL,
+        .enable = R_I_DISABLE
+    };
+
+    r_i_SetRasterizer(command_buffer, &draw_list->ranges[2], &rasterizer);
+    r_i_SetStencil(command_buffer, &draw_list->ranges[2], &stencil);
+    r_i_SetDrawMask(command_buffer, &draw_list->ranges[2], &draw_mask);
+    r_i_SetDepth(command_buffer, &draw_list->ranges[2], &depth);
+    draw_list->ranges[2].start = brush->model->model_start;
+    draw_list->ranges[2].count = brush->model->model_count;
+
+
+    draw_list->mode = GL_TRIANGLES;
+    draw_list->indexed = 1;
+
+    return draw_list;
+}
+
+
+void ed_InitBrushObjectFuncs()
+{
+    ed_obj_funcs[ED_OBJ_TYPE_BRUSH] = (struct ed_obj_funcs_t){
+        .create = ed_CreateBrushObject,
+        .destroy = ed_DestroyBrushObject,
+        .update = ed_UpdateBrushObject,
+        .pick = ed_PickBrushObject,
+        .draw = NULL,
+        .draw_selected = ed_DrawBrushObjectSelected,
+    };
+
+//    ed_brush_verts = ds_list_create(sizeof(struct ed_vert_t *), 32);
+}
 
 struct ed_brush_t *ed_AllocBrush()
 {
@@ -120,12 +370,9 @@ struct ed_brush_t *ed_CreateBrush(vec3_t *position, mat3_t *orientation, vec3_t 
     vec3_t_fabs(&dims, size);
 
     brush = ed_AllocBrush();
-//    brush->vertices = ds_slist_create(sizeof(struct ed_vert_t), 8);
-//    brush->vert_transforms = ds_list_create(sizeof(struct ed_vert_transform_t), 32);
-//    brush->main_brush = brush;
     brush->update_flags |= ED_BRUSH_UPDATE_FLAG_FACE_POLYGONS;
 
-    for(uint32_t vert_index = 0; vert_index < brush->vertices.size; vert_index++)
+    for(uint32_t vert_index = 0; vert_index < 8; vert_index++)
     {
 //        uint32_t index = ed_AllocVertex(brush);
 //        vec3_t *vertice = ed_GetVertex(brush, index);
@@ -134,6 +381,7 @@ struct ed_brush_t *ed_CreateBrush(vec3_t *position, mat3_t *orientation, vec3_t 
         vertice->vert.x = dims.x * ed_cube_brush_vertices[vert_index].x;
         vertice->vert.y = dims.y * ed_cube_brush_vertices[vert_index].y;
         vertice->vert.z = dims.z * ed_cube_brush_vertices[vert_index].z;
+        ed_brush_verts[vert_index] = vertice;
     }
 
     brush->orientation = *orientation;
@@ -155,8 +403,8 @@ struct ed_brush_t *ed_CreateBrush(vec3_t *position, mat3_t *orientation, vec3_t 
 
         for(uint32_t vert_index = 0; vert_index < 4; vert_index++)
         {
-            struct ed_vert_t *vert0 = ed_GetVert(brush, ed_cube_brush_indices[face_index][vert_index]);
-            struct ed_vert_t *vert1 = ed_GetVert(brush, ed_cube_brush_indices[face_index][(vert_index + 1) % 4]);
+            struct ed_vert_t *vert0 = ed_brush_verts[ed_cube_brush_indices[face_index][vert_index]];
+            struct ed_vert_t *vert1 = ed_brush_verts[ed_cube_brush_indices[face_index][(vert_index + 1) % 4]];
 
             struct ed_edge_t *edge = brush->edges;
 
@@ -1412,6 +1660,7 @@ void ed_UpdateBrush(struct ed_brush_t *brush)
                 struct r_vert_t *model_vert = vertices + face_vert_start + vert_index;
 
                 model_vert->pos = brush_vert->vert;
+//                printf("%p - %f %f %f\n", brush_vert, brush_vert->vert.x, brush_vert->vert.y, brush_vert->vert.z);
                 model_vert->normal.xyz = face->normal;
                 model_vert->normal.w = 0.0;
                 model_vert->tangent = face->tangent;
@@ -1465,6 +1714,7 @@ void ed_UpdateBrush(struct ed_brush_t *brush)
             face_vert_start += face->edge_count;
             face->index_count = cur_batch->count - face->index_count;
         }
+        printf("\n");
 
         geometry.batches = batch_buffer->buffer;
         geometry.batch_count = batch_count;
@@ -1630,200 +1880,224 @@ void ed_UpdateBrush(struct ed_brush_t *brush)
     brush->flags = 0;
 }
 
-void *ed_CreateBrushObject(vec3_t *position, mat3_t *orientation, vec3_t *scale, void *args)
-{
-    return ed_CreateBrush(position, orientation, scale);
-}
+//void *ed_CreateBrushObject(vec3_t *position, mat3_t *orientation, vec3_t *scale, void *args)
+//{
+//    return ed_CreateBrush(position, orientation, scale);
+//}
 
-void ed_DestroyBrushObject(void *base_obj)
-{
-    struct ed_brush_t *brush = (struct ed_brush_t *)base_obj;
-    ed_DestroyBrush(brush);
-}
+//void ed_DestroyBrushObject(void *base_obj)
+//{
+//    struct ed_brush_t *brush = (struct ed_brush_t *)base_obj;
+//    ed_DestroyBrush(brush);
+//}
 
-struct r_i_draw_list_t *ed_RenderPickBrushObject(struct ed_obj_t *object, struct r_i_cmd_buffer_t *cmd_buffer)
-{
-    struct ed_brush_t *brush = object->base_obj;
-//    struct r_i_draw_list_t *draw_list = r_i_AllocDrawList(cmd_buffer, 1);
+//struct r_i_draw_list_t *ed_RenderPickBrushObject(struct ed_obj_t *object, struct r_i_cmd_buffer_t *cmd_buffer)
+//{
+//    struct ed_brush_t *brush = object->base_obj;
+//    struct r_i_draw_list_t *draw_list = NULL;
+//
+//    if(ed_level_state.obj.pick_brush_elements)
+//    {
+//        draw_list = r_i_AllocDrawList(cmd_buffer, brush->face_count);
+//
+//        struct ed_face_t *face = brush->faces;
+//        uint32_t face_index = 0;
+//        while(face)
+//        {
+//            struct r_i_draw_range_t *draw_range = draw_list->ranges + face_index;
+//            draw_range->start = face->first_index + brush->model->model_start;
+//            draw_range->count = face->index_count;
+//
+//            struct r_i_uniform_t uniforms[2] = {
+//                [0] = {
+//                    .uniform = ED_PICK_SHADER_UNIFORM_OBJ_EXTRA0,
+//                    .count = 1,
+//                    .value = &(uint32_t){ED_BRUSH_ELEMENT_FACE},
+//                },
+//                [1] = {
+//                    .uniform = ED_PICK_SHADER_UNIFORM_OBJ_EXTRA1,
+//                    .count = 1,
+//                    .value = &face->index
+//                }
+//            };
+//            r_i_SetUniforms(cmd_buffer, draw_range, uniforms, 2);
+//            face = face->next;
+//            face_index++;
+//        }
+//
+//        draw_list->mode = GL_TRIANGLES;
+//        draw_list->indexed = 1;
+//    }
+//    else
+//    {
+//        draw_list = r_i_AllocDrawList(cmd_buffer, 1);
+//
+//        struct r_i_uniform_t uniforms[2] = {
+//            [0] = {
+//                .uniform = ED_PICK_SHADER_UNIFORM_OBJ_DATA0,
+//                .count = 1,
+//                .value = &(uint32_t){ED_BRUSH_ELEMENT_BODY},
+//            },
+//            [1] = {
+//                .uniform = ED_PICK_SHADER_UNIFORM_OBJ_DATA1,
+//                .count = 1,
+//                .value = &(uint32_t){0}
+//            }
+//        };
+//        r_i_SetUniforms(cmd_buffer, &draw_list->ranges[0], uniforms, 2);
+//
+//        draw_list->ranges[0].start = brush->model->model_start;
+//        draw_list->ranges[0].count = brush->model->model_count;
+//
+//        draw_list->mode = GL_TRIANGLES;
+//        draw_list->indexed = 1;
+//    }
+//
+//    return draw_list;
+//}
+
+//struct r_i_draw_list_t *ed_RenderDrawBrushObject(struct ed_obj_result_t *object, struct r_i_cmd_buffer_t *cmd_buffer)
+//{
+//    struct ed_brush_t *brush = object->object->base_obj;
+//    struct r_i_draw_list_t *draw_list = NULL;
+//    struct r_i_raster_t rasterizer;
+//    struct r_i_stencil_t stencil;
+//    struct r_i_depth_t depth;
+//    struct r_i_draw_mask_t draw_mask;
+//    struct r_i_uniform_t color;
+//
+//
+//    draw_list = r_i_AllocDrawList(cmd_buffer, 3);
+//    vec4_t outline_color = vec4_t_c(1.0, 0.5, 0.0, 1.0);
+//
+//    color = (struct r_i_uniform_t){
+//        .uniform = ED_OUTLINE_SHADER_UNIFORM_COLOR,
+//        .count = 1,
+//        .value = &outline_color
+//    };
+//
+//    /* fill stencil buffer with 0xff where the brush is */
+//    rasterizer = (struct r_i_raster_t) {
+//        .polygon_mode = GL_FILL,
+//        .cull_face = GL_BACK,
+//        .cull_enable = R_I_ENABLE
+//    };
+//    stencil = (struct r_i_stencil_t) {
+//        .enable = R_I_ENABLE,
+//        .func = GL_ALWAYS,
+//        .stencil_fail = GL_KEEP,
+//        .depth_fail = GL_KEEP,
+//        .depth_pass = GL_REPLACE,
+//        .mask = 0xff,
+//        .ref = 0xff
+//    };
+//
+//    draw_mask = (struct r_i_draw_mask_t) {
+//        .red = GL_FALSE,
+//        .green = GL_FALSE,
+//        .blue = GL_FALSE,
+//        .alpha = GL_FALSE,
+//        .depth = GL_FALSE,
+//        .stencil = 0xff
+//    };
+//
+//    depth = (struct r_i_depth_t) {
+//        .func = GL_LESS,
+//        .enable = R_I_DISABLE
+//    };
+//
+//    r_i_SetUniforms(cmd_buffer, &draw_list->ranges[0], &color, 1);
+//    r_i_SetRasterizer(cmd_buffer, &draw_list->ranges[0], &rasterizer);
+//    r_i_SetStencil(cmd_buffer, &draw_list->ranges[0], &stencil);
+//    r_i_SetDrawMask(cmd_buffer, &draw_list->ranges[0], &draw_mask);
+//    r_i_SetDepth(cmd_buffer, &draw_list->ranges[0], &depth);
 //    draw_list->ranges[0].start = brush->model->model_start;
 //    draw_list->ranges[0].count = brush->model->model_count;
+//
+//
+//
+//    /* draw wireframe only where the stencil buffer isn't 0xff */
+//    rasterizer = (struct r_i_raster_t) {
+//        .polygon_mode = GL_LINE,
+//        .cull_face = GL_BACK,
+//        .cull_enable = R_I_ENABLE,
+//
+//    };
+//    stencil = (struct r_i_stencil_t) {
+//        .enable = R_I_ENABLE,
+//        .func = GL_NOTEQUAL,
+//        .stencil_fail = GL_KEEP,
+//        .depth_fail = GL_KEEP,
+//        .depth_pass = GL_KEEP,
+//        .mask = 0xff,
+//        .ref = 0xff
+//    };
+//
+//    draw_mask = (struct r_i_draw_mask_t) {
+//        .red = GL_TRUE,
+//        .green = GL_TRUE,
+//        .blue = GL_TRUE,
+//        .alpha = GL_TRUE,
+//        .depth = GL_FALSE,
+//        .stencil = 0xff
+//    };
+//
+//    depth = (struct r_i_depth_t) {
+//        .func = GL_LESS,
+//        .enable = R_I_ENABLE,
+//    };
+//
+//    r_i_SetRasterizer(cmd_buffer, &draw_list->ranges[1], &rasterizer);
+//    r_i_SetStencil(cmd_buffer, &draw_list->ranges[1], &stencil);
+//    r_i_SetDrawMask(cmd_buffer, &draw_list->ranges[1], &draw_mask);
+//    r_i_SetDepth(cmd_buffer, &draw_list->ranges[1], &depth);
+//    draw_list->ranges[1].start = brush->model->model_start;
+//    draw_list->ranges[1].count = brush->model->model_count;
+//
+//
+//    /* clear brush stencil pixels back to 0 */
+//    rasterizer = (struct r_i_raster_t) {
+//        .polygon_mode = GL_FILL,
+//        .cull_face = GL_BACK,
+//        .cull_enable = R_I_ENABLE
+//    };
+//    stencil = (struct r_i_stencil_t) {
+//        .enable = R_I_ENABLE,
+//        .func = GL_ALWAYS,
+//        .stencil_fail = GL_REPLACE,
+//        .depth_fail = GL_REPLACE,
+//        .depth_pass = GL_REPLACE,
+//        .mask = 0xff,
+//        .ref = 0x00
+//    };
+//
+//    draw_mask = (struct r_i_draw_mask_t) {
+//        .red = GL_FALSE,
+//        .green = GL_FALSE,
+//        .blue = GL_FALSE,
+//        .alpha = GL_FALSE,
+//        .depth = GL_FALSE,
+//        .stencil = 0xff
+//    };
+//
+//    depth = (struct r_i_depth_t) {
+//        .func = GL_LEQUAL,
+//        .enable = R_I_DISABLE
+//    };
+//
+//    r_i_SetRasterizer(cmd_buffer, &draw_list->ranges[2], &rasterizer);
+//    r_i_SetStencil(cmd_buffer, &draw_list->ranges[2], &stencil);
+//    r_i_SetDrawMask(cmd_buffer, &draw_list->ranges[2], &draw_mask);
+//    r_i_SetDepth(cmd_buffer, &draw_list->ranges[2], &depth);
+//    draw_list->ranges[2].start = brush->model->model_start;
+//    draw_list->ranges[2].count = brush->model->model_count;
+//
+//
 //    draw_list->mode = GL_TRIANGLES;
 //    draw_list->indexed = 1;
-
-    struct r_i_draw_list_t *draw_list = r_i_AllocDrawList(cmd_buffer, brush->face_count);
-    draw_list->mode = GL_TRIANGLES;
-    draw_list->indexed = 1;
-
-    struct ed_face_t *face = brush->faces;
-    uint32_t face_index = 0;
-    while(face)
-    {
-        struct r_i_draw_range_t *draw_range = draw_list->ranges + face_index;
-        draw_range->start = face->first_index + brush->model->model_start;
-        draw_range->count = face->index_count;
-
-        struct r_i_uniform_t uniforms[2] = {
-            [0] = {
-                .uniform = ED_PICK_SHADER_UNIFORM_OBJ_DATA0,
-                .count = 1,
-                .value = &(uint32_t){ED_BRUSH_ELEMENT_FACE},
-            },
-            [1] = {
-                .uniform = ED_PICK_SHADER_UNIFORM_OBJ_DATA1,
-                .count = 1,
-                .value = &face->index
-            }
-        };
-        r_i_SetUniforms(cmd_buffer, draw_range, uniforms, 2);
-        face = face->next;
-        face_index++;
-    }
-
-    return draw_list;
-}
-
-struct r_i_draw_list_t *ed_RenderDrawBrushObject(struct ed_obj_result_t *object, struct r_i_cmd_buffer_t *cmd_buffer)
-{
-    struct ed_brush_t *brush = object->object->base_obj;
-    struct r_i_draw_list_t *draw_list = NULL;
-    struct r_i_raster_t rasterizer;
-    struct r_i_stencil_t stencil;
-    struct r_i_depth_t depth;
-    struct r_i_draw_mask_t draw_mask;
-    struct r_i_uniform_t color;
-
-
-    draw_list = r_i_AllocDrawList(cmd_buffer, 3);
-    vec4_t outline_color = vec4_t_c(1.0, 0.5, 0.0, 1.0);
-
-    color = (struct r_i_uniform_t){
-        .uniform = ED_OUTLINE_SHADER_UNIFORM_COLOR,
-        .count = 1,
-        .value = &outline_color
-    };
-
-    /* fill stencil buffer with 0xff where the brush is */
-    rasterizer = (struct r_i_raster_t) {
-        .polygon_mode = GL_FILL,
-        .cull_face = GL_BACK,
-        .cull_enable = GL_TRUE
-    };
-    stencil = (struct r_i_stencil_t) {
-        .enable = GL_TRUE,
-        .func = GL_ALWAYS,
-        .stencil_fail = GL_KEEP,
-        .depth_fail = GL_KEEP,
-        .depth_pass = GL_REPLACE,
-        .mask = 0xff,
-        .ref = 0xff
-    };
-
-    draw_mask = (struct r_i_draw_mask_t) {
-        .red = GL_FALSE,
-        .green = GL_FALSE,
-        .blue = GL_FALSE,
-        .alpha = GL_FALSE,
-        .depth = GL_FALSE,
-        .stencil = 0xff
-    };
-
-    depth = (struct r_i_depth_t) {
-        .func = GL_LESS,
-        .enable = GL_FALSE
-    };
-
-    r_i_SetUniforms(cmd_buffer, &draw_list->ranges[0], &color, 1);
-    r_i_SetRasterizer(cmd_buffer, &draw_list->ranges[0], &rasterizer);
-    r_i_SetStencil(cmd_buffer, &draw_list->ranges[0], &stencil);
-    r_i_SetDrawMask(cmd_buffer, &draw_list->ranges[0], &draw_mask);
-    r_i_SetDepth(cmd_buffer, &draw_list->ranges[0], &depth);
-    draw_list->ranges[0].start = brush->model->model_start;
-    draw_list->ranges[0].count = brush->model->model_count;
-
-
-
-    /* draw wireframe only where the stencil buffer isn't 0xff */
-    rasterizer = (struct r_i_raster_t) {
-        .polygon_mode = GL_LINE,
-        .cull_face = GL_BACK,
-        .cull_enable = GL_TRUE,
-
-    };
-    stencil = (struct r_i_stencil_t) {
-        .enable = GL_TRUE,
-        .func = GL_NOTEQUAL,
-        .stencil_fail = GL_KEEP,
-        .depth_fail = GL_KEEP,
-        .depth_pass = GL_KEEP,
-        .mask = 0xff,
-        .ref = 0xff
-    };
-
-    draw_mask = (struct r_i_draw_mask_t) {
-        .red = GL_TRUE,
-        .green = GL_TRUE,
-        .blue = GL_TRUE,
-        .alpha = GL_TRUE,
-        .depth = GL_FALSE,
-        .stencil = 0xff
-    };
-
-    depth = (struct r_i_depth_t) {
-        .func = GL_LESS,
-        .enable = GL_TRUE,
-    };
-
-    r_i_SetRasterizer(cmd_buffer, &draw_list->ranges[1], &rasterizer);
-    r_i_SetStencil(cmd_buffer, &draw_list->ranges[1], &stencil);
-    r_i_SetDrawMask(cmd_buffer, &draw_list->ranges[1], &draw_mask);
-    r_i_SetDepth(cmd_buffer, &draw_list->ranges[1], &depth);
-    draw_list->ranges[1].start = brush->model->model_start;
-    draw_list->ranges[1].count = brush->model->model_count;
-
-
-    /* clear brush stencil pixels back to 0 */
-    rasterizer = (struct r_i_raster_t) {
-        .polygon_mode = GL_FILL,
-        .cull_face = GL_BACK,
-        .cull_enable = GL_TRUE
-    };
-    stencil = (struct r_i_stencil_t) {
-        .enable = GL_TRUE,
-        .func = GL_ALWAYS,
-        .stencil_fail = GL_REPLACE,
-        .depth_fail = GL_REPLACE,
-        .depth_pass = GL_REPLACE,
-        .mask = 0xff,
-        .ref = 0x00
-    };
-
-    draw_mask = (struct r_i_draw_mask_t) {
-        .red = GL_FALSE,
-        .green = GL_FALSE,
-        .blue = GL_FALSE,
-        .alpha = GL_FALSE,
-        .depth = GL_FALSE,
-        .stencil = 0xff
-    };
-
-    depth = (struct r_i_depth_t) {
-        .func = GL_LEQUAL,
-        .enable = GL_FALSE
-    };
-
-    r_i_SetRasterizer(cmd_buffer, &draw_list->ranges[2], &rasterizer);
-    r_i_SetStencil(cmd_buffer, &draw_list->ranges[2], &stencil);
-    r_i_SetDrawMask(cmd_buffer, &draw_list->ranges[2], &draw_mask);
-    r_i_SetDepth(cmd_buffer, &draw_list->ranges[2], &depth);
-    draw_list->ranges[2].start = brush->model->model_start;
-    draw_list->ranges[2].count = brush->model->model_count;
-
-
-    draw_list->mode = GL_TRIANGLES;
-    draw_list->indexed = 1;
-
-    return draw_list;
-}
+//
+//    return draw_list;
+//}
 
 void ed_UpdateBrushHandleObject(struct ed_obj_t *object)
 {
@@ -1831,16 +2105,16 @@ void ed_UpdateBrushHandleObject(struct ed_obj_t *object)
     mat4_t_comp(&object->transform, &brush->orientation, &brush->position);
 }
 
-void ed_UpdateBrushBaseObject(struct ed_obj_result_t *object)
+void ed_UpdateBrushBaseObject(struct ed_obj_t *object)
 {
 
 }
 
-void *ed_CreateFaceObject(vec3_t *position, mat3_t *orientation, vec3_t *scale, void *args)
-{
-    struct ed_obj_result_t *obj_result = (struct ed_obj_result_t *)args;
-    return ed_GetFace(obj_result->data1);
-}
+//void *ed_CreateFaceObject(vec3_t *position, mat3_t *orientation, vec3_t *scale, void *args)
+//{
+//    struct ed_obj_result_t *obj_result = (struct ed_obj_result_t *)args;
+//    return ed_GetFace(obj_result->data1);
+//}
 
 void ed_DestroyFaceObject(void *base_obj)
 {
@@ -1850,195 +2124,188 @@ void ed_DestroyFaceObject(void *base_obj)
 struct r_i_draw_list_t *ed_RenderDrawFaceObject(struct ed_obj_result_t *object, struct r_i_cmd_buffer_t *cmd_buffer)
 {
 //    struct ed_brush_t *brush = object->object->base_obj;
-    struct r_i_draw_list_t *draw_list = NULL;
-    struct r_i_raster_t rasterizer;
-    struct r_i_stencil_t stencil;
-    struct r_i_depth_t depth;
-    struct r_i_draw_mask_t draw_mask;
-    struct r_i_uniform_t color;
-    struct r_i_blending_t blending;
-
-    struct ed_face_t *face = (struct ed_face_t *)object->object->base_obj;
-
-    draw_list = r_i_AllocDrawList(cmd_buffer, 3);
-    vec4_t outline_color = vec4_t_c(0.0, 1.0, 0.3, 1.0);
-    vec4_t face_color = vec4_t_c(0.0, 0.3, 1.0, 0.2);
-
-    /* fill stencil buffer with 0xff where the face is */
-    rasterizer = (struct r_i_raster_t) {
-        .polygon_mode = GL_FILL,
-        .cull_face = GL_BACK,
-        .cull_enable = GL_TRUE
-    };
-    stencil = (struct r_i_stencil_t) {
-        .enable = GL_TRUE,
-        .func = GL_ALWAYS,
-        .stencil_fail = GL_KEEP,
-        .depth_fail = GL_KEEP,
-        .depth_pass = GL_REPLACE,
-        .mask = 0xff,
-        .ref = 0xff
-    };
-
-    draw_mask = (struct r_i_draw_mask_t) {
-        .red = GL_FALSE,
-        .green = GL_FALSE,
-        .blue = GL_FALSE,
-        .alpha = GL_FALSE,
-        .depth = GL_FALSE,
-        .stencil = 0xff
-    };
-
-    depth = (struct r_i_depth_t) {
-        .func = GL_LEQUAL,
-        .enable = GL_FALSE
-    };
-
-//    blending = (struct r_i_blending_t) {
-//        .enable = GL_FALSE,
-//        .src_factor = GL_ONE,
-//        .dst_factor = GL_ONE,
+//    struct r_i_draw_list_t *draw_list = NULL;
+//    struct r_i_raster_t rasterizer;
+//    struct r_i_stencil_t stencil;
+//    struct r_i_depth_t depth;
+//    struct r_i_draw_mask_t draw_mask;
+//    struct r_i_uniform_t color;
+//    struct r_i_blending_t blending;
+//
+//    struct ed_face_t *face = (struct ed_face_t *)object->object->base_obj;
+//
+//    draw_list = r_i_AllocDrawList(cmd_buffer, 3);
+//    vec4_t outline_color = vec4_t_c(0.0, 1.0, 0.3, 1.0);
+//    vec4_t face_color = vec4_t_c(0.0, 0.3, 1.0, 0.2);
+//
+//    /* fill stencil buffer with 0xff where the face is */
+//    rasterizer = (struct r_i_raster_t) {
+//        .polygon_mode = GL_FILL,
+//        .cull_face = GL_BACK,
+//        .cull_enable = R_I_ENABLE
 //    };
-
-    r_i_SetRasterizer(cmd_buffer, &draw_list->ranges[0], &rasterizer);
-    r_i_SetStencil(cmd_buffer, &draw_list->ranges[0], &stencil);
-    r_i_SetDrawMask(cmd_buffer, &draw_list->ranges[0], &draw_mask);
-    r_i_SetDepth(cmd_buffer, &draw_list->ranges[0], &depth);
-    draw_list->ranges[0].start = face->first_index + face->brush->model->model_start;
-    draw_list->ranges[0].count = face->index_count;
-
-
-
-    /* draw face edges only where the stencil buffer isn't 0xff */
-    color = (struct r_i_uniform_t){
-        .uniform = ED_OUTLINE_SHADER_UNIFORM_COLOR,
-        .count = 1,
-        .value = &outline_color
-    };
-
-    rasterizer = (struct r_i_raster_t) {
-        .polygon_mode = GL_LINE,
-        .cull_face = GL_BACK,
-        .cull_enable = GL_TRUE,
-        .size = 2.0,
-    };
-    stencil = (struct r_i_stencil_t) {
-        .enable = GL_TRUE,
-        .func = GL_NOTEQUAL,
-        .stencil_fail = GL_KEEP,
-        .depth_fail = GL_KEEP,
-        .depth_pass = GL_KEEP,
-        .mask = 0xff,
-        .ref = 0xff
-    };
-
-    draw_mask = (struct r_i_draw_mask_t) {
-        .red = GL_TRUE,
-        .green = GL_TRUE,
-        .blue = GL_TRUE,
-        .alpha = GL_TRUE,
-        .depth = GL_TRUE,
-        .stencil = 0xff
-    };
-
-    depth = (struct r_i_depth_t) {
-        .func = GL_LESS,
-        .enable = GL_TRUE,
-    };
-
-    r_i_SetUniforms(cmd_buffer, &draw_list->ranges[1], &color, 1);
-    r_i_SetRasterizer(cmd_buffer, &draw_list->ranges[1], &rasterizer);
-    r_i_SetStencil(cmd_buffer, &draw_list->ranges[1], &stencil);
-    r_i_SetDrawMask(cmd_buffer, &draw_list->ranges[1], &draw_mask);
-    r_i_SetDepth(cmd_buffer, &draw_list->ranges[1], &depth);
-    draw_list->ranges[1].start = face->first_index + face->brush->model->model_start;
-    draw_list->ranges[1].count = face->index_count;
-
-
-
-
-    /* draw face and clear stencil pixels back to 0 */
-    color = (struct r_i_uniform_t){
-        .uniform = ED_OUTLINE_SHADER_UNIFORM_COLOR,
-        .count = 1,
-        .value = &face_color
-    };
-
-    rasterizer = (struct r_i_raster_t) {
-        .polygon_mode = GL_FILL,
-        .cull_face = GL_BACK,
-        .cull_enable = GL_TRUE,
-        .polygon_offset_enable = GL_TRUE,
-        .factor = -0.02,
-        .units = 1.0
-    };
-    stencil = (struct r_i_stencil_t) {
-        .enable = GL_TRUE,
-        .func = GL_ALWAYS,
-        .stencil_fail = GL_REPLACE,
-        .depth_fail = GL_REPLACE,
-        .depth_pass = GL_REPLACE,
-        .mask = 0xff,
-        .ref = 0x00
-    };
-
-    draw_mask = (struct r_i_draw_mask_t) {
-        .red = GL_TRUE,
-        .green = GL_TRUE,
-        .blue = GL_TRUE,
-        .alpha = GL_TRUE,
-        .depth = GL_FALSE,
-        .stencil = 0xff
-    };
-
-    depth = (struct r_i_depth_t) {
-        .func = GL_LEQUAL,
-        .enable = GL_TRUE
-    };
-
-    blending = (struct r_i_blending_t) {
-        .enable = GL_TRUE,
-        .src_factor = GL_SRC_ALPHA,
-        .dst_factor = GL_ZERO,
-    };
-
-    r_i_SetUniforms(cmd_buffer, &draw_list->ranges[2], &color, 1);
-    r_i_SetRasterizer(cmd_buffer, &draw_list->ranges[2], &rasterizer);
-    r_i_SetStencil(cmd_buffer, &draw_list->ranges[2], &stencil);
-    r_i_SetDrawMask(cmd_buffer, &draw_list->ranges[2], &draw_mask);
-    r_i_SetDepth(cmd_buffer, &draw_list->ranges[2], &depth);
-    r_i_SetBlending(cmd_buffer, &draw_list->ranges[2], &blending);
-    draw_list->ranges[2].start = face->first_index + face->brush->model->model_start;
-    draw_list->ranges[2].count = face->index_count;
-
-
-    draw_list->mode = GL_TRIANGLES;
-    draw_list->indexed = 1;
-
-
-    return draw_list;
+//    stencil = (struct r_i_stencil_t) {
+//        .enable = R_I_ENABLE,
+//        .func = GL_ALWAYS,
+//        .stencil_fail = GL_KEEP,
+//        .depth_fail = GL_KEEP,
+//        .depth_pass = GL_REPLACE,
+//        .mask = 0xff,
+//        .ref = 0xff
+//    };
+//
+//    draw_mask = (struct r_i_draw_mask_t) {
+//        .red = GL_FALSE,
+//        .green = GL_FALSE,
+//        .blue = GL_FALSE,
+//        .alpha = GL_FALSE,
+//        .depth = GL_FALSE,
+//        .stencil = 0xff
+//    };
+//
+//    depth = (struct r_i_depth_t) {
+//        .enable = R_I_DISABLE
+//    };
+//
+//    r_i_SetRasterizer(cmd_buffer, &draw_list->ranges[0], &rasterizer);
+//    r_i_SetStencil(cmd_buffer, &draw_list->ranges[0], &stencil);
+//    r_i_SetDrawMask(cmd_buffer, &draw_list->ranges[0], &draw_mask);
+//    r_i_SetDepth(cmd_buffer, &draw_list->ranges[0], &depth);
+//    draw_list->ranges[0].start = face->first_index + face->brush->model->model_start;
+//    draw_list->ranges[0].count = face->index_count;
+//
+//
+//
+//    /* draw face edges only where the stencil buffer isn't 0xff */
+//    color = (struct r_i_uniform_t){
+//        .uniform = ED_OUTLINE_SHADER_UNIFORM_COLOR,
+//        .count = 1,
+//        .value = &outline_color
+//    };
+//
+//    rasterizer = (struct r_i_raster_t) {
+//        .polygon_mode = GL_LINE,
+//        .cull_face = GL_BACK,
+//        .cull_enable = R_I_ENABLE,
+//        .size = 2.0,
+//    };
+//    stencil = (struct r_i_stencil_t) {
+//        .enable = R_I_ENABLE,
+//        .func = GL_NOTEQUAL,
+//        .stencil_fail = GL_KEEP,
+//        .depth_fail = GL_KEEP,
+//        .depth_pass = GL_KEEP,
+//        .mask = 0xff,
+//        .ref = 0xff
+//    };
+//
+//    draw_mask = (struct r_i_draw_mask_t) {
+//        .red = GL_TRUE,
+//        .green = GL_TRUE,
+//        .blue = GL_TRUE,
+//        .alpha = GL_TRUE,
+//        .depth = GL_TRUE,
+//        .stencil = 0xff
+//    };
+//
+//    depth = (struct r_i_depth_t) {
+//        .func = GL_LESS,
+//        .enable = R_I_ENABLE,
+//    };
+//
+//    r_i_SetUniforms(cmd_buffer, &draw_list->ranges[1], &color, 1);
+//    r_i_SetRasterizer(cmd_buffer, &draw_list->ranges[1], &rasterizer);
+//    r_i_SetStencil(cmd_buffer, &draw_list->ranges[1], &stencil);
+//    r_i_SetDrawMask(cmd_buffer, &draw_list->ranges[1], &draw_mask);
+//    r_i_SetDepth(cmd_buffer, &draw_list->ranges[1], &depth);
+//    draw_list->ranges[1].start = face->first_index + face->brush->model->model_start;
+//    draw_list->ranges[1].count = face->index_count;
+//
+//
+//
+//
+//    /* draw face and clear stencil pixels back to 0 */
+//    color = (struct r_i_uniform_t){
+//        .uniform = ED_OUTLINE_SHADER_UNIFORM_COLOR,
+//        .count = 1,
+//        .value = &face_color
+//    };
+//
+//    rasterizer = (struct r_i_raster_t) {
+//        .polygon_mode = GL_FILL,
+//        .cull_face = GL_BACK,
+//        .cull_enable = R_I_ENABLE,
+//        .polygon_offset_enable = R_I_ENABLE,
+//        .offset_type = GL_POLYGON_OFFSET_FILL,
+//        .factor = -0.02,
+//        .units = 1.0
+//    };
+//
+//    stencil = (struct r_i_stencil_t) {
+//        .enable = R_I_ENABLE,
+//        .func = GL_ALWAYS,
+//        .stencil_fail = GL_REPLACE,
+//        .depth_fail = GL_REPLACE,
+//        .depth_pass = GL_REPLACE,
+//        .mask = 0xff,
+//        .ref = 0x00
+//    };
+//
+//    draw_mask = (struct r_i_draw_mask_t) {
+//        .red = GL_TRUE,
+//        .green = GL_TRUE,
+//        .blue = GL_TRUE,
+//        .alpha = GL_TRUE,
+//        .depth = GL_FALSE,
+//        .stencil = 0xff
+//    };
+//
+//    depth = (struct r_i_depth_t) {
+//        .func = GL_LEQUAL,
+//        .enable = R_I_ENABLE
+//    };
+//
+//    blending = (struct r_i_blending_t) {
+//        .enable = R_I_ENABLE,
+//        .src_factor = GL_SRC_ALPHA,
+//        .dst_factor = GL_ZERO,
+//    };
+//
+//    r_i_SetUniforms(cmd_buffer, &draw_list->ranges[2], &color, 1);
+//    r_i_SetRasterizer(cmd_buffer, &draw_list->ranges[2], &rasterizer);
+//    r_i_SetStencil(cmd_buffer, &draw_list->ranges[2], &stencil);
+//    r_i_SetDrawMask(cmd_buffer, &draw_list->ranges[2], &draw_mask);
+//    r_i_SetDepth(cmd_buffer, &draw_list->ranges[2], &depth);
+//    r_i_SetBlending(cmd_buffer, &draw_list->ranges[2], &blending);
+//    draw_list->ranges[2].start = face->first_index + face->brush->model->model_start;
+//    draw_list->ranges[2].count = face->index_count;
+//
+//    draw_list->mode = GL_TRIANGLES;
+//    draw_list->indexed = 1;
+//
+//    return draw_list;
 }
 
 void ed_UpdateFaceHandleObject(struct ed_obj_t *object)
 {
-    struct ed_face_t *face = (struct ed_face_t *)object->base_obj;
-    mat4_t face_transform;
-    mat4_t brush_transform;
-    mat4_t_comp(&brush_transform, &face->brush->orientation, &face->brush->position);
-    mat4_t_comp(&face_transform, &face->orientation, &face->center);
-    mat4_t_mul(&object->transform, &face_transform, &brush_transform);
+//    struct ed_face_t *face = (struct ed_face_t *)object->base_obj;
+//    mat4_t face_transform;
+//    mat4_t brush_transform;
+//    mat4_t_comp(&brush_transform, &face->brush->orientation, &face->brush->position);
+//    mat4_t_comp(&face_transform, &face->orientation, &face->center);
+//    mat4_t_mul(&object->transform, &face_transform, &brush_transform);
 }
 
-void ed_UpdateFaceBaseObject(struct ed_obj_result_t *object)
+void ed_UpdateFaceBaseObject(struct ed_obj_t *object)
 {
 
 }
 
 void ed_FaceObjectDrawTransform(struct ed_obj_t *object, mat4_t *model_view_projection_matrix)
 {
-    struct ed_face_t *face = (struct ed_face_t *)object->base_obj;
-    mat4_t_comp(model_view_projection_matrix, &face->brush->orientation, &face->brush->position);
-    mat4_t_mul(model_view_projection_matrix, model_view_projection_matrix, &r_view_projection_matrix);
+//    struct ed_face_t *face = (struct ed_face_t *)object->base_obj;
+//    mat4_t_comp(model_view_projection_matrix, &face->brush->orientation, &face->brush->position);
+//    mat4_t_mul(model_view_projection_matrix, model_view_projection_matrix, &r_view_projection_matrix);
 }
 
 /*

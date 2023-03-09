@@ -107,6 +107,8 @@ struct ds_list_t ds_list_copy(struct ds_list_t *source);
 
 void ds_list_destroy(struct ds_list_t *list);
 
+void ds_list_reset(struct ds_list_t *list);
+
 void ds_list_expand(struct ds_list_t *list, uint32_t elem_count);
 
 void *ds_list_get_element(struct ds_list_t *list, uint32_t index);

@@ -4,6 +4,8 @@
 #include <math.h>
 #include <intrin.h>
 
+#define CLAMPF(x, min, max) fminf(max, fmaxf(x, min))
+
 typedef struct vec2_t
 {
     union

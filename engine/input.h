@@ -13,11 +13,17 @@ enum IN_KEY_STATE
     IN_KEY_STATE_INPUT_DROPPED = 1 << 5
 };
 
+struct in_input_state_t
+{
+    uint8_t keyboard[SDL_NUM_SCANCODES];
+    uint32_t mouse[4];
+};
+
 void in_Input(float delta_time);
 
 uint32_t in_GetKeyState(SDL_Scancode scancode);
 
-uint8_t *in_GetKeyStates();
+uint8_t *in_GetKeyboardState();
 
 uint32_t in_GetMouseButtonState(uint32_t button);
 

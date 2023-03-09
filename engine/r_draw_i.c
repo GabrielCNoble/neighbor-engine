@@ -34,13 +34,13 @@ struct r_i_draw_state_t *r_i_DrawState(struct r_i_cmd_buffer_t *cmd_buffer, stru
 
 void r_i_ApplyDrawState(struct r_i_draw_state_t *draw_state)
 {
-    if(draw_state->framebuffer)
+    if(draw_state->framebuffer != NULL)
     {
         struct r_i_framebuffer_t *framebuffer = draw_state->framebuffer;
         r_BindFramebuffer(framebuffer->framebuffer);
     }
 
-    if(draw_state->draw_mask)
+    if(draw_state->draw_mask != NULL)
     {
         struct r_i_draw_mask_t *draw_mask = draw_state->draw_mask;
 
@@ -49,140 +49,131 @@ void r_i_ApplyDrawState(struct r_i_draw_state_t *draw_state)
         glStencilMask(draw_mask->stencil);
     }
 
-    if(draw_state->rasterizer)
+    if(draw_state->rasterizer != NULL)
     {
         struct r_i_raster_t *rasterizer = draw_state->rasterizer;
 
-        glLineWidth(rasterizer->size);
-        glPointSize(rasterizer->size);
+        if(rasterizer->point_size > 0.0)
+        {
+            glPointSize(rasterizer->point_size);
+        }
 
-        if(rasterizer->polygon_mode != GL_DONT_CARE)
+        if(rasterizer->line_width > 0.0)
+        {
+            glLineWidth(rasterizer->line_width);
+        }
+
+        if(rasterizer->polygon_mode != R_I_DONT_CARE)
         {
             glPolygonMode(GL_FRONT_AND_BACK, rasterizer->polygon_mode);
         }
 
-        if(rasterizer->cull_enable != GL_DONT_CARE)
+        if(rasterizer->cull_enable == R_I_ENABLE)
         {
-            if(rasterizer->cull_enable)
-            {
-                glEnable(GL_CULL_FACE);
-            }
-            else
-            {
-                glDisable(GL_CULL_FACE);
-            }
+            glEnable(GL_CULL_FACE);
+        }
+        else if(rasterizer->cull_enable == R_I_DISABLE)
+        {
+            glDisable(GL_CULL_FACE);
         }
 
-        if(rasterizer->cull_face != GL_DONT_CARE)
+        if(rasterizer->cull_face != R_I_DONT_CARE)
         {
             glCullFace(rasterizer->cull_face);
         }
 
-        if(rasterizer->polygon_offset_enable != GL_DONT_CARE)
+        if(rasterizer->polygon_offset_enable == R_I_ENABLE)
         {
-            if(rasterizer->polygon_offset_enable)
-            {
-                glEnable(GL_POLYGON_OFFSET_FILL);
-                glPolygonOffset(rasterizer->factor, rasterizer->units);
-            }
-            else
-            {
-                glDisable(GL_POLYGON_OFFSET_FILL);
-            }
+            glEnable(rasterizer->offset_type);
+            glPolygonOffset(rasterizer->factor, rasterizer->units);
+        }
+        else if(rasterizer->polygon_offset_enable == R_I_DISABLE)
+        {
+            glDisable(rasterizer->offset_type);
         }
     }
 
-    if(draw_state->scissor)
+    if(draw_state->scissor != NULL)
     {
         struct r_i_scissor_t *scissor = draw_state->scissor;
 
-        if(scissor->enable != GL_DONT_CARE)
+        if(scissor->enable == R_I_ENABLE)
         {
-            if(scissor->enable)
-            {
-                glEnable(GL_SCISSOR_TEST);
-            }
-            else
-            {
-                glDisable(GL_SCISSOR_TEST);
-            }
+            glEnable(GL_SCISSOR_TEST);
+        }
+        else if(scissor->enable == R_I_DISABLE)
+        {
+            glDisable(GL_SCISSOR_TEST);
         }
 
-        if(scissor->x != GL_DONT_CARE && scissor->y != GL_DONT_CARE &&
-           scissor->width != GL_DONT_CARE && scissor->height != GL_DONT_CARE)
-        {
-            glScissor(scissor->x, scissor->y, scissor->width, scissor->height);
-        }
+        glScissor(scissor->x, scissor->y, scissor->width, scissor->height);
+
+//        if(scissor->x != GL_DONT_CARE && scissor->y != GL_DONT_CARE &&
+//           scissor->width != GL_DONT_CARE && scissor->height != GL_DONT_CARE)
+//        {
+//            glScissor(scissor->x, scissor->y, scissor->width, scissor->height);
+//        }
     }
 
-    if(draw_state->blending)
+    if(draw_state->blending != NULL)
     {
         struct r_i_blending_t *blending = draw_state->blending;
 
-        if(blending->enable != GL_DONT_CARE)
+        if(blending->enable == R_I_ENABLE)
         {
-            if(blending->enable)
-            {
-                glEnable(GL_BLEND);
-            }
-            else
-            {
-                glDisable(GL_BLEND);
-            }
+            glEnable(GL_BLEND);
+        }
+        else if(blending->enable == R_I_DISABLE)
+        {
+            glDisable(GL_BLEND);
         }
 
-        if(blending->src_factor != GL_DONT_CARE && blending->dst_factor != GL_DONT_CARE)
+        if(blending->src_factor != R_I_DONT_CARE && blending->dst_factor != R_I_DONT_CARE)
         {
             glBlendFunc(blending->src_factor, blending->dst_factor);
         }
     }
 
-    if(draw_state->depth)
+    if(draw_state->depth != NULL)
     {
         struct r_i_depth_t *depth = draw_state->depth;
 
-        if(depth->enable != GL_DONT_CARE)
+        if(depth->enable == R_I_ENABLE)
         {
-            if(depth->enable)
-            {
-                glEnable(GL_DEPTH_TEST);
-            }
-            else
-            {
-                glDisable(GL_DEPTH_TEST);
-            }
+            glEnable(GL_DEPTH_TEST);
+        }
+        else if(depth->enable == R_I_DISABLE)
+        {
+            glDisable(GL_DEPTH_TEST);
         }
 
-        if(depth->func != GL_DONT_CARE)
+        if(depth->func != R_I_DONT_CARE)
         {
             glDepthFunc(depth->func);
         }
     }
 
-    if(draw_state->stencil)
+    if(draw_state->stencil != NULL)
     {
         struct r_i_stencil_t *stencil = draw_state->stencil;
 
-        if(stencil->enable != GL_DONT_CARE)
+        if(stencil->enable == R_I_ENABLE)
         {
-            if(stencil->enable)
-            {
-                glEnable(GL_STENCIL_TEST);
-            }
-            else
-            {
-                glDisable(GL_STENCIL_TEST);
-            }
+            glEnable(GL_STENCIL_TEST);
+        }
+        else if(stencil->enable == R_I_DISABLE)
+        {
+            glDisable(GL_STENCIL_TEST);
         }
 
-        if(stencil->depth_fail != GL_DONT_CARE &&
-           stencil->depth_pass != GL_DONT_CARE &&
-           stencil->stencil_fail != GL_DONT_CARE)
+        if(stencil->depth_fail != R_I_DONT_CARE &&
+           stencil->depth_pass != R_I_DONT_CARE &&
+           stencil->stencil_fail != R_I_DONT_CARE)
         {
             glStencilOp(stencil->stencil_fail, stencil->depth_fail, stencil->depth_pass);
         }
 
-        if(stencil->func != GL_DONT_CARE)
+        if(stencil->func != R_I_DONT_CARE)
         {
             glStencilFunc(stencil->func, stencil->ref, stencil->mask);
         }
@@ -191,20 +182,26 @@ void r_i_ApplyDrawState(struct r_i_draw_state_t *draw_state)
 
 void r_i_ApplyUniforms(struct r_i_uniform_list_t *uniform_list)
 {
-    for(uint32_t index = 0; index < uniform_list->count; index++)
+    struct r_shader_t *shader = uniform_list->shader;
+
+    for(uint32_t index = 0; index < shader->uniform_count; index++)
     {
         struct r_i_uniform_t *uniform = uniform_list->uniforms + index;
-        struct r_uniform_t *shader_uniform = r_current_shader->uniforms + uniform->uniform;
 
-        if(shader_uniform->type == R_UNIFORM_TYPE_TEXTURE)
+        if(uniform->value)
         {
-            struct r_i_texture_t *texture = uniform->value;
-            r_BindTexture(texture->texture, GL_TEXTURE0 + texture->tex_unit);
-            r_SetUniform(uniform->uniform, &texture->tex_unit);
-        }
-        else
-        {
-            r_SetUniform(uniform->uniform, uniform->value);
+            struct r_uniform_t *shader_uniform = shader->uniforms + uniform->uniform;
+
+            if(shader_uniform->type == R_UNIFORM_TYPE_TEXTURE)
+            {
+                struct r_i_texture_t *texture = uniform->value;
+                r_BindTexture(texture->texture, GL_TEXTURE0 + texture->tex_unit);
+                r_SetUniform(uniform->uniform, &texture->tex_unit);
+            }
+            else
+            {
+                r_SetUniform(uniform->uniform, uniform->value);
+            }
         }
     }
 }
@@ -232,20 +229,46 @@ void r_i_SetUniforms(struct r_i_cmd_buffer_t *cmd_buffer, struct r_i_draw_range_
         cmd_buffer = &r_immediate_cmd_buffer;
     }
 
-    struct r_i_uniform_list_t *uniform_list = r_AllocImmediateCmdData(cmd_buffer, sizeof(struct r_i_uniform_list_t ));
-    uniform_list->uniforms = r_AllocImmediateCmdData(cmd_buffer, sizeof(struct r_i_uniform_t) * count);
-    uniform_list->count = count;
-    struct r_shader_t *shader = cmd_buffer->shader;
+    struct r_i_uniform_list_t *uniform_list = NULL;
+    struct r_i_uniform_list_t **uniform_src = NULL;
+    struct r_shader_t *shader = NULL;
+
+    if(range)
+    {
+        shader = range->shader;
+        uniform_src = &range->uniforms;
+    }
+    else
+    {
+        shader = cmd_buffer->shader;
+        uniform_src = &cmd_buffer->uniforms;
+    }
+
+    if(!shader)
+    {
+        /* no shader has been set for this command buffer yet */
+        return;
+    }
+
+    if(!(*uniform_src))
+    {
+        *uniform_src = r_AllocImmediateCmdData(cmd_buffer, sizeof(struct r_i_uniform_list_t ));
+        (*uniform_src)->uniforms = r_AllocImmediateCmdData(cmd_buffer, sizeof(struct r_i_uniform_t) * shader->uniform_count);
+        (*uniform_src)->shader = shader;
+        memset((*uniform_src)->uniforms, 0, sizeof(struct r_i_uniform_t) * shader->uniform_count);
+    }
+
+    uniform_list = *uniform_src;
 
     for(uint32_t uniform_index = 0; uniform_index < count; uniform_index++)
     {
-        struct r_i_uniform_t *dst = uniform_list->uniforms + uniform_index;
         struct r_i_uniform_t *src = uniforms + uniform_index;
+        struct r_i_uniform_t *dst = uniform_list->uniforms + src->uniform;
 
         dst->count = src->count;
         dst->uniform = src->uniform;
 
-        struct r_uniform_t *uniform = shader->uniforms + src->uniform;
+        struct r_uniform_t *uniform = shader->uniforms + dst->uniform;
         uint32_t uniform_size = 0;
 
         if(uniform->type == R_UNIFORM_TYPE_TEXTURE)
@@ -257,18 +280,22 @@ void r_i_SetUniforms(struct r_i_cmd_buffer_t *cmd_buffer, struct r_i_draw_range_
             uniform_size = r_uniform_type_sizes[uniform->type] * src->count;
         }
 
-        dst->value = r_AllocImmediateCmdData(cmd_buffer, uniform_size);
+        if(!dst->value)
+        {
+            dst->value = r_AllocImmediateCmdData(cmd_buffer, uniform_size);
+        }
+
         memcpy(dst->value, src->value, uniform_size);
     }
 
-    if(range)
-    {
-        range->uniforms = uniform_list;
-    }
-    else
-    {
-        cmd_buffer->uniforms = uniform_list;
-    }
+//    if(range)
+//    {
+//        range->uniforms = uniform_list;
+//    }
+//    else
+//    {
+//        cmd_buffer->uniforms = uniform_list;
+//    }
 }
 
 void r_i_SetBlending(struct r_i_cmd_buffer_t *cmd_buffer, struct r_i_draw_range_t *range, struct r_i_blending_t *blending)
@@ -450,8 +477,14 @@ struct r_i_draw_list_t *r_i_AllocDrawList(struct r_i_cmd_buffer_t *cmd_buffer, u
     draw_list->range_count = range_count;
     draw_list->indexed = 0;
     draw_list->mesh = NULL;
+//    draw_list->shader = cmd_buffer->shader;
 //    draw_list->size = 1.0;
     draw_list->cmd_buffer = cmd_buffer;
+
+    for(uint32_t index = 0; index < range_count; index++)
+    {
+        draw_list->ranges[index].shader = cmd_buffer->shader;
+    }
 
     return draw_list;
 }
@@ -474,6 +507,19 @@ struct r_i_mesh_t *r_i_AllocMesh(struct r_i_cmd_buffer_t *cmd_buffer, uint32_t v
     if(index_count)
     {
         mesh->indices.indices = r_AllocImmediateCmdData(cmd_buffer, sizeof(uint32_t) * index_count);
+    }
+
+    return mesh;
+}
+
+struct r_i_mesh_t *r_i_AllocMeshForModel(struct r_i_cmd_buffer_t *cmd_buffer, struct r_model_t *model)
+{
+    struct r_i_mesh_t *mesh = r_i_AllocMesh(cmd_buffer, sizeof(struct r_vert_t), model->verts.buffer_size, model->indices.buffer_size);
+    memcpy(mesh->verts.verts, model->verts.buffer, sizeof(struct r_vert_t) * model->verts.buffer_size);
+
+    if(model->indices.buffer_size)
+    {
+        memcpy(mesh->indices.indices, model->indices.buffer, sizeof(uint32_t) * model->indices.buffer_size);
     }
 
     return mesh;
@@ -524,7 +570,7 @@ void r_i_DrawLine(struct r_i_cmd_buffer_t *cmd_buffer, vec3_t *start, vec3_t *en
     r_i_DrawVerts(cmd_buffer, verts, 2, NULL, 0, GL_LINES);
 }
 
-void r_i_DrawPoint(vec3_t *pos, vec4_t *color)
+void r_i_DrawPoint(struct r_i_cmd_buffer_t *cmd_buffer, vec3_t *pos, vec4_t *color)
 {
 
 }

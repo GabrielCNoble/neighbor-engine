@@ -606,6 +606,8 @@ struct r_spot_light_t
 #define R_SPOT_LIGHT_MAX_ANGLE 85
 #define R_SPOT_LIGHT_BASE_VERTS 16
 #define R_POINT_LIGHT_VERTS 32
+#define R_LIGHT_MAX_RANGE 1000.0
+#define R_LIGHT_MAX_ENERGY 1000.0
 
 struct r_cluster_t
 {
@@ -779,6 +781,9 @@ struct r_shadow_cmd_t
 /************************************************************/
 
 #define R_I_CMD_DATA_SLOT_SIZE (alignof(max_align_t))
+#define R_I_DONT_CARE   0
+#define R_I_ENABLE      1
+#define R_I_DISABLE     2
 
 //struct r_i_transform_t
 //{
@@ -802,7 +807,8 @@ struct r_i_uniform_t
 struct r_i_uniform_list_t
 {
     struct r_i_uniform_t *          uniforms;
-    uint32_t                        count;
+    struct r_shader_t *             shader;
+//    uint32_t                        count;
 };
 
 struct r_i_shader_t
@@ -841,12 +847,13 @@ struct r_i_stencil_t
 struct r_i_raster_t
 {
     /* point size or line width */
-    float               size;
+    float               line_width;
+    float               point_size;
     uint16_t            polygon_mode;
     uint16_t            cull_face;
     uint16_t            cull_enable;
     uint16_t            polygon_offset_enable;
-    uint16_t            mode;
+    uint16_t            offset_type;
     float               factor;
     float               units;
 };
@@ -925,6 +932,8 @@ struct r_i_draw_range_t
     uint32_t                        count;
     struct r_i_draw_state_t *       draw_state;
     struct r_i_uniform_list_t *     uniforms;
+    struct r_shader_t *             shader;
+//    struct r_i_uniform_list_t *     last_list;
 //    struct r_i_uniform_t *      uniforms;
 //    uint32_t                    uniform_count;
 };
@@ -982,6 +991,7 @@ struct r_i_cmd_buffer_t
 struct r_i_cmd_t
 {
     void *          data;
+    uint32_t        id;
     uint16_t        type;
 };
 

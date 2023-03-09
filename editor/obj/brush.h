@@ -2,7 +2,7 @@
 #define ED_BRUSH_H
 
 #include "../engine/e_defs.h"
-#include "ed_defs.h"
+#include "../ed_defs.h"
 #include "obj.h"
 
 struct ed_brush_material_t
@@ -42,15 +42,8 @@ struct ed_edge_t
     uint32_t                        s_index;
     struct ed_edge_t *              brush_next;
     struct ed_edge_t *              brush_prev;
-//    struct ed_edge_t *              init_next;
     struct ed_obj_t *               object;
 
-//    struct
-//    {
-//        struct ed_edge_t *          next;
-//        struct ed_edge_t *          prev;
-//        struct ed_face_t *          face;
-//    }faces[2];
     struct ed_face_edge_t           faces[2];
     struct ed_vert_edge_t           verts[2];
     struct ed_brush_t *             brush;
@@ -265,6 +258,8 @@ struct ed_brush_obj_args_t
     vec3_t size;
 };
 
+void ed_InitBrushObjectFuncs();
+
 struct ed_brush_t *ed_AllocBrush();
 
 struct ed_brush_t *ed_CreateBrush(vec3_t *position, mat3_t *orientation, vec3_t *size);
@@ -337,17 +332,17 @@ void ed_UpdateBrush(struct ed_brush_t *brush);
 
 
 
-void *ed_CreateBrushObject(vec3_t *position, mat3_t *orientation, vec3_t *scale, void *args);
+//void *ed_CreateBrushObject(vec3_t *position, mat3_t *orientation, vec3_t *scale, void *args);
 
-void ed_DestroyBrushObject(void *base_obj);
+//void ed_DestroyBrushObject(void *base_obj);
 
-struct r_i_draw_list_t *ed_RenderPickBrushObject(struct ed_obj_t *object, struct r_i_cmd_buffer_t *cmd_buffer);
+//struct r_i_draw_list_t *ed_RenderPickBrushObject(struct ed_obj_t *object, struct r_i_cmd_buffer_t *cmd_buffer);
 
-struct r_i_draw_list_t *ed_RenderDrawBrushObject(struct ed_obj_result_t *object, struct r_i_cmd_buffer_t *cmd_buffer);
+//struct r_i_draw_list_t *ed_RenderDrawBrushObject(struct ed_obj_result_t *object, struct r_i_cmd_buffer_t *cmd_buffer);
 
-void ed_UpdateBrushHandleObject(struct ed_obj_t *object);
+//void ed_UpdateBrushHandleObject(struct ed_obj_t *object);
 
-void ed_UpdateBrushBaseObject(struct ed_obj_result_t *object);
+//void ed_UpdateBrushBaseObject(struct ed_obj_t *object);
 
 
 
@@ -361,7 +356,7 @@ struct r_i_draw_list_t *ed_RenderDrawFaceObject(struct ed_obj_result_t *object, 
 
 void ed_UpdateFaceHandleObject(struct ed_obj_t *object);
 
-void ed_UpdateFaceBaseObject(struct ed_obj_result_t *object);
+void ed_UpdateFaceBaseObject(struct ed_obj_t *object);
 
 void ed_FaceObjectDrawTransform(struct ed_obj_t *object, mat4_t *model_view_projection_matrix);
 

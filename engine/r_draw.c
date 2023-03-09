@@ -122,6 +122,7 @@ struct r_renderer_state_t r_renderer_state;
 uint32_t r_immediate_verts_offset = 0;
 uint32_t r_immediate_indices_offset = 0;
 
+
 extern uint32_t r_uniform_type_sizes[];
 
 #ifdef __cplusplus
@@ -801,13 +802,16 @@ void r_DrawFrame()
     /********** mix in volumetric lights **********/
     /**********************************************/
 
+    r_BindFramebuffer(r_main_framebuffer);
     glEnable(GL_BLEND);
     glBlendFunc(GL_ONE, GL_ONE);
     glDisable(GL_DEPTH_TEST);
     glDisable(GL_SCISSOR_TEST);
+    r_BindShader(r_full_screen_blend_shader);
     r_BindTexture(r_volume_framebuffer->color_attachments[0], GL_TEXTURE0);
     r_BindTexture(r_main_framebuffer->depth_attachment, GL_TEXTURE1);
-    r_BindShader(r_bilateral_blend_shader);
+//    r_BindShader(r_bilateral_blend_shader);
+
     r_SetDefaultUniformUI(R_UNIFORM_TEX0, 0);
     r_SetDefaultUniformUI(R_UNIFORM_TEX1, 1);
     glDrawArrays(GL_TRIANGLES, r_screen_tri_start, 3);

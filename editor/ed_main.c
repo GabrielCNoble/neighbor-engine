@@ -1,7 +1,10 @@
-#include "obj.h"
 #include "ed_main.h"
 #include "ed_ent.h"
 #include "ed_proj.h"
+#include "obj/obj.h"
+#include "obj/ent.h"
+#include "obj/light.h"
+#include "obj/brush.h"
 #include "dstuff/ds_slist.h"
 #include "dstuff/ds_list.h"
 #include "dstuff/ds_mem.h"
@@ -52,8 +55,11 @@ extern char *g_base_path;
 void ed_Init()
 {
     log_ScopedLogMessage(LOG_TYPE_NOTICE, "Initializing editors...");
+    ed_InitBrushObjectFuncs();
+    ed_InitLightObjectFuncs();
+    ed_InitEntityObjectFuncs();
     ed_ObjInit();
-    ed_PickingInit();
+//    ed_PickingInit();
 
     ed_editors[ED_EDITOR_LEVEL] = (struct ed_editor_t ){
         .init = ed_l_Init,
@@ -166,12 +172,12 @@ void ed_SwitchToEditor(struct ed_editor_t *editor)
 
 void ed_UpdateEditor()
 {
-    uint32_t just_changed = ed_active_editor->current_state != ed_active_editor->next_state;
-    ed_active_editor->current_state = ed_active_editor->next_state;
-    if(ed_active_editor->current_state)
-    {
-        ed_active_editor->current_state(just_changed);
-    }
+//    uint32_t just_changed = ed_active_editor->current_state != ed_active_editor->next_state;
+//    ed_active_editor->current_state = ed_active_editor->next_state;
+//    if(ed_active_editor->current_state)
+//    {
+//        ed_active_editor->current_state(just_changed);
+//    }
     ed_active_editor->update();
 
     if(igBeginMainMenuBar())

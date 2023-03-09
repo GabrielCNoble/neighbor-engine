@@ -32,7 +32,9 @@ struct a_transform_t
 
 struct a_bone_t
 {
+    /* converts from local bone space to mesh/skeleton space */
     mat4_t transform;
+    /* converts from mesh/skeleton space to local bone space */
     mat4_t inv_bind_matrix;
     uint32_t child_count;
 };

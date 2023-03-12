@@ -21,7 +21,7 @@ extern float                    r_z_far;
 struct r_model_t *              ed_transform_operator_models[ED_TRANSFORM_OPERATOR_MODE_LAST];
 float                           ed_transform_operator_zoom[ED_TRANSFORM_OPERATOR_MODE_LAST] = {
     [ED_TRANSFORM_OPERATOR_MODE_TRANSLATE] = 35.0,
-    [ED_TRANSFORM_OPERATOR_MODE_ROTATE] = 1.0
+    [ED_TRANSFORM_OPERATOR_MODE_ROTATE] = 6.0
 };
 
 char *ed_obj_names[ED_OBJ_TYPE_LAST] = {
@@ -98,18 +98,15 @@ void ed_TransformOperatorTransforms(struct ed_obj_t *object, mat4_t *transforms)
     mat4_t_rotate_y(&local_transform, 0.5);
     mat4_t_mul(&local_transform, &local_transform, &object->transform);
     ed_CameraSpaceDrawTransform(&local_transform, &local_transform, ed_transform_operator_zoom[data->mode]);
-    vec3_t_add(&local_transform.rows[3].xyz, &local_transform.rows[3].xyz, &object->transform.rows[3].xyz);
     mat4_t_mul(&transforms[0], &local_transform, &r_view_projection_matrix);
 
     mat4_t_identity(&local_transform);
     mat4_t_rotate_x(&local_transform, -0.5);
     mat4_t_mul(&local_transform, &local_transform, &object->transform);
     ed_CameraSpaceDrawTransform(&local_transform, &local_transform, ed_transform_operator_zoom[data->mode]);
-    vec3_t_add(&local_transform.rows[3].xyz, &local_transform.rows[3].xyz, &object->transform.rows[3].xyz);
     mat4_t_mul(&transforms[1], &local_transform, &r_view_projection_matrix);
 
     ed_CameraSpaceDrawTransform(&object->transform, &local_transform, ed_transform_operator_zoom[data->mode]);
-    vec3_t_add(&local_transform.rows[3].xyz, &local_transform.rows[3].xyz, &object->transform.rows[3].xyz);
     mat4_t_mul(&transforms[2], &local_transform, &r_view_projection_matrix);
 }
 
@@ -390,8 +387,10 @@ struct ed_obj_t *ed_CreateObj(struct ed_obj_context_t *context, uint32_t type, v
         object->selection_index = ED_INVALID_OBJ_SELECTION_INDEX;
         object->base_obj = ed_obj_funcs[type].create(position, orientation, scale, args);
         object->context = context;
+        object->sub_obj_count = 0;
 
         ed_obj_funcs[type].update(object, NULL);
+
     }
 
     return object;
@@ -464,9 +463,9 @@ struct ed_obj_result_t ed_EndPick(struct ed_obj_context_t *context, int32_t mous
     return result;
 }
 
-void ed_PickObjectWithFuncs(struct ed_obj_t *object, struct ed_obj_funcs_t *funcs)
+void ed_PickObjectWithFuncs(struct ed_obj_t *object, struct ed_obj_funcs_t *funcs, void *args)
 {
-    struct r_i_draw_list_t *draw_list = funcs->pick(object, &ed_pick_cmd_buffer, NULL);
+    struct r_i_draw_list_t *draw_list = funcs->pick(object, &ed_pick_cmd_buffer, args);
     uint32_t pick_type = object->type + 1;
     uint32_t pick_index = object->index + 1;
 
@@ -489,7 +488,7 @@ void ed_PickObjectWithFuncs(struct ed_obj_t *object, struct ed_obj_funcs_t *func
     }
 }
 
-void ed_PickObjectFromListWithFuncs(struct ds_slist_t *objects, struct ed_obj_funcs_t *funcs)
+void ed_PickObjectFromListWithFuncs(struct ds_slist_t *objects, struct ed_obj_funcs_t *funcs, void *args)
 {
     for(uint32_t obj_index = 0; obj_index < objects->cursor; obj_index++)
     {
@@ -497,32 +496,49 @@ void ed_PickObjectFromListWithFuncs(struct ds_slist_t *objects, struct ed_obj_fu
 
         if(object != NULL && object->index != ED_INVALID_OBJ_INDEX)
         {
-            ed_PickObjectWithFuncs(object, funcs);
+            ed_PickObjectWithFuncs(object, funcs, args);
         }
     }
 }
 
-struct ed_obj_result_t ed_PickObjectWithFilter(struct ed_obj_context_t *context, int32_t mouse_x, int32_t mouse_y, uint32_t *types, uint32_t type_count)
+//struct ed_obj_result_t ed_PickObjectWithFilter(struct ed_obj_context_t *context, int32_t mouse_x, int32_t mouse_y, uint32_t *types, uint32_t type_count)
+//{
+//    ed_BeginPick(context);
+//
+//    for(uint32_t type_index = 0; type_index < type_count; type_index++)
+//    {
+//        struct ed_obj_funcs_t *funcs = ed_obj_funcs + types[type_index];
+//        struct ds_slist_t *objects = context->objects + types[type_index];
+//        if(ed_obj_render_pick_states[types[type_index]].rasterizer)
+//        {
+//            r_i_SetRasterizer(&ed_pick_cmd_buffer, NULL, ed_obj_render_pick_states[types[type_index]].rasterizer);
+//        }
+//        ed_PickObjectFromListWithFuncs(objects, funcs);
+//    }
+//
+//    return ed_EndPick(context, mouse_x, mouse_y);
+//}
+
+struct ed_obj_result_t ed_PickObject(struct ed_pick_args_t *pick_args, int32_t mouse_x, int32_t mouse_y)
 {
+    struct ed_obj_context_t *context = pick_args->context;
+
     ed_BeginPick(context);
 
-    for(uint32_t type_index = 0; type_index < type_count; type_index++)
+    for(uint32_t type = ED_OBJ_TYPE_BRUSH; type < ED_OBJ_TYPE_LAST; type++)
     {
-        struct ed_obj_funcs_t *funcs = ed_obj_funcs + types[type_index];
-        struct ds_slist_t *objects = context->objects + types[type_index];
-        if(ed_obj_render_pick_states[types[type_index]].rasterizer)
+        struct ed_obj_funcs_t *funcs = ed_obj_funcs + type;
+        struct ds_slist_t *objects = context->objects + type;
+
+        if(ed_obj_render_pick_states[type].rasterizer)
         {
-            r_i_SetRasterizer(&ed_pick_cmd_buffer, NULL, ed_obj_render_pick_states[types[type_index]].rasterizer);
+            r_i_SetRasterizer(&ed_pick_cmd_buffer, NULL, ed_obj_render_pick_states[type].rasterizer);
         }
-        ed_PickObjectFromListWithFuncs(objects, funcs);
+        ed_PickObjectFromListWithFuncs(objects, funcs, pick_args->args[type]);
     }
 
-    return ed_EndPick(context, mouse_x, mouse_y);
-}
+    struct ed_obj_result_t result = ed_EndPick(context, mouse_x, mouse_y);
 
-struct ed_obj_result_t ed_PickObject(struct ed_obj_context_t *context, int32_t mouse_x, int32_t mouse_y)
-{
-    struct ed_obj_result_t result = ed_PickObjectWithFilter(context, mouse_x, mouse_y, ed_obj_all_types, 3);
     result.object = ed_GetObject(context, (struct ed_obj_h){.type = result.type, .index = result.index});
     return result;
 }
@@ -538,7 +554,7 @@ struct ed_obj_result_t ed_PickOperator(struct ed_obj_context_t *context, int32_t
         for(uint32_t instance_index = 0; instance_index < operator->objects.cursor; instance_index++)
         {
             struct ed_obj_t *operator_object = ds_list_get_element(&operator->objects, instance_index);
-            ed_PickObjectWithFuncs(operator_object, &funcs->obj_funcs);
+            ed_PickObjectWithFuncs(operator_object, &funcs->obj_funcs, NULL);
         }
     }
 
@@ -563,16 +579,16 @@ void ed_UpdateOperators(struct ed_obj_context_t *context)
     }
 }
 
-void ed_ApplyOperatorOnSelection(struct ed_obj_context_t *context, struct ed_operator_t *operator, struct ed_operator_event_t *event, uint32_t selection_index)
+void ed_ApplyOperatorOnSelection(struct ed_obj_context_t *context, struct ed_operator_t *operator, struct ed_obj_event_t *event, uint32_t selection_index)
 {
     struct ed_obj_result_t *result = ds_list_get_element(&context->selections, selection_index);
     struct ed_obj_funcs_t *funcs = ed_obj_funcs + result->object->type;
     funcs->update(result->object, event);
 }
 
-void ed_ApplyOperator(struct ed_obj_context_t *context, struct ed_operator_t *operator, struct ed_operator_event_t *event)
+void ed_ApplyOperator(struct ed_obj_context_t *context, struct ed_operator_t *operator, struct ed_obj_event_t *event)
 {
-    event->operator = operator;
+//    event->operator = operator;
 
     for(uint32_t index = 0; index < context->selections.cursor; index++)
     {
@@ -700,7 +716,7 @@ void ed_AddObjToSelections(struct ed_obj_context_t *context, uint32_t multiple, 
             if(selection_index >= last_index)
             {
                 /* pickable is the last in the list */
-                if(multiple || !context->selections.cursor)
+                if((multiple || !context->selections.cursor) && obj->object->sub_obj_count == 0)
                 {
                     /* the behavior is, if this is the last pickable, there are more pickables
                     in the list and the multiple selection key is down, this pickable gets dropped.
@@ -771,11 +787,12 @@ void ed_ClearSelections(struct ed_obj_context_t *context)
 ============================================================================
 */
 
-uint32_t ed_LeftClickPickState(struct ed_tool_context_t *context, struct ed_tool_t *tool, uint32_t just_changed)
+uint32_t ed_ClickPickState(struct ed_tool_context_t *context, void *state_data, uint32_t just_changed)
 {
-    if(in_GetMouseButtonState(SDL_BUTTON_LEFT) & IN_KEY_STATE_JUST_PRESSED)
+//    if(in_GetMouseButtonState(SDL_BUTTON_LEFT) & IN_KEY_STATE_JUST_PRESSED)
     {
-        struct ed_obj_context_t *obj_context = (struct ed_obj_context_t *)tool->data;
+        struct ed_pick_args_t *pick_args = state_data;
+        struct ed_obj_context_t *obj_context = pick_args->context;
         int32_t mouse_x;
         int32_t mouse_y;
 
@@ -785,35 +802,52 @@ uint32_t ed_LeftClickPickState(struct ed_tool_context_t *context, struct ed_tool
 
         if(obj_context->last_picked.index != 0xffffffff && obj_context->last_picked.type != 0xffffffff)
         {
-            ed_NextToolState(context, ed_ApplyOperatorState);
+            ed_NextToolState(context, ed_ApplyOperatorState, obj_context);
             return 0;
         }
 
-        obj_context->last_picked = ed_PickObject(obj_context, mouse_x, mouse_y);
+//        pick_args->args[ED_OBJ_TYPE_BRUSH] = &(struct ed_brush_pick_args_t) {
+//            .pick_faces = 1
+//        };
+
+        obj_context->last_picked = ed_PickObject(pick_args, mouse_x, mouse_y);
 
         if(obj_context->last_picked.index != 0xffffffff && obj_context->last_picked.type != 0xffffffff)
         {
             uint32_t shift_down = in_GetKeyState(SDL_SCANCODE_LSHIFT) & IN_KEY_STATE_PRESSED;
+
+            struct ed_obj_event_t event = {
+                .type = ED_OBJ_EVENT_TYPE_PICK,
+                .pick.result = obj_context->last_picked,
+                .pick.multiple = shift_down,
+            };
+
+            ed_obj_funcs[obj_context->last_picked.type].update(obj_context->last_picked.object, &event);
             ed_AddObjToSelections(obj_context, shift_down, &obj_context->last_picked);
         }
 
-        ed_NextToolState(context, NULL);
+        ed_NextToolState(context, NULL, NULL);
     }
 
     return 0;
 }
 
-uint32_t ed_ApplyOperatorState(struct ed_tool_context_t *context, struct ed_tool_t *tool, uint32_t just_changed)
+uint32_t ed_ApplyOperatorState(struct ed_tool_context_t *context, void *state_data, uint32_t just_changed)
 {
 //    struct ed_level_state_t *context_data = &ed_level_state;
-    struct ed_obj_context_t *obj_context = tool->data;
+    struct ed_obj_context_t *obj_context = state_data;
     uint32_t mouse_state = in_GetMouseButtonState(SDL_BUTTON_LEFT);
 
     if(mouse_state & IN_KEY_STATE_PRESSED)
     {
 //        struct ed_widget_t *manipulator = context_data->manipulator.widgets[context_data->manipulator.transform_type];
 
-        struct ed_operator_event_t event;
+//        struct ed_operator_event_t event;
+        /* TODO: handle the rest of the operators here. For now the transform operator is hardcoded */
+        struct ed_obj_event_t event = {
+            .type = ED_OBJ_EVENT_TYPE_OPERATOR,
+            .operator.type = ED_OPERATOR_TRANSFORM
+        };
         struct ed_operator_t *transform_operator = &obj_context->operators[ED_OPERATOR_TRANSFORM];
         struct ed_transform_operator_data_t *data = transform_operator->data;
         struct ed_obj_t *operator_obj = ds_list_get_element(&transform_operator->objects, 0);
@@ -840,7 +874,7 @@ uint32_t ed_ApplyOperatorState(struct ed_tool_context_t *context, struct ed_tool
         {
             case ED_TRANSFORM_OPERATOR_MODE_TRANSLATE:
             {
-                event.transform_event.type = ED_TRANSFORM_OPERATOR_MODE_TRANSLATE;
+                event.operator.transform.type = ED_TRANSFORM_OPERATOR_MODE_TRANSLATE;
 
                 vec3_t manipulator_cam_vec;
                 vec3_t_sub(&manipulator_cam_vec, &r_camera_matrix.rows[3].xyz, &operator_transform ->rows[3].xyz);
@@ -874,7 +908,7 @@ uint32_t ed_ApplyOperatorState(struct ed_tool_context_t *context, struct ed_tool
                     }
                 }
 
-                event.transform_event.translation.translation = cur_offset;
+                event.operator.transform.translation.translation = cur_offset;
 
                 int32_t window_x;
                 int32_t window_y;
@@ -899,7 +933,7 @@ uint32_t ed_ApplyOperatorState(struct ed_tool_context_t *context, struct ed_tool
 
             case ED_TRANSFORM_OPERATOR_MODE_ROTATE:
             {
-                event.transform_event.type = ED_TRANSFORM_OPERATOR_MODE_ROTATE;
+                event.operator.transform.type = ED_TRANSFORM_OPERATOR_MODE_ROTATE;
 
                 ed_CameraRay(mouse_x, mouse_y, &operator_transform->rows[3].xyz, &axis_vec, &intersection);
 
@@ -915,7 +949,7 @@ uint32_t ed_ApplyOperatorState(struct ed_tool_context_t *context, struct ed_tool
                 vec3_t angle_vec;
                 vec3_t_cross(&angle_vec, &manipulator_mouse_vec, &data->prev_offset);
                 float angle = asin(vec3_t_dot(&angle_vec, &axis_vec)) / 3.14159265;
-                mat3_t_identity(&event.transform_event.rotation.rotation);
+                mat3_t_identity(&event.operator.transform.rotation.rotation);
 
                 if(data->angular_snap)
                 {
@@ -941,15 +975,15 @@ uint32_t ed_ApplyOperatorState(struct ed_tool_context_t *context, struct ed_tool
                 switch(axis_index)
                 {
                     case 0:
-                        mat3_t_rotate_x(&event.transform_event.rotation.rotation, angle);
+                        mat3_t_rotate_x(&event.operator.transform.rotation.rotation, angle);
                     break;
 
                     case 1:
-                        mat3_t_rotate_y(&event.transform_event.rotation.rotation, angle);
+                        mat3_t_rotate_y(&event.operator.transform.rotation.rotation, angle);
                     break;
 
                     case 2:
-                        mat3_t_rotate_z(&event.transform_event.rotation.rotation, angle);
+                        mat3_t_rotate_z(&event.operator.transform.rotation.rotation, angle);
                     break;
                 }
 
@@ -961,10 +995,12 @@ uint32_t ed_ApplyOperatorState(struct ed_tool_context_t *context, struct ed_tool
     }
     else
     {
-        ed_NextToolState(context, NULL);
+        ed_NextToolState(context, NULL, NULL);
         obj_context->last_picked.type = 0xffffffff;
         obj_context->last_picked.index = 0xffffffff;
     }
+
+    return 0;
 }
 
 uint32_t ed_CameraRay(int32_t mouse_x, int32_t mouse_y, vec3_t *plane_point, vec3_t *plane_normal, vec3_t *result)
@@ -1026,8 +1062,10 @@ void ed_CameraSpaceDrawTransform(mat4_t *in_transform, mat4_t *out_transform, fl
 //    mat4_t_identity(out_transform);
     *out_transform = *in_transform;
     vec3_t_sub(&out_transform->rows[3].xyz, &in_transform->rows[3].xyz, &r_camera_matrix.rows[3].xyz);
+//    float distance = vec3_t_length(&out_transform->rows[3].xyz);
     vec3_t_normalize(&out_transform->rows[3].xyz, &out_transform->rows[3].xyz);
     vec3_t_mul(&out_transform->rows[3].xyz, &out_transform->rows[3].xyz, camera_distance);
+    vec3_t_add(&out_transform->rows[3].xyz, &out_transform->rows[3].xyz, &r_camera_matrix.rows[3].xyz);
 }
 
 /*
@@ -1038,22 +1076,45 @@ void ed_CameraSpaceDrawTransform(mat4_t *in_transform, mat4_t *out_transform, fl
 
 void ed_TranslateSelection(struct ed_obj_context_t *context, vec3_t *translation, uint32_t index)
 {
-    struct ed_operator_event_t event;
     struct ed_operator_t *transform_operator = &context->operators[ED_OPERATOR_TRANSFORM];
-    event.transform_event.translation.translation = *translation;
-    event.transform_event.type = ED_TRANSFORM_OPERATOR_MODE_TRANSLATE;
-    event.operator = transform_operator;
+
+    struct ed_obj_event_t event = {
+        .type = ED_OBJ_EVENT_TYPE_OPERATOR,
+        .operator = {
+            .type = ED_OPERATOR_TRANSFORM,
+            .transform = {
+                .type = ED_TRANSFORM_OPERATOR_MODE_TRANSLATE,
+                .translation.translation = *translation
+            }
+        }
+    };
+
+//    event.transform_event.translation.translation = *translation;
+//    event.transform_event.type = ED_TRANSFORM_OPERATOR_MODE_TRANSLATE;
+//    event.operator = transform_operator;
     ed_ApplyOperatorOnSelection(context, transform_operator, &event, index);
     ed_UpdateOperators(context);
 }
 
 void ed_RotateSelection(struct ed_obj_context_t *context, mat3_t *rotation, uint32_t index)
 {
-    struct ed_operator_event_t event;
+//    struct ed_operator_event_t event;
     struct ed_operator_t *transform_operator = &context->operators[ED_OPERATOR_TRANSFORM];
-    event.transform_event.rotation.rotation = *rotation;
-    event.transform_event.type = ED_TRANSFORM_OPERATOR_MODE_ROTATE;
-    event.operator = transform_operator;
+//    event.transform_event.rotation.rotation = *rotation;
+//    event.transform_event.type = ED_TRANSFORM_OPERATOR_MODE_ROTATE;
+//    event.operator = transform_operator;
+
+    struct ed_obj_event_t event = {
+        .type = ED_OBJ_EVENT_TYPE_OPERATOR,
+        .operator = {
+            .type = ED_OPERATOR_TRANSFORM,
+            .transform = {
+                .type = ED_TRANSFORM_OPERATOR_MODE_ROTATE,
+                .rotation.rotation = *rotation
+            }
+        }
+    };
+
     ed_ApplyOperatorOnSelection(context, transform_operator, &event, index);
     ed_UpdateOperators(context);
 }

@@ -17,31 +17,57 @@ static void ed_DestroyEntityObject(struct ed_obj_t *object)
     e_DestroyEntity((struct e_entity_t *)object->base_obj);
 }
 
-static void ed_UpdateEntityObject(struct ed_obj_t *object, struct ed_operator_event_t *event)
+static void ed_UpdateEntityObject(struct ed_obj_t *object, struct ed_obj_event_t *event)
 {
     struct e_entity_t *entity = object->base_obj;
 
     if(event != NULL)
     {
-        switch(event->operator->type)
+        switch(event->type)
         {
-            case ED_OPERATOR_TRANSFORM:
-                switch(event->transform_event.type)
+            case ED_OBJ_EVENT_TYPE_OPERATOR:
+            {
+                switch(event->operator.type)
                 {
-                    case ED_TRANSFORM_OPERATOR_MODE_TRANSLATE:
-                    {
-                        e_TranslateEntity(entity, &event->transform_event.translation.translation);
-                    }
-                    break;
+                    case ED_OPERATOR_TRANSFORM:
+                        switch(event->operator.transform.type)
+                        {
+                            case ED_TRANSFORM_OPERATOR_MODE_TRANSLATE:
+                            {
+                                e_TranslateEntity(entity, &event->operator.transform.translation.translation);
+                            }
+                            break;
 
-                    case ED_TRANSFORM_OPERATOR_MODE_ROTATE:
-                    {
-                        e_RotateEntity(entity, &event->transform_event.rotation.rotation);
-                    }
+                            case ED_TRANSFORM_OPERATOR_MODE_ROTATE:
+                            {
+                                e_RotateEntity(entity, &event->operator.transform.rotation.rotation);
+                            }
+                            break;
+                        }
                     break;
                 }
+            }
             break;
         }
+//        switch(event->operator->type)
+//        {
+//            case ED_OPERATOR_TRANSFORM:
+//                switch(event->transform_event.type)
+//                {
+//                    case ED_TRANSFORM_OPERATOR_MODE_TRANSLATE:
+//                    {
+//                        e_TranslateEntity(entity, &event->transform_event.translation.translation);
+//                    }
+//                    break;
+//
+//                    case ED_TRANSFORM_OPERATOR_MODE_ROTATE:
+//                    {
+//                        e_RotateEntity(entity, &event->transform_event.rotation.rotation);
+//                    }
+//                    break;
+//                }
+//            break;
+//        }
 
         e_UpdateEntityNode(entity->node, &mat4_t_c_id());
     }
@@ -79,7 +105,7 @@ static void ed_PickEntityObjectRecursive(struct e_entity_t *entity, struct r_i_c
     }
 }
 
-static struct r_i_draw_list_t *ed_PickEntityObject(struct ed_obj_t *object, struct r_i_cmd_buffer_t *command_buffer, struct ed_obj_event_t *pick_event)
+static struct r_i_draw_list_t *ed_PickEntityObject(struct ed_obj_t *object, struct r_i_cmd_buffer_t *command_buffer, void *args)
 {
     struct e_entity_t *entity = object->base_obj;
     struct r_i_draw_list_t *draw_list = r_i_AllocDrawList(command_buffer, entity->def->node_count);

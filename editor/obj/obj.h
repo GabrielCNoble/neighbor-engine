@@ -35,23 +35,18 @@ struct ed_obj_t
     uint32_t                        index;
     uint32_t                        type;
     uint32_t                        selection_index;
+    uint32_t                        sub_obj_count;
     struct ed_obj_context_t *       context;
     mat4_t                          transform;
     void *                          base_obj;
 };
 
-#define ED_PICK_MAX_DRAW_LISTS 3
-struct ed_pick_data_t
-{
-    struct r_i_draw_list_t *    draw_lists[ED_PICK_MAX_DRAW_LISTS];
-    uint32_t                    draw_list_count;
-};
-
-struct ed_pick_args_t
-{
-    uint32_t        type;
-    void *          args;
-};
+//#define ED_PICK_MAX_DRAW_LISTS 3
+//struct ed_pick_data_t
+//{
+//    struct r_i_draw_list_t *    draw_lists[ED_PICK_MAX_DRAW_LISTS];
+//    uint32_t                    draw_list_count;
+//};
 
 struct ed_obj_result_t
 {
@@ -100,14 +95,14 @@ struct ed_obj_result_t
 //    void *          data;
 //};
 
-struct ed_operator_event_t;
+struct ed_obj_event_t;
 
 struct ed_obj_funcs_t
 {
     void *                    (*create)                  (vec3_t *position, mat3_t *orientation, vec3_t *scale, void *args);
     void                      (*destroy)                 (struct ed_obj_t *object);
-    void                      (*update)                  (struct ed_obj_t *object, struct ed_operator_event_t *event);
-    struct r_i_draw_list_t *  (*pick)                    (struct ed_obj_t *object, struct r_i_cmd_buffer_t *command_buffer, struct ed_operator_event_t *pick_event);
+    void                      (*update)                  (struct ed_obj_t *object, struct ed_obj_event_t *event);
+    struct r_i_draw_list_t *  (*pick)                    (struct ed_obj_t *object, struct r_i_cmd_buffer_t *command_buffer, void *args);
     struct r_i_draw_list_t *  (*draw)                    (struct ed_obj_t *object, struct r_i_cmd_buffer_t *command_buffer);
     struct r_i_draw_list_t *  (*draw_selected)           (struct ed_obj_t *object, struct r_i_cmd_buffer_t *command_buffer);
 };
@@ -168,6 +163,12 @@ struct ed_operator_funcs_t
     struct ed_obj_funcs_t     obj_funcs;
 };
 
+struct ed_pick_args_t
+{
+    struct ed_obj_context_t *   context;
+    void *                      args[ED_OBJ_TYPE_LAST];
+};
+
 //struct ed_translation_event_t
 //{
 //    vec3_t      translation;
@@ -189,38 +190,72 @@ struct ed_operator_funcs_t
 
 struct ed_transform_event_t
 {
-    uint32_t            type;
+    uint32_t                    type;
 
     union
     {
         struct
         {
-            vec3_t      translation;
+            vec3_t              translation;
         } translation;
 
         struct
         {
-            mat3_t      rotation;
-            vec3_t      offset;
+            mat3_t              rotation;
+            vec3_t              offset;
         } rotation;
 
         struct
         {
-            vec3_t      axis;
-            float       factor;
+            vec3_t              axis;
+            float               factor;
         } scale;
     };
 };
 
 struct ed_operator_event_t
 {
-    struct ed_operator_t *  operator;
+    uint32_t                        type;
 
     union
     {
-        struct ed_transform_event_t transform_event;
+        struct ed_transform_event_t transform;
     };
 };
+
+struct ed_pick_event_t
+{
+    struct ed_obj_result_t  result;
+    uint32_t                multiple;
+};
+
+enum ED_OBJ_EVENT_TYPES
+{
+    ED_OBJ_EVENT_TYPE_PICK = 0,
+    ED_OBJ_EVENT_TYPE_OPERATOR,
+};
+
+struct ed_obj_event_t
+{
+    uint32_t                        type;
+
+    union
+    {
+        struct ed_operator_event_t  operator;
+        struct ed_pick_event_t      pick;
+    };
+};
+
+
+//struct ed_operator_event_t
+//{
+//    struct ed_operator_t *  operator;
+//
+//    union
+//    {
+//        struct ed_transform_event_t transform_event;
+//    };
+//};
 
 struct ed_transform_operator_data_t
 {
@@ -249,19 +284,19 @@ void ed_BeginPick(struct ed_obj_context_t *context);
 
 struct ed_obj_result_t ed_EndPick(struct ed_obj_context_t *context, int32_t mouse_x, int32_t mouse_y);
 
-void ed_PickObjectWithFuncs(struct ed_obj_t *object, struct ed_obj_funcs_t *funcs);
+void ed_PickObjectWithFuncs(struct ed_obj_t *object, struct ed_obj_funcs_t *funcs, void *args);
 
-void ed_PickObjectFromListWithFuncs(struct ds_slist_t *objects, struct ed_obj_funcs_t *funcs);
+void ed_PickObjectFromListWithFuncs(struct ds_slist_t *objects, struct ed_obj_funcs_t *funcs, void *args);
 
-struct ed_obj_result_t ed_PickObjectWithFilter(struct ed_obj_context_t *context, int32_t mouse_x, int32_t mouse_y, uint32_t *types, uint32_t type_count);
+//struct ed_obj_result_t ed_PickObjectWithFilter(struct ed_obj_context_t *context, int32_t mouse_x, int32_t mouse_y, uint32_t *types, uint32_t type_count);
 
-struct ed_obj_result_t ed_PickObject(struct ed_obj_context_t *context, int32_t mouse_x, int32_t mouse_y);
+struct ed_obj_result_t ed_PickObject(struct ed_pick_args_t *pick_args, int32_t mouse_x, int32_t mouse_y);
 
 struct ed_obj_result_t ed_PickOperator(struct ed_obj_context_t *context, int32_t mouse_x, int32_t mouse_y);
 
 void ed_UpdateOperators(struct ed_obj_context_t *context);
 
-void ed_ApplyOperator(struct ed_obj_context_t *context, struct ed_operator_t *operator, struct ed_operator_event_t *event);
+void ed_ApplyOperator(struct ed_obj_context_t *context, struct ed_operator_t *operator, struct ed_obj_event_t *event);
 
 void ed_UpdateObjectContext(struct ed_obj_context_t *context, struct r_i_cmd_buffer_t *command_buffer);
 
@@ -280,9 +315,9 @@ void ed_ClearSelections(struct ed_obj_context_t *context);
 ============================================================================
 */
 
-uint32_t ed_LeftClickPickState(struct ed_tool_context_t *context, struct ed_tool_t *tool, uint32_t just_changed);
+uint32_t ed_ClickPickState(struct ed_tool_context_t *context, void *state_data, uint32_t just_changed);
 
-uint32_t ed_ApplyOperatorState(struct ed_tool_context_t *context, struct ed_tool_t *tool, uint32_t just_changed);
+uint32_t ed_ApplyOperatorState(struct ed_tool_context_t *context, void *state_data, uint32_t just_changed);
 
 uint32_t ed_CameraRay(int32_t mouse_x, int32_t mouse_y, vec3_t *plane_point, vec3_t *plane_normal, vec3_t *result);
 

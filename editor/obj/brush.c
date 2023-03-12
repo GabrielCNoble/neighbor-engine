@@ -98,61 +98,236 @@ static void ed_DestroyBrushObject(struct ed_obj_t *object)
     ed_DestroyBrush((struct ed_brush_t *)object->base_obj);
 }
 
-static void ed_UpdateBrushObject(struct ed_obj_t *object, struct ed_operator_event_t *event)
+static void ed_UpdateBrushObject(struct ed_obj_t *object, struct ed_obj_event_t *event)
 {
     struct ed_brush_t *brush = (struct ed_brush_t *)object->base_obj;
+    struct ds_list_t *faces = &brush->selected_elements[ED_BRUSH_ELEMENT_FACE];
+    mat4_t object_transform;
 
     if(event != NULL)
     {
-        switch(event->operator->type)
+        switch(event->type)
         {
-            case ED_OPERATOR_TRANSFORM:
+            case ED_OBJ_EVENT_TYPE_OPERATOR:
             {
-                switch(event->transform_event.type)
+                switch(event->operator.type)
                 {
-                    case ED_TRANSFORM_OPERATOR_MODE_TRANSLATE:
+                    case ED_OPERATOR_TRANSFORM:
                     {
-                        vec3_t_add(&brush->position, &brush->position, &event->transform_event.translation.translation);
-                    }
-                    break;
 
-                    case ED_TRANSFORM_OPERATOR_MODE_ROTATE:
-                    {
-                        mat3_t_mul(&brush->orientation, &brush->orientation, &event->transform_event.rotation.rotation);
+                        switch(event->operator.transform.type)
+                        {
+                            case ED_TRANSFORM_OPERATOR_MODE_TRANSLATE:
+                            {
+                                if(faces->cursor)
+                                {
+                                    for(uint32_t index = 0; index < faces->cursor; index++)
+                                    {
+                                        struct ed_face_t *face = *(struct ed_face_t **)ds_list_get_element(faces, index);
+                                        ed_TranslateBrushFace(brush, face->index, &event->operator.transform.translation.translation);
+                                    }
+                                }
+                                else
+                                {
+                                    vec3_t_add(&brush->position, &brush->position, &event->operator.transform.translation.translation);
+                                }
+
+                            }
+                            break;
+
+                            case ED_TRANSFORM_OPERATOR_MODE_ROTATE:
+                            {
+                                if(faces->cursor)
+                                {
+
+                                }
+                                else
+                                {
+                                    mat3_t_mul(&brush->orientation, &brush->orientation, &event->operator.transform.rotation.rotation);
+                                }
+                            }
+                            break;
+                        }
                     }
                     break;
+                }
+
+                ed_UpdateBrush(brush);
+            }
+            break;
+
+            case ED_OBJ_EVENT_TYPE_PICK:
+            {
+                if(event->pick.result.extra0 < ED_BRUSH_ELEMENT_BODY)
+                {
+                    uint32_t list_index = event->pick.result.extra0;
+                    struct ds_list_t *selections = &brush->selected_elements[list_index];
+                    struct ed_face_t *face = ed_GetFace(event->pick.result.extra1);
+
+                    uint32_t prev_cursor = selections->cursor;
+
+                    if(face->selection_index != 0xffffffff)
+                    {
+                        ds_list_remove_element(selections, face->selection_index);
+                        if(face->selection_index < selections->cursor)
+                        {
+                            struct ed_face_t *moved_face = *(struct ed_face_t **)ds_list_get_element(selections, face->selection_index);
+                            moved_face->selection_index = face->selection_index;
+                        }
+                    }
+
+                    if(!event->pick.multiple)
+                    {
+                        for(uint32_t index = 0; index < selections->cursor; index++)
+                        {
+                            struct ed_face_t *dropped_face = *(struct ed_face_t **)ds_list_get_element(selections, index);
+                            dropped_face->selection_index = 0xffffffff;
+                        }
+                        selections->cursor = 0;
+                    }
+
+                    if(face->selection_index == 0xffffffff || prev_cursor > 1)
+                    {
+                        face->selection_index = ds_list_add_element(selections, &face);
+                    }
+                    else
+                    {
+                        face->selection_index = 0xffffffff;
+                    }
+
+                    object->sub_obj_count = faces->cursor;
+                }
+                else
+                {
+                    /* sub_obj_count tracks how many sub objects of an object are "referring" to this entry. If
+                    there is no sub object, the count is zero, which is when the entry gets dropped if the object
+                    is already selected and gets selected again. This is to avoid having the entry dropped when
+                    selecting sub objects (in this situation, brush faces/edges/vertices).
+
+                    The problem is that we can't set the count directly to zero here because it could be the case
+                    that a face/edge/vertex is selected and the user clicked to select the whole brush, which would
+                    drop the object entry instead of unselecting all the faces/edges/vertices and then selecting
+                    the whole brush. To solve that we set the sub object count to the value of the selected faces
+                    count. If this value is zero, it means the whole brush was previously selected and the user wants
+                    to unselect it. If it was non-zero, it means faces/edges/vertices were previously selected,
+                    and the user wishes to select the whole brush. */
+                    object->sub_obj_count = faces->cursor;
+
+                    for(uint32_t index = 0; index < faces->cursor; index++)
+                    {
+                        struct ed_face_t *dropped_face = *(struct ed_face_t **)ds_list_get_element(faces, index);
+                        dropped_face->selection_index = 0xffffffff;
+                    }
+                    faces->cursor = 0;
                 }
             }
             break;
         }
-    }
 
-    ed_UpdateBrush(brush);
-    mat4_t_comp(&object->transform, &brush->orientation, &brush->position);
+        if(faces->cursor)
+        {
+            vec3_t position = vec3_t_c(0, 0, 0);
+            for(uint32_t index = 0; index < faces->cursor; index++)
+            {
+                struct ed_face_t *face = *(struct ed_face_t **)ds_list_get_element(faces, index);
+                vec3_t_add(&position, &position, &face->center);
+            }
+
+            vec3_t_div(&position, &position, (float)faces->cursor);
+            mat3_t_vec3_t_mul(&position, &position, &brush->orientation);
+            vec3_t_add(&position, &position, &brush->position);
+            mat4_t_identity(&object->transform);
+            object->transform.rows[3].xyz = position;
+        }
+        else
+        {
+            mat4_t_comp(&object->transform, &brush->orientation, &brush->position);
+        }
+    }
+    else
+    {
+        mat4_t_comp(&object->transform, &brush->orientation, &brush->position);
+    }
 }
 
-static struct r_i_draw_list_t *ed_PickBrushObject(struct ed_obj_t *object, struct r_i_cmd_buffer_t *command_buffer, struct ed_operator_event_t *pick_event)
+static struct r_i_draw_list_t *ed_PickBrushObject(struct ed_obj_t *object, struct r_i_cmd_buffer_t *command_buffer, void *args)
 {
     struct ed_brush_t *brush = object->base_obj;
     struct r_i_draw_list_t *draw_list = NULL;
+    struct ed_brush_pick_args_t *pick_args = args;
     mat4_t model_view_projection_matrix;
-    mat4_t_mul(&model_view_projection_matrix, &object->transform, &r_view_projection_matrix);
+    mat4_t_comp(&model_view_projection_matrix, &brush->orientation, &brush->position);
+    mat4_t_mul(&model_view_projection_matrix, &model_view_projection_matrix, &r_view_projection_matrix);
 
-//    struct r_i_raster_t rasterizer;
+    if(pick_args == NULL || (!pick_args->pick_edges && !pick_args->pick_faces && !pick_args->pick_verts))
+    {
+        draw_list = r_i_AllocDrawList(command_buffer, 1);
+        draw_list->mesh = r_i_AllocMesh(command_buffer, sizeof(struct r_vert_t), brush->model->verts.buffer_size, brush->model->indices.buffer_size);
+        memcpy(draw_list->mesh->verts.verts, brush->model->verts.buffer, sizeof(struct r_vert_t) * brush->model->verts.buffer_size);
+        memcpy(draw_list->mesh->indices.indices, brush->model->indices.buffer, sizeof(uint32_t) * brush->model->indices.buffer_size);
+        draw_list->ranges[0].start = 0;
+        draw_list->ranges[0].count = brush->model->indices.buffer_size;
+        draw_list->mode = GL_TRIANGLES;
+        draw_list->indexed = 1;
 
-    draw_list = r_i_AllocDrawList(command_buffer, 1);
-    draw_list->mesh = r_i_AllocMesh(command_buffer, sizeof(struct r_vert_t), brush->model->verts.buffer_size, brush->model->indices.buffer_size);
-    memcpy(draw_list->mesh->verts.verts, brush->model->verts.buffer, sizeof(struct r_vert_t) * brush->model->verts.buffer_size);
-    memcpy(draw_list->mesh->indices.indices, brush->model->indices.buffer, sizeof(uint32_t) * brush->model->indices.buffer_size);
-    draw_list->ranges[0].start = 0;
-    draw_list->ranges[0].count = brush->model->indices.buffer_size;
-    draw_list->mode = GL_TRIANGLES;
-    draw_list->indexed = 1;
+        struct r_i_uniform_t uniforms[2] = {
+            [0] = {
+                .uniform = ED_PICK_SHADER_UNIFORM_OBJ_EXTRA0,
+                .count = 1,
+                .value = &(uint32_t){ED_BRUSH_ELEMENT_BODY}
+            },
+            [1] = {
+                .uniform = ED_PICK_SHADER_UNIFORM_OBJ_EXTRA1,
+                .count = 1,
+                .value = &(uint32_t){0}
+            }
+        };
+        r_i_SetUniforms(command_buffer, draw_list->ranges, uniforms, 2);
+    }
+    else
+    {
+        if(pick_args->pick_faces)
+        {
+            draw_list = r_i_AllocDrawList(command_buffer, brush->face_count);
+            struct ed_face_t *face = brush->faces;
+            uint32_t range_index = 0;
 
-    struct r_i_uniform_t uniform;
-    uniform.value = &model_view_projection_matrix;
-    uniform.uniform = ED_PICK_SHADER_UNIFORM_MODEL_VIEW_PROJECTION_MATRIX;
-    uniform.count = 1;
+            draw_list->mode = GL_TRIANGLES;
+            draw_list->indexed = 1;
+
+            struct r_i_uniform_t uniform = {
+                .uniform = ED_PICK_SHADER_UNIFORM_OBJ_EXTRA0,
+                .count = 1,
+                .value = &(uint32_t){ED_BRUSH_ELEMENT_FACE}
+            };
+
+            r_i_SetUniforms(command_buffer, NULL, &uniform, 1);
+
+            while(face != NULL)
+            {
+                struct r_i_uniform_t uniform = {
+                    .uniform = ED_PICK_SHADER_UNIFORM_OBJ_EXTRA1,
+                    .count = 1,
+                    .value = &face->index
+                };
+
+                struct r_i_draw_range_t *range = draw_list->ranges + range_index;
+                r_i_SetUniforms(command_buffer, range, &uniform, 1);
+
+                range->start = brush->model->model_start + face->first_index;
+                range->count = face->index_count;
+
+                face = face->next;
+                range_index++;
+            }
+        }
+    }
+
+    struct r_i_uniform_t uniform = {
+        uniform.uniform = ED_PICK_SHADER_UNIFORM_MODEL_VIEW_PROJECTION_MATRIX,
+        uniform.count = 1,
+        uniform.value = &model_view_projection_matrix
+    };
 
     r_i_SetUniforms(command_buffer, NULL, &uniform, 1);
 
@@ -167,10 +342,8 @@ static struct r_i_draw_list_t *ed_DrawBrushObjectSelected(struct ed_obj_t *objec
     struct r_i_stencil_t stencil;
     struct r_i_depth_t depth;
     struct r_i_draw_mask_t draw_mask;
-    vec4_t outline_color = vec4_t_c(1.0, 0.5, 0.0, 1.0);
-
+    vec4_t outline_color;
     mat4_t model_view_projection_matrix;
-    mat4_t_mul(&model_view_projection_matrix, &object->transform, &r_view_projection_matrix);
 
     struct r_i_uniform_t uniforms[2] = {
         {
@@ -185,135 +358,176 @@ static struct r_i_draw_list_t *ed_DrawBrushObjectSelected(struct ed_obj_t *objec
         }
     };
 
-    draw_list = r_i_AllocDrawList(command_buffer, 3);
+    if(!brush->selected_elements[0].cursor &&
+       !brush->selected_elements[1].cursor &&
+       !brush->selected_elements[2].cursor)
+    {
+        outline_color = vec4_t_c(1.0, 0.5, 0.0, 1.0);
+        mat4_t_mul(&model_view_projection_matrix, &object->transform, &r_view_projection_matrix);
+        draw_list = r_i_AllocDrawList(command_buffer, 3);
+
+        /* fill stencil buffer with 0xff where the brush is */
+        rasterizer = (struct r_i_raster_t) {
+            .polygon_mode = GL_FILL,
+            .cull_face = GL_BACK,
+            .cull_enable = R_I_ENABLE,
+            .line_width = 2.0
+        };
+
+        struct r_i_blending_t blend_state = {
+            .enable = R_I_DISABLE
+        };
 
 
-//    color = (struct r_i_uniform_t){
-//        .uniform = ED_OUTLINE_SHADER_UNIFORM_COLOR,
-//        .count = 1,
-//        .value = &outline_color
-//    };
+        stencil = (struct r_i_stencil_t) {
+            .enable = R_I_ENABLE,
+            .func = GL_ALWAYS,
+            .stencil_fail = GL_KEEP,
+            .depth_fail = GL_KEEP,
+            .depth_pass = GL_REPLACE,
+            .mask = 0xff,
+            .ref = 0xff
+        };
 
-    /* fill stencil buffer with 0xff where the brush is */
-    rasterizer = (struct r_i_raster_t) {
-        .polygon_mode = GL_FILL,
-        .cull_face = GL_BACK,
-        .cull_enable = R_I_ENABLE,
-        .line_width = 2.0
-    };
-    stencil = (struct r_i_stencil_t) {
-        .enable = R_I_ENABLE,
-        .func = GL_ALWAYS,
-        .stencil_fail = GL_KEEP,
-        .depth_fail = GL_KEEP,
-        .depth_pass = GL_REPLACE,
-        .mask = 0xff,
-        .ref = 0xff
-    };
+        draw_mask = (struct r_i_draw_mask_t) {
+            .red = GL_FALSE,
+            .green = GL_FALSE,
+            .blue = GL_FALSE,
+            .alpha = GL_FALSE,
+            .depth = GL_FALSE,
+            .stencil = 0xff
+        };
 
-    draw_mask = (struct r_i_draw_mask_t) {
-        .red = GL_FALSE,
-        .green = GL_FALSE,
-        .blue = GL_FALSE,
-        .alpha = GL_FALSE,
-        .depth = GL_FALSE,
-        .stencil = 0xff
-    };
+        depth = (struct r_i_depth_t) {
+            .func = GL_LESS,
+            .enable = R_I_DISABLE
+        };
 
-    depth = (struct r_i_depth_t) {
-        .func = GL_LESS,
-        .enable = R_I_DISABLE
-    };
-
-    r_i_SetUniforms(command_buffer, &draw_list->ranges[0], uniforms, 2);
-    r_i_SetRasterizer(command_buffer, &draw_list->ranges[0], &rasterizer);
-    r_i_SetStencil(command_buffer, &draw_list->ranges[0], &stencil);
-    r_i_SetDrawMask(command_buffer, &draw_list->ranges[0], &draw_mask);
-    r_i_SetDepth(command_buffer, &draw_list->ranges[0], &depth);
-    draw_list->ranges[0].start = brush->model->model_start;
-    draw_list->ranges[0].count = brush->model->model_count;
+        r_i_SetUniforms(command_buffer, &draw_list->ranges[0], uniforms, 2);
+        r_i_SetRasterizer(command_buffer, &draw_list->ranges[0], &rasterizer);
+        r_i_SetStencil(command_buffer, &draw_list->ranges[0], &stencil);
+        r_i_SetDrawMask(command_buffer, &draw_list->ranges[0], &draw_mask);
+        r_i_SetDepth(command_buffer, &draw_list->ranges[0], &depth);
+        r_i_SetBlending(command_buffer, &draw_list->ranges[0], &blend_state);
+        draw_list->ranges[0].start = brush->model->model_start;
+        draw_list->ranges[0].count = brush->model->model_count;
 
 
 
-    /* draw wireframe only where the stencil buffer isn't 0xff */
-    rasterizer = (struct r_i_raster_t) {
-        .polygon_mode = GL_LINE,
-        .cull_face = GL_BACK,
-        .cull_enable = R_I_ENABLE,
+        /* draw wireframe only where the stencil buffer isn't 0xff */
+        rasterizer = (struct r_i_raster_t) {
+            .polygon_mode = GL_LINE,
+            .cull_face = GL_BACK,
+            .cull_enable = R_I_ENABLE,
 
-    };
-    stencil = (struct r_i_stencil_t) {
-        .enable = R_I_ENABLE,
-        .func = GL_NOTEQUAL,
-        .stencil_fail = GL_KEEP,
-        .depth_fail = GL_KEEP,
-        .depth_pass = GL_KEEP,
-        .mask = 0xff,
-        .ref = 0xff
-    };
+        };
+        stencil = (struct r_i_stencil_t) {
+            .enable = R_I_ENABLE,
+            .func = GL_NOTEQUAL,
+            .stencil_fail = GL_KEEP,
+            .depth_fail = GL_KEEP,
+            .depth_pass = GL_KEEP,
+            .mask = 0xff,
+            .ref = 0xff
+        };
 
-    draw_mask = (struct r_i_draw_mask_t) {
-        .red = GL_TRUE,
-        .green = GL_TRUE,
-        .blue = GL_TRUE,
-        .alpha = GL_TRUE,
-        .depth = GL_FALSE,
-        .stencil = 0xff
-    };
+        draw_mask = (struct r_i_draw_mask_t) {
+            .red = GL_TRUE,
+            .green = GL_TRUE,
+            .blue = GL_TRUE,
+            .alpha = GL_TRUE,
+            .depth = GL_FALSE,
+            .stencil = 0xff
+        };
 
-    depth = (struct r_i_depth_t) {
-        .func = GL_LESS,
-        .enable = R_I_ENABLE,
-    };
+        depth = (struct r_i_depth_t) {
+            .func = GL_LESS,
+            .enable = R_I_ENABLE,
+        };
 
-    r_i_SetRasterizer(command_buffer, &draw_list->ranges[1], &rasterizer);
-    r_i_SetStencil(command_buffer, &draw_list->ranges[1], &stencil);
-    r_i_SetDrawMask(command_buffer, &draw_list->ranges[1], &draw_mask);
-    r_i_SetDepth(command_buffer, &draw_list->ranges[1], &depth);
-    draw_list->ranges[1].start = brush->model->model_start;
-    draw_list->ranges[1].count = brush->model->model_count;
-
-
-    /* clear brush stencil pixels back to 0 */
-    rasterizer = (struct r_i_raster_t) {
-        .polygon_mode = GL_FILL,
-        .cull_face = GL_BACK,
-        .cull_enable = R_I_ENABLE
-    };
-    stencil = (struct r_i_stencil_t) {
-        .enable = R_I_ENABLE,
-        .func = GL_ALWAYS,
-        .stencil_fail = GL_REPLACE,
-        .depth_fail = GL_REPLACE,
-        .depth_pass = GL_REPLACE,
-        .mask = 0xff,
-        .ref = 0x00
-    };
-
-    draw_mask = (struct r_i_draw_mask_t) {
-        .red = GL_FALSE,
-        .green = GL_FALSE,
-        .blue = GL_FALSE,
-        .alpha = GL_FALSE,
-        .depth = GL_FALSE,
-        .stencil = 0xff
-    };
-
-    depth = (struct r_i_depth_t) {
-        .func = GL_LEQUAL,
-        .enable = R_I_DISABLE
-    };
-
-    r_i_SetRasterizer(command_buffer, &draw_list->ranges[2], &rasterizer);
-    r_i_SetStencil(command_buffer, &draw_list->ranges[2], &stencil);
-    r_i_SetDrawMask(command_buffer, &draw_list->ranges[2], &draw_mask);
-    r_i_SetDepth(command_buffer, &draw_list->ranges[2], &depth);
-    draw_list->ranges[2].start = brush->model->model_start;
-    draw_list->ranges[2].count = brush->model->model_count;
+        r_i_SetRasterizer(command_buffer, &draw_list->ranges[1], &rasterizer);
+        r_i_SetStencil(command_buffer, &draw_list->ranges[1], &stencil);
+        r_i_SetDrawMask(command_buffer, &draw_list->ranges[1], &draw_mask);
+        r_i_SetDepth(command_buffer, &draw_list->ranges[1], &depth);
+        draw_list->ranges[1].start = brush->model->model_start;
+        draw_list->ranges[1].count = brush->model->model_count;
 
 
-    draw_list->mode = GL_TRIANGLES;
-    draw_list->indexed = 1;
+        /* clear brush stencil pixels back to 0 */
+        rasterizer = (struct r_i_raster_t) {
+            .polygon_mode = GL_FILL,
+            .cull_face = GL_BACK,
+            .cull_enable = R_I_ENABLE
+        };
+        stencil = (struct r_i_stencil_t) {
+            .enable = R_I_ENABLE,
+            .func = GL_ALWAYS,
+            .stencil_fail = GL_REPLACE,
+            .depth_fail = GL_REPLACE,
+            .depth_pass = GL_REPLACE,
+            .mask = 0xff,
+            .ref = 0x00
+        };
+
+        draw_mask = (struct r_i_draw_mask_t) {
+            .red = GL_FALSE,
+            .green = GL_FALSE,
+            .blue = GL_FALSE,
+            .alpha = GL_FALSE,
+            .depth = GL_FALSE,
+            .stencil = 0xff
+        };
+
+        depth = (struct r_i_depth_t) {
+            .func = GL_LEQUAL,
+            .enable = R_I_DISABLE
+        };
+
+        r_i_SetRasterizer(command_buffer, &draw_list->ranges[2], &rasterizer);
+        r_i_SetStencil(command_buffer, &draw_list->ranges[2], &stencil);
+        r_i_SetDrawMask(command_buffer, &draw_list->ranges[2], &draw_mask);
+        r_i_SetDepth(command_buffer, &draw_list->ranges[2], &depth);
+        draw_list->ranges[2].start = brush->model->model_start;
+        draw_list->ranges[2].count = brush->model->model_count;
+
+        draw_list->indexed = 1;
+        draw_list->mode = GL_TRIANGLES;
+    }
+    else
+    {
+        draw_list = r_i_AllocDrawList(command_buffer, brush->selected_elements[0].cursor);
+        draw_list->mode = GL_TRIANGLES;
+        draw_list->indexed = 1;
+
+        struct r_i_depth_t depth_state = {
+            .enable = R_I_DISABLE
+        };
+
+        struct r_i_blending_t blend_state = {
+            .enable = R_I_ENABLE,
+            .src_factor = GL_SRC_ALPHA,
+            .dst_factor = GL_ONE_MINUS_SRC_ALPHA
+        };
+
+        outline_color = vec4_t_c(0.3, 0.8, 1.0, 0.3);
+        mat4_t_comp(&model_view_projection_matrix, &brush->orientation, &brush->position);
+//        mat4_t transform = object->transform;
+//        vec3_t_sub(&transform.rows[3].xyz, &transform.rows[3].xyz, &brush->position);
+        mat4_t_mul(&model_view_projection_matrix, &model_view_projection_matrix, &r_view_projection_matrix);
+
+        r_i_SetUniforms(command_buffer, &draw_list->ranges[0], uniforms, 2);
+        r_i_SetDepth(command_buffer, &draw_list->ranges[0], &depth_state);
+        r_i_SetBlending(command_buffer, &draw_list->ranges[0], &blend_state);
+
+        for(uint32_t index = 0; index < brush->selected_elements[0].cursor; index++)
+        {
+            struct ds_list_t *list = &brush->selected_elements[0];
+            struct ed_face_t *face = *(struct ed_face_t **)ds_list_get_element(list, index);
+
+            draw_list->ranges[index].start = brush->model->model_start + face->first_index;
+            draw_list->ranges[index].count = face->index_count;
+        }
+    }
 
     return draw_list;
 }
@@ -348,16 +562,26 @@ struct ed_brush_t *ed_AllocBrush()
     brush->last = NULL;
 //    brush->main_brush = NULL;
     brush->entity = NULL;
+
+    brush->vertices = NULL;
+    brush->last_vertex = NULL;
+    brush->vertex_count = 0;
+
     brush->faces = NULL;
     brush->last_face = NULL;
     brush->face_count = 0;
-    brush->edge_count = 0;
+
     brush->edges = NULL;
     brush->last_edge = NULL;
+    brush->edge_count = 0;
+
+    brush->selected_elements[ED_BRUSH_ELEMENT_FACE] = ds_list_create(sizeof(struct ed_face_t *), 32);
+    brush->selected_elements[ED_BRUSH_ELEMENT_EDGE] = ds_list_create(sizeof(struct ed_edge_t *), 32);
+    brush->selected_elements[ED_BRUSH_ELEMENT_VERT] = ds_list_create(sizeof(struct ed_vert_t *), 32);
 //    brush->polygon_count = 0;
     brush->model = NULL;
 
-    brush->vertices = ds_slist_create(sizeof(struct ed_vert_t), 8);
+//    brush->vertices = ds_slist_create(sizeof(struct ed_vert_t), 8);
     brush->vert_transforms = ds_list_create(sizeof(struct ed_vert_transform_t), 32);
 
     return brush;
@@ -374,9 +598,6 @@ struct ed_brush_t *ed_CreateBrush(vec3_t *position, mat3_t *orientation, vec3_t 
 
     for(uint32_t vert_index = 0; vert_index < 8; vert_index++)
     {
-//        uint32_t index = ed_AllocVertex(brush);
-//        vec3_t *vertice = ed_GetVertex(brush, index);
-
         struct ed_vert_t *vertice = ed_AllocVert(brush);
         vertice->vert.x = dims.x * ed_cube_brush_vertices[vert_index].x;
         vertice->vert.y = dims.y * ed_cube_brush_vertices[vert_index].y;
@@ -387,8 +608,6 @@ struct ed_brush_t *ed_CreateBrush(vec3_t *position, mat3_t *orientation, vec3_t 
     brush->orientation = *orientation;
     brush->position = *position;
 
-//    struct ed_edge_t *brush_edges = NULL;
-
     for(uint32_t face_index = 0; face_index < 6; face_index++)
     {
         struct ed_face_t *face = ed_AllocFace(brush);
@@ -398,7 +617,6 @@ struct ed_brush_t *ed_CreateBrush(vec3_t *position, mat3_t *orientation, vec3_t 
         face->tex_coords_rot = 0.0;
         face->orientation = ed_cube_brush_face_orientations[face_index];
 
-//        struct ed_face_polygon_t *face_polygon = ed_AllocFacePolygon(brush, face);
         face->flags = ED_FACE_FLAG_GEOMETRY_MODIFIED;
 
         for(uint32_t vert_index = 0; vert_index < 4; vert_index++)
@@ -670,7 +888,8 @@ struct ed_face_t *ed_AllocFace(struct ed_brush_t *brush)
     face->prev = NULL;
     face->material = NULL;
     face->brush = brush;
-    face->object = NULL;
+//    face->object = NULL;
+    face->selection_index = 0xffffffff;
 
     if(!brush->faces)
     {
@@ -898,13 +1117,27 @@ struct ed_vert_t *ed_AllocVert(struct ed_brush_t *brush)
 
     if(brush)
     {
-//        uint32_t index = ds_slist_add_element(&brush->vertices, NULL);
-//        vert = ds_slist_get_element(&brush->vertices, index);
         uint32_t index = ds_slist_add_element(&ed_level_state.brush.brush_verts, NULL);
         vert = ds_slist_get_element(&ed_level_state.brush.brush_verts, index);
         vert->index = index;
         vert->edges = NULL;
         vert->last_edge = NULL;
+        vert->next = NULL;
+        vert->prev = NULL;
+
+        if(brush->vertices == NULL)
+        {
+            brush->vertices = vert;
+        }
+        else
+        {
+            vert->prev = brush->last_vertex;
+            brush->last_vertex->next = vert;
+        }
+
+        brush->last_vertex = vert;
+        brush->vertex_count++;
+
         ed_level_state.brush.brush_vert_count++;
     }
 
@@ -917,7 +1150,6 @@ struct ed_vert_t *ed_GetVert(struct ed_brush_t *brush, uint32_t index)
 
     if(brush)
     {
-//        vert = ds_slist_get_element(&brush->vertices, index);
         vert = ds_slist_get_element(&ed_level_state.brush.brush_verts, index);
 
         if(vert && vert->index == 0xffffffff)
@@ -946,14 +1178,32 @@ void ed_FreeVert(struct ed_brush_t *brush, uint32_t index)
 {
     if(brush)
     {
-//        struct ed_vert_t *vertex = ds_slist_get_element(&brush->vertices, index);
         struct ed_vert_t *vertex = ds_slist_get_element(&ed_level_state.brush.brush_verts, index);
 
         if(vertex && vertex->index != 0xffffffff)
         {
-//            ds_slist_remove_element(&brush->vertices, index);
             ds_slist_remove_element(&ed_level_state.brush.brush_verts, index);
             vertex->index = 0xffffffff;
+
+            if(brush->vertices == vertex)
+            {
+                brush->vertices = brush->vertices->next;
+            }
+            else
+            {
+                vertex->prev->next = vertex->next;
+            }
+
+            if(brush->last_vertex == vertex)
+            {
+                brush->last_vertex = brush->last_vertex->prev;
+            }
+            else
+            {
+                vertex->next->prev = vertex->prev;
+            }
+
+            brush->vertex_count--;
             ed_level_state.brush.brush_vert_count--;
         }
     }
@@ -961,32 +1211,32 @@ void ed_FreeVert(struct ed_brush_t *brush, uint32_t index)
 
 struct ed_vert_transform_t *ed_FindVertTransform(struct ed_brush_t *brush, uint32_t vert_index)
 {
-//    struct ed_vert_transform_t *transform = NULL;
-//
-//    if(brush)
-//    {
-//        for(uint32_t transform_index = 0; transform_index < brush->vert_transforms.cursor; transform_index++)
-//        {
-//            struct ed_vert_transform_t *vert_transform = ds_list_get_element(&brush->vert_transforms, transform_index);
-//
-//            if(vert_transform->index == vert_index)
-//            {
-//                transform = vert_transform;
-//                break;
-//            }
-//        }
-//
-//        if(!transform)
-//        {
-//            uint32_t index = ds_list_add_element(&brush->vert_transforms, NULL);
-//            transform = ds_list_get_element(&brush->vert_transforms, index);
-//            transform->index = vert_index;
-//            transform->translation = vec3_t_c(0.0, 0.0, 0.0);
-//            transform->rotation = vec3_t_c(0.0, 0.0, 0.0);
-//        }
-//    }
-//
-//    return transform;
+    struct ed_vert_transform_t *transform = NULL;
+
+    if(brush)
+    {
+        for(uint32_t transform_index = 0; transform_index < brush->vert_transforms.cursor; transform_index++)
+        {
+            struct ed_vert_transform_t *vert_transform = ds_list_get_element(&brush->vert_transforms, transform_index);
+
+            if(vert_transform->index == vert_index)
+            {
+                transform = vert_transform;
+                break;
+            }
+        }
+
+        if(!transform)
+        {
+            uint32_t index = ds_list_add_element(&brush->vert_transforms, NULL);
+            transform = ds_list_get_element(&brush->vert_transforms, index);
+            transform->index = vert_index;
+            transform->translation = vec3_t_c(0.0, 0.0, 0.0);
+            transform->rotation = vec3_t_c(0.0, 0.0, 0.0);
+        }
+    }
+
+    return transform;
 }
 
 int ed_CompareFaces(const void *a, const void *b)
@@ -1148,37 +1398,27 @@ void ed_SetFaceMaterial(struct ed_brush_t *brush, uint32_t face_index, struct ed
 
 void ed_TranslateBrushFace(struct ed_brush_t *brush, uint32_t face_index, vec3_t *translation)
 {
-//    struct ed_face_t *face = ed_GetFace(face_index);
-//
-//    if(face)
-//    {
-//        face->brush->update_flags |= ED_BRUSH_UPDATE_FLAG_TRANSFORM_VERTS;
-//        struct ed_face_polygon_t *polygon = face->polygons;
-//        struct ed_brush_t *brush = face->brush;
-//
-//        mat3_t brush_orientation = brush->orientation;
-//        mat3_t_transpose(&brush_orientation, &brush_orientation);
-//
-//        vec3_t local_translation;
-//        mat3_t_vec3_t_mul(&local_translation, translation, &brush_orientation);
-//
-//        while(polygon)
-//        {
-//            struct ed_edge_t *edge = polygon->edges;
-//
-//            while(edge)
-//            {
-//                uint32_t polygon_index = edge->polygons[1].polygon == polygon;
-//
-//                struct ed_vert_transform_t *transform = ed_FindVertTransform(brush, edge->verts[polygon_index].vert->index);
-//                transform->translation = local_translation;
-//                edge->polygons[!polygon_index].polygon->face->flags |= ED_FACE_FLAG_GEOMETRY_MODIFIED;
-//                edge = edge->polygons[polygon_index].next;
-//            }
-//
-//            polygon = polygon->next;
-//        }
-//    }
+    struct ed_face_t *face = ed_GetFace(face_index);
+
+    if(face != NULL)
+    {
+        struct ed_face_edge_t *face_edge = face->edges;
+
+        mat3_t brush_orientation = brush->orientation;
+        mat3_t_transpose(&brush_orientation, &brush_orientation);
+
+        vec3_t local_translation;
+        mat3_t_vec3_t_mul(&local_translation, translation, &brush_orientation);
+
+        while(face_edge)
+        {
+            uint32_t side = face_edge->edge->faces[1].face == face;
+            struct ed_vert_t *vert = face_edge->edge->verts[side].vert;
+            struct ed_vert_transform_t *transform = ed_FindVertTransform(brush, vert->index);
+            transform->translation = local_translation;
+            face_edge = face_edge->next;
+        }
+    }
 }
 
 void ed_TranslateBrushEdge(struct ed_brush_t *brush, uint32_t edge_index, vec3_t *translation)
@@ -1294,22 +1534,45 @@ void ed_UpdateBrush(struct ed_brush_t *brush)
             vec3_t_add(&brush_vert->vert, &brush_vert->vert, &transform->rotation);
         }
 
+//        struct ed_edge_t *edge = brush->edges;
+        struct ed_vert_t *vertex = brush->vertices;
+        while(vertex != NULL)
+        {
+            vec3_t_add(&vert_translation, &vert_translation, &vertex->vert);
+            vertex = vertex->next;
+        }
+
+        vec3_t_div(&vert_translation, &vert_translation, (float)brush->vertex_count);
+
+        vertex = brush->vertices;
+        while(vertex != NULL)
+        {
+            vec3_t_sub(&vertex->vert, &vertex->vert, &vert_translation);
+            vertex = vertex->next;
+        }
+
+//        for(uint32_t vert_index = 0; vert_index < brush->vertices.cursor; vert_index++)
+//        {
+//            struct ed_vert_t *vert = ed_GetVert(brush, vert_index);
+//            vec3_t_sub(&vert->vert, &vert->vert, &vert_translation);
+//        }
+
         /* find out how much the new brush center moved away from the old one */
-        for(uint32_t vert_index = 0; vert_index < brush->vertices.cursor; vert_index++)
-        {
-            struct ed_vert_t *vert = ed_GetVert(brush, vert_index);
-            vec3_t_add(&vert_translation, &vert_translation, &vert->vert);
-        }
+//        for(uint32_t vert_index = 0; vert_index < brush->vertices.cursor; vert_index++)
+//        {
+//            struct ed_vert_t *vert = ed_GetVert(brush, vert_index);
+//            vec3_t_add(&vert_translation, &vert_translation, &vert->vert);
+//        }
 
-        vec3_t_div(&vert_translation, &vert_translation, (float)brush->vertices.cursor);
-        /* translate verts so the new center becomes the current center */
-        for(uint32_t vert_index = 0; vert_index < brush->vertices.cursor; vert_index++)
-        {
-            struct ed_vert_t *vert = ed_GetVert(brush, vert_index);
-            vec3_t_sub(&vert->vert, &vert->vert, &vert_translation);
-        }
-
-        /* translate the brush accordingly, so it visibly stays at the same place */
+//        vec3_t_div(&vert_translation, &vert_translation, (float)brush->vertices.cursor);
+//        /* translate verts so the new center becomes the current center */
+//        for(uint32_t vert_index = 0; vert_index < brush->vertices.cursor; vert_index++)
+//        {
+//            struct ed_vert_t *vert = ed_GetVert(brush, vert_index);
+//            vec3_t_sub(&vert->vert, &vert->vert, &vert_translation);
+//        }
+//
+//        /* translate the brush accordingly, so it visibly stays at the same place */
         mat3_t_vec3_t_mul(&vert_translation, &vert_translation, &brush->orientation);
         vec3_t_add(&brush->position, &brush->position, &vert_translation);
 
@@ -1373,7 +1636,7 @@ void ed_UpdateBrush(struct ed_brush_t *brush)
             }
 
             vec3_t_div(&face->center, &face->center, (float)face->edge_count);
-            vec3_t_add(&face->center, &face->center, &face->center);
+//            vec3_t_add(&face->center, &face->center, &face->center);
 //            point_count++;
 
 
@@ -1714,7 +1977,6 @@ void ed_UpdateBrush(struct ed_brush_t *brush)
             face_vert_start += face->edge_count;
             face->index_count = cur_batch->count - face->index_count;
         }
-        printf("\n");
 
         geometry.batches = batch_buffer->buffer;
         geometry.batch_count = batch_count;

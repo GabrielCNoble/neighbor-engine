@@ -280,21 +280,25 @@ void ed_l_DrawGrid();
 
 //void ed_w_PointPixelCoords(int32_t *x, int32_t *y, vec3_t *point);
 
-uint32_t ed_l_DeleteSelectionEntryState(struct ed_tool_context_t *context, struct ed_tool_t *tool, uint32_t just_changed);
+uint32_t ed_l_IdleState(struct ed_tool_context_t *context, void *state_data, uint32_t just_changed);
 
-uint32_t ed_l_FlyCameraEntryState(struct ed_tool_context_t *context, struct ed_tool_t *tool, uint32_t just_changed);
+uint32_t ed_l_DeleteSelectionState(struct ed_tool_context_t *context, void *state_data, uint32_t just_changed);
 
-uint32_t ed_l_PlacementCrosshairEntryState(struct ed_tool_context_t *context, struct ed_tool_t *tool, uint32_t just_changed);
+uint32_t ed_l_FlyCameraState(struct ed_tool_context_t *context, void *state_data, uint32_t just_changed);
 
-uint32_t ed_l_TransformOperatorModeEntryState(struct ed_tool_context_t *context, struct ed_tool_t *tool, uint32_t just_changed);
+uint32_t ed_l_PlacementCrosshairState(struct ed_tool_context_t *context, void *state_data, uint32_t just_changed);
 
-uint32_t ed_l_BrushBoxState(struct ed_tool_context_t *context, struct ed_tool_t *tool, uint32_t just_changed);
+uint32_t ed_l_TransformOperatorModeState(struct ed_tool_context_t *context, void *state_data, uint32_t just_changed);
 
-uint32_t ed_l_LeftClickEntryState(struct ed_tool_context_t *context, struct ed_tool_t *tool, uint32_t just_changed);
+uint32_t ed_l_BrushBoxState(struct ed_tool_context_t *context, void *state_data, uint32_t just_changed);
 
-uint32_t ed_l_PlaceEntityAtCursorState(struct ed_tool_context_t *context, struct ed_tool_t *tool, uint32_t just_changed);
+uint32_t ed_l_LeftClickState(struct ed_tool_context_t *context, void *state_data, uint32_t just_changed);
 
-uint32_t ed_l_PlaceLightAtCursorState(struct ed_tool_context_t *context, struct ed_tool_t *tool, uint32_t just_changed);
+uint32_t ed_l_RightClickState(struct ed_tool_context_t *context, void *state_data, uint32_t just_changed);
+
+uint32_t ed_l_PlaceEntityAtCursorState(struct ed_tool_context_t *context, void *state_data, uint32_t just_changed);
+
+uint32_t ed_l_PlaceLightAtCursorState(struct ed_tool_context_t *context, void *state_data, uint32_t just_changed);
 
 //uint32_t ed_l_PickObjectState(struct ed_tool_context_t *context, struct ed_tool_t *tool, uint32_t just_changed);
 
@@ -326,7 +330,7 @@ void ed_DeserializeLevel(void *level_buffer, size_t buffer_size);
 
 void ed_l_SurfaceUnderMouse(int32_t mouse_x, int32_t mouse_y, vec3_t *plane_point, mat3_t *plane_orientation);
 
-void ed_l_LinearSnapValueOnSurface(struct ed_tool_t *tool, vec3_t *plane_point, mat3_t *plane_orientation, vec3_t *snapped_value);
+void ed_l_LinearSnapValueOnSurface(struct ed_obj_context_t *context, vec3_t *plane_point, mat3_t *plane_orientation, vec3_t *snapped_value);
 
 uint32_t ed_l_SaveLevel(char *path, char *file);
 

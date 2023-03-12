@@ -217,20 +217,25 @@ struct ed_l_delete_tool_state_t
     uint32_t    open_pop_up;
     int32_t     mouse_x;
     int32_t     mouse_y;
-};
+} ed_l_delete_tool_state = {};
 
 struct ed_l_fly_camera_tool_state_t
 {
     vec3_t      position;
     float       pitch;
     float       yaw;
-};
 
-struct ed_l_fly_camera_tool_state_t ed_l_fly_camera_state = {
+} ed_l_fly_camera_state = {
     .position = ED_LEVEL_CAMERA_POS,
     .pitch = ED_LEVEL_CAMERA_PITCH,
     .yaw = ED_LEVEL_CAMERA_YAW
 };
+
+//struct ed_l_fly_camera_tool_state_t ed_l_fly_camera_state = {
+//    .position = ED_LEVEL_CAMERA_POS,
+//    .pitch = ED_LEVEL_CAMERA_PITCH,
+//    .yaw = ED_LEVEL_CAMERA_YAW
+//};
 
 enum ED_L_OBJ_TABS
 {
@@ -300,16 +305,24 @@ struct ed_l_obj_placement_state_t ed_l_obj_placement_state = {
     }
 };
 
-struct ed_tool_context_t ed_level_tool_context = {
-    .tool_count = ED_L_TOOL_LAST,
-    .tools = (struct ed_tool_t []){
-        [ED_L_TOOL_DELETE_OBJECT] = {.entry_state = ed_l_DeleteSelectionEntryState, .data = &(struct ed_l_delete_tool_state_t){}},
-        [ED_L_TOOL_FLY_CAMERA] = {.entry_state = ed_l_FlyCameraEntryState, .data = &ed_l_fly_camera_state},
-        [ED_L_TOOL_PLACE_OBJECT] = {.entry_state = ed_l_PlacementCrosshairEntryState, .data = &ed_l_obj_placement_state},
-        [ED_L_TOOL_LEFT_CLICK] = {.entry_state = ed_l_LeftClickEntryState, .data = &ed_level_state.obj.objects},
-        [ED_L_TOOL_TRANSFORM_MODE] = {.entry_state = ed_l_TransformOperatorModeEntryState, .data = &ed_level_state.obj.objects}
-    }
+struct ed_brush_pick_args_t ed_l_brush_pick_args = {};
+
+struct ed_pick_args_t ed_l_pick_args = {
+    .context = &ed_level_state.obj.objects
 };
+
+struct ed_tool_context_t ed_level_tool_context = {
+    .idle_state = ed_l_IdleState,
+    .current_state = ed_l_IdleState
+};
+//    .tool_count = ED_L_TOOL_LAST,
+//    .tools = (struct ed_tool_t []){
+//        [ED_L_TOOL_DELETE_OBJECT] = {.entry_state = ed_l_DeleteSelectionEntryState, .data = &(struct ed_l_delete_tool_state_t){}},
+//        [ED_L_TOOL_FLY_CAMERA] = {.entry_state = ed_l_FlyCameraEntryState, .data = &ed_l_fly_camera_state},
+//        [ED_L_TOOL_PLACE_OBJECT] = {.entry_state = ed_l_PlacementCrosshairEntryState, .data = &ed_l_obj_placement_state},
+//        [ED_L_TOOL_LEFT_CLICK] = {.entry_state = ed_l_LeftClickEntryState, .data = &ed_level_state.obj.objects},
+//        [ED_L_TOOL_TRANSFORM_MODE] = {.entry_state = ed_l_TransformOperatorModeEntryState, .data = &ed_level_state.obj.objects}
+//    }
 
 void ed_l_Init(struct ed_editor_t *editor)
 {
@@ -1780,21 +1793,55 @@ void ed_w_PingInfoWindow()
     ed_level_state.info_window_alpha = 1.0;
 }
 
-uint32_t ed_l_DeleteSelectionEntryState(struct ed_tool_context_t *context, struct ed_tool_t *tool, uint32_t just_changed)
+uint32_t ed_l_IdleState(struct ed_tool_context_t *context, void *state_data, uint32_t just_changed)
 {
-    struct ed_l_delete_tool_state_t *state = (struct ed_l_delete_tool_state_t *)tool->data;
+    if(in_GetKeyState(SDL_SCANCODE_DELETE) & IN_KEY_STATE_JUST_PRESSED)
+    {
+        ed_NextToolState(context, ed_l_DeleteSelectionState, &ed_l_delete_tool_state);
+    }
+    else if(in_GetKeyState(SDL_SCANCODE_LALT) & IN_KEY_STATE_PRESSED)
+    {
+        ed_NextToolState(context, ed_l_FlyCameraState, &ed_l_fly_camera_state);
+    }
+    else if(in_GetKeyState(SDL_SCANCODE_LCTRL) & IN_KEY_STATE_PRESSED)
+    {
+        ed_NextToolState(context, ed_l_PlacementCrosshairState, &ed_l_obj_placement_state);
+    }
+    else if(in_GetMouseButtonState(SDL_BUTTON_LEFT) & IN_KEY_STATE_JUST_PRESSED)
+    {
+        ed_NextToolState(context, ed_l_LeftClickState, &ed_l_pick_args);
+    }
+    else if(in_GetMouseButtonState(SDL_BUTTON_RIGHT) & IN_KEY_STATE_JUST_PRESSED)
+    {
+        ed_NextToolState(context, ed_l_RightClickState, &ed_l_pick_args);
+    }
+
+    struct ed_transform_operator_data_t *operator_data = ed_level_state.obj.objects.operators[ED_OPERATOR_TRANSFORM].data;
+
+    if(in_GetKeyState(SDL_SCANCODE_G) & IN_KEY_STATE_JUST_PRESSED)
+    {
+        operator_data->mode = ED_TRANSFORM_OPERATOR_MODE_TRANSLATE;
+    }
+    else if(in_GetKeyState(SDL_SCANCODE_R) & IN_KEY_STATE_JUST_PRESSED)
+    {
+        operator_data->mode = ED_TRANSFORM_OPERATOR_MODE_ROTATE;
+    }
+
+    return 0;
+}
+
+uint32_t ed_l_DeleteSelectionState(struct ed_tool_context_t *context, void *state_data, uint32_t just_changed)
+{
+    struct ed_l_delete_tool_state_t *state = (struct ed_l_delete_tool_state_t *)state_data;
 
     if(just_changed)
     {
-        if(in_GetKeyState(SDL_SCANCODE_DELETE) & IN_KEY_STATE_JUST_PRESSED)
-        {
-            state->open_pop_up = 1;
-            in_GetMousePos(&state->mouse_x, &state->mouse_y);
-            return 1;
-        }
+        igOpenPopup_Str("Delete selections", 0);
+        in_GetMousePos(&state->mouse_x, &state->mouse_y);
     }
-    else
-    {
+
+
+//    {
 //        if(state->open_pop_up)
 //        {
 //            igOpenPopup_Str("Delete selections", 0);
@@ -1814,32 +1861,34 @@ uint32_t ed_l_DeleteSelectionEntryState(struct ed_tool_context_t *context, struc
 //        {
 //            ed_NextToolState(context, NULL);
 //        }
-    }
+//    }
+
+    ed_NextToolState(context, NULL, NULL);
 
     return 0;
 }
 
-uint32_t ed_l_FlyCameraEntryState(struct ed_tool_context_t *context, struct ed_tool_t *tool, uint32_t just_changed)
+uint32_t ed_l_FlyCameraState(struct ed_tool_context_t *context, void *state_data, uint32_t just_changed)
 {
     uint32_t key_state = in_GetKeyState(SDL_SCANCODE_LALT);
-    struct ed_l_fly_camera_tool_state_t *state = (struct ed_l_fly_camera_tool_state_t *)tool->data;
+    struct ed_l_fly_camera_tool_state_t *state = (struct ed_l_fly_camera_tool_state_t *)state_data;
 
     if(just_changed)
     {
-        if(key_state & IN_KEY_STATE_PRESSED)
-        {
-            in_SetMouseWarp(1);
-            return 1;
-        }
+//        if(key_state & IN_KEY_STATE_PRESSED)
+//        {
+        in_SetMouseWarp(1);
+//            return 1;
+//        }
     }
-    else
+//    else
     {
         ed_l_tool_tab_passthrough = 1;
 
         if(!(key_state & IN_KEY_STATE_PRESSED))
         {
             ed_l_tool_tab_passthrough = 0;
-            ed_NextToolState(context, NULL);
+            ed_NextToolState(context, NULL, NULL);
             in_SetMouseWarp(0);
             return 0;
         }
@@ -1888,24 +1937,24 @@ uint32_t ed_l_FlyCameraEntryState(struct ed_tool_context_t *context, struct ed_t
     return 0;
 }
 
-uint32_t ed_l_PlacementCrosshairEntryState(struct ed_tool_context_t *context, struct ed_tool_t *tool, uint32_t just_changed)
+uint32_t ed_l_PlacementCrosshairState(struct ed_tool_context_t *context, void *state_data, uint32_t just_changed)
 {
-    struct ed_l_obj_placement_state_t *state = (struct ed_l_obj_placement_state_t *)tool->data;
+    struct ed_l_obj_placement_state_t *state = (struct ed_l_obj_placement_state_t *)state_data;
 
-    if(just_changed)
-    {
-        if(in_GetKeyState(SDL_SCANCODE_LCTRL) & IN_KEY_STATE_PRESSED)
-        {
-            return 1;
-        }
-    }
-    else
+//    if(just_changed)
+//    {
+//        if(in_GetKeyState(SDL_SCANCODE_LCTRL) & IN_KEY_STATE_PRESSED)
+//        {
+//            return 1;
+//        }
+//    }
+//    else
     {
         ed_l_tool_tab_passthrough = 1;
 
         if(!(in_GetKeyState(SDL_SCANCODE_LCTRL) & IN_KEY_STATE_PRESSED))
         {
-            ed_NextToolState(context, NULL);
+            ed_NextToolState(context, NULL, NULL);
             ed_l_tool_tab_passthrough = 0;
             return 0;
         }
@@ -1921,7 +1970,7 @@ uint32_t ed_l_PlacementCrosshairEntryState(struct ed_tool_context_t *context, st
 
         ed_l_SurfaceUnderMouse(mouse_x, mouse_y, plane_point, plane_orientation);
         ed_CameraRay(mouse_x, mouse_y, plane_point, &plane_orientation->rows[1], plane_point);
-        ed_l_LinearSnapValueOnSurface(&context->tools[ED_L_TOOL_LEFT_CLICK], plane_point, plane_orientation, plane_point);
+        ed_l_LinearSnapValueOnSurface(&ed_level_state.obj.objects, plane_point, plane_orientation, plane_point);
 
         vec3_t start = *plane_point;
         vec3_t end = *plane_point;
@@ -2005,15 +2054,15 @@ uint32_t ed_l_PlacementCrosshairEntryState(struct ed_tool_context_t *context, st
             switch(state->active_tab)
             {
                 case ED_L_OBJ_TAB_BRUSH:
-                    ed_NextToolState(context, ed_l_BrushBoxState);
+                    ed_NextToolState(context, ed_l_BrushBoxState, state_data);
                 break;
 
                 case ED_L_OBJ_TAB_LIGHT:
-                    ed_NextToolState(context, ed_l_PlaceLightAtCursorState);
+                    ed_NextToolState(context, ed_l_PlaceLightAtCursorState, state_data);
                 break;
 
                 case ED_L_OBJ_TAB_ENTITY:
-                    ed_NextToolState(context, ed_l_PlaceEntityAtCursorState);
+                    ed_NextToolState(context, ed_l_PlaceEntityAtCursorState, state_data);
                 break;
 
                 case ED_L_OBJ_TAB_ENEMY:
@@ -2027,27 +2076,28 @@ uint32_t ed_l_PlacementCrosshairEntryState(struct ed_tool_context_t *context, st
     return 0;
 }
 
-uint32_t ed_l_TransformOperatorModeEntryState(struct ed_tool_context_t *context, struct ed_tool_t *tool, uint32_t just_changed)
-{
-    struct ed_obj_context_t *obj_context = tool->data;
-    struct ed_transform_operator_data_t *operator_data = obj_context->operators[ED_OPERATOR_TRANSFORM].data;
+//uint32_t ed_l_TransformOperatorModeEntryState(struct ed_tool_context_t *context, void *state_data, uint32_t just_changed)
+//{
+//    struct ed_obj_context_t *obj_context = tool->data;
+//
+//    struct ed_transform_operator_data_t *operator_data = obj_context->operators[ED_OPERATOR_TRANSFORM].data;
+//
+//    if(in_GetKeyState(SDL_SCANCODE_G) & IN_KEY_STATE_JUST_PRESSED)
+//    {
+//        operator_data->mode = ED_TRANSFORM_OPERATOR_MODE_TRANSLATE;
+//    }
+//    else if(in_GetKeyState(SDL_SCANCODE_R) & IN_KEY_STATE_JUST_PRESSED)
+//    {
+//        operator_data->mode = ED_TRANSFORM_OPERATOR_MODE_ROTATE;
+//    }
+//
+//    return 0;
+//}
 
-    if(in_GetKeyState(SDL_SCANCODE_G) & IN_KEY_STATE_JUST_PRESSED)
-    {
-        operator_data->mode = ED_TRANSFORM_OPERATOR_MODE_TRANSLATE;
-    }
-    else if(in_GetKeyState(SDL_SCANCODE_R) & IN_KEY_STATE_JUST_PRESSED)
-    {
-        operator_data->mode = ED_TRANSFORM_OPERATOR_MODE_ROTATE;
-    }
-
-    return 0;
-}
-
-uint32_t ed_l_BrushBoxState(struct ed_tool_context_t *context, struct ed_tool_t *tool, uint32_t just_changed)
+uint32_t ed_l_BrushBoxState(struct ed_tool_context_t *context, void *state_data, uint32_t just_changed)
 {
 //    struct ed_level_state_t *context_data = &ed_level_state;
-    struct ed_l_obj_placement_state_t *state = (struct ed_l_obj_placement_state_t *)tool->data;
+    struct ed_l_obj_placement_state_t *state = (struct ed_l_obj_placement_state_t *)state_data;
 //    uint32_t right_button_down = in_GetMouseButtonState(SDL_BUTTON_LEFT) & IN_KEY_STATE_PRESSED;
     uint32_t ctrl_down = in_GetKeyState(SDL_SCANCODE_LCTRL) & IN_KEY_STATE_PRESSED;
 
@@ -2074,7 +2124,7 @@ uint32_t ed_l_BrushBoxState(struct ed_tool_context_t *context, struct ed_tool_t 
 //        {
         if(in_GetKeyState(SDL_SCANCODE_ESCAPE) & IN_KEY_STATE_PRESSED)
         {
-            ed_NextToolState(context, NULL);
+            ed_NextToolState(context, NULL, NULL);
             return 0;
         }
         else
@@ -2123,7 +2173,7 @@ uint32_t ed_l_BrushBoxState(struct ed_tool_context_t *context, struct ed_tool_t 
 
             if(ed_CameraRay(mouse_x, mouse_y, &plane_point, &plane_orientation.rows[1], &intersection))
             {
-                ed_l_LinearSnapValueOnSurface(&context->tools[ED_L_TOOL_LEFT_CLICK], &plane_point, &plane_orientation, &intersection);
+                ed_l_LinearSnapValueOnSurface(&ed_level_state.obj.objects, &plane_point, &plane_orientation, &intersection);
 
 //                if(state->brush.stage == 1)
 //                {
@@ -2301,37 +2351,37 @@ uint32_t ed_l_BrushBoxState(struct ed_tool_context_t *context, struct ed_tool_t 
             struct ed_brush_t *brush = (struct ed_brush_t *)brush_obj->base_obj;
             brush->object = brush_obj;
 
-            ed_AddObjToSelections(&ed_level_state.obj.objects, 0, &(struct ed_obj_result_t){.object = brush_obj});
+//            ed_AddObjToSelections(&ed_level_state.obj.objects, 0, &(struct ed_obj_result_t){.object = brush_obj});
         }
-        ed_NextToolState(context, NULL);
+        ed_NextToolState(context, NULL, NULL);
     }
 
     return 0;
 }
 
-uint32_t ed_l_LeftClickEntryState(struct ed_tool_context_t *context, struct ed_tool_t *tool, uint32_t just_changed)
+uint32_t ed_l_LeftClickState(struct ed_tool_context_t *context, void *state_data, uint32_t just_changed)
 {
-    if(just_changed)
-    {
-        if(in_GetMouseButtonState(SDL_BUTTON_LEFT) & IN_KEY_STATE_JUST_PRESSED)
-        {
-            return 1;
-        }
-    }
-    else
-    {
-        ed_NextToolState(context, ed_LeftClickPickState);
-    }
+    struct ed_pick_args_t *pick_args = state_data;
+    pick_args->args[ED_OBJ_TYPE_BRUSH] = NULL;
+    ed_NextToolState(context, ed_ClickPickState, state_data);
 
     return 0;
 }
 
-uint32_t ed_l_PlaceEntityAtCursorState(struct ed_tool_context_t *context, struct ed_tool_t *tool, uint32_t just_changed)
+uint32_t ed_l_RightClickState(struct ed_tool_context_t *context, void *state_data, uint32_t just_changed)
+{
+    struct ed_pick_args_t *pick_args = state_data;
+    pick_args->args[ED_OBJ_TYPE_BRUSH] = &ed_l_brush_pick_args;
+    ed_l_brush_pick_args.pick_faces = 1;
+    ed_NextToolState(context, ed_ClickPickState, state_data);
+}
+
+uint32_t ed_l_PlaceEntityAtCursorState(struct ed_tool_context_t *context, void *state_data, uint32_t just_changed)
 {
 //    struct ed_level_state_t *context_data = &ed_level_state;
 //    struct e_ent_def_t *ent_def = ed_level_state.pickables.ent_def;
 
-    struct ed_l_obj_placement_state_t *data = tool->data;
+    struct ed_l_obj_placement_state_t *data = state_data;
 
     if(data->entity.selected_def != NULL)
     {
@@ -2346,19 +2396,19 @@ uint32_t ed_l_PlaceEntityAtCursorState(struct ed_tool_context_t *context, struct
 //        ed_CreateEntityPickable(data->entity.selected_def, &position, &vec3_t_c(1.0, 1.0, 1.0), &orientation, NULL);
     }
 
-    ed_NextToolState(context, NULL);
+    ed_NextToolState(context, NULL, NULL);
 
     return 0;
 }
 
-uint32_t ed_l_PlaceLightAtCursorState(struct ed_tool_context_t *context, struct ed_tool_t *tool, uint32_t just_changed)
+uint32_t ed_l_PlaceLightAtCursorState(struct ed_tool_context_t *context, void *state_data, uint32_t just_changed)
 {
-    struct ed_l_obj_placement_state_t *data = tool->data;
+    struct ed_l_obj_placement_state_t *data = state_data;
 
     vec3_t position;
     vec3_t_fmadd(&position, &data->plane_point, &data->plane_orientation.rows[1], 0.2);
     ed_CreateObj(&ed_level_state.obj.objects, ED_OBJ_TYPE_LIGHT, &position, NULL, NULL, &data->light.args);
-    ed_NextToolState(context, NULL);
+    ed_NextToolState(context, NULL, NULL);
     return 0;
 }
 
@@ -2575,64 +2625,64 @@ void ed_SerializeLevel(void **level_buffer, size_t *buffer_size, uint32_t serial
                 brush_record->uuid = brush->index;
                 cur_out_buffer += sizeof(struct ed_brush_record_t);
 
-                brush_record->vert_start = cur_out_buffer - start_out_buffer;
-                cur_out_buffer += sizeof(struct ed_vert_record_t) * brush->vertices.used;
-                brush_record->edge_start = cur_out_buffer - start_out_buffer;
-                cur_out_buffer += sizeof(struct ed_edge_record_t) * brush->edge_count;
-                brush_record->face_start = cur_out_buffer - start_out_buffer;
-                cur_out_buffer += sizeof(struct ed_face_record_t) * brush->face_count;
+//                brush_record->vert_start = cur_out_buffer - start_out_buffer;
+//                cur_out_buffer += sizeof(struct ed_vert_record_t) * brush->vertices.used;
+//                brush_record->edge_start = cur_out_buffer - start_out_buffer;
+//                cur_out_buffer += sizeof(struct ed_edge_record_t) * brush->edge_count;
+//                brush_record->face_start = cur_out_buffer - start_out_buffer;
+//                cur_out_buffer += sizeof(struct ed_face_record_t) * brush->face_count;
 
                 struct ed_vert_record_t *vert_records = (struct ed_vert_record_t *)(start_out_buffer + brush_record->vert_start);
                 struct ed_edge_record_t *edge_records = (struct ed_edge_record_t *)(start_out_buffer + brush_record->edge_start);
                 struct ed_face_record_t *face_records = (struct ed_face_record_t *)(start_out_buffer + brush_record->face_start);
 
                 /* serialize vertices and edges */
-                for(uint32_t vert_index = 0; vert_index < brush->vertices.cursor; vert_index++)
-                {
-                    struct ed_vert_t *vert = ed_GetVert(brush, vert_index);
-
-                    if(vert)
-                    {
-                        struct ed_vert_record_t *vert_record = vert_records + brush_record->vert_count;
-                        vert->s_index = brush_record->vert_count;
-                        brush_record->vert_count++;
-                        vert_record->vert = vert->vert;
-
-                        /* go over the edges of this vertex, and serialize them if they haven't been already */
-                        struct ed_vert_edge_t *vert_edge = vert->edges;
-
-                        while(vert_edge)
-                        {
-                            struct ed_edge_t *edge = vert_edge->edge;
-                            struct ed_edge_record_t *edge_record;
-
-                            if(edge->s_index == 0xffffffff)
-                            {
-                                /* this edge hasn't been serialized yet, so create a record */
-                                edge_record = edge_records + brush_record->edge_count;
-                                /* store the serialization index, so the record for this edge can
-                                be quickly found later */
-                                edge->s_index = brush_record->edge_count;
-                                brush_record->edge_count++;
-
-                                edge_record->polygons[0] = 0xffffffff;
-                                edge_record->polygons[1] = 0xffffffff;
-                                /* This constant value is used by the deserializer to know whether an edge hasn't been
-                                "seen" already. Could be done in the deserializer before processing polygons, but we're
-                                already touching the record here, might as well fill this now. */
-                                edge_record->d_index = 0xffffffff;
-                            }
-                            else
-                            {
-                                edge_record = edge_records + edge->s_index;
-                            }
-
-                            uint32_t vert_index = edge->verts[1].vert == vert;
-                            edge_record->vertices[vert_index] = vert->s_index;
-                            vert_edge = vert_edge->next;
-                        }
-                    }
-                }
+//                for(uint32_t vert_index = 0; vert_index < brush->vertices.cursor; vert_index++)
+//                {
+//                    struct ed_vert_t *vert = ed_GetVert(brush, vert_index);
+//
+//                    if(vert)
+//                    {
+//                        struct ed_vert_record_t *vert_record = vert_records + brush_record->vert_count;
+//                        vert->s_index = brush_record->vert_count;
+//                        brush_record->vert_count++;
+//                        vert_record->vert = vert->vert;
+//
+//                        /* go over the edges of this vertex, and serialize them if they haven't been already */
+//                        struct ed_vert_edge_t *vert_edge = vert->edges;
+//
+//                        while(vert_edge)
+//                        {
+//                            struct ed_edge_t *edge = vert_edge->edge;
+//                            struct ed_edge_record_t *edge_record;
+//
+//                            if(edge->s_index == 0xffffffff)
+//                            {
+//                                /* this edge hasn't been serialized yet, so create a record */
+//                                edge_record = edge_records + brush_record->edge_count;
+//                                /* store the serialization index, so the record for this edge can
+//                                be quickly found later */
+//                                edge->s_index = brush_record->edge_count;
+//                                brush_record->edge_count++;
+//
+//                                edge_record->polygons[0] = 0xffffffff;
+//                                edge_record->polygons[1] = 0xffffffff;
+//                                /* This constant value is used by the deserializer to know whether an edge hasn't been
+//                                "seen" already. Could be done in the deserializer before processing polygons, but we're
+//                                already touching the record here, might as well fill this now. */
+//                                edge_record->d_index = 0xffffffff;
+//                            }
+//                            else
+//                            {
+//                                edge_record = edge_records + edge->s_index;
+//                            }
+//
+//                            uint32_t vert_index = edge->verts[1].vert == vert;
+//                            edge_record->vertices[vert_index] = vert->s_index;
+//                            vert_edge = vert_edge->next;
+//                        }
+//                    }
+//                }
 
                 /* for serialization purposes we generate sequential polygon ids here. Those ids are generated the same
                 during deserialization, so everything is fine. Edges reference those sequential ids */
@@ -3131,10 +3181,10 @@ void ed_l_SurfaceUnderMouse(int32_t mouse_x, int32_t mouse_y, vec3_t *plane_poin
 //    }
 }
 
-void ed_l_LinearSnapValueOnSurface(struct ed_tool_t *tool, vec3_t *plane_point, mat3_t *plane_orientation, vec3_t *snapped_value)
+void ed_l_LinearSnapValueOnSurface(struct ed_obj_context_t *context, vec3_t *plane_point, mat3_t *plane_orientation, vec3_t *snapped_value)
 {
     vec3_t plane_origin;
-    struct ed_obj_context_t *context = tool->data;
+//    struct ed_obj_context_t *context = tool->data;
     struct ed_transform_operator_data_t *operator_data = context->operators[ED_OPERATOR_TRANSFORM].data;
     /* compute where the world origin projects onto the plane */
     vec3_t_mul(&plane_origin, &plane_orientation->rows[1], vec3_t_dot(plane_point, &plane_orientation->rows[1]));

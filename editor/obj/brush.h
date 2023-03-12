@@ -11,6 +11,13 @@ struct ed_brush_material_t
     uint32_t index;
 };
 
+struct ed_brush_pick_args_t
+{
+    uint32_t pick_faces : 1;
+    uint32_t pick_edges : 1;
+    uint32_t pick_verts : 1;
+};
+
 struct ed_face_edge_t
 {
     struct ed_face_edge_t *     next;
@@ -32,6 +39,8 @@ struct ed_vert_t
     vec3_t                      vert;
     uint32_t                    index;
     uint32_t                    s_index;
+    struct ed_vert_t *          next;
+    struct ed_vert_t *          prev;
     struct ed_vert_edge_t *     edges;
     struct ed_vert_edge_t *     last_edge;
 };
@@ -42,7 +51,7 @@ struct ed_edge_t
     uint32_t                        s_index;
     struct ed_edge_t *              brush_next;
     struct ed_edge_t *              brush_prev;
-    struct ed_obj_t *               object;
+//    struct ed_obj_t *               object;
 
     struct ed_face_edge_t           faces[2];
     struct ed_vert_edge_t           verts[2];
@@ -83,9 +92,10 @@ struct ed_face_t
     struct ed_brush_t *             brush;
     uint32_t                        index;
 
-    struct ed_obj_t *               object;
+//    struct ed_obj_t *               object;
     struct ed_face_edge_t *         edges;
     struct ed_face_edge_t *         last_edge;
+
     struct ed_brush_material_t *    material;
 //    struct r_material_t *       material;
 
@@ -98,6 +108,7 @@ struct ed_face_t
 
     uint32_t                        first_index;
     uint32_t                        index_count;
+    uint32_t                        selection_index;
 
 //    struct ed_brush_batch_t *material;
 //    struct ed_face_polygon_t *polygons;
@@ -139,10 +150,10 @@ enum ED_BRUSH_UPDATE_FLAGS
 
 enum ED_BRUSH_ELEMENTS
 {
-    ED_BRUSH_ELEMENT_BODY = 0,
-    ED_BRUSH_ELEMENT_FACE = 1,
-    ED_BRUSH_ELEMENT_EDGE = 2,
-    ED_BRUSH_ELEMENT_VERT = 3,
+    ED_BRUSH_ELEMENT_FACE = 0,
+    ED_BRUSH_ELEMENT_EDGE = 1,
+    ED_BRUSH_ELEMENT_VERT = 2,
+    ED_BRUSH_ELEMENT_BODY = 3,
 };
 
 struct ed_brush_t
@@ -158,23 +169,26 @@ struct ed_brush_t
     vec3_t                  position;
     uint32_t                index;
 
-    struct ds_slist_t       vertices;
+//    struct ds_slist_t       vertices;
     struct ds_list_t        vert_transforms;
     struct r_model_t *      model;
     struct e_entity_t *     entity;
     uint32_t                entity_index;
 
-//    uint32_t                vert_count;
-
     struct ed_face_t *      faces;
     struct ed_face_t *      last_face;
     uint32_t                face_count;
-//    uint32_t                polygon_count;
 
+    struct ds_list_t        selected_elements[3];
 
     struct ed_edge_t *      edges;
     struct ed_edge_t *      last_edge;
     uint32_t                edge_count;
+
+    struct ed_vert_t *      vertices;
+    struct ed_vert_t *      last_vertex;
+    uint32_t                vertex_count;
+
 
 //    uint32_t clipped_vert_count;
 //    uint32_t clipped_index_count;

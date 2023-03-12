@@ -27,7 +27,7 @@ static void ed_DestroyLightObject(struct ed_obj_t *object)
     r_DestroyLight((struct r_light_t *)object->base_obj);
 }
 
-static void ed_UpdateLightObject(struct ed_obj_t *object, struct ed_operator_event_t *event)
+static void ed_UpdateLightObject(struct ed_obj_t *object, struct ed_obj_event_t *event)
 {
     struct r_light_t *light = (struct r_light_t *)object->base_obj;
 
@@ -36,33 +36,71 @@ static void ed_UpdateLightObject(struct ed_obj_t *object, struct ed_operator_eve
 
     if(event != NULL)
     {
-        switch(event->operator->type)
+        switch(event->type)
         {
-            case ED_OPERATOR_TRANSFORM:
+            case ED_OBJ_EVENT_TYPE_OPERATOR:
             {
-                switch(event->transform_event.type)
+                switch(event->operator.type)
                 {
-                    case ED_TRANSFORM_OPERATOR_MODE_TRANSLATE:
+                    case ED_OPERATOR_TRANSFORM:
                     {
-                        vec3_t_add(&light->position, &light->position, &event->transform_event.translation.translation);
-                    }
-                    break;
-
-                    case ED_TRANSFORM_OPERATOR_MODE_ROTATE:
-                    {
-                        if(light->type == R_LIGHT_TYPE_SPOT)
+                        switch(event->operator.transform.type)
                         {
-                            struct r_spot_light_t *spot_light = (struct r_spot_light_t *)light;
-                            mat3_t_mul(&spot_light->orientation, &spot_light->orientation, &event->transform_event.rotation.rotation);
-                            orientation = spot_light->orientation;
-                        }
+                            case ED_TRANSFORM_OPERATOR_MODE_TRANSLATE:
+                            {
+                                vec3_t_add(&light->position, &light->position, &event->operator.transform.translation.translation);
+                            }
+                            break;
 
+                            case ED_TRANSFORM_OPERATOR_MODE_ROTATE:
+                            {
+                                if(light->type == R_LIGHT_TYPE_SPOT)
+                                {
+                                    struct r_spot_light_t *spot_light = (struct r_spot_light_t *)light;
+                                    mat3_t_mul(&spot_light->orientation, &spot_light->orientation, &event->operator.transform.rotation.rotation);
+                                    orientation = spot_light->orientation;
+                                }
+                            }
+                            break;
+                        }
                     }
                     break;
                 }
             }
             break;
+
+            case ED_OBJ_EVENT_TYPE_PICK:
+
+            break;
         }
+
+//        switch(event->operator->type)
+//        {
+//            case ED_OPERATOR_TRANSFORM:
+//            {
+//                switch(event->transform_event.type)
+//                {
+//                    case ED_TRANSFORM_OPERATOR_MODE_TRANSLATE:
+//                    {
+//                        vec3_t_add(&light->position, &light->position, &event->transform_event.translation.translation);
+//                    }
+//                    break;
+//
+//                    case ED_TRANSFORM_OPERATOR_MODE_ROTATE:
+//                    {
+//                        if(light->type == R_LIGHT_TYPE_SPOT)
+//                        {
+//                            struct r_spot_light_t *spot_light = (struct r_spot_light_t *)light;
+//                            mat3_t_mul(&spot_light->orientation, &spot_light->orientation, &event->transform_event.rotation.rotation);
+//                            orientation = spot_light->orientation;
+//                        }
+//
+//                    }
+//                    break;
+//                }
+//            }
+//            break;
+//        }
     }
 
 //    switch(light->type)
@@ -86,7 +124,7 @@ static void ed_UpdateLightObject(struct ed_obj_t *object, struct ed_operator_eve
     mat4_t_comp(&object->transform, &orientation, &light->position);
 }
 
-static struct r_i_draw_list_t *ed_PickLightObject(struct ed_obj_t *object, struct r_i_cmd_buffer_t *command_buffer, struct ed_obj_event_t *pick_event)
+static struct r_i_draw_list_t *ed_PickLightObject(struct ed_obj_t *object, struct r_i_cmd_buffer_t *command_buffer, void *args)
 {
     struct r_light_t *light = (struct r_light_t *)object->base_obj;
     struct r_i_draw_list_t *draw_list = NULL;

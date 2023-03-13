@@ -43,6 +43,12 @@ static void ed_UpdateEntityObject(struct ed_obj_t *object, struct ed_obj_event_t
                                 e_RotateEntity(entity, &event->operator.transform.rotation.rotation);
                             }
                             break;
+
+                            case ED_TRANSFORM_OPERATOR_MODE_SCALE:
+                            {
+                                e_ScaleEntity(entity, &event->operator.transform.scale.scale);
+                            }
+                            break;
                         }
                     break;
                 }

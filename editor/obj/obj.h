@@ -207,8 +207,7 @@ struct ed_transform_event_t
 
         struct
         {
-            vec3_t              axis;
-            float               factor;
+            vec3_t              scale;
         } scale;
     };
 };
@@ -263,7 +262,10 @@ struct ed_transform_operator_data_t
     float                       linear_snap;
     float                       angular_snap;
     vec3_t                      start_pos;
-    vec3_t                      prev_offset;
+
+    /* offset from the center of the operator to the point on the operator
+    the user clicked when clicking on it. */
+    vec3_t                      grab_offset;
 };
 
 void ed_ObjInit();

@@ -751,7 +751,7 @@ void e_TranslateEntity(struct e_entity_t *entity, vec3_t *translation)
 
         if(entity->collider)
         {
-            p_SetColliderTransform(entity->collider->collider, &entity->node->position, &entity->node->orientation);
+            p_SetColliderTransform(entity->collider->collider, &entity->node->position, &entity->node->orientation, &entity->node->scale);
 //            p_TransformCollider(entity->collider->collider, translation, &mat3_t_c_id());
         }
     }
@@ -769,11 +769,29 @@ void e_RotateEntity(struct e_entity_t *entity, mat3_t *rotation)
             mat3_t_vec3_t_mul(&collider_pos, &start_pos, rotation);
             vec3_t_add(&collider_pos, &collider_pos, &entity->node->position);
             mat3_t_mul(&entity->node->orientation, &entity->node->orientation, rotation);
-            p_SetColliderTransform(entity->collider->collider, &entity->node->position, &entity->node->orientation);
+            p_SetColliderTransform(entity->collider->collider, &entity->node->position, &entity->node->orientation, &entity->node->scale);
         }
         else
         {
             mat3_t_mul(&entity->node->orientation, &entity->node->orientation, rotation);
+        }
+    }
+}
+
+void e_ScaleEntity(struct e_entity_t *entity, vec3_t *scale)
+{
+    if(entity != NULL && entity->index != 0xffffffff)
+    {
+        vec3_t entity_scale = vec3_t_c(scale->x * entity->def->scale.x, scale->y * entity->def->scale.y, scale->z * entity->def->scale.z);
+
+        if(entity->collider)
+        {
+            vec3_t_add(&entity_scale, &entity_scale, &entity->node->scale);
+            p_SetColliderTransform(entity->collider->collider, &entity->node->position, &entity->node->orientation, &entity_scale);
+        }
+        else
+        {
+            vec3_t_add(&entity->node->scale, &entity->node->scale, &entity_scale);
         }
     }
 }

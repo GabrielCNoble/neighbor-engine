@@ -28,7 +28,7 @@ struct p_collider_t *p_CreateCollider(struct p_col_def_t *col_def, vec3_t *scale
 
 //void p_UpdateColliderTransform(struct p_collider_t *collider);
 
-void p_SetColliderTransform(struct p_collider_t *collider, vec3_t *position, mat3_t *orientation);
+void p_SetColliderTransform(struct p_collider_t *collider, vec3_t *position, mat3_t *orientation, vec3_t *scale);
 
 void p_SetColliderVelocity(struct p_collider_t *collider, vec3_t *linear_velocity, vec3_t *angular_velocity);
 
@@ -40,7 +40,7 @@ void p_ApplyForce(struct p_collider_t *collider, vec3_t *force, vec3_t *relative
 
 void p_ApplyImpulse(struct p_collider_t *collider, vec3_t *impulse, vec3_t *relative_pos, float delta_time);
 
-void p_TransformCollider(struct p_collider_t *collider, vec3_t *translation, mat3_t *rotation);
+void p_TransformCollider(struct p_collider_t *collider, vec3_t *translation, mat3_t *rotation, vec3_t *scale);
 
 void p_DestroyCollider(struct p_collider_t *collider);
 

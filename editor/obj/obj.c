@@ -21,7 +21,8 @@ extern float                    r_z_far;
 struct r_model_t *              ed_transform_operator_models[ED_TRANSFORM_OPERATOR_MODE_LAST];
 float                           ed_transform_operator_zoom[ED_TRANSFORM_OPERATOR_MODE_LAST] = {
     [ED_TRANSFORM_OPERATOR_MODE_TRANSLATE] = 35.0,
-    [ED_TRANSFORM_OPERATOR_MODE_ROTATE] = 6.0
+    [ED_TRANSFORM_OPERATOR_MODE_ROTATE] = 6.0,
+    [ED_TRANSFORM_OPERATOR_MODE_SCALE] = 35.0
 };
 
 char *ed_obj_names[ED_OBJ_TYPE_LAST] = {
@@ -304,6 +305,7 @@ void ed_ObjInit()
 
     ed_transform_operator_models[ED_TRANSFORM_OPERATOR_MODE_TRANSLATE] = r_LoadModel("models/twidget.mof");
     ed_transform_operator_models[ED_TRANSFORM_OPERATOR_MODE_ROTATE] = r_LoadModel("models/rwidget.mof");
+    ed_transform_operator_models[ED_TRANSFORM_OPERATOR_MODE_SCALE] = r_LoadModel("models/swidget.mof");
 
     ed_operator_funcs[ED_OPERATOR_TRANSFORM] = (struct ed_operator_funcs_t) {
         .update = ed_TransformOperatorUpdate,
@@ -866,18 +868,15 @@ uint32_t ed_ApplyOperatorState(struct ed_tool_context_t *context, void *state_da
 
         in_GetMousePos(&mouse_x, &mouse_y);
 
-//        r_i_SetShader(NULL);
-//        r_i_SetViewProjectionMatrix(NULL);
-//        r_i_SetModelMatrix(NULL);
-
         switch(data->mode)
         {
             case ED_TRANSFORM_OPERATOR_MODE_TRANSLATE:
+            case ED_TRANSFORM_OPERATOR_MODE_SCALE:
             {
-                event.operator.transform.type = ED_TRANSFORM_OPERATOR_MODE_TRANSLATE;
+                event.operator.transform.type = data->mode;
 
                 vec3_t manipulator_cam_vec;
-                vec3_t_sub(&manipulator_cam_vec, &r_camera_matrix.rows[3].xyz, &operator_transform ->rows[3].xyz);
+                vec3_t_sub(&manipulator_cam_vec, &r_camera_matrix.rows[3].xyz, &operator_transform->rows[3].xyz);
                 float proj = vec3_t_dot(&manipulator_cam_vec, &axis_vec);
 
                 vec3_t plane_normal;
@@ -894,39 +893,60 @@ uint32_t ed_ApplyOperatorState(struct ed_tool_context_t *context, void *state_da
                 if(just_changed)
                 {
                     data->start_pos = operator_transform->rows[3].xyz;
-                    data->prev_offset = cur_offset;
+                    data->grab_offset = cur_offset;
                 }
 
-                vec3_t_sub(&cur_offset, &cur_offset, &data->prev_offset);
+                vec3_t translation;
+                vec3_t_sub(&translation, &cur_offset, &data->grab_offset);
 
                 if(data->linear_snap)
                 {
                     for(uint32_t index = 0; index < 3; index++)
                     {
-                        float f = floorf(cur_offset.comps[index] / data->linear_snap);
-                        cur_offset.comps[index] = data->linear_snap * f;
+                        float factor;
+
+                        if(translation.comps[index] > 0)
+                        {
+                            factor = floorf(translation.comps[index] / data->linear_snap);
+                        }
+                        else
+                        {
+                            factor = ceilf(translation.comps[index] / data->linear_snap);
+                        }
+                        translation.comps[index] = data->linear_snap * factor;
                     }
                 }
 
-                event.operator.transform.translation.translation = cur_offset;
-
-                int32_t window_x;
-                int32_t window_y;
-                vec3_t pos = operator_transform->rows[3].xyz;
-                vec3_t disp;
-                vec3_t_sub(&disp, &pos, &data->start_pos);
-
-
-                ed_PointPixelCoords(&window_x, &window_y, &operator_transform->rows[3].xyz);
-                igSetNextWindowPos((ImVec2){window_x, window_y}, 0, (ImVec2){0.0, 0.0});
-                igSetNextWindowBgAlpha(0.25);
-                if(igBegin("displacement", NULL, ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoTitleBar |
-                                             ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoDecoration))
+                if(data->mode == ED_TRANSFORM_OPERATOR_MODE_TRANSLATE)
                 {
-                    igText("disp: [%f m, %f m, %f m]", disp.x, disp.y, disp.z);
-                    igText("pos: [%f, %f, %f]", pos.x, pos.y, pos.z);
+                    event.operator.transform.translation.translation = translation;
+
+                    int32_t window_x;
+                    int32_t window_y;
+                    vec3_t pos = operator_transform->rows[3].xyz;
+                    vec3_t disp;
+                    vec3_t_sub(&disp, &pos, &data->start_pos);
+
+
+                    ed_PointPixelCoords(&window_x, &window_y, &operator_transform->rows[3].xyz);
+                    igSetNextWindowPos((ImVec2){window_x, window_y}, 0, (ImVec2){0.0, 0.0});
+                    igSetNextWindowBgAlpha(0.25);
+                    if(igBegin("displacement", NULL, ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoTitleBar |
+                                                 ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoDecoration))
+                    {
+                        igText("disp: [%f m, %f m, %f m]", disp.x, disp.y, disp.z);
+                        igText("pos: [%f, %f, %f]", pos.x, pos.y, pos.z);
+                    }
+                    igEnd();
                 }
-                igEnd();
+                else
+                {
+                    if(translation.x || translation.y || translation.z)
+                    {
+                        data->grab_offset = cur_offset;
+                    }
+                    event.operator.transform.scale.scale = translation;
+                }
 
             }
             break;
@@ -943,11 +963,11 @@ uint32_t ed_ApplyOperatorState(struct ed_tool_context_t *context, void *state_da
 
                 if(just_changed)
                 {
-                    data->prev_offset = manipulator_mouse_vec;
+                    data->grab_offset = manipulator_mouse_vec;
                 }
 
                 vec3_t angle_vec;
-                vec3_t_cross(&angle_vec, &manipulator_mouse_vec, &data->prev_offset);
+                vec3_t_cross(&angle_vec, &manipulator_mouse_vec, &data->grab_offset);
                 float angle = asin(vec3_t_dot(&angle_vec, &axis_vec)) / 3.14159265;
                 mat3_t_identity(&event.operator.transform.rotation.rotation);
 
@@ -967,7 +987,7 @@ uint32_t ed_ApplyOperatorState(struct ed_tool_context_t *context, void *state_da
 
                 if(angle)
                 {
-                    data->prev_offset = manipulator_mouse_vec;
+                    data->grab_offset = manipulator_mouse_vec;
                 }
 
 

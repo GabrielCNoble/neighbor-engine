@@ -487,7 +487,13 @@ struct p_collider_t *p_CreateCollider(struct p_col_def_t *col_def, vec3_t *scale
 ////    collider->position = vec3_t_c(origin[0], origin[1], origin[2]);
 //}
 
-void p_SetColliderTransformRecursive(struct p_collider_t *collider, vec3_t *position, mat3_t *orientation, struct p_collider_t *src_collider)
+/*
+    src_collider is the collider passed to p_SetColliderTransform, and is only meaningful if there are constraints involved.
+    Colliders linked to src_collider through constraints are treated like child objects of src_constraint, and are transformed
+    accordingly.
+*/
+
+void p_SetColliderTransformRecursive(struct p_collider_t *collider, vec3_t *position, mat3_t *orientation, vec3_t *scale, struct p_collider_t *src_collider)
 {
     if(collider->constraints)
     {
@@ -502,7 +508,7 @@ void p_SetColliderTransformRecursive(struct p_collider_t *collider, vec3_t *posi
             {
                 struct p_collider_t *linked_collider = constraint->colliders[!collider_side].collider;
                 constraint->colliders[!collider_side].transform_set = 1;
-                p_SetColliderTransformRecursive(linked_collider, position, orientation, src_collider);
+                p_SetColliderTransformRecursive(linked_collider, position, orientation, scale, src_collider);
             }
             else
             {
@@ -518,6 +524,7 @@ void p_SetColliderTransformRecursive(struct p_collider_t *collider, vec3_t *posi
     {
         collider->orientation = *orientation;
         collider->position = *position;
+        collider->scale = *scale;
     }
     else
     {
@@ -526,11 +533,16 @@ void p_SetColliderTransformRecursive(struct p_collider_t *collider, vec3_t *posi
 
         vec3_t_sub(&linked_translation, position, &src_collider->position);
 
+        /* transform this collider's rotation into the src_collider local space. This gives
+        us the relative rotation between this collider and src_collider */
         mat3_t_transpose(&linked_orientation, &src_collider->orientation);
+        /* apply the incoming rotation matrix to this relative rotation */
         mat3_t_mul(&linked_orientation, &linked_orientation, orientation);
-        vec3_t_sub(&collider->position, &collider->position, &src_collider->position);
 
+        /* transform this collider's translation into the src_collider local space */
+        vec3_t_sub(&collider->position, &collider->position, &src_collider->position);
         mat3_t_vec3_t_mul(&collider->position, &collider->position, &linked_orientation);
+
         mat3_t_mul(&collider->orientation, &collider->orientation, &linked_orientation);
         vec3_t_add(&collider->position, &collider->position, &src_collider->position);
         vec3_t_add(&collider->position, &collider->position, &linked_translation);
@@ -541,14 +553,16 @@ void p_SetColliderTransformRecursive(struct p_collider_t *collider, vec3_t *posi
 
     NewtonBody *rigid_body = (NewtonBody *)collider->rigid_body;
     NewtonBodySetMatrix(rigid_body, (const float *)transform.comps);
+    NewtonCollision *collision_shape = NewtonBodyGetCollision(rigid_body);
+    NewtonCollisionSetScale(collision_shape, collider->scale.x, collider->scale.y, collider->scale.z);
 }
 
-void p_SetColliderTransform(struct p_collider_t *collider, vec3_t *position, mat3_t *orientation)
+void p_SetColliderTransform(struct p_collider_t *collider, vec3_t *position, mat3_t *orientation, vec3_t *scale)
 {
-    p_SetColliderTransformRecursive(collider, position, orientation, collider);
+    p_SetColliderTransformRecursive(collider, position, orientation, scale, collider);
 }
 
-void p_TransformCollider(struct p_collider_t *collider, vec3_t *translation, mat3_t *rotation)
+void p_TransformCollider(struct p_collider_t *collider, vec3_t *translation, mat3_t *rotation, vec3_t *scale)
 {
     if(collider && collider->index != 0xffffffff)
     {
@@ -556,7 +570,7 @@ void p_TransformCollider(struct p_collider_t *collider, vec3_t *translation, mat
         mat3_t orientation;
         vec3_t_add(&position, translation, &collider->position);
         mat3_t_mul(&orientation, &collider->orientation, rotation);
-        p_SetColliderTransform(collider, &position, &orientation);
+        p_SetColliderTransform(collider, &position, &orientation, scale);
     }
 }
 

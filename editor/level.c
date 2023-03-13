@@ -275,6 +275,8 @@ struct ed_l_obj_placement_state_t
          float                  box_height;
          float                  box_depth;
          uint32_t               stage;
+
+
      } brush;
 
      struct
@@ -964,6 +966,12 @@ void ed_l_ObjectUI()
 //                                        igPopID();
                                     }
                                 }
+                            }
+                            break;
+
+                            case ED_L_OBJ_TAB_BRUSH:
+                            {
+
                             }
                             break;
 
@@ -1825,6 +1833,10 @@ uint32_t ed_l_IdleState(struct ed_tool_context_t *context, void *state_data, uin
     else if(in_GetKeyState(SDL_SCANCODE_R) & IN_KEY_STATE_JUST_PRESSED)
     {
         operator_data->mode = ED_TRANSFORM_OPERATOR_MODE_ROTATE;
+    }
+    else if(in_GetKeyState(SDL_SCANCODE_S) & IN_KEY_STATE_JUST_PRESSED)
+    {
+        operator_data->mode = ED_TRANSFORM_OPERATOR_MODE_SCALE;
     }
 
     return 0;

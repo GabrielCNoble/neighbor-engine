@@ -12,12 +12,14 @@
 #define R_CLUSTER_MAX_Y (R_CLUSTER_ROWS - 1)
 #define R_CLUSTER_MAX_Z (R_CLUSTER_SLICES - 1)
 
-uniform float r_cluster_denom;
-uniform sampler2D r_tex_albedo;
-uniform sampler2D r_tex_normal;
-uniform sampler2D r_tex_metalness;
-uniform sampler2D r_tex_roughness;
-uniform usampler3D r_tex_clusters;
+uniform float       r_cluster_denom;
+uniform sampler2D   r_tex_albedo;
+uniform sampler2D   r_tex_normal;
+uniform sampler2D   r_tex_metalness;
+uniform sampler2D   r_tex_roughness;
+uniform sampler2D   r_tex_height;
+uniform usampler3D  r_tex_clusters;
+uniform int         r_max_parallax_samples;
 
 ivec3 get_cluster_coord(float x_coord, float y_coord, float z_coord)
 {
@@ -154,6 +156,13 @@ vec3 r_gamma_correct(vec3 color)
     return pow(color, vec3(1.0 / 2.2));
 }
 
+//vec2 r_pixel_tex_coords()
+//{
+//    r_tex_coords = r_var_tex_coords;
+//
+//    return r_tex_coords;
+//}
+
 vec3 r_pixel_color(vec3 albedo, vec3 normal, float metalness, float height, float roughness, vec3 view_vec, vec3 light_vec, vec3 light_color)
 {
     vec3 specular = r_specular_term(albedo, normal, metalness, roughness, view_vec, light_vec);
@@ -162,16 +171,16 @@ vec3 r_pixel_color(vec3 albedo, vec3 normal, float metalness, float height, floa
     return (albedo * diffuse * light_color + light_color * specular) * n_dot_l;
 }
 
-vec4 r_pixel_albedo()
+vec4 r_pixel_albedo(vec2 tex_coords)
 {
-    vec4 albedo = pow(texture(r_tex_albedo, r_var_tex_coords.xy), vec4(2.2));
+    vec4 albedo = pow(texture(r_tex_albedo, tex_coords.xy), vec4(2.2));
     albedo.a = 1.0;
     return albedo;
 }
 
-vec3 r_pixel_normal()
+vec3 r_pixel_normal(vec2 tex_coords)
 {
-    vec3 normal = normalize(texture(r_tex_normal, r_var_tex_coords.xy).rgb * 2.0 - vec3(1.0));
+    vec3 normal = normalize(texture(r_tex_normal, tex_coords.xy).rgb * 2.0 - vec3(1.0));
 
     mat3 tbn;
     tbn[0] = normalize(r_var_tangent);
@@ -181,12 +190,12 @@ vec3 r_pixel_normal()
     return normalize(tbn * normal);
 }
 
-float r_pixel_roughness()
+float r_pixel_roughness(vec2 tex_coords)
 {
-    return texture(r_tex_roughness, r_var_tex_coords.xy).r;
+    return texture(r_tex_roughness, tex_coords.xy).r;
 }
 
-float r_pixel_metalness()
+float r_pixel_metalness(vec2 tex_coords)
 {
     return 0.0;
 }

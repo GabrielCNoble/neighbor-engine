@@ -46,13 +46,13 @@ static void ed_UpdateLightObject(struct ed_obj_t *object, struct ed_obj_event_t 
                     {
                         switch(event->operator.transform.type)
                         {
-                            case ED_TRANSFORM_OPERATOR_MODE_TRANSLATE:
+                            case ED_TRANSFORM_OPERATOR_TRANSFORM_TYPE_TRANSLATE:
                             {
                                 vec3_t_add(&light->position, &light->position, &event->operator.transform.translation.translation);
                             }
                             break;
 
-                            case ED_TRANSFORM_OPERATOR_MODE_ROTATE:
+                            case ED_TRANSFORM_OPERATOR_TRANSFORM_TYPE_ROTATE:
                             {
                                 if(light->type == R_LIGHT_TYPE_SPOT)
                                 {

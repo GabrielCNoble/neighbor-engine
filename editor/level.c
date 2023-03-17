@@ -33,9 +33,23 @@ extern struct p_collider_t *l_world_collider;
 extern char *p_col_type_names[];
 extern char *r_light_type_names[];
 extern char *ed_obj_names[];
+extern char *ed_brush_element_names[];
+extern char *ed_transform_operator_transform_mode_names[];
+extern char *ed_transform_operator_transform_type_names[];
 extern struct r_model_t *l_world_model;
 extern struct ed_obj_funcs_t ed_obj_funcs[];
 extern struct r_texture_t *r_default_albedo_texture;
+
+struct r_texture_t *ed_l_extrude_tool_texture;
+struct r_texture_t *ed_l_shape_tool_texture;
+struct r_texture_t *ed_l_entity_tab_texture;
+struct r_texture_t *ed_l_transform_operator_transform_type_textures[ED_TRANSFORM_OPERATOR_TRANSFORM_TYPE_LAST];
+char *ed_l_transform_operator_transform_type_tooltips[ED_TRANSFORM_OPERATOR_TRANSFORM_TYPE_LAST] = {
+    [ED_TRANSFORM_OPERATOR_TRANSFORM_TYPE_TRANSLATE] = "Translate selections. Shortcut: T",
+    [ED_TRANSFORM_OPERATOR_TRANSFORM_TYPE_ROTATE] = "Rotate selections. Shortcut: R",
+    [ED_TRANSFORM_OPERATOR_TRANSFORM_TYPE_SCALE] = "Scale selections. Shortcut: S",
+};
+//struct r_texture_t *ed_l_scale_texture;
 
 //struct ed_obj_context_t ed_l_obj_context;
 
@@ -166,6 +180,9 @@ float ed_w_angular_snap_values[] =
 
 enum ED_L_MAIN_TOOL_TABS
 {
+//    ED_L_MAIN_TOOL_TAB_VERT,
+//    ED_L_MAIN_TOOL_TAB_EDGE,
+//    ED_L_MAIN_TOOL_TAB_FACE,
     ED_L_MAIN_TOOL_TAB_OBJECT,
     ED_L_MAIN_TOOL_TAB_MATERIAL,
     ED_L_MAIN_TOOL_TAB_SCRIPT,
@@ -174,6 +191,7 @@ enum ED_L_MAIN_TOOL_TABS
 
 char *ed_l_main_tool_tab_names[] =
 {
+//    [ED_L_MAIN_TOOL_TAB_VERT]       = "Vert"
     [ED_L_MAIN_TOOL_TAB_OBJECT]     = "Object",
     [ED_L_MAIN_TOOL_TAB_MATERIAL]   = "Material",
     [ED_L_MAIN_TOOL_TAB_SCRIPT]     = "Script",
@@ -276,7 +294,8 @@ struct ed_l_obj_placement_state_t
          float                  box_depth;
          uint32_t               stage;
 
-
+         uint32_t               brush_element;
+         uint32_t               prev_brush_element;
      } brush;
 
      struct
@@ -344,7 +363,8 @@ void ed_l_Init(struct ed_editor_t *editor)
     ed_level_state.obj.objects = ed_CreateObjContext(operator_data);
     ed_level_state.obj.objects.operators[ED_OPERATOR_TRANSFORM].visible = 1;
     ed_level_state.obj.objects.operators[ED_OPERATOR_TRANSFORM].type = ED_OPERATOR_TRANSFORM;
-    ed_level_state.obj.transform_operator_data.mode = ED_TRANSFORM_OPERATOR_MODE_TRANSLATE;
+    ed_level_state.obj.transform_operator_data.transform_type = ED_TRANSFORM_OPERATOR_TRANSFORM_TYPE_TRANSLATE;
+    ed_level_state.obj.transform_operator_data.transform_mode = ED_TRANSFORM_OPERATOR_TRANSFORM_MODE_LOCAL;
     ed_level_state.obj.transform_operator_data.linear_snap = ed_w_linear_snap_values[2];
 
 //    ed_level_state.pickables.last_selected = NULL;
@@ -464,6 +484,13 @@ void ed_l_Init(struct ed_editor_t *editor)
     struct r_texture_t *diffuse;
     struct r_texture_t *normal;
 
+    ed_l_transform_operator_transform_type_textures[ED_TRANSFORM_OPERATOR_TRANSFORM_TYPE_TRANSLATE] = r_LoadTexture("textures/move.png");
+    ed_l_transform_operator_transform_type_textures[ED_TRANSFORM_OPERATOR_TRANSFORM_TYPE_ROTATE] = r_LoadTexture("textures/rotate.png");
+    ed_l_transform_operator_transform_type_textures[ED_TRANSFORM_OPERATOR_TRANSFORM_TYPE_SCALE] = r_LoadTexture("textures/scale.png");
+    ed_l_extrude_tool_texture = r_LoadTexture("textures/extrude.png");
+    ed_l_shape_tool_texture = r_LoadTexture("textures/chainsaw.png");
+    ed_l_entity_tab_texture = r_LoadTexture("textures/chair.png");
+
 
 //    ed_CreateEntityPickable(g_ent_def, &vec3_t_c(0.0, 0.0, 0.0), &vec3_t_c(1.0, 1.0, 1.0), &mat3_t_c_id(), NULL);
 //
@@ -559,7 +586,7 @@ void ed_l_Resume()
 =============================================================
 */
 
-#define ED_L_TOP_TABS_HEIGHT 16
+#define ED_L_TOP_TABS_HEIGHT 22
 #define ED_L_FOOTER_HEIGHT 24
 
 void ed_l_UpdateUI()
@@ -577,17 +604,67 @@ void ed_l_UpdateUI()
     ImGuiWindowFlags level_editor_docking_flags = ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoInputs;
     level_editor_docking_flags |= ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoScrollbar;
     igPushStyleVar_Vec2(ImGuiStyleVar_FramePadding, (ImVec2){4, 0});
-    igPushStyleVar_Vec2(ImGuiStyleVar_WindowPadding, (ImVec2){1, 5});
+    igPushStyleVar_Vec2(ImGuiStyleVar_WindowPadding, (ImVec2){1, 0});
     igBegin("##level_editor_docking", NULL, level_editor_docking_flags);
+    igPopStyleVar(2);
 
+    igPushStyleVar_Vec2(ImGuiStyleVar_FramePadding, (ImVec2){4, 5});
+    igPushStyleVar_Vec2(ImGuiStyleVar_WindowPadding, (ImVec2){1, 0});
     ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_AlwaysUseWindowPadding;
     igSetNextWindowBgAlpha(0.5);
-    if(igBeginChild_Str("##top_tabs", (ImVec2){r_width, ED_L_TOP_TABS_HEIGHT}, 0, 0))
+    igSetNextWindowPos((ImVec2){0, 16}, 0, (ImVec2){0, 0});
+    uint32_t top_bar_visible = igBeginChild_Str("##top_bar", (ImVec2){r_width, ED_L_TOP_TABS_HEIGHT}, 0, ImGuiWindowFlags_NoScrollbar);
+
+    if(top_bar_visible)
     {
         igPushStyleVar_Float(ImGuiStyleVar_TabRounding, 0.0);
         igPushStyleColor_Vec4(ImGuiCol_Tab, (ImVec4){0.2, 0.2, 0.2, 1.0});
         igPushStyleColor_Vec4(ImGuiCol_TabActive, (ImVec4){0.8, 0.8, 0.8, 1.0});
-//        igPushStyleColor_Vec4(ImGuiCol_Text, (ImVec4){0.1, 0.1, 0.1, 1.0});
+
+        igAlignTextToFramePadding();
+        igText("Brush sel:");
+
+        ImGuiTabItemFlags tab_flags[3] = {0, 0, 0};
+
+        if(ed_l_obj_placement_state.brush.prev_brush_element != ed_l_obj_placement_state.brush.brush_element)
+        {
+            tab_flags[ed_l_obj_placement_state.brush.brush_element] = ImGuiTabItemFlags_SetSelected;
+        }
+
+        igSameLine(0, -1);
+        if(igBeginTabBar("##brush_element_tab_bar", 0))
+        {
+            for(uint32_t tab = ED_BRUSH_ELEMENT_FACE; tab < ED_BRUSH_ELEMENT_BODY; tab++)
+            {
+                uint32_t selected = ed_l_obj_placement_state.brush.brush_element == tab;
+
+                if(selected)
+                {
+                    igPushStyleColor_Vec4(ImGuiCol_Text, (ImVec4){0.1, 0.1, 0.1, 1.0});
+                }
+
+                char tab_text[64];
+                sprintf(tab_text, "%s(%d)", ed_brush_element_names[tab], tab + 1);
+
+                if(igBeginTabItem(tab_text, NULL, tab_flags[tab]))
+                {
+                    ed_l_obj_placement_state.brush.brush_element = tab;
+                    ed_l_obj_placement_state.brush.prev_brush_element = ed_l_obj_placement_state.brush.brush_element;
+                    igEndTabItem();
+                }
+
+                if(selected)
+                {
+                    igPopStyleColor(1);
+                }
+            }
+            igEndTabBar();
+        }
+
+        igSameLine(0, -1);
+        igSeparatorEx(ImGuiSeparatorFlags_Vertical);
+        igSameLine(0, -1);
+
         if(igBeginTabBar("##top_tab_bar", 0))
         {
             for(uint32_t tab = ED_L_MAIN_TOOL_TAB_OBJECT; tab < ED_L_MAIN_TOOL_TAB_LAST; tab++)
@@ -615,107 +692,242 @@ void ed_l_UpdateUI()
         igPopStyleColor(2);
     }
     igEndChild();
-
-    igPopStyleVar(2);
     ImGuiStyle *style = igGetStyle();
+    float start_cursor_y = igGetCursorPosY() - style->WindowPadding.y * 0.5 - style->FramePadding.y;
 
-    float start_cursor_y = igGetCursorPosY() - style->WindowPadding.y * 0.5;
-//
-    window_flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoCollapse;
     igSetNextWindowBgAlpha(0.5);
-//    igPushStyleVar_Float(ImGuiStyleVar_WindowBorderSize, 0.0);
+    igSetNextWindowPos((ImVec2){0, start_cursor_y}, 0, (ImVec2){0, 0});
+//    igPushStyleVar_Vec2(ImGuiStyleVar_WindowPadding, (ImVec2){0, 0});
 //    igPushStyleVar_Vec2(ImGuiStyleVar_FramePadding, (ImVec2){0, 0});
-    igSetNextWindowPos((ImVec2){0, r_height}, 0, (ImVec2){0, 1});
-    if(igBeginChild_Str("##footer", (ImVec2){r_width, ED_L_FOOTER_HEIGHT}, 0, 0))
+
+    if(igBeginChild_Str("##left_side_tab", (ImVec2){34, 0}, 0, 0))
     {
+        igSeparator();
+        igDummy((ImVec2){1, 2});
 
-//        if(igBeginChild_Str("left_side", (ImVec2){0, 24}, 0, 0))
-//        {
-            igPushStyleVar_Float(ImGuiStyleVar_Alpha, 0.5);
+        igBeginGroup();
+        igPushStyleVar_Vec2(ImGuiStyleVar_WindowPadding, (ImVec2){2, 2});
+        igPushStyleVar_Float(ImGuiStyleVar_ChildRounding, 4.0);
 
-            if(igBeginTable("Stats table", 3, ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_Hideable, (ImVec2){0.0, 0.0}, 0.0))
+        if(igBeginChild_Str("##extrude", (ImVec2){34, 34}, 1, 0))
+        {
+            float cursor_y = igGetCursorPosY();
+            if(igSelectable_Bool("", 0, 0, (ImVec2){30, 30}))
             {
-                igTableNextRow(0, 0.0);
 
-                uint32_t transform_type = ed_level_state.manipulator.transform_type;
-                uint32_t transform_mode = ed_level_state.manipulator.transform_mode;
-
-                igTableNextColumn();
-                igText("Manipulator: %s", ed_l_transform_type_texts[transform_type]);
-                igSameLine(0, -1);
-                if(igBeginCombo("##tranfsorm_mode", ed_l_transform_mode_texts[transform_mode], 0))
-                {
-                    for(uint32_t mode = ED_L_TRANSFORM_MODE_WORLD; mode < ED_L_TRANSFORM_MODE_LAST; mode++)
-                    {
-                        if(igSelectable_Bool(ed_l_transform_mode_texts[mode], 0, 0, (ImVec2){0, 0}))
-                        {
-                            ed_level_state.manipulator.transform_mode = mode;
-                        }
-                    }
-                    igEndCombo();
-                }
-                igTableNextColumn();
-
-                char snap_label[32];
-                char snap_preview[32];
-                igText("Snap: ");
-                igSameLine(0.0, -1.0);
-//                if(ed_level_state.manipulator.transform_type == ED_L_TRANSFORM_TYPE_ROTATION)
-                struct ed_transform_operator_data_t *operator_data = ed_level_state.obj.objects.operators[ED_OPERATOR_TRANSFORM].data;
-                if(operator_data->mode == ED_TRANSFORM_OPERATOR_MODE_ROTATE)
-                {
-                    sprintf(snap_preview, "%0.4f deg", ed_level_state.manipulator.angular_snap * 180.0);
-                    igSetNextItemWidth(120.0);
-                    if(igBeginCombo("##angular_snap", snap_preview, 0))
-                    {
-                        for(uint32_t index = 0; index < sizeof(ed_w_angular_snap_values) / sizeof(ed_w_angular_snap_values[0]); index++)
-                        {
-                            sprintf(snap_label, "%f", ed_w_angular_snap_values[index] * 180.0);
-
-                            if(igSelectable_Bool(snap_label, 0, 0, (ImVec2){0.0, 0.0}))
-                            {
-                                ed_level_state.manipulator.angular_snap = ed_w_angular_snap_values[index];
-                            }
-                        }
-
-                        igEndCombo();
-                    }
-                }
-                else
-                {
-                    sprintf(snap_preview, "%0.4f m", ed_level_state.obj.transform_operator_data.linear_snap);
-                    igSetNextItemWidth(120.0);
-                    if(igBeginCombo("##linear_snap", snap_preview, 0))
-                    {
-                        for(uint32_t index = 0; index < sizeof(ed_w_linear_snap_values) / sizeof(ed_w_linear_snap_values[0]); index++)
-                        {
-                            sprintf(snap_label, "%f", ed_w_linear_snap_values[index]);
-
-                            if(igSelectable_Bool(snap_label, 0, 0, (ImVec2){0.0, 0.0}))
-                            {
-                                ed_level_state.obj.transform_operator_data.linear_snap = ed_w_linear_snap_values[index];
-                            }
-                        }
-
-                        igEndCombo();
-                    }
-                }
-
-                igTableNextColumn();
-
-                igEndTable();
             }
-            igPopStyleVar(1);
+            igSetCursorPosY(cursor_y);
+            igImage(ed_l_extrude_tool_texture, (ImVec2){30, 30}, (ImVec2){0, 0}, (ImVec2){1, 1}, (ImVec4){1, 1, 1, 1}, (ImVec4){0, 0, 0, 0});
+            if(igIsItemHovered(0))
+            {
+                igBeginTooltip();
+                igTextUnformatted("Extrude tool. Shortcut: E", NULL);
+                igEndTooltip();
+            }
+        }
+        igEndChild();
+
+        if(igBeginChild_Str("##shape", (ImVec2){34, 34}, 1, 0))
+        {
+            float cursor_y = igGetCursorPosY();
+            if(igSelectable_Bool("", 0, 0, (ImVec2){30, 30}))
+            {
+
+            }
+            igSetCursorPosY(cursor_y);
+            igImage(ed_l_shape_tool_texture, (ImVec2){30, 30}, (ImVec2){0, 0}, (ImVec2){1, 1}, (ImVec4){1, 1, 1, 1}, (ImVec4){0, 0, 0, 0});
+            if(igIsItemHovered(0))
+            {
+                igBeginTooltip();
+                igTextUnformatted("Shaping tool. Shortcut: C", NULL);
+                igEndTooltip();
+            }
+        }
+        igEndChild();
+
+        igEndGroup();
+        igPopStyleVar(2);
+
+        igSeparator();
+        igDummy((ImVec2){1, 2});
+        igPushStyleColor_Vec4(ImGuiCol_Header, (ImVec4){0.8, 0.8, 0.8, 1.0});
+//        igPushStyleColor_Vec4(ImGuiCol_Border, (ImVec4){0.8, 0.0, 0.0, 1.0});
+        igPushStyleVar_Vec2(ImGuiStyleVar_SelectableTextAlign, (ImVec2){0.5, 0.5});
+
+        igIndent(4);
+        for(uint32_t mode = ED_TRANSFORM_OPERATOR_TRANSFORM_MODE_WORLD; mode < ED_TRANSFORM_OPERATOR_TRANSFORM_MODE_LAST; mode++)
+        {
+            char label[2];
+            label[0] = ed_transform_operator_transform_mode_names[mode][0];
+            label[1] = '\0';
+            uint32_t selected = ed_level_state.obj.transform_operator_data.transform_mode == mode;
+            if(selected)
+            {
+                igPushStyleColor_Vec4(ImGuiCol_Text, (ImVec4){0.1, 0.1, 0.1, 1.0});
+            }
+
+            if(igSelectable_Bool(label, selected, 0, (ImVec2){8, 0}))
+            {
+                ed_level_state.obj.transform_operator_data.transform_mode = mode;
+                ed_UpdateOperators(&ed_level_state.obj.objects);
+            }
+
+            if(selected)
+            {
+                igPopStyleColor(1);
+            }
+
+            igSameLine(0, -1);
+        }
+
+        igUnindent(4);
+        igNewLine();
+        igDummy((ImVec2){1, 2});
+
+        igBeginGroup();
+        igPushStyleVar_Vec2(ImGuiStyleVar_WindowPadding, (ImVec2){2, 2});
+        igPushStyleVar_Float(ImGuiStyleVar_ChildRounding, 4.0);
+        for(uint32_t type = ED_TRANSFORM_OPERATOR_TRANSFORM_TYPE_TRANSLATE; type < ED_TRANSFORM_OPERATOR_TRANSFORM_TYPE_LAST; type++)
+        {
+            char label[2];
+            label[0] = ed_transform_operator_transform_type_names[type][0];
+            label[1] = '\0';
+            uint32_t selected = ed_level_state.obj.transform_operator_data.transform_type == type;
+            ImVec4 tint_color = (ImVec4){1, 1, 1, 1};
+
+            if(selected)
+            {
+                tint_color = (ImVec4){0, 0, 0, 1};
+            }
+
+            igPushID_Int(type);
+            igBeginChild_Str("##border", (ImVec2){34, 34}, 1, ImGuiWindowFlags_NoScrollbar);
+            float cursor_y = igGetCursorPosY();
+            if(igSelectable_Bool("", selected, 0, (ImVec2){30, 30}))
+            {
+                ed_level_state.obj.transform_operator_data.transform_type = type;
+            }
+            igSetCursorPosY(cursor_y);
+            igImage(ed_l_transform_operator_transform_type_textures[type], (ImVec2){30, 30}, (ImVec2){0, 0}, (ImVec2){1, 1}, tint_color, (ImVec4){0, 0, 0, 0});
+            if(igIsItemHovered(0))
+            {
+                igBeginTooltip();
+                igTextUnformatted(ed_l_transform_operator_transform_type_tooltips[type], NULL);
+                igEndTooltip();
+            }
+            igEndChild();
+            igPopID();
+//            igDummy((ImVec2){1, 1});
+        }
+        igEndGroup();
+
+        igSeparator();
+
+        igPopStyleColor(1);
+        igPopStyleVar(3);
     }
     igEndChild();
+
+    igPopStyleVar(2);
+
+
+
+//
+//    window_flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoCollapse;
+//    igSetNextWindowBgAlpha(0.5);
+////    igPushStyleVar_Float(ImGuiStyleVar_WindowBorderSize, 0.0);
+////    igPushStyleVar_Vec2(ImGuiStyleVar_FramePadding, (ImVec2){0, 0});
+//    igSetNextWindowPos((ImVec2){0, r_height}, 0, (ImVec2){0, 1});
+//    if(igBeginChild_Str("##footer", (ImVec2){r_width, ED_L_FOOTER_HEIGHT}, 0, 0))
+//    {
+//
+////        if(igBeginChild_Str("left_side", (ImVec2){0, 24}, 0, 0))
+////        {
+//            igPushStyleVar_Float(ImGuiStyleVar_Alpha, 0.5);
+//
+//            if(igBeginTable("Stats table", 3, ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_Hideable, (ImVec2){0.0, 0.0}, 0.0))
+//            {
+//                igTableNextRow(0, 0.0);
+//
+//                uint32_t transform_type = ed_level_state.manipulator.transform_type;
+//                uint32_t transform_mode = ed_level_state.manipulator.transform_mode;
+//
+//                igTableNextColumn();
+//                igText("Manipulator: %s", ed_l_transform_type_texts[transform_type]);
+//                igSameLine(0, -1);
+//                if(igBeginCombo("##tranfsorm_mode", ed_l_transform_mode_texts[transform_mode], 0))
+//                {
+//                    for(uint32_t mode = ED_L_TRANSFORM_MODE_WORLD; mode < ED_L_TRANSFORM_MODE_LAST; mode++)
+//                    {
+//                        if(igSelectable_Bool(ed_l_transform_mode_texts[mode], 0, 0, (ImVec2){0, 0}))
+//                        {
+//                            ed_level_state.manipulator.transform_mode = mode;
+//                        }
+//                    }
+//                    igEndCombo();
+//                }
+//                igTableNextColumn();
+//
+//                char snap_label[32];
+//                char snap_preview[32];
+//                igText("Snap: ");
+//                igSameLine(0.0, -1.0);
+////                if(ed_level_state.manipulator.transform_type == ED_L_TRANSFORM_TYPE_ROTATION)
+//                struct ed_transform_operator_data_t *operator_data = ed_level_state.obj.objects.operators[ED_OPERATOR_TRANSFORM].data;
+//                if(operator_data->transform_type == ED_TRANSFORM_OPERATOR_TRANSFORM_TYPE_ROTATE)
+//                {
+//                    sprintf(snap_preview, "%0.4f deg", ed_level_state.manipulator.angular_snap * 180.0);
+//                    igSetNextItemWidth(120.0);
+//                    if(igBeginCombo("##angular_snap", snap_preview, 0))
+//                    {
+//                        for(uint32_t index = 0; index < sizeof(ed_w_angular_snap_values) / sizeof(ed_w_angular_snap_values[0]); index++)
+//                        {
+//                            sprintf(snap_label, "%f", ed_w_angular_snap_values[index] * 180.0);
+//
+//                            if(igSelectable_Bool(snap_label, 0, 0, (ImVec2){0.0, 0.0}))
+//                            {
+//                                ed_level_state.manipulator.angular_snap = ed_w_angular_snap_values[index];
+//                            }
+//                        }
+//
+//                        igEndCombo();
+//                    }
+//                }
+//                else
+//                {
+//                    sprintf(snap_preview, "%0.4f m", ed_level_state.obj.transform_operator_data.linear_snap);
+//                    igSetNextItemWidth(120.0);
+//                    if(igBeginCombo("##linear_snap", snap_preview, 0))
+//                    {
+//                        for(uint32_t index = 0; index < sizeof(ed_w_linear_snap_values) / sizeof(ed_w_linear_snap_values[0]); index++)
+//                        {
+//                            sprintf(snap_label, "%f", ed_w_linear_snap_values[index]);
+//
+//                            if(igSelectable_Bool(snap_label, 0, 0, (ImVec2){0.0, 0.0}))
+//                            {
+//                                ed_level_state.obj.transform_operator_data.linear_snap = ed_w_linear_snap_values[index];
+//                            }
+//                        }
+//
+//                        igEndCombo();
+//                    }
+//                }
+//
+//                igTableNextColumn();
+//
+//                igEndTable();
+//            }
+//            igPopStyleVar(1);
+//    }
+//    igEndChild();
 //    igPopStyleVar(1);
 
-    float end_cursor_y = igGetCursorPosY();
+//    float end_cursor_y = igGetCursorPosY();
     igSetCursorPosY(start_cursor_y);
 //
 //
     ed_l_root_docking_id = igGetID_Str("level_editor_docking");
-    float size = end_cursor_y - ED_L_FOOTER_HEIGHT - start_cursor_y - style->WindowPadding.y * 0.5;
+    float size = r_height - start_cursor_y - style->WindowPadding.y * 0.5;
 
     if(igDockBuilderGetNode(ed_l_root_docking_id) == NULL)
     {
@@ -969,11 +1181,19 @@ void ed_l_ObjectUI()
                             }
                             break;
 
-                            case ED_L_OBJ_TAB_BRUSH:
-                            {
-
-                            }
-                            break;
+//                            case ED_L_OBJ_TAB_BRUSH:
+//                            {
+//                                for(uint32_t index = ED_BRUSH_ELEMENT_FACE; index < ED_BRUSH_ELEMENT_BODY; index++)
+//                                {
+//                                    if(igSelectable_Bool(ed_brush_element_names[index], index == ed_l_obj_placement_state.brush.brush_element, 0, (ImVec2){8, 0}))
+//                                    {
+//                                        ed_l_obj_placement_state.brush.brush_element = index;
+//                                    }
+//
+//                                    igSameLine(0, -1);
+//                                }
+//                            }
+//                            break;
 
                             case ED_L_OBJ_TAB_LIGHT:
                                 ed_l_LightUI(&ed_l_obj_placement_state.light.args);
@@ -1823,20 +2043,33 @@ uint32_t ed_l_IdleState(struct ed_tool_context_t *context, void *state_data, uin
     {
         ed_NextToolState(context, ed_l_RightClickState, &ed_l_pick_args);
     }
+    else if(in_GetKeyState(SDL_SCANCODE_1) & IN_KEY_STATE_JUST_PRESSED)
+    {
+        ed_l_obj_placement_state.brush.brush_element = ED_BRUSH_ELEMENT_FACE;
+    }
+    else if(in_GetKeyState(SDL_SCANCODE_2) & IN_KEY_STATE_JUST_PRESSED)
+    {
+        ed_l_obj_placement_state.brush.brush_element = ED_BRUSH_ELEMENT_EDGE;
+    }
+    else if(in_GetKeyState(SDL_SCANCODE_3) & IN_KEY_STATE_JUST_PRESSED)
+    {
+        ed_l_obj_placement_state.brush.brush_element = ED_BRUSH_ELEMENT_VERT;
+    }
+
 
     struct ed_transform_operator_data_t *operator_data = ed_level_state.obj.objects.operators[ED_OPERATOR_TRANSFORM].data;
 
-    if(in_GetKeyState(SDL_SCANCODE_G) & IN_KEY_STATE_JUST_PRESSED)
+    if(in_GetKeyState(SDL_SCANCODE_T) & IN_KEY_STATE_JUST_PRESSED)
     {
-        operator_data->mode = ED_TRANSFORM_OPERATOR_MODE_TRANSLATE;
+        operator_data->transform_type = ED_TRANSFORM_OPERATOR_TRANSFORM_TYPE_TRANSLATE;
     }
     else if(in_GetKeyState(SDL_SCANCODE_R) & IN_KEY_STATE_JUST_PRESSED)
     {
-        operator_data->mode = ED_TRANSFORM_OPERATOR_MODE_ROTATE;
+        operator_data->transform_type = ED_TRANSFORM_OPERATOR_TRANSFORM_TYPE_ROTATE;
     }
     else if(in_GetKeyState(SDL_SCANCODE_S) & IN_KEY_STATE_JUST_PRESSED)
     {
-        operator_data->mode = ED_TRANSFORM_OPERATOR_MODE_SCALE;
+        operator_data->transform_type = ED_TRANSFORM_OPERATOR_TRANSFORM_TYPE_SCALE;
     }
 
     return 0;

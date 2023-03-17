@@ -527,7 +527,48 @@ struct r_i_mesh_t *r_i_AllocMeshForModel(struct r_i_cmd_buffer_t *cmd_buffer, st
 
 void r_i_DrawBox(vec3_t *half_extents, vec4_t *color)
 {
+    vec3_t min = vec3_t_c(-half_extents->x, -half_extents->y, -half_extents->z);
+    vec3_t max = vec3_t_c(half_extents->x, half_extents->y, half_extents->z);
+//
+    struct r_vert_t verts[] = {
+        {.pos = vec3_t_c(min.x, max.y, min.z), .color = *color},
+        {.pos = vec3_t_c(min.x, max.y, max.z), .color = *color},
+        {.pos = vec3_t_c(max.x, max.y, max.z), .color = *color},
+        {.pos = vec3_t_c(max.x, max.y, min.z), .color = *color},
 
+        {.pos = vec3_t_c(min.x, min.y, min.z), .color = *color},
+        {.pos = vec3_t_c(min.x, min.y, max.z), .color = *color},
+        {.pos = vec3_t_c(max.x, min.y, max.z), .color = *color},
+        {.pos = vec3_t_c(max.x, min.y, min.z), .color = *color},
+    };
+
+    uint32_t indices[] = {
+        0, 1,
+        1, 2,
+        2, 3,
+        3, 0,
+
+        4, 5,
+        5, 6,
+        6, 7,
+        7, 4,
+
+        0, 4,
+        1, 5,
+        2, 6,
+        3, 7
+    };
+
+    struct r_i_draw_list_t *draw_list = r_i_AllocDrawList(NULL, 1);
+    draw_list->mesh = r_i_AllocMesh(NULL, sizeof(struct r_vert_t), 8, 24);
+    memcpy(draw_list->mesh->verts.verts, verts, sizeof(verts));
+    memcpy(draw_list->mesh->indices.indices, indices, sizeof(indices));
+    draw_list->ranges[0].count = 24;
+    draw_list->ranges[0].start = 0;
+    draw_list->indexed = 1;
+    draw_list->mode = GL_LINES;
+
+    r_i_DrawList(NULL, draw_list);
 }
 
 void r_i_DrawVerts(struct r_i_cmd_buffer_t *cmd_buffer, struct r_vert_t *verts, uint32_t vert_count, uint32_t *indices, uint32_t index_count, uint32_t mode)

@@ -110,6 +110,7 @@ struct r_shadow_bucket_t r_shadow_buckets[R_SHADOW_BUCKET_COUNT];
 struct ds_chunk_h r_screen_tri_chunk;
 uint32_t r_screen_tri_start;
 uint32_t r_immediate_cmd_id = 0;
+uint32_t r_test_query;
 
 char *r_light_type_names[R_LIGHT_TYPE_LAST] =
 {
@@ -151,6 +152,7 @@ float r_z_near = 0.1;
 float r_z_far = 1000.0;
 float r_denom = 0.0;
 float r_fov = 0.68;
+uint32_t r_max_parallax_samples = 8;
 
 //struct r_named_uniform_t r_default_uniforms[] =
 //{
@@ -208,52 +210,56 @@ uint32_t r_uniform_type_sizes[] =
 
 struct r_gl_format_info_t r_gl_format_info[] =
 {
-    [R_FORMAT_RG8] =                {.type = GL_UNSIGNED_BYTE,      .size = 2, .data_format = GL_RG, .internal_format = GL_RG8},
-    [R_FORMAT_RG8I] =               {.type = GL_BYTE,               .size = 2, .data_format = GL_RG_INTEGER, .internal_format = GL_RG8I},
-    [R_FORMAT_RG8UI] =              {.type = GL_UNSIGNED_BYTE,      .size = 2, .data_format = GL_RG_INTEGER, .internal_format = GL_RG8UI},
+    [R_FORMAT_R8] =                 {.type = GL_UNSIGNED_BYTE,      .size = 1, .data_format = GL_RED,               .internal_format = GL_R8},
+    [R_FORMAT_R8I] =                {.type = GL_BYTE,               .size = 1, .data_format = GL_RED_INTEGER,       .internal_format = GL_R8I},
+    [R_FORMAT_R8UI] =               {.type = GL_UNSIGNED_BYTE,      .size = 1, .data_format = GL_RED_INTEGER,       .internal_format = GL_R8UI},
 
-    [R_FORMAT_RG16] =               {.type = GL_UNSIGNED_SHORT,     .size = 2, .data_format = GL_RG, .internal_format = GL_RG16},
-    [R_FORMAT_RG16I] =              {.type = GL_SHORT,              .size = 2, .data_format = GL_RG_INTEGER, .internal_format = GL_RG16I},
-    [R_FORMAT_RG16UI] =             {.type = GL_UNSIGNED_SHORT,     .size = 2, .data_format = GL_RG_INTEGER, .internal_format = GL_RG16UI},
-    [R_FORMAT_RG16F] =              {.type = GL_HALF_FLOAT,         .size = 2, .data_format = GL_RG, .internal_format = GL_RG16F},
+    [R_FORMAT_RG8] =                {.type = GL_UNSIGNED_BYTE,      .size = 2, .data_format = GL_RG,                .internal_format = GL_RG8},
+    [R_FORMAT_RG8I] =               {.type = GL_BYTE,               .size = 2, .data_format = GL_RG_INTEGER,        .internal_format = GL_RG8I},
+    [R_FORMAT_RG8UI] =              {.type = GL_UNSIGNED_BYTE,      .size = 2, .data_format = GL_RG_INTEGER,        .internal_format = GL_RG8UI},
 
-    [R_FORMAT_RG32] =               {.type = GL_UNSIGNED_INT,       .size = 2, .data_format = GL_RG_INTEGER, .internal_format = GL_RG32I},
-    [R_FORMAT_RG32I] =              {.type = GL_INT,                .size = 2, .data_format = GL_RG_INTEGER, .internal_format = GL_RG32I},
-    [R_FORMAT_RG32UI] =             {.type = GL_UNSIGNED_INT,       .size = 2, .data_format = GL_RG_INTEGER, .internal_format = GL_RG32UI},
-    [R_FORMAT_RG32F] =              {.type = GL_FLOAT,              .size = 2, .data_format = GL_RG, .internal_format = GL_RG32F},
+    [R_FORMAT_RG16] =               {.type = GL_UNSIGNED_SHORT,     .size = 2, .data_format = GL_RG,                .internal_format = GL_RG16},
+    [R_FORMAT_RG16I] =              {.type = GL_SHORT,              .size = 2, .data_format = GL_RG_INTEGER,        .internal_format = GL_RG16I},
+    [R_FORMAT_RG16UI] =             {.type = GL_UNSIGNED_SHORT,     .size = 2, .data_format = GL_RG_INTEGER,        .internal_format = GL_RG16UI},
+    [R_FORMAT_RG16F] =              {.type = GL_HALF_FLOAT,         .size = 2, .data_format = GL_RG,                .internal_format = GL_RG16F},
 
-    [R_FORMAT_RGB8] =               {.type = GL_UNSIGNED_BYTE,      .size = 3, .data_format = GL_RGB, .internal_format = GL_RGB8},
-    [R_FORMAT_RGB8I] =              {.type = GL_BYTE,               .size = 3, .data_format = GL_RGB_INTEGER, .internal_format = GL_RGB8I},
-    [R_FORMAT_RGB8UI] =             {.type = GL_UNSIGNED_BYTE,      .size = 3, .data_format = GL_RGB_INTEGER, .internal_format = GL_RGB8UI},
+    [R_FORMAT_RG32] =               {.type = GL_UNSIGNED_INT,       .size = 2, .data_format = GL_RG_INTEGER,        .internal_format = GL_RG32I},
+    [R_FORMAT_RG32I] =              {.type = GL_INT,                .size = 2, .data_format = GL_RG_INTEGER,        .internal_format = GL_RG32I},
+    [R_FORMAT_RG32UI] =             {.type = GL_UNSIGNED_INT,       .size = 2, .data_format = GL_RG_INTEGER,        .internal_format = GL_RG32UI},
+    [R_FORMAT_RG32F] =              {.type = GL_FLOAT,              .size = 2, .data_format = GL_RG,                .internal_format = GL_RG32F},
 
-    [R_FORMAT_RGB16] =              {.type = GL_UNSIGNED_SHORT,     .size = 3, .data_format = GL_RGB, .internal_format = GL_RGB16},
-    [R_FORMAT_RGB16I] =             {.type = GL_SHORT,              .size = 3, .data_format = GL_RGB_INTEGER, .internal_format = GL_RGB16I},
-    [R_FORMAT_RGB16UI] =            {.type = GL_UNSIGNED_SHORT,     .size = 3, .data_format = GL_RGB_INTEGER, .internal_format = GL_RGB16UI},
-    [R_FORMAT_RGB16F] =             {.type = GL_HALF_FLOAT,         .size = 3, .data_format = GL_RGB, .internal_format = GL_RGB16F},
+    [R_FORMAT_RGB8] =               {.type = GL_UNSIGNED_BYTE,      .size = 3, .data_format = GL_RGB,               .internal_format = GL_RGB8},
+    [R_FORMAT_RGB8I] =              {.type = GL_BYTE,               .size = 3, .data_format = GL_RGB_INTEGER,       .internal_format = GL_RGB8I},
+    [R_FORMAT_RGB8UI] =             {.type = GL_UNSIGNED_BYTE,      .size = 3, .data_format = GL_RGB_INTEGER,       .internal_format = GL_RGB8UI},
 
-    [R_FORMAT_RGB32] =              {.type = GL_UNSIGNED_INT,       .size = 3, .data_format = GL_RGB, .internal_format = GL_RGB32I},
-    [R_FORMAT_RGB32I] =             {.type = GL_INT,                .size = 3, .data_format = GL_RGB_INTEGER, .internal_format = GL_RGB32I},
-    [R_FORMAT_RGB32UI] =            {.type = GL_UNSIGNED_INT,       .size = 3, .data_format = GL_RGB_INTEGER, .internal_format = GL_RGB32UI},
-    [R_FORMAT_RGB32F] =             {.type = GL_FLOAT,              .size = 3, .data_format = GL_RGB, .internal_format = GL_RGB32F},
+    [R_FORMAT_RGB16] =              {.type = GL_UNSIGNED_SHORT,     .size = 3, .data_format = GL_RGB,               .internal_format = GL_RGB16},
+    [R_FORMAT_RGB16I] =             {.type = GL_SHORT,              .size = 3, .data_format = GL_RGB_INTEGER,       .internal_format = GL_RGB16I},
+    [R_FORMAT_RGB16UI] =            {.type = GL_UNSIGNED_SHORT,     .size = 3, .data_format = GL_RGB_INTEGER,       .internal_format = GL_RGB16UI},
+    [R_FORMAT_RGB16F] =             {.type = GL_HALF_FLOAT,         .size = 3, .data_format = GL_RGB,               .internal_format = GL_RGB16F},
 
-    [R_FORMAT_RGBA8] =              {.type = GL_UNSIGNED_BYTE,      .size = 4, .data_format = GL_RGBA, .internal_format = GL_RGBA8},
-    [R_FORMAT_RGBA8I] =             {.type = GL_BYTE,               .size = 4, .data_format = GL_RGBA_INTEGER, .internal_format = GL_RGBA8I},
-    [R_FORMAT_RGBA8UI] =            {.type = GL_UNSIGNED_BYTE,      .size = 4, .data_format = GL_RGBA_INTEGER, .internal_format = GL_RGBA8UI},
+    [R_FORMAT_RGB32] =              {.type = GL_UNSIGNED_INT,       .size = 3, .data_format = GL_RGB,               .internal_format = GL_RGB32I},
+    [R_FORMAT_RGB32I] =             {.type = GL_INT,                .size = 3, .data_format = GL_RGB_INTEGER,       .internal_format = GL_RGB32I},
+    [R_FORMAT_RGB32UI] =            {.type = GL_UNSIGNED_INT,       .size = 3, .data_format = GL_RGB_INTEGER,       .internal_format = GL_RGB32UI},
+    [R_FORMAT_RGB32F] =             {.type = GL_FLOAT,              .size = 3, .data_format = GL_RGB,               .internal_format = GL_RGB32F},
 
-    [R_FORMAT_RGBA16] =             {.type = GL_UNSIGNED_SHORT,     .size = 4, .data_format = GL_RGBA, .internal_format = GL_RGBA16},
-    [R_FORMAT_RGBA16I] =            {.type = GL_SHORT,              .size = 4, .data_format = GL_RGBA_INTEGER, .internal_format = GL_RGBA16I},
-    [R_FORMAT_RGBA16UI] =           {.type = GL_UNSIGNED_SHORT,     .size = 4, .data_format = GL_RGBA_INTEGER, .internal_format = GL_RGBA16UI},
-    [R_FORMAT_RGBA16F] =            {.type = GL_HALF_FLOAT,         .size = 4, .data_format = GL_RGBA, .internal_format = GL_RGBA16F},
+    [R_FORMAT_RGBA8] =              {.type = GL_UNSIGNED_BYTE,      .size = 4, .data_format = GL_RGBA,              .internal_format = GL_RGBA8},
+    [R_FORMAT_RGBA8I] =             {.type = GL_BYTE,               .size = 4, .data_format = GL_RGBA_INTEGER,      .internal_format = GL_RGBA8I},
+    [R_FORMAT_RGBA8UI] =            {.type = GL_UNSIGNED_BYTE,      .size = 4, .data_format = GL_RGBA_INTEGER,      .internal_format = GL_RGBA8UI},
 
-    [R_FORMAT_RGBA32] =             {.type = GL_UNSIGNED_INT,       .size = 4, .data_format = GL_RGBA, .internal_format = GL_RGBA32I},
-    [R_FORMAT_RGBA32I] =            {.type = GL_INT,                .size = 4, .data_format = GL_RGBA_INTEGER, .internal_format = GL_RGBA32I},
-    [R_FORMAT_RGBA32UI] =           {.type = GL_UNSIGNED_INT,       .size = 4, .data_format = GL_RGBA_INTEGER, .internal_format = GL_RGBA32UI},
-    [R_FORMAT_RGBA32F] =            {.type = GL_FLOAT,              .size = 4, .data_format = GL_RGBA, .internal_format = GL_RGBA32F},
+    [R_FORMAT_RGBA16] =             {.type = GL_UNSIGNED_SHORT,     .size = 4, .data_format = GL_RGBA,              .internal_format = GL_RGBA16},
+    [R_FORMAT_RGBA16I] =            {.type = GL_SHORT,              .size = 4, .data_format = GL_RGBA_INTEGER,      .internal_format = GL_RGBA16I},
+    [R_FORMAT_RGBA16UI] =           {.type = GL_UNSIGNED_SHORT,     .size = 4, .data_format = GL_RGBA_INTEGER,      .internal_format = GL_RGBA16UI},
+    [R_FORMAT_RGBA16F] =            {.type = GL_HALF_FLOAT,         .size = 4, .data_format = GL_RGBA,              .internal_format = GL_RGBA16F},
 
-    [R_FORMAT_DEPTH16] =            {.type = GL_UNSIGNED_SHORT,     .size = 1, .data_format = GL_DEPTH_COMPONENT, .internal_format = GL_DEPTH_COMPONENT16},
-    [R_FORMAT_DEPTH32] =            {.type = GL_UNSIGNED_INT,       .size = 1, .data_format = GL_DEPTH_COMPONENT, .internal_format = GL_DEPTH_COMPONENT32},
-    [R_FORMAT_DEPTH32F] =           {.type = GL_FLOAT,              .size = 1, .data_format = GL_DEPTH_COMPONENT, .internal_format = GL_DEPTH_COMPONENT32F},
-    [R_FORMAT_DEPTH24_STENCIL8] =   {.type = GL_UNSIGNED_INT_24_8,  .size = 1, .data_format = GL_DEPTH_STENCIL, .internal_format = GL_DEPTH24_STENCIL8}
+    [R_FORMAT_RGBA32] =             {.type = GL_UNSIGNED_INT,       .size = 4, .data_format = GL_RGBA,              .internal_format = GL_RGBA32I},
+    [R_FORMAT_RGBA32I] =            {.type = GL_INT,                .size = 4, .data_format = GL_RGBA_INTEGER,      .internal_format = GL_RGBA32I},
+    [R_FORMAT_RGBA32UI] =           {.type = GL_UNSIGNED_INT,       .size = 4, .data_format = GL_RGBA_INTEGER,      .internal_format = GL_RGBA32UI},
+    [R_FORMAT_RGBA32F] =            {.type = GL_FLOAT,              .size = 4, .data_format = GL_RGBA,              .internal_format = GL_RGBA32F},
+
+    [R_FORMAT_DEPTH16] =            {.type = GL_UNSIGNED_SHORT,     .size = 1, .data_format = GL_DEPTH_COMPONENT,   .internal_format = GL_DEPTH_COMPONENT16},
+    [R_FORMAT_DEPTH32] =            {.type = GL_UNSIGNED_INT,       .size = 1, .data_format = GL_DEPTH_COMPONENT,   .internal_format = GL_DEPTH_COMPONENT32},
+    [R_FORMAT_DEPTH32F] =           {.type = GL_FLOAT,              .size = 1, .data_format = GL_DEPTH_COMPONENT,   .internal_format = GL_DEPTH_COMPONENT32F},
+    [R_FORMAT_DEPTH24_STENCIL8] =   {.type = GL_UNSIGNED_INT_24_8,  .size = 1, .data_format = GL_DEPTH_STENCIL,     .internal_format = GL_DEPTH24_STENCIL8}
 };
 
 //case GL_DEPTH_COMPONENT16:
@@ -323,13 +329,13 @@ void r_Init()
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
-    printf("shit\n");
+//    printf("shit\n");
     r_window = SDL_CreateWindow("doh", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, r_width, r_height, SDL_WINDOW_OPENGL);
-    printf("ass\n");
+//    printf("ass\n");
     r_context = SDL_GL_CreateContext(r_window);
     SDL_GL_MakeCurrent(r_window, r_context);
     SDL_GL_SetSwapInterval(1);
-    printf("nuts\n");
+//    printf("nuts\n");
 
     GLenum status = glewInit();
     if(status != GLEW_OK)
@@ -519,6 +525,29 @@ void r_Init()
     };
 //    r_default_roughness_texture = r_CreateTexture("default_roughness", 4, 4, R_FORMAT_RGBA8, GL_NEAREST, GL_NEAREST, pixels);
     r_default_roughness_texture = r_CreateTexture("default_roughness", &texture_desc, pixels);
+
+    uint8_t height_pixels[] = {
+        0x7f, 0xff, 0x7f, 0xff,
+        0xff, 0x7f, 0xff, 0x7f,
+        0x7f, 0xff, 0x7f, 0xff,
+        0xff, 0x7f, 0xff, 0x7f,
+    };
+
+    texture_desc = (struct r_texture_desc_t) {
+        .format = R_FORMAT_R8,
+        .width = 4,
+        .height = 4,
+        .min_filter = GL_NEAREST,
+        .mag_filter = GL_NEAREST,
+    };
+
+    r_default_height_texture = r_CreateTexture("default_height", &texture_desc, height_pixels);
+
+    r_default_albedo_texture = r_LoadTexture("textures/flat-cobble-moss-albedo.png");
+    r_default_normal_texture = r_LoadTexture("textures/flat-cobble-moss-normal-ogl.png");
+    r_default_roughness_texture = r_LoadTexture("textures/flat-cobble-moss-roughness.png");
+    r_default_height_texture = r_LoadTexture("textures/flat-cobble-moss-height.png");
+
     r_default_material = r_CreateMaterial("default", NULL, NULL, NULL);
 
     r_clusters = mem_Calloc(R_CLUSTER_COUNT, sizeof(struct r_cluster_t));
@@ -1065,6 +1094,10 @@ void r_Init()
     struct ds_chunk_t *tri_chunk = ds_get_chunk_pointer(&r_vertex_heap, r_screen_tri_chunk);
     r_screen_tri_start = tri_chunk->start / sizeof(struct r_vert_t);
 
+
+
+    glGenQueries(1, &r_test_query);
+
     log_ScopedLogMessage(LOG_TYPE_NOTICE, "Renderer initialized!");
 }
 
@@ -1476,6 +1509,7 @@ struct r_texture_t* r_CreateTexture(char *name, struct r_texture_desc_t *desc, v
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, texture_desc->addr_t);
     glTexImage2D(GL_TEXTURE_2D, texture_desc->base_level, format_info.internal_format,
                  texture_desc->width, texture_desc->height, 0, format_info.data_format, format_info.type, data);
+//    printf("%x\n", glGetError());
 
     if(texture_desc->max_level > texture_desc->base_level)
     {
@@ -1940,20 +1974,17 @@ void r_BindMaterial(struct r_material_t *material)
     {
         r_renderer_state.material_swaps++;
 
-//        glActiveTexture(GL_TEXTURE0 + R_ALBEDO_TEX_UNIT);
-//        glBindTexture(GL_TEXTURE_2D, material->diffuse_texture->handle);
         r_BindTexture(material->diffuse_texture, GL_TEXTURE0 + R_ALBEDO_TEX_UNIT);
         r_SetDefaultUniformI(R_UNIFORM_TEX_ALBEDO, R_ALBEDO_TEX_UNIT);
 
-//        glActiveTexture(GL_TEXTURE0 + R_ROUGHNESS_TEX_UNIT);
-//        glBindTexture(GL_TEXTURE_2D, material->roughness_texture->handle);
         r_BindTexture(material->roughness_texture, GL_TEXTURE0 + R_ROUGHNESS_TEX_UNIT);
         r_SetDefaultUniformI(R_UNIFORM_TEX_ROUGHNESS, R_ROUGHNESS_TEX_UNIT);
 
-//        glActiveTexture(GL_TEXTURE0 + R_NORMAL_TEX_UNIT);
-//        glBindTexture(GL_TEXTURE_2D, material->normal_texture->handle);
         r_BindTexture(material->normal_texture, GL_TEXTURE0 + R_NORMAL_TEX_UNIT);
         r_SetDefaultUniformI(R_UNIFORM_TEX_NORMAL, R_NORMAL_TEX_UNIT);
+
+        r_BindTexture(material->height_texture, GL_TEXTURE0 + R_HEIGHT_TEX_UNIT);
+        r_SetDefaultUniformI(R_UNIFORM_TEX_HEIGHT, R_HEIGHT_TEX_UNIT);
     }
 }
 

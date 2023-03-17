@@ -75,7 +75,20 @@ vec3_t ed_cube_brush_tangents[] =
     vec3_t_c(0.0, 0.0, 1.0),
     vec3_t_c(0.0, 0.0, -1.0),
     vec3_t_c(1.0, 0.0, 0.0),
-    vec3_t_c(-1.0, 0.0, 0.0),
+    vec3_t_c(1.0, 0.0, 0.0),
+};
+
+vec2_t ed_cube_brush_tex_coords[] = {
+    vec2_t_c(0.0, 0.0),
+    vec2_t_c(1.0, 0.0),
+    vec2_t_c(1.0, 1.0),
+    vec2_t_c(0.0, 1.0),
+};
+
+char *ed_brush_element_names[] = {
+    [ED_BRUSH_ELEMENT_FACE] = "Face",
+    [ED_BRUSH_ELEMENT_EDGE] = "Edge",
+    [ED_BRUSH_ELEMENT_VERT] = "Vert"
 };
 
 extern struct ed_level_state_t ed_level_state;
@@ -117,7 +130,7 @@ static void ed_UpdateBrushObject(struct ed_obj_t *object, struct ed_obj_event_t 
 
                         switch(event->operator.transform.type)
                         {
-                            case ED_TRANSFORM_OPERATOR_MODE_TRANSLATE:
+                            case ED_TRANSFORM_OPERATOR_TRANSFORM_TYPE_TRANSLATE:
                             {
                                 if(faces->cursor)
                                 {
@@ -135,7 +148,7 @@ static void ed_UpdateBrushObject(struct ed_obj_t *object, struct ed_obj_event_t 
                             }
                             break;
 
-                            case ED_TRANSFORM_OPERATOR_MODE_ROTATE:
+                            case ED_TRANSFORM_OPERATOR_TRANSFORM_TYPE_ROTATE:
                             {
                                 if(faces->cursor)
                                 {
@@ -145,6 +158,12 @@ static void ed_UpdateBrushObject(struct ed_obj_t *object, struct ed_obj_event_t 
                                 {
                                     mat3_t_mul(&brush->orientation, &brush->orientation, &event->operator.transform.rotation.rotation);
                                 }
+                            }
+                            break;
+
+                            case ED_TRANSFORM_OPERATOR_TRANSFORM_TYPE_SCALE:
+                            {
+
                             }
                             break;
                         }
@@ -1927,6 +1946,7 @@ void ed_UpdateBrush(struct ed_brush_t *brush)
                 model_vert->normal.xyz = face->normal;
                 model_vert->normal.w = 0.0;
                 model_vert->tangent = face->tangent;
+                model_vert->tex_coords = ed_cube_brush_tex_coords[vert_index % 4];
 
                 if(geometry.min.x > brush_vert->vert.x) geometry.min.x = brush_vert->vert.x;
                 if(geometry.min.y > brush_vert->vert.y) geometry.min.y = brush_vert->vert.y;

@@ -52,7 +52,6 @@ int main(int argc, char *argv[])
     {
         float delta_time = g_UpdateDeltaTime();
 //        delta_time = 0.0166;
-        r_BeginFrame();
         in_Input(delta_time);
         gui_BeginFrame(delta_time);
 
@@ -74,6 +73,7 @@ int main(int argc, char *argv[])
         }
 
         e_UpdateEntities();
+        r_BeginFrame();
         r_VisibleWorld();
         r_VisibleLights();
         r_VisibleEntitiesOnLights();

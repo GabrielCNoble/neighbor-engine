@@ -1031,7 +1031,7 @@
 	"r_draw.h"
 	"../lib/GLEW/include/GL/glew.h"
 
-1678406373 source:c:\users\gabri\documents\compiler\metroid_thingy\engine\gui.c
+1678819066 source:c:\users\gabri\documents\compiler\metroid_thingy\engine\gui.c
 	"gui.h"
 	"r_main.h"
 	"r_draw.h"
@@ -1156,7 +1156,7 @@
 	"../lib/dstuff/ds_vector.h"
 	<stdint.h>
 
-1678406373 source:c:\users\gabri\documents\compiler\metroid_thingy\engine\main.c
+1679014245 source:c:\users\gabri\documents\compiler\metroid_thingy\engine\main.c
 	"SDL2/SDL.h"
 	"main.h"
 	"../lib/backtrace/include/backtrace.h"
@@ -1182,7 +1182,7 @@
 	"../engine/ent.h"
 	"ed_bsp.h"
 
-1678406373 source:c:\users\gabri\documents\compiler\metroid_thingy\engine\r_draw.c
+1678980141 source:c:\users\gabri\documents\compiler\metroid_thingy\engine\r_draw.c
 	"r_draw.h"
 	"r_draw_i.h"
 	"SDL2/SDL.h"
@@ -1210,7 +1210,7 @@
 
 1678406373 source:c:\users\gabri\documents\compiler\metroid_thingy\editor\ed_pick.c
 
-1678406373 source:c:\users\gabri\documents\compiler\metroid_thingy\editor\ed_main.c
+1678978499 source:c:\users\gabri\documents\compiler\metroid_thingy\editor\ed_main.c
 	"ed_main.h"
 	"ed_ent.h"
 	"ed_proj.h"
@@ -1239,7 +1239,7 @@
 	<float.h>
 	<stdlib.h>
 
-1678406373 source:c:\users\gabri\documents\compiler\metroid_thingy\engine\r_main.c
+1679016323 source:c:\users\gabri\documents\compiler\metroid_thingy\engine\r_main.c
 	"r_main.h"
 	"SDL2/SDL.h"
 	"GL/glew.h"
@@ -1255,7 +1255,7 @@
 	"anim.h"
 	"log.h"
 
-1678406373 source:c:\users\gabri\documents\compiler\metroid_thingy\engine\r_vis.c
+1679014032 source:c:\users\gabri\documents\compiler\metroid_thingy\engine\r_vis.c
 	"r_vis.h"
 	"ent.h"
 	"g_main.h"
@@ -1397,7 +1397,7 @@
 	<stddef.h>
 	<lzo/lzodefs.h>
 
-1678406373 c:\users\gabri\documents\compiler\metroid_thingy\engine\r_defs.h
+1678979002 c:\users\gabri\documents\compiler\metroid_thingy\engine\r_defs.h
 	"../lib/dstuff/ds_vector.h"
 	"../lib/dstuff/ds_matrix.h"
 	"../lib/dstuff/ds_alloc.h"
@@ -1461,7 +1461,7 @@
 	"../engine/gui.h"
 	"ed_main.h"
 
-1678725605 source:c:\users\gabri\documents\compiler\metroid_thingy\engine\ent.c
+1679011030 source:c:\users\gabri\documents\compiler\metroid_thingy\engine\ent.c
 	<stdio.h>
 	"ent.h"
 	"phys.h"
@@ -2563,7 +2563,7 @@
 	"dgCollision.h"
 	"dgCollisionConvex.h"
 
-1678406373 source:c:\users\gabri\documents\compiler\metroid_thingy\engine\r_draw_i.c
+1678980611 source:c:\users\gabri\documents\compiler\metroid_thingy\engine\r_draw_i.c
 	"r_draw_i.h"
 
 1678406373 c:\users\gabri\documents\compiler\metroid_thingy\engine\r_draw_i.h
@@ -2627,7 +2627,7 @@
 	"obj/light.h"
 	"tool.h"
 
-1678661917 source:c:\users\gabri\documents\compiler\metroid_thingy\editor\level.c
+1678846245 source:c:\users\gabri\documents\compiler\metroid_thingy\editor\level.c
 	<float.h>
 	"level.h"
 	"ed_pick.h"
@@ -2663,14 +2663,14 @@
 1678293747 source:c:\users\gabri\documents\compiler\metroid_thingy\editor\ent.c
 	"ent.h"
 
-1678717485 c:\users\gabri\documents\compiler\metroid_thingy\editor\obj\obj.h
+1678732389 c:\users\gabri\documents\compiler\metroid_thingy\editor\obj\obj.h
 	"../../lib/dstuff/ds_slist.h"
 	"../../lib/dstuff/ds_matrix.h"
 	"../../lib/dstuff/ds_vector.h"
 	"../../engine/r_defs.h"
 	"../tool.h"
 
-1678661790 source:c:\users\gabri\documents\compiler\metroid_thingy\editor\obj\ent.c
+1678732508 source:c:\users\gabri\documents\compiler\metroid_thingy\editor\obj\ent.c
 	"ent.h"
 	"../../engine/ent.h"
 	"../../engine/r_draw_i.h"
@@ -2679,7 +2679,7 @@
 	"obj.h"
 	"../engine/e_defs.h"
 
-1678496307 source:c:\users\gabri\documents\compiler\metroid_thingy\editor\obj\light.c
+1678732515 source:c:\users\gabri\documents\compiler\metroid_thingy\editor\obj\light.c
 	"light.h"
 	"../engine/r_main.h"
 	"../engine/r_draw_i.h"
@@ -2692,7 +2692,7 @@
 	"../ed_defs.h"
 	"obj.h"
 
-1678723650 source:c:\users\gabri\documents\compiler\metroid_thingy\editor\obj\obj.c
+1678810681 source:c:\users\gabri\documents\compiler\metroid_thingy\editor\obj\obj.c
 	<stdio.h>
 	"../engine/r_defs.h"
 	"../engine/r_main.h"
@@ -2703,7 +2703,7 @@
 	"brush.h"
 	"light.h"
 
-1678590078 source:c:\users\gabri\documents\compiler\metroid_thingy\editor\obj\brush.c
+1678911991 source:c:\users\gabri\documents\compiler\metroid_thingy\editor\obj\brush.c
 	<float.h>
 	"brush.h"
 	"../level.h"

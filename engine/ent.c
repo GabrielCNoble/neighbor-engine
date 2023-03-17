@@ -752,7 +752,6 @@ void e_TranslateEntity(struct e_entity_t *entity, vec3_t *translation)
         if(entity->collider)
         {
             p_SetColliderTransform(entity->collider->collider, &entity->node->position, &entity->node->orientation, &entity->node->scale);
-//            p_TransformCollider(entity->collider->collider, translation, &mat3_t_c_id());
         }
     }
 }
@@ -844,10 +843,17 @@ void e_UpdateEntityNode(struct e_node_t *local_transform, mat4_t *parent_transfo
 void e_DebugDrawEntities()
 {
     mat4_t model_view_projection_matrix;
-    r_BindShader(r_immediate_shader);
-    glLineWidth(1.0);
-    glEnable(GL_DEPTH_TEST);
-    glDepthFunc(GL_LESS);
+//    r_BindShader(r_immediate_shader);
+//    glLineWidth(1.0);
+//    glEnable(GL_DEPTH_TEST);
+//    glDepthFunc(GL_LESS);
+
+    struct r_i_raster_t rasterizer_state = {
+        .line_width = 1.0,
+    };
+
+    r_i_SetShader(NULL, NULL);
+    r_i_SetRasterizer(NULL, NULL, &rasterizer_state);
 
     for(uint32_t model_index = 0; model_index < e_components[E_COMPONENT_TYPE_MODEL].cursor; model_index++)
     {
@@ -859,8 +865,16 @@ void e_DebugDrawEntities()
         vec3_t_mul(&half_extents, &model->extents, 0.5);
 
         mat4_t_mul(&model_view_projection_matrix, &model_view_projection_matrix, &r_view_projection_matrix);
-        r_SetDefaultUniformMat4(R_UNIFORM_MODEL_VIEW_PROJECTION_MATRIX, &model_view_projection_matrix);
-        r_DrawBox(&half_extents, &vec4_t_c(0.0, 1.0, 0.0, 1.0));
+        struct r_i_uniform_t uniform = {
+            .uniform = R_UNIFORM_MODEL_VIEW_PROJECTION_MATRIX,
+            .count = 1,
+            .value = &model_view_projection_matrix
+        };
+
+        r_i_SetUniforms(NULL, NULL, &uniform, 1);
+//        r_SetDefaultUniformMat4(R_UNIFORM_MODEL_VIEW_PROJECTION_MATRIX, &model_view_projection_matrix);
+//        printf("%x\n", glGetError());
+        r_i_DrawBox(&half_extents, &vec4_t_c(0.0, 1.0, 0.0, 1.0));
     }
 }
 
@@ -928,6 +942,11 @@ void e_UpdateEntities()
         vec3_t_add(&model->center, &max, &min);
         vec3_t_mul(&model->center, &model->center, 0.5);
     }
+
+//    if(r_renderer_state.draw_entities)
+//    {
+////        e_DebugDrawEntities();
+//    }
 
 //    if(r_renderer_state.draw_entities)
 //    {

@@ -32,19 +32,19 @@ static void ed_UpdateEntityObject(struct ed_obj_t *object, struct ed_obj_event_t
                     case ED_OPERATOR_TRANSFORM:
                         switch(event->operator.transform.type)
                         {
-                            case ED_TRANSFORM_OPERATOR_MODE_TRANSLATE:
+                            case ED_TRANSFORM_OPERATOR_TRANSFORM_TYPE_TRANSLATE:
                             {
                                 e_TranslateEntity(entity, &event->operator.transform.translation.translation);
                             }
                             break;
 
-                            case ED_TRANSFORM_OPERATOR_MODE_ROTATE:
+                            case ED_TRANSFORM_OPERATOR_TRANSFORM_TYPE_ROTATE:
                             {
                                 e_RotateEntity(entity, &event->operator.transform.rotation.rotation);
                             }
                             break;
 
-                            case ED_TRANSFORM_OPERATOR_MODE_SCALE:
+                            case ED_TRANSFORM_OPERATOR_TRANSFORM_TYPE_SCALE:
                             {
                                 e_ScaleEntity(entity, &event->operator.transform.scale.scale);
                             }

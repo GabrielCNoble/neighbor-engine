@@ -12,6 +12,10 @@
 
 enum R_FORMATS
 {
+    R_FORMAT_R8,
+    R_FORMAT_R8I,
+    R_FORMAT_R8UI,
+
     R_FORMAT_RG8,
     R_FORMAT_RG8I,
     R_FORMAT_RG8UI,
@@ -238,6 +242,8 @@ enum R_UNIFORM
     R_UNIFORM_Z_FAR,
     R_UNIFORM_WIDTH,
     R_UNIFORM_HEIGHT,
+//    R_UNIFORM_MIN_PARALLAX_SAMPLES,
+    R_UNIFORM_MAX_PARALLAX_SAMPLES,
     R_UNIFORM_LAST,
 };
 
@@ -364,6 +370,10 @@ struct r_uniform_t
                                 [R_UNIFORM_HEIGHT] = (struct r_uniform_t){                              \
                                     .type = R_UNIFORM_TYPE_INT,                                         \
                                     .name = "r_height"                                                  \
+                                },                                                                      \
+                                [R_UNIFORM_MAX_PARALLAX_SAMPLES] = (struct r_uniform_t){                \
+                                    .type = R_UNIFORM_TYPE_INT,                                         \
+                                    .name = "r_max_parallax_samples"                                    \
                                 }})                                                                     \
 
 struct r_shader_desc_t

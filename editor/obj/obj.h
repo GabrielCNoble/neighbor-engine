@@ -15,18 +15,18 @@ enum ED_OBJ_TYPES
     ED_OBJ_TYPE_LAST,
 };
 
-enum ED_WIDGET_TYPES
-{
-    ED_WIDGET_TYPE_MANIPULATOR,
-    ED_WIDGET_TYPE_LAST
-};
-
-enum ED_OBJ_DISPLAY
-{
-    ED_OBJ_DISPLAY_WORLD_SPACE,
-    ED_OBJ_DISPLAY_CAMERA_SPACE,
-    ED_OBJ_DISPLAY_BILBOARD,
-};
+//enum ED_WIDGET_TYPES
+//{
+//    ED_WIDGET_TYPE_MANIPULATOR,
+//    ED_WIDGET_TYPE_LAST
+//};
+//
+//enum ED_OBJ_DISPLAY
+//{
+//    ED_OBJ_DISPLAY_WORLD_SPACE,
+//    ED_OBJ_DISPLAY_CAMERA_SPACE,
+//    ED_OBJ_DISPLAY_BILBOARD,
+//};
 
 #define ED_INVALID_OBJ_SELECTION_INDEX 0xffffffff
 
@@ -131,12 +131,19 @@ enum ED_OPERATORS
     ED_OPERATOR_LAST
 };
 
-enum ED_TRANSFORM_OPERATOR_MODES
+enum ED_TRANSFORM_OPERATOR_TRANSFORM_TYPES
 {
-    ED_TRANSFORM_OPERATOR_MODE_TRANSLATE = 0,
-    ED_TRANSFORM_OPERATOR_MODE_ROTATE,
-    ED_TRANSFORM_OPERATOR_MODE_SCALE,
-    ED_TRANSFORM_OPERATOR_MODE_LAST,
+    ED_TRANSFORM_OPERATOR_TRANSFORM_TYPE_TRANSLATE = 0,
+    ED_TRANSFORM_OPERATOR_TRANSFORM_TYPE_ROTATE,
+    ED_TRANSFORM_OPERATOR_TRANSFORM_TYPE_SCALE,
+    ED_TRANSFORM_OPERATOR_TRANSFORM_TYPE_LAST,
+};
+
+enum ED_TRANSFORM_OPERATOR_TRANSFORM_MODES
+{
+    ED_TRANSFORM_OPERATOR_TRANSFORM_MODE_WORLD,
+    ED_TRANSFORM_OPERATOR_TRANSFORM_MODE_LOCAL,
+    ED_TRANSFORM_OPERATOR_TRANSFORM_MODE_LAST,
 };
 
 struct ed_operator_t
@@ -258,7 +265,8 @@ struct ed_obj_event_t
 
 struct ed_transform_operator_data_t
 {
-    uint32_t                    mode;
+    uint32_t                    transform_type;
+    uint32_t                    transform_mode;
     float                       linear_snap;
     float                       angular_snap;
     vec3_t                      start_pos;

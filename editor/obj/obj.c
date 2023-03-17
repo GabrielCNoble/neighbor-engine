@@ -18,17 +18,28 @@ extern float                    r_fov;
 extern float                    r_z_near;
 extern float                    r_z_far;
 
-struct r_model_t *              ed_transform_operator_models[ED_TRANSFORM_OPERATOR_MODE_LAST];
-float                           ed_transform_operator_zoom[ED_TRANSFORM_OPERATOR_MODE_LAST] = {
-    [ED_TRANSFORM_OPERATOR_MODE_TRANSLATE] = 35.0,
-    [ED_TRANSFORM_OPERATOR_MODE_ROTATE] = 6.0,
-    [ED_TRANSFORM_OPERATOR_MODE_SCALE] = 35.0
+struct r_model_t *              ed_transform_operator_models[ED_TRANSFORM_OPERATOR_TRANSFORM_TYPE_LAST];
+float                           ed_transform_operator_zoom[ED_TRANSFORM_OPERATOR_TRANSFORM_TYPE_LAST] = {
+    [ED_TRANSFORM_OPERATOR_TRANSFORM_TYPE_TRANSLATE] = 35.0,
+    [ED_TRANSFORM_OPERATOR_TRANSFORM_TYPE_ROTATE] = 6.0,
+    [ED_TRANSFORM_OPERATOR_TRANSFORM_TYPE_SCALE] = 35.0
 };
 
 char *ed_obj_names[ED_OBJ_TYPE_LAST] = {
     [ED_OBJ_TYPE_BRUSH] = "Brush",
     [ED_OBJ_TYPE_LIGHT] = "Light",
     [ED_OBJ_TYPE_ENTITY] = "Entity"
+};
+
+char *ed_transform_operator_transform_mode_names[] = {
+    [ED_TRANSFORM_OPERATOR_TRANSFORM_MODE_WORLD] = "World",
+    [ED_TRANSFORM_OPERATOR_TRANSFORM_MODE_LOCAL] = "Local",
+};
+
+char *ed_transform_operator_transform_type_names[] = {
+    [ED_TRANSFORM_OPERATOR_TRANSFORM_TYPE_TRANSLATE] = "Translate",
+    [ED_TRANSFORM_OPERATOR_TRANSFORM_TYPE_ROTATE] = "Rotate",
+    [ED_TRANSFORM_OPERATOR_TRANSFORM_TYPE_SCALE] = "Scale",
 };
 
 struct r_i_draw_state_t ed_obj_render_pick_states[ED_OBJ_TYPE_LAST] = {
@@ -68,6 +79,7 @@ void ed_TransformOperatorUpdate(struct ed_obj_context_t *context, struct ed_oper
     {
         uint32_t index = ds_list_add_element(&operator->objects, NULL);
         struct ed_obj_t *operator_object = ds_list_get_element(&operator->objects, index);
+        struct ed_transform_operator_data_t *data = operator->data;
 
         operator_object->context = context;
         operator_object->index = index;
@@ -86,6 +98,20 @@ void ed_TransformOperatorUpdate(struct ed_obj_context_t *context, struct ed_oper
         vec3_t_div(&translation, &translation, (float)context->selections.cursor);
 
         operator_object->transform.rows[3].xyz = translation;
+
+        if(data->transform_mode == ED_TRANSFORM_OPERATOR_TRANSFORM_MODE_LOCAL && context->selections.cursor == 1)
+        {
+            struct ed_obj_result_t *result = ds_list_get_element(&context->selections, index);
+            vec3_t_normalize(&operator_object->transform.rows[0].xyz, &result->object->transform.rows[0].xyz);
+            vec3_t_normalize(&operator_object->transform.rows[1].xyz, &result->object->transform.rows[1].xyz);
+            vec3_t_normalize(&operator_object->transform.rows[2].xyz, &result->object->transform.rows[2].xyz);
+        }
+        else
+        {
+            operator_object->transform.rows[0] = vec4_t_c(1, 0, 0, 0);
+            operator_object->transform.rows[1] = vec4_t_c(0, 1, 0, 0);
+            operator_object->transform.rows[2] = vec4_t_c(0, 0, 1, 0);
+        }
     }
 }
 
@@ -98,16 +124,16 @@ void ed_TransformOperatorTransforms(struct ed_obj_t *object, mat4_t *transforms)
     mat4_t_identity(&local_transform);
     mat4_t_rotate_y(&local_transform, 0.5);
     mat4_t_mul(&local_transform, &local_transform, &object->transform);
-    ed_CameraSpaceDrawTransform(&local_transform, &local_transform, ed_transform_operator_zoom[data->mode]);
+    ed_CameraSpaceDrawTransform(&local_transform, &local_transform, ed_transform_operator_zoom[data->transform_type]);
     mat4_t_mul(&transforms[0], &local_transform, &r_view_projection_matrix);
 
     mat4_t_identity(&local_transform);
     mat4_t_rotate_x(&local_transform, -0.5);
     mat4_t_mul(&local_transform, &local_transform, &object->transform);
-    ed_CameraSpaceDrawTransform(&local_transform, &local_transform, ed_transform_operator_zoom[data->mode]);
+    ed_CameraSpaceDrawTransform(&local_transform, &local_transform, ed_transform_operator_zoom[data->transform_type]);
     mat4_t_mul(&transforms[1], &local_transform, &r_view_projection_matrix);
 
-    ed_CameraSpaceDrawTransform(&object->transform, &local_transform, ed_transform_operator_zoom[data->mode]);
+    ed_CameraSpaceDrawTransform(&object->transform, &local_transform, ed_transform_operator_zoom[data->transform_type]);
     mat4_t_mul(&transforms[2], &local_transform, &r_view_projection_matrix);
 }
 
@@ -139,7 +165,7 @@ struct r_i_draw_list_t *ed_PickTransformOperatorObject(struct ed_obj_t *object, 
     if(operator->objects.cursor)
     {
         draw_list = r_i_AllocDrawList(command_buffer, 3);
-        draw_list->mesh = r_i_AllocMeshForModel(command_buffer, ed_transform_operator_models[data->mode]);
+        draw_list->mesh = r_i_AllocMeshForModel(command_buffer, ed_transform_operator_models[data->transform_type]);
 
         mat4_t model_view_projection_matrix[3];
         ed_TransformOperatorTransforms(object, model_view_projection_matrix);
@@ -174,7 +200,7 @@ struct r_i_draw_list_t *ed_DrawTransformOperatorObject(struct ed_obj_t *object, 
     {
         draw_list = r_i_AllocDrawList(command_buffer, 6);
         mat4_t model_view_projection_matrix[3];
-        draw_list->mesh = r_i_AllocMeshForModel(command_buffer, ed_transform_operator_models[data->mode]);
+        draw_list->mesh = r_i_AllocMeshForModel(command_buffer, ed_transform_operator_models[data->transform_type]);
 
         ed_TransformOperatorTransforms(object, model_view_projection_matrix);
 
@@ -303,9 +329,9 @@ void ed_ObjInit()
     };
     ed_outline_shader = r_LoadShader(&shader_desc);
 
-    ed_transform_operator_models[ED_TRANSFORM_OPERATOR_MODE_TRANSLATE] = r_LoadModel("models/twidget.mof");
-    ed_transform_operator_models[ED_TRANSFORM_OPERATOR_MODE_ROTATE] = r_LoadModel("models/rwidget.mof");
-    ed_transform_operator_models[ED_TRANSFORM_OPERATOR_MODE_SCALE] = r_LoadModel("models/swidget.mof");
+    ed_transform_operator_models[ED_TRANSFORM_OPERATOR_TRANSFORM_TYPE_TRANSLATE] = r_LoadModel("models/twidget.mof");
+    ed_transform_operator_models[ED_TRANSFORM_OPERATOR_TRANSFORM_TYPE_ROTATE] = r_LoadModel("models/rwidget.mof");
+    ed_transform_operator_models[ED_TRANSFORM_OPERATOR_TRANSFORM_TYPE_SCALE] = r_LoadModel("models/swidget.mof");
 
     ed_operator_funcs[ED_OPERATOR_TRANSFORM] = (struct ed_operator_funcs_t) {
         .update = ed_TransformOperatorUpdate,
@@ -868,12 +894,12 @@ uint32_t ed_ApplyOperatorState(struct ed_tool_context_t *context, void *state_da
 
         in_GetMousePos(&mouse_x, &mouse_y);
 
-        switch(data->mode)
+        switch(data->transform_type)
         {
-            case ED_TRANSFORM_OPERATOR_MODE_TRANSLATE:
-            case ED_TRANSFORM_OPERATOR_MODE_SCALE:
+            case ED_TRANSFORM_OPERATOR_TRANSFORM_TYPE_TRANSLATE:
+            case ED_TRANSFORM_OPERATOR_TRANSFORM_TYPE_SCALE:
             {
-                event.operator.transform.type = data->mode;
+                event.operator.transform.type = data->transform_type;
 
                 vec3_t manipulator_cam_vec;
                 vec3_t_sub(&manipulator_cam_vec, &r_camera_matrix.rows[3].xyz, &operator_transform->rows[3].xyz);
@@ -917,7 +943,7 @@ uint32_t ed_ApplyOperatorState(struct ed_tool_context_t *context, void *state_da
                     }
                 }
 
-                if(data->mode == ED_TRANSFORM_OPERATOR_MODE_TRANSLATE)
+                if(data->transform_type == ED_TRANSFORM_OPERATOR_TRANSFORM_TYPE_TRANSLATE)
                 {
                     event.operator.transform.translation.translation = translation;
 
@@ -951,15 +977,20 @@ uint32_t ed_ApplyOperatorState(struct ed_tool_context_t *context, void *state_da
             }
             break;
 
-            case ED_TRANSFORM_OPERATOR_MODE_ROTATE:
+            case ED_TRANSFORM_OPERATOR_TRANSFORM_TYPE_ROTATE:
             {
-                event.operator.transform.type = ED_TRANSFORM_OPERATOR_MODE_ROTATE;
+                event.operator.transform.type = ED_TRANSFORM_OPERATOR_TRANSFORM_TYPE_ROTATE;
 
                 ed_CameraRay(mouse_x, mouse_y, &operator_transform->rows[3].xyz, &axis_vec, &intersection);
 
                 vec3_t manipulator_mouse_vec;
                 vec3_t_sub(&manipulator_mouse_vec, &intersection, &operator_transform->rows[3].xyz);
                 vec3_t_normalize(&manipulator_mouse_vec, &manipulator_mouse_vec);
+
+                mat3_t operator_orientation;
+                operator_orientation.rows[0] = operator_transform->rows[0].xyz;
+                operator_orientation.rows[1] = operator_transform->rows[1].xyz;
+                operator_orientation.rows[2] = operator_transform->rows[2].xyz;
 
                 if(just_changed)
                 {
@@ -969,6 +1000,7 @@ uint32_t ed_ApplyOperatorState(struct ed_tool_context_t *context, void *state_da
                 vec3_t angle_vec;
                 vec3_t_cross(&angle_vec, &manipulator_mouse_vec, &data->grab_offset);
                 float angle = asin(vec3_t_dot(&angle_vec, &axis_vec)) / 3.14159265;
+//                event.operator.transform.rotation.rotation = operator_orientation;
                 mat3_t_identity(&event.operator.transform.rotation.rotation);
 
                 if(data->angular_snap)
@@ -1006,6 +1038,13 @@ uint32_t ed_ApplyOperatorState(struct ed_tool_context_t *context, void *state_da
                         mat3_t_rotate_z(&event.operator.transform.rotation.rotation, angle);
                     break;
                 }
+
+//                mat3_t operator_orientation;
+//                operator_orientation.rows[0] = operator_transform->rows[0].xyz;
+//                operator_orientation.rows[1] = operator_transform->rows[1].xyz;
+//                operator_orientation.rows[2] = operator_transform->rows[2].xyz;
+
+//                mat3_t_mul(&event.operator.transform.rotation.rotation, &operator_orientation, &event.operator.transform.rotation.rotation);
 
             }
             break;
@@ -1103,7 +1142,7 @@ void ed_TranslateSelection(struct ed_obj_context_t *context, vec3_t *translation
         .operator = {
             .type = ED_OPERATOR_TRANSFORM,
             .transform = {
-                .type = ED_TRANSFORM_OPERATOR_MODE_TRANSLATE,
+                .type = ED_TRANSFORM_OPERATOR_TRANSFORM_TYPE_TRANSLATE,
                 .translation.translation = *translation
             }
         }
@@ -1129,7 +1168,7 @@ void ed_RotateSelection(struct ed_obj_context_t *context, mat3_t *rotation, uint
         .operator = {
             .type = ED_OPERATOR_TRANSFORM,
             .transform = {
-                .type = ED_TRANSFORM_OPERATOR_MODE_ROTATE,
+                .type = ED_TRANSFORM_OPERATOR_TRANSFORM_TYPE_ROTATE,
                 .rotation.rotation = *rotation
             }
         }

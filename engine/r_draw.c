@@ -103,6 +103,7 @@ extern int32_t r_width;
 extern int32_t r_height;
 extern uint32_t r_cluster_row_width;
 extern uint32_t r_cluster_rows;
+extern uint32_t r_max_parallax_samples;
 extern vec4_t r_clear_color;
 
 //extern uint32_t r_main_framebuffer;
@@ -121,6 +122,7 @@ extern uint32_t r_z_prepass_framebuffer;
 struct r_renderer_state_t r_renderer_state;
 uint32_t r_immediate_verts_offset = 0;
 uint32_t r_immediate_indices_offset = 0;
+extern uint32_t r_test_query;
 
 
 extern uint32_t r_uniform_type_sizes[];
@@ -360,23 +362,62 @@ void r_DrawBox(vec3_t *half_extents, vec4_t *color)
 {
 //    vec3_t min = vec3_t_c(-half_extents->x, -half_extents->y, -half_extents->z);
 //    vec3_t max = vec3_t_c(half_extents->x, half_extents->y, half_extents->z);
-//
+////
 //    struct r_vert_t verts[] = {
-//        {.pos = vec3_t_c(min.x, max.y, max.z), .color = *color}, {.pos = vec3_t_c(min.x, min.y, max.z), .color = *color},
-//        {.pos = vec3_t_c(max.x, max.y, max.z), .color = *color}, {.pos = vec3_t_c(max.x, min.y, max.z), .color = *color},
-//        {.pos = vec3_t_c(min.x, max.y, min.z), .color = *color}, {.pos = vec3_t_c(min.x, min.y, min.z), .color = *color},
-//        {.pos = vec3_t_c(max.x, max.y, min.z), .color = *color}, {.pos = vec3_t_c(max.x, min.y, min.z), .color = *color},
+//        {.pos = vec3_t_c(min.x, max.y, min.z), .color = *color},
+//        {.pos = vec3_t_c(min.x, max.y, max.z), .color = *color},
+//        {.pos = vec3_t_c(max.x, max.y, max.z), .color = *color},
+//        {.pos = vec3_t_c(max.x, max.y, min.z), .color = *color},
 //
-//        {.pos = vec3_t_c(min.x, max.y, max.z), .color = *color}, {.pos = vec3_t_c(max.x, max.y, max.z), .color = *color},
-//        {.pos = vec3_t_c(min.x, min.y, max.z), .color = *color}, {.pos = vec3_t_c(max.x, min.y, max.z), .color = *color},
-//        {.pos = vec3_t_c(min.x, max.y, min.z), .color = *color}, {.pos = vec3_t_c(max.x, max.y, min.z), .color = *color},
-//        {.pos = vec3_t_c(min.x, min.y, min.z), .color = *color}, {.pos = vec3_t_c(max.x, min.y, min.z), .color = *color},
+//        {.pos = vec3_t_c(min.x, min.y, min.z), .color = *color},
+//        {.pos = vec3_t_c(min.x, min.y, max.z), .color = *color},
+//        {.pos = vec3_t_c(max.x, min.y, max.z), .color = *color},
+//        {.pos = vec3_t_c(max.x, min.y, min.z), .color = *color},
+////        {.pos = vec3_t_c(min.x, max.y, max.z), .color = *color}, {.pos = vec3_t_c(min.x, min.y, max.z), .color = *color},
+////        {.pos = vec3_t_c(max.x, max.y, max.z), .color = *color}, {.pos = vec3_t_c(max.x, min.y, max.z), .color = *color},
+////        {.pos = vec3_t_c(min.x, max.y, min.z), .color = *color}, {.pos = vec3_t_c(min.x, min.y, min.z), .color = *color},
+////        {.pos = vec3_t_c(max.x, max.y, min.z), .color = *color}, {.pos = vec3_t_c(max.x, min.y, min.z), .color = *color},
+////
+////        {.pos = vec3_t_c(min.x, max.y, max.z), .color = *color}, {.pos = vec3_t_c(max.x, max.y, max.z), .color = *color},
+////        {.pos = vec3_t_c(min.x, min.y, max.z), .color = *color}, {.pos = vec3_t_c(max.x, min.y, max.z), .color = *color},
+////        {.pos = vec3_t_c(min.x, max.y, min.z), .color = *color}, {.pos = vec3_t_c(max.x, max.y, min.z), .color = *color},
+////        {.pos = vec3_t_c(min.x, min.y, min.z), .color = *color}, {.pos = vec3_t_c(max.x, min.y, min.z), .color = *color},
 //
-//        {.pos = vec3_t_c(min.x, max.y, max.z), .color = *color}, {.pos = vec3_t_c(min.x, max.y, min.z), .color = *color},
-//        {.pos = vec3_t_c(min.x, min.y, max.z), .color = *color}, {.pos = vec3_t_c(min.x, min.y, min.z), .color = *color},
-//        {.pos = vec3_t_c(max.x, max.y, max.z), .color = *color}, {.pos = vec3_t_c(max.x, max.y, min.z), .color = *color},
-//        {.pos = vec3_t_c(max.x, min.y, max.z), .color = *color}, {.pos = vec3_t_c(max.x, min.y, min.z), .color = *color},
+////        {.pos = vec3_t_c(min.x, max.y, max.z), .color = *color}, {.pos = vec3_t_c(min.x, max.y, min.z), .color = *color},
+////        {.pos = vec3_t_c(min.x, min.y, max.z), .color = *color}, {.pos = vec3_t_c(min.x, min.y, min.z), .color = *color},
+////        {.pos = vec3_t_c(max.x, max.y, max.z), .color = *color}, {.pos = vec3_t_c(max.x, max.y, min.z), .color = *color},
+////        {.pos = vec3_t_c(max.x, min.y, max.z), .color = *color}, {.pos = vec3_t_c(max.x, min.y, min.z), .color = *color},
 //    };
+//
+//    uint32_t indices[] = {
+//        0, 1,
+//        1, 2,
+//        2, 3,
+//        3, 0,
+//
+//        4, 5,
+//        5, 6,
+//        6, 7,
+//        7, 4,
+//
+//        0, 4,
+//        1, 5,
+//        2, 6,
+//        3, 7
+//    };
+//
+//    struct r_i_draw_list_t *draw_list = r_i_AllocDrawList(NULL, 1);
+//    draw_list->mesh = r_i_AllocMesh(NULL, sizeof(struct r_vert_t), 8, 24);
+//    memcpy(draw_list->mesh->verts.verts, verts, sizeof(verts));
+//    memcpy(draw_list->mesh->indices.indices, indices, sizeof(indices));
+//    draw_list->ranges[0].count = 24;
+//    draw_list->ranges[0].start = 0;
+//    draw_list->indexed = 1;
+//    draw_list->mode = GL_LINES;
+//
+//    r_i_DrawList(NULL, draw_list);
+
+
 //
 //    uint32_t first_vert = R_IMMEDIATE_VERTEX_BUFFER_OFFSET / sizeof(struct r_vert_t);
 //
@@ -738,6 +779,7 @@ void r_DrawFrame()
     r_SetDefaultUniformI(R_UNIFORM_TEX_CLUSTERS, R_CLUSTERS_TEX_UNIT);
     r_SetDefaultUniformI(R_UNIFORM_TEX_SHADOW_ATLAS, R_SHADOW_ATLAS_TEX_UNIT);
     r_SetDefaultUniformI(R_UNIFORM_TEX_INDIRECT, R_INDIRECT_TEX_UNIT);
+    r_SetDefaultUniformI(R_UNIFORM_MAX_PARALLAX_SAMPLES, r_max_parallax_samples);
     r_SetDefaultUniformMat4(R_UNIFORM_CAMERA_MATRIX, &r_camera_matrix);
     r_SetDefaultUniformVec2(R_UNIFORM_POINT_PROJ_PARAMS, &r_point_shadow_projection_params);
     r_SetDefaultUniformMat4(R_UNIFORM_MODEL_VIEW_PROJECTION_MATRIX, &r_view_projection_matrix);
@@ -771,11 +813,32 @@ void r_DrawFrame()
             r_BindMaterial(current_material);
         }
 
+//        if(cmd_index == 0)
+//        {
+//            glBeginQuery(GL_ANY_SAMPLES_PASSED, r_test_query);
+//        }
+
+        /* TODO: precompute this matrix */
         mat4_t_mul(&model_view_projection_matrix, &cmd->model_view_matrix, &r_projection_matrix);
         r_SetDefaultUniformMat4(R_UNIFORM_MODEL_VIEW_PROJECTION_MATRIX, &model_view_projection_matrix);
         r_SetDefaultUniformMat4(R_UNIFORM_MODEL_VIEW_MATRIX, &cmd->model_view_matrix);
         glDrawElements(GL_TRIANGLES, cmd->count, GL_UNSIGNED_INT, (void *)(cmd->start * sizeof(uint32_t)));
         r_renderer_state.draw_call_count++;
+
+//        if(cmd_index == 0)
+//        {
+//            glEndQuery(GL_ANY_SAMPLES_PASSED);
+//            int32_t result;
+//            glGetQueryObjectiv(r_test_query, GL_QUERY_RESULT, &result);
+//            if(!result)
+//            {
+//                printf("first object is occluded\n");
+//            }
+//            else
+//            {
+//                printf("first object is not occluded\n");
+//            }
+//        }
     }
 //    glDepthMask(GL_TRUE);
 //    glDepthFunc(GL_LESS);

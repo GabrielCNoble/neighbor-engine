@@ -688,12 +688,89 @@ void r_VisibleLights()
 
 void r_VisibleEntities()
 {
+    vec4_t frustum_planes[5];
+    float extents[5];
+
+    /* -X */
+    frustum_planes[0].x = r_view_projection_matrix.rows[0].w + r_view_projection_matrix.rows[0].x;
+    frustum_planes[0].y = r_view_projection_matrix.rows[1].w + r_view_projection_matrix.rows[1].x;
+    frustum_planes[0].z = r_view_projection_matrix.rows[2].w + r_view_projection_matrix.rows[2].x;
+    frustum_planes[0].w = r_view_projection_matrix.rows[3].w + r_view_projection_matrix.rows[3].x;
+    /* +X */
+    frustum_planes[1].x = r_view_projection_matrix.rows[0].w - r_view_projection_matrix.rows[0].x;
+    frustum_planes[1].y = r_view_projection_matrix.rows[1].w - r_view_projection_matrix.rows[1].x;
+    frustum_planes[1].z = r_view_projection_matrix.rows[2].w - r_view_projection_matrix.rows[2].x;
+    frustum_planes[1].w = r_view_projection_matrix.rows[3].w - r_view_projection_matrix.rows[3].x;
+    /* +Y */
+    frustum_planes[2].x = r_view_projection_matrix.rows[0].w + r_view_projection_matrix.rows[0].y;
+    frustum_planes[2].y = r_view_projection_matrix.rows[1].w + r_view_projection_matrix.rows[1].y;
+    frustum_planes[2].z = r_view_projection_matrix.rows[2].w + r_view_projection_matrix.rows[2].y;
+    frustum_planes[2].w = r_view_projection_matrix.rows[3].w + r_view_projection_matrix.rows[3].y;
+    /* -Y */
+    frustum_planes[3].x = r_view_projection_matrix.rows[0].w - r_view_projection_matrix.rows[0].y;
+    frustum_planes[3].y = r_view_projection_matrix.rows[1].w - r_view_projection_matrix.rows[1].y;
+    frustum_planes[3].z = r_view_projection_matrix.rows[2].w - r_view_projection_matrix.rows[2].y;
+    frustum_planes[3].w = r_view_projection_matrix.rows[3].w - r_view_projection_matrix.rows[3].y;
+    /* near */
+    frustum_planes[4].x = r_view_projection_matrix.rows[0].w + r_view_projection_matrix.rows[0].z;
+    frustum_planes[4].y = r_view_projection_matrix.rows[1].w + r_view_projection_matrix.rows[1].z;
+    frustum_planes[4].z = r_view_projection_matrix.rows[2].w + r_view_projection_matrix.rows[2].z;
+    frustum_planes[4].w = r_view_projection_matrix.rows[3].w + r_view_projection_matrix.rows[3].z;
+    /* far (waaaay out of reach) */
+//    frustum_planes[5].x = r_view_projection_matrix.rows[0].w - r_view_projection_matrix.rows[0].z;
+//    frustum_planes[5].y = r_view_projection_matrix.rows[1].w - r_view_projection_matrix.rows[1].z;
+//    frustum_planes[5].z = r_view_projection_matrix.rows[2].w - r_view_projection_matrix.rows[2].z;
+//    frustum_planes[5].w = r_view_projection_matrix.rows[3].w - r_view_projection_matrix.rows[3].z;
+
+    for(uint32_t index = 0; index < 5; index++)
+    {
+        vec3_t_normalize(&frustum_planes[index].xyz, &frustum_planes[index].xyz);
+    }
+
     for(uint32_t model_index = 0; model_index < e_components[E_COMPONENT_TYPE_MODEL].cursor; model_index++)
     {
         struct e_model_t *model = (struct e_model_t *)e_GetComponent(E_COMPONENT_TYPE_MODEL, model_index);
         struct e_transform_t *transform = model->entity->transform;
+        vec3_t half_extents;
+        vec3_t center;
+        vec3_t_mul(&half_extents, &model->extents, 0.5);
+        vec3_t_add(&center, &transform->transform.rows[3].xyz, &model->center);
 
-        r_DrawEntity(&transform->transform, transform->entity->model->model);
+        vec3_t plane_entity_vec;
+        vec3_t_sub(&plane_entity_vec, &center, &r_camera_matrix.rows[3].xyz);
+
+        uint32_t plane_index;
+        for(plane_index = 0; plane_index < 5; plane_index++)
+        {
+            float proj = vec3_t_dot(&plane_entity_vec, &frustum_planes[plane_index].xyz);
+            vec3_t abs_normal;
+            vec3_t_fabs(&abs_normal, &frustum_planes[plane_index].xyz);
+
+            float radius = vec3_t_dot(&half_extents, &abs_normal);
+            extents[plane_index] = fmaxf(proj, 0);
+
+            if(proj < -radius)
+            {
+                break;
+            }
+        }
+
+        if(plane_index == 5)
+        {
+//            float z = (extents[4] * r_projection_matrix.rows[2].x +
+//                       extents[4] * r_projection_matrix.rows[2].y +
+//                       extents[4] * r_projection_matrix.rows[2].z +
+//                       extents[4] * r_projection_matrix.rows[2].w);
+//
+//            extents[0] = (extents[0] * r_projection_matrix.rows[0].x +
+//                          extents[0] * r_projection_matrix.rows[0].y +
+//                          extents[0] * r_projection_matrix.rows[0].z +
+//                          extents[0] * r_projection_matrix.rows[0].w) / z;
+//            extents[1] = (extents[1] * r_projection_matrix.rows[1].y) / extents[4];
+//
+//            printf("%f %f\n", extents[0], extents[1]);
+            r_DrawEntity(&transform->transform, transform->entity->model->model);
+        }
     }
 }
 
@@ -721,7 +798,7 @@ void r_VisibleEntitiesOnLights()
 
                 for(uint32_t entity_index = 0; entity_index < e_components[E_COMPONENT_TYPE_MODEL].cursor; entity_index++)
                 {
-                    struct e_model_t *model = e_GetComponent(E_COMPONENT_TYPE_MODEL, entity_index);
+                    struct e_model_t *model = (struct e_model_t *)e_GetComponent(E_COMPONENT_TYPE_MODEL, entity_index);
                     struct e_entity_t *entity = model->entity;
                     struct e_transform_t *transform = entity->transform;
 

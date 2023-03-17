@@ -103,7 +103,7 @@ extern int32_t r_width;
 extern int32_t r_height;
 extern uint32_t r_cluster_row_width;
 extern uint32_t r_cluster_rows;
-extern uint32_t r_max_parallax_samples;
+extern uint32_t r_parallax_samples;
 extern vec4_t r_clear_color;
 
 //extern uint32_t r_main_framebuffer;
@@ -779,7 +779,7 @@ void r_DrawFrame()
     r_SetDefaultUniformI(R_UNIFORM_TEX_CLUSTERS, R_CLUSTERS_TEX_UNIT);
     r_SetDefaultUniformI(R_UNIFORM_TEX_SHADOW_ATLAS, R_SHADOW_ATLAS_TEX_UNIT);
     r_SetDefaultUniformI(R_UNIFORM_TEX_INDIRECT, R_INDIRECT_TEX_UNIT);
-    r_SetDefaultUniformI(R_UNIFORM_MAX_PARALLAX_SAMPLES, r_max_parallax_samples);
+    r_SetDefaultUniformI(R_UNIFORM_PARALLAX_SAMPLES, r_parallax_samples);
     r_SetDefaultUniformMat4(R_UNIFORM_CAMERA_MATRIX, &r_camera_matrix);
     r_SetDefaultUniformVec2(R_UNIFORM_POINT_PROJ_PARAMS, &r_point_shadow_projection_params);
     r_SetDefaultUniformMat4(R_UNIFORM_MODEL_VIEW_PROJECTION_MATRIX, &r_view_projection_matrix);

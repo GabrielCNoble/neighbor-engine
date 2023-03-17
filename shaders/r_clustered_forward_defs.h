@@ -12,6 +12,8 @@
 #define R_CLUSTER_MAX_Y (R_CLUSTER_ROWS - 1)
 #define R_CLUSTER_MAX_Z (R_CLUSTER_SLICES - 1)
 
+#define R_MIN_PARALLAX_SAMPLES 2
+
 uniform float       r_cluster_denom;
 uniform sampler2D   r_tex_albedo;
 uniform sampler2D   r_tex_normal;
@@ -19,7 +21,8 @@ uniform sampler2D   r_tex_metalness;
 uniform sampler2D   r_tex_roughness;
 uniform sampler2D   r_tex_height;
 uniform usampler3D  r_tex_clusters;
-uniform int         r_max_parallax_samples;
+uniform int         r_parallax_samples;
+uniform float       r_parallax_scale;
 
 ivec3 get_cluster_coord(float x_coord, float y_coord, float z_coord)
 {
@@ -180,14 +183,14 @@ vec4 r_pixel_albedo(vec2 tex_coords)
 
 vec3 r_pixel_normal(vec2 tex_coords)
 {
-    vec3 normal = normalize(texture(r_tex_normal, tex_coords.xy).rgb * 2.0 - vec3(1.0));
+    return normalize(texture(r_tex_normal, tex_coords.xy).rgb * 2.0 - vec3(1.0));
 
-    mat3 tbn;
-    tbn[0] = normalize(r_var_tangent);
-    tbn[2] = normalize(r_var_normal);
-    tbn[1] = cross(tbn[0], tbn[2]);
-
-    return normalize(tbn * normal);
+//    mat3 tbn;
+//    tbn[0] = normalize(r_var_tangent);
+//    tbn[2] = normalize(r_var_normal);
+//    tbn[1] = cross(tbn[0], tbn[2]);
+//
+//    return normalize(tbn * normal);
 }
 
 float r_pixel_roughness(vec2 tex_coords)

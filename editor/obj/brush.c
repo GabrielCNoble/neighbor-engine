@@ -75,15 +75,22 @@ vec3_t ed_cube_brush_tangents[] =
     vec3_t_c(0.0, 0.0, 1.0),
     vec3_t_c(0.0, 0.0, -1.0),
     vec3_t_c(1.0, 0.0, 0.0),
-    vec3_t_c(1.0, 0.0, 0.0),
+    vec3_t_c(-1.0, 0.0, 0.0),
 };
 
 vec2_t ed_cube_brush_tex_coords[] = {
-    vec2_t_c(0.0, 0.0),
-    vec2_t_c(1.0, 0.0),
     vec2_t_c(1.0, 1.0),
+    vec2_t_c(1.0, 0.0),
+    vec2_t_c(0.0, 0.0),
     vec2_t_c(0.0, 1.0),
 };
+
+//vec2_t ed_cube_brush_tex_coords[] = {
+//    vec2_t_c(0.0, 0.0),
+//    vec2_t_c(1.0, 0.0),
+//    vec2_t_c(1.0, 1.0),
+//    vec2_t_c(0.0, 1.0),
+//};
 
 char *ed_brush_element_names[] = {
     [ED_BRUSH_ELEMENT_FACE] = "Face",
@@ -632,7 +639,7 @@ struct ed_brush_t *ed_CreateBrush(vec3_t *position, mat3_t *orientation, vec3_t 
         struct ed_face_t *face = ed_AllocFace(brush);
 
         face->material = ed_GetBrushMaterial(r_GetDefaultMaterial());
-        face->tex_coords_scale = vec2_t_c(1.0, 1.0);
+        face->tex_coords_scale = vec2_t_c(1, 1);
         face->tex_coords_rot = 0.0;
         face->orientation = ed_cube_brush_face_orientations[face_index];
 
@@ -907,6 +914,8 @@ struct ed_face_t *ed_AllocFace(struct ed_brush_t *brush)
     face->prev = NULL;
     face->material = NULL;
     face->brush = brush;
+    face->tex_coords_mode = ED_FACE_TEX_COORDS_MODE_FIXED_LOCAL;
+//    face->center_offset = vec3_t_c(0.0, 0.0, 0.0);
 //    face->object = NULL;
     face->selection_index = 0xffffffff;
 
@@ -1936,17 +1945,46 @@ void ed_UpdateBrush(struct ed_brush_t *brush)
             struct ed_face_edge_t *face_edge = face->edges;
             uint32_t side = face_edge->edge->faces[1].face == face;
 
+            vec3_t bitangent;
+            vec3_t_cross(&bitangent, &face->tangent, &face->normal);
+
+            struct ed_vert_t *first_vert = face_edge->edge->verts[side].vert;
+
+
             for(uint32_t vert_index = 0; vert_index < face->edge_count; vert_index++)
             {
                 struct ed_vert_t *brush_vert = face_edge->edge->verts[side].vert;
                 struct r_vert_t *model_vert = vertices + face_vert_start + vert_index;
 
                 model_vert->pos = brush_vert->vert;
-//                printf("%p - %f %f %f\n", brush_vert, brush_vert->vert.x, brush_vert->vert.y, brush_vert->vert.z);
                 model_vert->normal.xyz = face->normal;
                 model_vert->normal.w = 0.0;
                 model_vert->tangent = face->tangent;
-                model_vert->tex_coords = ed_cube_brush_tex_coords[vert_index % 4];
+
+                vec3_t uv_vec = brush_vert->vert;
+//                vec3_t_sub(&uv_vec, &brush_vert->vert, &face->center);
+
+                switch(face->tex_coords_mode)
+                {
+                    case ED_FACE_TEX_COORDS_MODE_FIXED_LOCAL:
+                        vec3_t_add(&uv_vec, &uv_vec, &brush->position);
+                        model_vert->tex_coords.x = vec3_t_dot(&uv_vec, &face->tangent);
+                        model_vert->tex_coords.y = vec3_t_dot(&uv_vec, &bitangent);
+                    break;
+
+                    case ED_FACE_TEX_COORDS_MODE_FIXED_WORLD:
+                    break;
+
+                    case ED_FACE_TEX_COORDS_MODE_STRECH:
+
+                    break;
+                }
+
+                model_vert->tex_coords.x *= face->tex_coords_scale.x;
+                model_vert->tex_coords.y *= face->tex_coords_scale.y;
+
+
+//                model_vert->tex_coords = ed_cube_brush_tex_coords[vert_index % 4];
 
                 if(geometry.min.x > brush_vert->vert.x) geometry.min.x = brush_vert->vert.x;
                 if(geometry.min.y > brush_vert->vert.y) geometry.min.y = brush_vert->vert.y;

@@ -85,6 +85,13 @@ enum ED_FACE_FLAGS
     ED_FACE_FLAG_MATERIAL_MODIFIED = 1 << 1,
 };
 
+enum ED_FACE_TEX_COORDS_MODES
+{
+    ED_FACE_TEX_COORDS_MODE_FIXED_LOCAL = 0,
+    ED_FACE_TEX_COORDS_MODE_FIXED_WORLD,
+    ED_FACE_TEX_COORDS_MODE_STRECH
+};
+
 struct ed_face_t
 {
     struct ed_face_t *              next;
@@ -104,6 +111,9 @@ struct ed_face_t
     vec3_t                          normal;
     vec3_t                          tangent;
     vec3_t                          center;
+    /* used to keep texture coords generation consistent when the face edges
+    get moved around */
+//    vec3_t                          center_offset;
     vec3_t                          center_uv;
 
     uint32_t                        first_index;
@@ -122,6 +132,7 @@ struct ed_face_t
     uint32_t                        flags;
 
 //    vec3_t center;
+    uint32_t                        tex_coords_mode;
     vec2_t                          tex_coords_scale;
     float                           tex_coords_rot;
 };

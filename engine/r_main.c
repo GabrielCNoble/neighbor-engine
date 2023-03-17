@@ -152,7 +152,7 @@ float r_z_near = 0.1;
 float r_z_far = 1000.0;
 float r_denom = 0.0;
 float r_fov = 0.68;
-uint32_t r_max_parallax_samples = 8;
+uint32_t r_parallax_samples = 8;
 
 //struct r_named_uniform_t r_default_uniforms[] =
 //{
@@ -543,12 +543,13 @@ void r_Init()
 
     r_default_height_texture = r_CreateTexture("default_height", &texture_desc, height_pixels);
 
-    r_default_albedo_texture = r_LoadTexture("textures/flat-cobble-moss-albedo.png");
-    r_default_normal_texture = r_LoadTexture("textures/flat-cobble-moss-normal-ogl.png");
-    r_default_roughness_texture = r_LoadTexture("textures/flat-cobble-moss-roughness.png");
-    r_default_height_texture = r_LoadTexture("textures/flat-cobble-moss-height.png");
+//    r_default_albedo_texture = r_LoadTexture("textures/flat-cobble-moss-albedo.png");
+//    r_default_normal_texture = r_LoadTexture("textures/flat-cobble-moss-normal-ogl.png");
+//    r_default_roughness_texture = r_LoadTexture("textures/flat-cobble-moss-roughness.png");
+//    r_default_height_texture = r_LoadTexture("textures/flat-cobble-moss-height.png");
 
     r_default_material = r_CreateMaterial("default", NULL, NULL, NULL);
+    r_default_material->parallax_scale = 0.0;
 
     r_clusters = mem_Calloc(R_CLUSTER_COUNT, sizeof(struct r_cluster_t));
     r_point_light_buffer = mem_Calloc(R_MAX_LIGHTS, sizeof(struct r_point_data_t));
@@ -1985,6 +1986,8 @@ void r_BindMaterial(struct r_material_t *material)
 
         r_BindTexture(material->height_texture, GL_TEXTURE0 + R_HEIGHT_TEX_UNIT);
         r_SetDefaultUniformI(R_UNIFORM_TEX_HEIGHT, R_HEIGHT_TEX_UNIT);
+
+        r_SetDefaultUniformF(R_UNIFORM_PARALLAX_SCALE, material->parallax_scale);
     }
 }
 

@@ -1278,6 +1278,8 @@ void ed_l_MaterialUI()
 
                 igEndCombo();
             }
+
+            igSliderFloat("Parallax scale", &ed_l_selected_material->parallax_scale, 0.0, 1.0, "%f", 0);
         }
     }
     igEndChild();

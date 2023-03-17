@@ -96,12 +96,15 @@ struct r_texture_t
     char                        name[64];
 };
 
+#define R_MIN_PARALLAX_SAMPLES 2
+#define R_MAX_PARALLAX_SAMPLES 64
 struct r_material_t
 {
     struct r_texture_t         *diffuse_texture;
     struct r_texture_t         *normal_texture;
     struct r_texture_t         *roughness_texture;
     struct r_texture_t         *height_texture;
+    float                       parallax_scale;
     uint32_t                    index;
     uint32_t                    s_index;
     char                        name[64];
@@ -243,7 +246,8 @@ enum R_UNIFORM
     R_UNIFORM_WIDTH,
     R_UNIFORM_HEIGHT,
 //    R_UNIFORM_MIN_PARALLAX_SAMPLES,
-    R_UNIFORM_MAX_PARALLAX_SAMPLES,
+    R_UNIFORM_PARALLAX_SAMPLES,
+    R_UNIFORM_PARALLAX_SCALE,
     R_UNIFORM_LAST,
 };
 
@@ -371,9 +375,13 @@ struct r_uniform_t
                                     .type = R_UNIFORM_TYPE_INT,                                         \
                                     .name = "r_height"                                                  \
                                 },                                                                      \
-                                [R_UNIFORM_MAX_PARALLAX_SAMPLES] = (struct r_uniform_t){                \
+                                [R_UNIFORM_PARALLAX_SAMPLES] = (struct r_uniform_t){                    \
                                     .type = R_UNIFORM_TYPE_INT,                                         \
-                                    .name = "r_max_parallax_samples"                                    \
+                                    .name = "r_parallax_samples"                                        \
+                                },                                                                      \
+                                [R_UNIFORM_PARALLAX_SCALE] = (struct r_uniform_t){                      \
+                                    .type = R_UNIFORM_TYPE_FLOAT,                                       \
+                                    .name = "r_parallax_scale"                                          \
                                 }})                                                                     \
 
 struct r_shader_desc_t

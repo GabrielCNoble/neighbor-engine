@@ -47,7 +47,7 @@ extern uint32_t r_vertex_buffer;
 extern uint32_t r_index_buffer;
 extern struct ds_slist_t r_lights[];
 extern uint32_t r_prev_draw_call_count;
-extern uint32_t r_max_parallax_samples;
+extern uint32_t r_parallax_samples;
 
 extern struct r_renderer_state_t r_renderer_state;
 struct ed_explorer_state_t ed_explorer_state;
@@ -267,7 +267,7 @@ void ed_UpdateEditor()
                 igCheckbox("Draw entity AABBs", &r_renderer_state.draw_entities);
                 igCheckbox("Draw physics", &r_renderer_state.draw_colliders);
 
-                igSliderInt("Parallax samples", &r_max_parallax_samples, 0, 32, "%d", 0);
+                igSliderInt("Parallax samples", &r_parallax_samples, R_MIN_PARALLAX_SAMPLES, R_MAX_PARALLAX_SAMPLES, "%d", 0);
             }
             igEnd();
         }

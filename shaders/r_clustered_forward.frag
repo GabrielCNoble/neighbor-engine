@@ -2,44 +2,41 @@
 #include "r_clustered_forward_defs.h"
 
 //#define R_PARALLAX_SAMPLE_COUNT 8
-#define R_PARALLAX_MIN_SAMPLE_COUNT 2
-#define R_PARALLAX_MAX_SAMPLE_COUNT 32
+
 void main()
 {
     vec3 view_vec = normalize(-r_var_position);
 
-//    vec2 tex_coords = r_pixel_tex_coords();
-//    r_tex_coords = r_var_tex_coords;
     vec3 surface_normal = normalize(r_var_normal);
     vec3 surface_tangent = normalize(r_var_tangent);
-//    vec3 poff_b = cross(surface_normal, normalize(view_vec));
-//    vec3 poff = cross(surface_normal, poff_b);
 
     mat3 tbn;
     tbn[0] = surface_tangent;
     tbn[2] = surface_normal;
-    tbn[1] = (cross(tbn[2], tbn[0]));
+    tbn[1] = (cross(tbn[0], tbn[2]));
 
-    tbn = transpose(tbn);
+//    mat3 tbn_t = transpose(tbn);
 
-    vec3 tangent_view_vec = tbn * view_vec;
-    vec3 tangent_normal = tbn * surface_normal;
-//    vec3 tangent_tangent = tbn * surface_tangent;
-//    vec3 tangent_binormal = cross(tangent_tangent, tangent_normal);
-//    vec3 poff_b = cross(tangent_normal, tangent_view_vec);
-//    vec3 poff = cross(tangent_normal, poff_b);
+    /* parallax occlusion mapping, based on the implementation described in ShaderX3 */
+
+    vec3 tangent_view_vec = view_vec * tbn;
+    vec3 tangent_normal = surface_normal * tbn;
 
     vec2 poff = normalize(tangent_view_vec.xy);
+
+    /* NOTE: not really sure why, but I need to add this for POM to look correct. Swapping which vectors
+    are used to generate the y axis of the tbn moves the problem to the the normal mapping code. Not sure
+    where I'm screwing up, but this will do for now. */
+    poff.y = -poff.y;
     float plen = -(sqrt(1.0 - tangent_view_vec.z * tangent_view_vec.z) / tangent_view_vec.z);
-    vec2 parallax_offset_vec = -poff * plen  * 0.02;
+    vec2 parallax_offset_vec = -poff * plen  * r_parallax_scale;
 
     float x;
     float y;
     float xh;
     float yh;
 
-
-    int sample_count = R_PARALLAX_MIN_SAMPLE_COUNT + int((1 - dot(tangent_view_vec, tangent_normal)) * r_max_parallax_samples);
+    int sample_count = R_MIN_PARALLAX_SAMPLES + int((1 - dot(tangent_view_vec, tangent_normal)) * (r_parallax_samples - R_MIN_PARALLAX_SAMPLES));
     float height_step = 1.0 / float(sample_count);
     float cur_view_height = 1.0;
     float cur_parallax_offset = height_step;
@@ -95,6 +92,7 @@ void main()
     float roughness = r_pixel_roughness(tex_coords);
     float metalness = r_pixel_metalness(tex_coords);
     uvec4 cluster = r_pixel_cluster();
+    normal = tbn * normal;
 
     vec3 color = vec3(0.0);
     albedo /= 3.14159265;

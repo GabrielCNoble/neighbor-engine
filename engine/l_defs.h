@@ -228,6 +228,21 @@ struct l_batch_record_t
 //    float yaw;
 //};
 
+//enum L_RESOURCE_TYPES
+//{
+//    L_RESOURCE_TYPE_MATERIAL,
+//    L_RESOURCE_TYPE_TEXTURE,
+//    L_RESOURCE_TYPE_SOUND,
+//    L_RESOURCE_TYPE_MODEL,
+//};
+//
+//struct l_resource_t
+//{
+//    uint32_t        type;
+//    uint32_t        ref_count;
+//    void *          resource;
+//};
+
 struct l_level_t
 {
     uint32_t index;
